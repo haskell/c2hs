@@ -43,6 +43,9 @@ dnl
 dnl Test for version of installed ghc.  Uses $GHC.
 dnl [original version pinched from c2hs]
 dnl
+dnl NB: Don't use `+' in sed regexps; Jonas Svensson reports problems with it
+dnl     on Solaris 8.
+dnl
 AC_DEFUN(CTK_GHC_VERSION,
 [define([CTK_CV_GHC_VERSION], [ctk_cv_ghc_version])dnl
 AC_CACHE_CHECK([version of ghc], CTK_CV_GHC_VERSION, [dnl
@@ -50,7 +53,7 @@ ${GHC-ghc} --version > conftestghc 2>&1
   cat conftestghc >&AC_FD_CC
 dnl `Useless Use Of cat' award...
 changequote(<<, >>)dnl
-  CTK_CV_GHC_VERSION=`cat conftestghc | sed -n -e 's/, patchlevel *\([0-9]\)/.\1/;s/.* version \([0-9.]\+\).*/\1/p'`
+  CTK_CV_GHC_VERSION=`cat conftestghc | sed -n -e 's/, patchlevel *\([0-9]\)/.\1/;s/.* version \([0-9.][0-9.]*\).*/\1/p'`
 changequote([, ])dnl
   rm -fr conftest*
   if test "[$]CTK_CV_GHC_VERSION" = ""
