@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 24 October 1997
 #
-#  Version $Revision: 1.17 $ from $Date: 2003/10/19 07:07:48 $
+#  Version $Revision: 1.18 $ from $Date: 2003/10/19 10:45:27 $
 #
 #  Copyright (c) [1997..2003] Manuel M T Chakravarty
 #
@@ -110,13 +110,16 @@ else
 	@exit 1
 endif
 	$(RM) SysDepPosix.hs
-ifeq (posix,$(findstring posix,$(SYSFEATURES)))
-	$(LN) -s SysDepPosixAVAIL.hs SysDepPosix.hs
-	@echo "*** Configured for use of HSLibs posix package."
-else
+# Posix (and hence, `runPiped') support disabled, as `runPiped' (1) isn't
+# really used at the moment, (2) should be rewritten anyway, and (3) breaks 
+# with GHC 6.3 as the signature of `forkProcess' changed.
+#ifeq (posix,$(findstring posix,$(SYSFEATURES)))
+#	$(LN) -s SysDepPosixAVAIL.hs SysDepPosix.hs
+#	@echo "*** Configured for use of HSLibs posix package."
+#else
 	$(LN) -s SysDepPosixUNAVAIL.hs SysDepPosix.hs
-	@echo "*** Configured WITHOUT HSLibs posix package."
-endif
+#	@echo "*** Configured WITHOUT HSLibs posix package."
+#endif
 
 # Configured?
 #
