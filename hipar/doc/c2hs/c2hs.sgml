@@ -363,15 +363,13 @@ argument.  For example, we may have
 {#set sockaddr_in.sin_family#} addr_in (cFromEnum AF_NET)
 </tscreen>
 
-<sect1>Alias Hooks
+<sect1>Pointer Hooks
 <p>
 <tscreen>
-{#alias <it/cid/ [as <it/hsid/] [foreign | stable]#}
+{#pointer [*] <it/cid/ [as <it/hsid/] [foreign | stable] [newtype | -&gt; <it/hsid2/]#}
 </tscreen>
 <p>
-Alias hooks introduce a C type <it/cid/ (or a pointer to a C type) into
-Haskell (possibly with a different name, namely <it/hsid/).
-
+FIXME: add a proper descirption here
 
 <sect1>Grammar Rules
 <p>
@@ -483,11 +481,12 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.9.0 "Blue Ginger"
+<sect1>Version 0.9.1 "Blue Ginger"
 <p>
 <itemize>
 <item>The documentation includes a description of binding hooks
-<item>Integrated <tt/alias/ hooks, which were contributed by Axel Simon
+<item>Added <tt/pointer/ hooks, which were derived from code for a similar
+feature by Axel Simon; this includes proper treatment of parametrised pointers
 <item>Integrated <tt/deriving/ option for <tt/enum/ hooks, which was
 contributed by Axel Simon 
 <item>Adapted to GHC 5.0

@@ -4,11 +4,7 @@
 
 Next: -= phase re-ordering & parser clean up =-
 
-      - GenBind.showExtType' doesn't work properly for `PtrET CHSFunctionPtr
-        ..'; bug can be reproduced by the `Calls' test (check the type
-        assigned to `MyStringT')
-
-      - gen/CInfo.hs: should be using `FunPtr' with compilers that have it
+      - docu for pointer hooks missed
 
       - Idea from Alastair: To make life easier for people who want to
         distribute tools including c2hs-generated code, it would be good to
