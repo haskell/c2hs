@@ -41,6 +41,9 @@ A few of the more important ones:
 
 *  --enable-prof           enable profiling support
 
+*  --enable-add-package    resgister any generated libraries as a package with
+			   the Haskell compiler (currently, a GHC only feature)
+
 *  --with-hc=HC            use Haskell compiler HC
 
 This needs to be the full path to the compiler executable.

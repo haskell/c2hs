@@ -93,6 +93,21 @@ In the <tt/INSTALL/ file, there are more details.
 
 Optionally, you can build the documentation by issuing <tt/make doc/.
 
+<sect1>Packages
+<p>
+If you are using GHC, you may want to register C-&gt;Haskell's support
+libraries as a package.  This can be achieved in two ways.  Firstly, if you
+pass the option <tt/--enable-add-package/ to <tt/configure/, the build system
+will register the package for you when you execute <tt/make install/.
+Alternatively, the configuration oracle <tt/c2hs-conf/, which is installed as
+part of the C-&gt;Haskell distribution, produces a package configuration
+suitable for the package tool <tt/ghc-pkg/ when given the option
+<tt/--package-conf/.  In short, you can register the libraries after
+installation by invoking
+<p>
+<tscreen><verb>
+c2hs-conf --package-conf | ghc-pkg --add-package
+</verb/</tscreen>
 
 <sect>Usage of C-&gt;Haskell
 <p>
@@ -196,6 +211,11 @@ like the following to compile a generated library module:
 <p>
 The backquotes cause the shell to call <tt/c2hs-config/ and substitute the
 call by the flags returned.  This, of course, also works in a makefile.
+<p>
+As an alternative, if you have registered C-&gt;Haskell's support libraries
+with GHC's package manager, you do not need to use <tt/c2hs-config/, but
+instead, you can simply pass the option <tt/-package c2hs/ to GHC (both when
+compiling and when linking).
 
 Furthermore, <tt/c2hs-config/ can also be used to locate the executable of the 
 tool itself, by calling
