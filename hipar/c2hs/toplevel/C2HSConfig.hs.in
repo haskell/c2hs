@@ -6,7 +6,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 27 September 99
 --
---  Version $Revision: 1.8 $ from $Date: 2001/02/07 09:24:49 $
+--  Version $Revision: 1.9 $ from $Date: 2001/02/09 02:37:00 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -33,9 +33,10 @@ module C2HSConfig (
   --
   cpp, cppopts, hpaths, dlsuffix,
   --
-  -- parametrised pointer like in the new FFI
+  -- system-dependent definitions, as the New FFI isn't fully supported on all
+  -- systems yet
   --
-  Ptr
+  Ptr, Storable(sizeOf, alignment)
 ) where
 
 import Ix    (Ix)

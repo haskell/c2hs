@@ -1,3 +1,7 @@
+2001-02-09  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/Makefile: Debugging for 4.11
+
 2001-02-05  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* toplevel/C2HSConfig.hs.in: Moved the primitive characteristics

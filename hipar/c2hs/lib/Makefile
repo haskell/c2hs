@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Derived: 19 March 1999
 #
-#  Version $Revision: 1.9 $ from $Date: 2001/02/06 13:30:01 $
+#  Version $Revision: 1.10 $ from $Date: 2001/02/09 02:36:59 $
 #
 #  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 #
@@ -74,7 +74,7 @@ HIDIRS=.
 depend:
 	$(MKDEPENDHS) -optdep-f -optdep$(DEPEND) $(HCFLAGS)\
 	  $(EXTRAMKDEPENDOPTS) $(SRCS)
-ifneq ($(LEGACY_FFI),yes)
+ifeq ($(LEGACY_FFI),no)
 	grep -v -e CError -e CForeign -e CString\
 		-e ForeignPtr -e MarshalAlloc -e MarshalArray\
 		-e MarshalError -e MarshalUtils -e Ptr .depend\
@@ -83,6 +83,12 @@ ifneq ($(LEGACY_FFI),yes)
 # mkdependHS is a bit stupid here and does include files if present even if
 # are part of a syslib; moreover, the -x option never works for me anyway, so 
 # let's do it the hard way
+else
+	mkdir -p ghc411hack_dir
+	-mv CError.hs CForeign.hs CString.hs ForeignPtr.hs MarshalAlloc.hs\
+	  MarshalArray.hs MarshalError.hs MarshalUtils.hs Ptr.hs ghc411hack_dir
+# we have to move these files out of the way, because they confuse 4.11's
+# compilation manager
 endif
 
 # Extra flags for the Haskell compiler
