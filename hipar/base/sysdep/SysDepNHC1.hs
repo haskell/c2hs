@@ -4,7 +4,7 @@
 --	     with assistance from Malcolm Wallace
 --  Derived: 30 November 1999 (from SysDepGHC4.hs)
 --
---  Version $Revision: 1.4 $ from $Date: 2000/08/18 05:41:06 $
+--  Version $Revision: 1.5 $ from $Date: 2001/02/07 09:24:47 $
 --
 --  Copyright (c) [1996..1999] Manuel M. T. Chakravarty
 --
@@ -88,30 +88,14 @@ import Ix          (Ix)
 import Monad	   (when)
 import NonStdTrace (trace)
 
-import IOExtsNHC1  (IORef, newIORef, readIORef, writeIORef, fixIO)
+import IOExtras    (IORef, newIORef, readIORef, writeIORef, fixIO,
+                    IOArray, newIOArray, writeIOArray, readIOArray,
+                    boundsIOArray, unsafePerformIO)
 
 
 -- other system-dependent components
 --
 import SysDepPosix
-
-
--- mutable arrays in IO
--- --------------------
-
-data IOArray i a = IOArray
-
-newIOArray :: Ix i => (i, i) -> a -> IO (IOArray i a)
-newIOArray  = error "Internal error: SysDepNHC1.newIOArray not yet impl"
-
-writeIOArray :: Ix i => IOArray i a -> i -> a -> IO ()
-writeIOArray  = error "Internal error: SysDepNHC1.wirteIOArray not yet impl"
-
-readIOArray :: Ix i => IOArray i a -> i -> IO a
-readIOArray  = error "Internal error: SysDepNHC1.readIOArray not yet impl"
-
-boundsIOArray :: Ix i => IOArray i a -> (i, i)
-boundsIOArray  = error "Internal error: SysDepNHC1.boundsIOArray not yet impl"
 
 
 -- UNSAFE mutable variables

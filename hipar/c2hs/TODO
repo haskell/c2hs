@@ -19,7 +19,6 @@ Next: -= phase re-ordering & parser clean up =-
         list a given identifier (for private functions listed in the header).
       - Simon Marlow's bug (+inbox/37148)
       - pre-define __builtin_va_list as a typedef'ed symbol
-      - include `unsafePerformIO' into C2HS lib
       - add lndir to hipar/ (start utils dir)
       - Axel's proposal for a {#newAddr Blah#} and {#newForeign Blah#} hook
 	(+inbox/39452)

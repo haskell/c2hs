@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.42 $ from $Date: 2000/09/15 03:00:00 $
+#  Version $Revision: 1.43 $ from $Date: 2001/02/07 09:24:50 $
 #
 #  Copyright (c) [1997..1999] Manuel M. T. Chakravarty
 #
@@ -119,7 +119,7 @@ endif
 # * $(EXTRAHCFLAGS) may be instantiated in the specialised makefiles
 #
 #HIDIRSCOL  = $(subst $(space),:,$(strip $(HIDIRS)))
-HIDIRSINCL  = $(addprefix -i,$(HIDIRS))
+HIDIRSINCL  = $(addprefix $(HIDIROPT),$(HIDIRS))
 HCFLAGS    += $(PROF) $(HIDIRSINCL) $(EXTRAHCFLAGS)
 
 # Misc
@@ -239,7 +239,7 @@ ifeq ($(SYS),$(findstring $(SYS),nhc1))
 gendepend:
 	@echo "*** Generating dependencies for $(PACKAGE)..."
 	$(MKDEPENDHS)\
-	  $(addprefix -I,$(HIDIRS)) $(MKDEPENDOPTS)\
+	  $(addprefix $(HIDIROPT),$(HIDIRS)) $(MKDEPENDOPTS)\
 	  $(MKDEPENDFILES) >$(DEPEND)
 	$(MV) $(DEPEND) $(DEPEND).orig
 	$(GREP) -v base $(DEPEND).orig\

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 5 February 01
 --
---  Version $Revision: 1.1 $
+--  Version $Revision: 1.2 $
 --
 --  Copyright (c) 2001 Manuel M. T. Chakravarty
 --
@@ -35,13 +35,13 @@ module CInfo (
 
 import Array (Array, Ix, array)
 
-import Storable (Storable(sizeOf, alignment), )
 import CTypes
 
 -- we can't rely on the compiler used to compile c2hs already having the new
 -- FFI, so this is system dependent
 --
-import C2HSConfig (Ptr)
+import C2HSConfig (Ptr,
+		   Storable(sizeOf, alignment))
 
 
 -- calibration of C's primitive types

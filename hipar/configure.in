@@ -117,8 +117,10 @@ if test $hc_base = ghc; then
    AC_MSG_ERROR([You need version 3.02 or 4.02 upwards of ghc!
   ** Check \"http://haskell.org/ghc/\". **])
   fi
-  dnl Determine compilation system identifier.
+  dnl Determine compilation system identifier and option for adding .hi 
+  dnl directories.
   SYS=ghc$hc_maj_vers
+  HIDIROPT=-i
 fi
 
 dnl Check nhc98's details.
@@ -132,8 +134,10 @@ if test $hc_base = nhc98; then
    AC_MSG_ERROR([You need version 1.0 upwards of nhc98!
   ** Check \"http://haskell.org/\". **])
   fi
-  dnl Determine compilation system identifier.
+  dnl Determine compilation system identifier and option for adding .hi 
+  dnl directories.
   SYS=nhc$hc_maj_vers
+  HIDIROPT=-I
 fi
 
 dnl Optimise Haskell by default (and add some not really needed options).
@@ -192,7 +196,8 @@ if test $SYS = ghc3 -o $SYS = ghc4; then
   MKDEPENDHS="$HC -M"
 fi
 if test $SYS = nhc1; then
-  MKDEPENDHS="`$DIRNAME $HC`/hmake -n -M"
+  AC_PATH_PROG(HMAKE,hmake)
+  MKDEPENDHS="$HMAKE -n -M -nhc98"
 fi
 AC_MSG_RESULT([selecting mkdependHS... $MKDEPENDHS])
 
@@ -210,6 +215,7 @@ AC_SUBST(TOP)
 AC_SUBST(SYS)
 AC_SUBST(HCFLAGS)
 AC_SUBST(HCSYSFLAGS)
+AC_SUBST(HIDIROPT)
 AC_SUBST(PROF)
 AC_SUBST(MKDEPENDHS)
 AC_SUBST(SYSFEATURES)

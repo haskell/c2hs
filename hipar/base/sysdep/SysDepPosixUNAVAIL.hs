@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 18 August 2000
 --
---  Version $Revision: 1.1 $ from $Date: 2000/08/18 05:41:06 $
+--  Version $Revision: 1.2 $ from $Date: 2001/02/07 09:24:48 $
 --
 --  Copyright (c) 2000 Manuel M. T. Chakravarty
 --
@@ -36,9 +36,10 @@
 
 module SysDepPosix (
   ProcessID,		-- re-exported
-  runPiped,
+  runPiped
 ) where
 
+import IO (Handle)
 
 -- definition doesn't matter as it isn't used anyway
 --

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 6 December 1999
 --
---  Version $Revision: 1.1 $ from $Date: 1999/12/06 05:57:04 $
+--  Version $Revision: 1.2 $ from $Date: 2001/02/07 09:24:46 $
 --
 --  Copyright (c) 1999 Manuel M. T. Chakravarty
 --
@@ -48,7 +48,9 @@ import Attributes (Attrs, Attributed(..))
 
 -- representation of a collection of marks (EXPORTED ABSTRACTLY)
 --
-newtype Attributed a => Marks a = Marks (Set Attrs)
+data Attributed a => Marks a = Marks (Set Attrs)
+--newtype Attributed a => Marks a = Marks (Set Attrs)
+-- should be newtype, but nhc98 chokes on it...
 
 -- get a new collection of marks (EXPORTED)
 --

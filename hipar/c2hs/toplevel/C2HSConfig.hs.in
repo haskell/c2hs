@@ -6,7 +6,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 27 September 99
 --
---  Version $Revision: 1.7 $ from $Date: 2001/02/04 14:59:02 $
+--  Version $Revision: 1.8 $ from $Date: 2001/02/07 09:24:49 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -49,6 +49,14 @@ import
 @BEGIN_LEGACY_FFI@
 import Addr (Addr)
 @END_LEGACY_FFI@
+
+@BEGIN_NOT_NHC@
+import Storable (Storable(sizeOf, alignment))
+@END_NOT_NHC@
+
+@BEGIN_NHC@
+import FFI (Storable(sizeOf, alignment))
+@END_NHC@
 
 
 -- program settings

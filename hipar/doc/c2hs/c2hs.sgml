@@ -262,10 +262,15 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
+<sect1>Version 0.8.1 "Gentle Moon"
+<p>
+<itemize>
+<item>Library adapted to New FFI
+</itemize>
+
 <sect1>Version 0.7.10 "Afterthought"
 <p>
 <itemize>
-<item>
 <item>CygWin support; based on suggestions by Anibal Maffioletti Rodrigues de
 DEUS <anibaldedeus@email.com>
 <item><tt/IntConv/ instances for <tt/Int8/, <tt/Word8/, and <tt/Char/
