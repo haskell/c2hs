@@ -1,3 +1,10 @@
+2002-03-22  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* ../configure.in: test for availability of the `posix' package
+	made more reliable
+	
+	* admin/BaseVersion.hs (versnum): 0.24.1
+
 2002-03-12  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* Makefile: revised to new build system

@@ -171,17 +171,22 @@ dnl      `sysdep/SysDepGHC3.hs' and `sysdep/SysDepGHC4.hs', and
 dnl      thus, transitively for the compilation of some other modules. 
 dnl
 dnl Notes: 
-dnl - We can't use `posix' in a CygWin environment.
+dnl - We check for the availability of `posix' as we don't have it on some 
+dnl   systems (eg, mingw32).
 dnl
 PACKAGES=""
 SYSFEATURES=""
 if test $hc_base = ghc; then
-  if test -z "$CYGWIN"; then
+  CTK_LIB_SYSLIB(Posix, posix)
+  if test $syslib_Posix != not-found; then
     PACKAGES="$PACKAGES posix"
     SYSFEATURES="$SYSFEATURES posix"
   fi
   dnl Check in which system library we find the module IOExts.
   CTK_LIB_SYSLIB(IOExts, lang exts)
+  if test $syslib_IOExts = not-found; then
+    AC_MSG_ERROR([Could not find module "IOExts".])
+  fi
   PACKAGES="$PACKAGES $syslib_IOExts"
   HASPKG=yes
 fi
