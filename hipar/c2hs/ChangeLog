@@ -1,3 +1,26 @@
+2002-01-15  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (mergeMaps): now, the read map overrides any
+	entires for shared keys in the map that is already in the monad;
+	this is so that, if multiple import hooks add entries for shared
+	keys, the textually latest prevails; any local entries are entered
+	after all import hooks anyway
+
+	* toplevel/Version.hs (versnum): 0.10.6
+
+2002-01-10  Jens Petersen  <juhp@01.246.ne.jp>
+
+	* c/CParser.hs (parseC): corrected "contained contained" in
+	proceeding comments.
+
+	* ../doc/c2hs/c2hs.sgml (Set Hooks): correct #get to #set
+
+	* ../doc/c2hs/Makefile (TOP): "../../.." to "../.."
+
+2002-01-10  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.10.5
+
 2001-12-20  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenBind.hs (expandHook): fixed a sizeof bug pointed out by Jens

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.41 $ from $Date: 2001/12/20 14:14:13 $
+--  Version $Revision: 1.42 $ from $Date: 2002/01/15 07:56:39 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -440,17 +440,23 @@ queryPointer hsName  = do
 
 -- merge the pointer and Haskell object maps
 --
+-- * currently, the read map overrides any entires for shared keys in the map
+--   that is already in the monad; this is so that, if multiple import hooks
+--   add entries for shared keys, the textually latest prevails; any local
+--   entries are entered after all import hooks anyway
+--
 -- FIXME: This currently has several shortcomings:
 --	  * It just dies in case of a corrupted .chi file
---	  * We probably would like to raise an error if there are colliding
---	    entries during the `joinFM'
+--	  * We should at least have the option to raise a warning if two
+--	    entries collide in the `objmap'.  But it would be better to
+--	    implement qualified names.
 --	  * Do we want position information associated with the read idents?
 --
 mergeMaps     :: String -> GB ()
 mergeMaps str  =
   transCT (\state -> (state { 
-		        ptrmap = joinFM (ptrmap state) readPtrMap,
-		        objmap = joinFM (objmap state) readObjMap
+		        ptrmap = joinFM readPtrMap (ptrmap state),
+		        objmap = joinFM readObjMap (objmap state)
 		      }, ()))
   where
     (ptrAssoc, objAssoc) = read str

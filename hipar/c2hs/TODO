@@ -225,6 +225,11 @@ Marshalling templates
 
 Short term
 ~~~~~~~~~~
+* The definition of `GenBind.HsObjectMap' doesn't take into account that in
+  Haskell a single name can be used for both a type and a class.
+
+* See FIXME at `GenBind.mergeMaps'.
+
 * Explain the grabbing of cpp -I options from -cppopts= (aka -C) values better 
   in the docu and add something like:
 

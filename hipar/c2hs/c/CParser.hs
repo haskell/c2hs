@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.17 $ from $Date: 2001/10/17 12:09:50 $
+--  Version $Revision: 1.18 $ from $Date: 2002/01/15 07:56:39 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -970,7 +970,7 @@ parseCConst  =     (cint   `actionAttrs` snd $ CIntConst . fst)
 -- main parsing routine
 -- --------------------
 
--- parse the cpp-preprocessed C header contained contained in the given string 
+-- parse the cpp-preprocessed C header contained in the given string 
 -- (EXPORTED)
 --
 -- * the given position is attributed to the first character in the string
