@@ -34,6 +34,20 @@ weird make_weird (void);
 
 mychar *getSpacePtr (void);
 
+
+/* bitfield functionality
+ */
+
+struct bit_struct {
+  char         c1;
+  unsigned int bit : 1;
+  signed   int very_small_int : 3;
+  char	       c2;
+};
+
+struct bit_struct *get_bit_struct();
+
+
 #ifdef __GNUC__
 /* this is to check c2hs's resistance to GNU extensions
  */

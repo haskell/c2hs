@@ -29,3 +29,15 @@ mychar *getSpacePtr (void)
   
   return &c;
 }
+
+struct bit_struct my_bit_struct;
+
+struct bit_struct *get_bit_struct()
+{
+  my_bit_struct.c1             = '\0';
+  my_bit_struct.bit            = 1;
+  my_bit_struct.very_small_int = -1;
+  my_bit_struct.c2             = '\0';
+
+  return &my_bit_struct;
+}

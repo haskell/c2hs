@@ -3,12 +3,12 @@
 --  ===========================================================================
 --  C -> Haskell Compiler: configuration
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 27 September 99
 --
---  Version $Revision: 1.11 $ from $Date: 2001/05/02 09:28:16 $
+--  Version $Revision: 1.12 $ from $Date: 2001/11/14 09:08:13 $
 --
---  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2001] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -36,7 +36,11 @@ module C2HSConfig (
   -- system-dependent definitions, as the New FFI isn't fully supported on all
   -- systems yet
   --
-  Ptr, FunPtr, Storable(sizeOf, alignment)
+  Ptr, FunPtr, Storable(sizeOf, alignment),
+  --
+  -- parameters of the targeted C compiler
+  --
+  bitfieldDirection, bitfieldPadding, bitfieldIntSigned, bitfieldAlignment
 ) where
 
 import Ix    (Ix)
@@ -60,6 +64,9 @@ import Storable (Storable(sizeOf, alignment))
 import 
  FFI (Storable(sizeOf, alignment))  -- on an extra line to trick the stupid `mkdependHS'
 @END_NHC@
+
+import CTypes       (CInt)
+import MarshalUtils (toBool)
 
 
 -- program settings
@@ -95,3 +102,47 @@ dlsuffix  = "@DLSUFFIX@"
 type Ptr    a = Addr
 type FunPtr a = Ptr a
 @END_LEGACY_FFI@
+
+
+-- parameters of the targeted C compiler
+-- -------------------------------------
+
+-- indicates in which direction the C compiler fills bitfields (EXPORTED)
+--
+-- * the value is 1 or -1, depending on whether the direction is growing
+--   towards the MSB
+--
+bitfieldDirection :: Int
+bitfieldDirection  = fromIntegral bitfield_direction
+
+foreign import ccall bitfield_direction :: CInt
+
+-- indicates whether a bitfield that does not fit into a partially filled
+-- storage unit in its entirety introduce padding or split over two storage
+-- units (EXPORTED)
+--
+-- * `True' means that such a bitfield introduces padding (instead of being
+--   split)
+--
+bitfieldPadding :: Bool
+bitfieldPadding  = toBool bitfield_padding
+
+foreign import ccall bitfield_padding :: CInt
+
+-- indicates whether a bitfield of type `int' is signed in the targeted C
+-- compiler (EXPORTED)
+--
+bitfieldIntSigned :: Bool
+bitfieldIntSigned  = toBool bitfield_int_signed
+
+foreign import ccall bitfield_int_signed :: CInt
+
+-- the alignment constraint for a bitfield (EXPORTED)
+--
+-- * this makes the assumption that the alignment of a bitfield is independent
+--   of the bitfield's size
+--
+bitfieldAlignment :: Int
+bitfieldAlignment  = fromIntegral bitfield_alignment
+
+foreign import ccall bitfield_alignment :: CInt

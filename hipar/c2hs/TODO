@@ -7,6 +7,8 @@ Next: -= phase re-ordering & parser clean up =-
       - configuration oracle should have an option to print the Haskell
         compiler and version it was compiled for
 
+      - split GenBind into multiple modules
+
       - use GHC's package manager and register the c2hs libs as a package at
         install time (also in rpm)
 
@@ -33,6 +35,42 @@ Next: -= phase re-ordering & parser clean up =-
         reexport at the moment.  Either eliminate those reexports, or we have
         the same problems as in Haskell to determine object identity.
 
+      - Idea from Alastair: To make life easier for people who want to
+        distribute tools including c2hs-generated code, it would be good to
+        have an option to delay the inclusion of system-dependent information
+        until the generated files are compiled (possibly generating files that
+        have to be run through cpp or sed or so).  With the New FFI Libraries
+        this shouldn't be too difficult, because most of the autoconf
+        information is to build c2hs and doesn't have an impact on the
+        generated code.  The obvious exception is the use of the sizes and
+        alignments of primitive C types bei c2hs.  So, here we should Haskell
+        expression computing these values from Storable rather than constants
+        computed by c2hs.
+
+        A further complication is when we exchange the passes reading the
+        header and the binding modules and have features like enum define
+        hooks.  Maybe we should not exchange the phases after all, but devise
+        a mechanism so that the necessary information is obtained at the time
+        where the Haskell file generated from the binding module is
+        initialised.  The basic idea would be that *all* numeric values
+        obtained by c2hs are enquired by foreign calls at startup time.  Then,
+        c2hs won't hardcode any such values into the binding module, but emit
+        expressions that compute the values when they are needed.  If the
+        values are defined as CAFs, they will only be obtained once.
+        (However, as this still prevents some optimisations, we might only
+        want it as an option.)
+
+        The downside of this approach is that it is spoiled as soon as the
+        read C header files have #ifdefs that behave different on the build
+        and the execute platform.  An alternative scheme for cross-compilation
+        would be to have a mechanism by which c2hs can read the machine
+        specific parameters from a database rather than testing them in the
+        cross compilation case.  (But also note that we are dealing with two
+        features here: ability to cross compile and ability to ship
+        architecture neutral .hs files that have been produced by c2hs; the
+        point about the latter is that the recipient doesn't have to have c2hs
+        around.)
+
       - c2hs has to properly process GNU C "aligned" attributes.  Otherwise,
         it's routine to calculate structure layout may deviate from that of
         the C compiler, which may lead to nasty bugs in bindings.
@@ -50,18 +88,6 @@ Next: -= phase re-ordering & parser clean up =-
 
       - GenBind.mergePtrMap could be improved (see the comment)
 
-      - Idea from Alastair: To make life easier for people who want to
-        distribute tools including c2hs-generated code, it would be good to
-        have an option to delay the inclusion of system-dependent information
-        until the generated files are compiled (possibly generating files that
-        have to be run through cpp or sed or so).  With the New FFI Libraries
-        this shouldn't be too difficult, because most of the autoconf
-        information is to build c2hs and doesn't have an impact on the
-        generated code.  The obvious exception is the use of the sizes and
-        alignments of primitive C types bei c2hs.  So, here we should Haskell
-        expression computing these values from Storable rather than constants
-        computed by c2hs.
-
       - {#enum ...#} should create an instance of Storable as follows:
 	  instance Storable MyEnum where
 	    sizeOf    _ = sizeOf    (undefined :: CInt)
@@ -69,6 +95,11 @@ Next: -= phase re-ordering & parser clean up =-
 
 	    peek p   = liftM cToEnum $ peek (castPtr p :: Ptr CInt)
 	    poke p v = poke (castPtr p :: Ptr CInt) (cFromEnum v)
+
+      - `GenBind.setGet' needs to take `C2HSConfig.bitfieldDirection' into
+        account; otherwise, setting and getting of bitfields won't work on
+        architectures where bitfields start at the MSB (rather than the LSB)
+
       - Vorschlag von Axel Krauth <krauth@infosun.fmi.uni-passau.de>:
         An option with which c2hs prints a list of all functions that have not
         been bound in a header file.  The Position info schould be sufficient

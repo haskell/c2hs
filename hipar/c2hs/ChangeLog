@@ -1,3 +1,36 @@
+2001-11-14  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (setGet): debugged
+
+2001-11-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (setGet): reading and writing of bitfields
+	(alignOffset): now handles alignment of bit fields
+	(extractCompType): debugging
+
+2001-11-12  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (specType): added bitfield handling
+	(BitSize): introduced size specs for partially filled storage units
+
+	* toplevel/C2HSConfig.hs.in (bitfieldDirection): added
+	(bitfieldPadding): added
+	(bitfieldIntSigned): added
+
+	* toplevel/c2hs_config.c: runtime configuration query functions
+
+	* gen/CInfo.hs (CPrimType): extended by variants for bitfields
+	(size): now a function instead of an array
+	(alignment): now a function instead of an array
+
+	* gen/GenBind.hs (showExtType): simplified `showExtType' again;
+	the brace level idea doen't work for `DefinedET' anyway; so, let's
+	simplify the code
+
+2001-11-08  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.10.2
+
 2001-10-17  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* c/CParser.hs (parseCDecl): corrected the precise locatio where

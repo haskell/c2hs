@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Derived: 12 August 1999
 #
-#  Version $Revision: 1.3 $ from $Date: 1999/09/29 08:48:12 $
+#  Version $Revision: 1.4 $ from $Date: 2001/11/14 09:08:13 $
 #
 #  Copyright (c) 1999 Manuel M. T. Chakravarty
 #
@@ -31,16 +31,24 @@
 #
 PACKAGE = c2hs
 PART    = toplevel
-SRCS	= C2HSConfig.hs Main.hs Version.hs
-OBJS	= $(patsubst %.hs,%.o,$(SRCS))
+SRCS	= C2HSConfig.hs Main.hs Version.hs\
+	  c2hs_config.c
+OBJS	= $(patsubst %.hs,%.o,$(filter %.hs,$(SRCS)))
+ALLOBJS	= $(OBJS)\
+	  $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 
 include ../../mk/common.mk
 include ../$(DEPEND)
 
+# Extra flags
+#
+# * C2HSConfig.hs needs these flags due to its foreign imports
+#
+C2HSConfig.hs-HCFLAGS = -fglasgow-exts '-\#include"c2hs_config.h"'
 
 # make all object files
 #
-objs: $(OBJS)
+objs: $(ALLOBJS)
 
 # make all
 #

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.39 $ from $Date: 2001/10/16 14:16:33 $
+--  Version $Revision: 1.40 $ from $Date: 2001/11/14 09:08:12 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -63,12 +63,17 @@
 --  Plain structures or unions (ie, if not the base type of a pointer type)
 --  are not supported at the moment (the underlying FFI does not support them
 --  directly).  Named types (ie, in C type names defined using `typedef') are
---  traced back to their original definitions.  All pointer types are mapped
---  to `Addr'.
+--  traced back to their original definitions.  Pointer types are mapped
+--  to `Ptr a' or `FunPtr a' depending on whether they point to a functional.
+--  Values obtained from bit fields are represented by `CInt' or `CUInt'
+--  depending on whether they are signed.
 --
 --  We obtain the size and alignment constraints for all primitive types of C
---  from `C2HSConfig' where the information is put by the GNU autoconf
---  generated `configure' script.
+--  from `CInfo', which obtains it from the Haskell 98 FFI.  In the alignment
+--  computations involving bit fields, we assume that the alignment
+--  constraints for bitfields (wrt to non-bitfield members) is always the same
+--  as for `int' irrespective of the size of the bitfield.  This seems to be
+--  implicitly guaranteed by K&R A8.3, but it is not entirely clear.
 --
 --  Identifier lookup:
 --  ------------------
@@ -81,9 +86,9 @@
 --      with the same name is taken if it exists.
 --  * structs/unions: like enumerations
 --
---  We generally use `shadow' look ups.  When an identifier cannot be found,
+--  We generally use `shadow' lookups.  When an identifier cannot be found,
 --  we check whether - according to the prefix set by the context hook -
---  another identifier casts a shadow that matches.  If so, that identifier is 
+--  another identifier casts a shadow that matches.  If so, that identifier is
 --  taken instead of the original one.
 --
 --  Translation table handling for enumerators:
@@ -134,7 +139,7 @@
 --
 --  * Some operands are missing in `applyBin' - unfortunately, Haskell does
 --    not have standard bit operations.   Some constructs are also missing
---    from `evalConstCExpr'.
+--    from `evalConstCExpr'.  Haskell 98 FFI standardises `Bits'; use that.
 --
 
 module GenBind (expandHooks) 
@@ -177,7 +182,8 @@ import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 		   getDeclOf, isFunDeclr, refersToNewDef, CDef(..))
 import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 		   CHSAccess(..), CHSAPath(..),CHSPtrType(..))
-import CInfo      (CPrimType(..), sizes, alignments)
+import CInfo      (CPrimType(..), size, alignment, bitfieldIntSigned,
+		   bitfieldAlignment)
 
 
 -- translation tables
@@ -824,46 +830,46 @@ foreignImport lib ident hsIdent isUnsafe ty  =
 --   impossible access paths, as in Haskell we always have a pointer to a
 --   structure, we can never have the structure as a value itself
 --
-accessPath :: CHSAPath -> GB (CDecl, [Int])
+accessPath :: CHSAPath -> GB (CDecl, [BitSize])
 accessPath (CHSRoot ide) =				-- t
   do
     decl <- findAndChaseDecl ide False True
-    return (ide `simplifyDecl` decl, [0])
+    return (ide `simplifyDecl` decl, [BitSize 0 0])
 accessPath (CHSDeref (CHSRoot ide) _) =			-- *t
   do
     decl <- findAndChaseDecl ide True True
-    return (ide `simplifyDecl` decl, [0])
+    return (ide `simplifyDecl` decl, [BitSize 0 0])
 accessPath (CHSRef root@(CHSRoot ide1) ide2) =		-- t.m
   do
     su <- lookupStructUnion ide1 False True
     (offset, decl') <- refStruct su ide2
-    odecl <- checkForAlias decl'
-    return (fromMaybe decl' odecl, [offset])
+    adecl <- replaceByAlias decl'
+    return (adecl, [offset])
 accessPath (CHSRef (CHSDeref (CHSRoot ide1) _) ide2) =	-- t->m
   do
     su <- lookupStructUnion ide1 True True
     (offset, decl') <- refStruct su ide2
-    odecl <- checkForAlias decl'
-    return (fromMaybe decl' odecl, [offset])
+    adecl <- replaceByAlias decl'
+    return (adecl, [offset])
 accessPath (CHSRef path ide) =				-- a.m
   do
     (decl, offset:offsets) <- accessPath path
     assertPrimDeclr ide decl
     su <- structFromDecl (posOf ide) decl
     (addOffset, decl') <- refStruct su ide
-    odecl <- checkForAlias decl'
-    return (fromMaybe decl' odecl, offset + addOffset : offsets)
+    adecl <- replaceByAlias decl'
+    return (adecl, offset `addBitSize` addOffset : offsets)
   where
     assertPrimDeclr ide (CDecl _ [declr] _) =
       case declr of
         (Just (CVarDeclr _ _), _, _) -> nop
 	_			     -> structExpectedErr ide
-accessPath (CHSDeref path pos) =				-- *a
+accessPath (CHSDeref path pos) =			-- *a
   do
     (decl, offsets) <- accessPath path
     decl' <- derefOrErr decl
-    odecl <- checkForAlias decl'
-    return (fromMaybe decl' odecl, 0 : offsets)
+    adecl <- replaceByAlias decl'
+    return (adecl, BitSize 0 0 : offsets)
   where
     derefOrErr (CDecl specs [declr] at) =
       case declr of
@@ -875,10 +881,26 @@ accessPath (CHSDeref path pos) =				-- *a
 	_			                            -> 
 	  ptrExpectedErr pos
 
+-- replaces a decleration by its alias if any
+--
+-- * the alias inherits any field size specification that the original
+--   declaration may have
+--
+-- * declaration must have exactly one declarator
+--
+replaceByAlias                                :: CDecl -> GB CDecl
+replaceByAlias cdecl@(CDecl _ [(_, _, size)] at)  =
+  do
+    ocdecl <- checkForAlias cdecl
+    case ocdecl of
+      Nothing                                  -> return cdecl
+      Just (CDecl specs [(declr, init, _)] at) ->   -- form of an alias
+        return $ CDecl specs [(declr, init, size)] at
+
 -- given a structure declaration and member name, compute the offset of the
 -- member in the structure and the declaration of the referenced member
 --
-refStruct :: CStructUnion -> Ident -> GB (Int, CDecl)
+refStruct :: CStructUnion -> Ident -> GB (BitSize, CDecl)
 refStruct su ide =
   do
     -- get the list of fields and check for our selector
@@ -895,7 +917,7 @@ refStruct su ide =
     let decl = head post
     offset <- case tag of
 		CStructTag -> offsetInStruct pre decl tag
-		CUnionTag  -> return 0
+		CUnionTag  -> return $ BitSize 0 0
     return (offset, decl)
 
 -- does the given declarator define the given name?
@@ -904,42 +926,78 @@ declNamed :: CDecl -> Ident -> Bool
 (CDecl _ [(Nothing   , _, _)] _) `declNamed` ide = False
 (CDecl _ [(Just declr, _, _)] _) `declNamed` ide = declr `declrNamed` ide
 (CDecl _ []                   _) `declNamed` _   =
-  interr "GenBind.refStruct: Abstract declarator in structure!"
+  interr "GenBind.declNamed: Abstract declarator in structure!"
 _				 `declNamed` _   =
-  interr "GenBind.refStruct: More than one declarator!"
+  interr "GenBind.declNamed: More than one declarator!"
 
 -- Haskell code for writing to or reading from a struct
 --
-setGet :: Position -> CHSAccess -> [Int] -> ExtType -> GB String
+setGet :: Position -> CHSAccess -> [BitSize] -> ExtType -> GB String
 setGet pos access offsets ty =
   do
     let pre = case access of 
-			  CHSSet -> "(\\ptr val -> do {"
-			  CHSGet -> "(\\ptr -> do {"
+		CHSSet -> "(\\ptr val -> do {"
+		CHSGet -> "(\\ptr -> do {"
     body <- setGetBody (reverse offsets)
     return $ pre ++ body ++ "})"
   where
-    setGetBody [offset] =
+    setGetBody [BitSize offset bitOffset] =
       do
-	let typeTag = showExtType' NameBL ty
-        checkType ty
-	return $ case access of
-	  CHSSet -> "pokeByteOff ptr " ++ show offset 
-		    ++ " (val::" ++ typeTag ++ ")"
-	  CHSGet -> "peekByteOff ptr " ++ show offset ++ " ::IO " ++ typeTag
-      where
-        -- check that the type can be marshalled
-	--
-	checkType (IOET      _    ) = interr "GenBind.setGet: Illegal type!"
-	checkType (UnitET         ) = voidFieldErr pos
-	checkType (DefinedET _ _  ) = return ()  -- can't check any further
-	checkType _		    = return ()
-    setGetBody (offset:offsets) =
+	let tyTag = showExtType ty
+        bf <- checkType ty
+	case bf of
+	  Nothing        -> return $ case access of	-- not a bitfield
+			      CHSGet -> peekOp offset tyTag
+			      CHSSet -> pokeOp offset tyTag "val"
+--FIXME: must take `bitfieldDirection' into account
+	  Just (sig, bs) -> return $ case access of	-- a bitfield
+			      CHSGet -> "val <- " ++ peekOp offset tyTag
+					++ extractBitfield
+			      CHSSet -> "org <- " ++ peekOp offset tyTag
+					++ insertBitfield 
+					++ pokeOp offset tyTag "val'"
+	    where
+	      -- we have to be careful here to ensure proper sign extension;
+	      -- in particular, shifting right followed by anding a mask is
+	      -- *not* sufficient; instead, we exploit in the following that
+	      -- `shiftR' performs sign extension
+	      --
+	      extractBitfield = "; return $ (val `shiftL` (" 
+				++ bitsPerField ++ " - " 
+				++ show (bs + bitOffset) ++ ")) `shiftR` ("
+				++ bitsPerField ++ " - " ++ show bitOffset 
+				++ ")"
+	      mask            = "fromIntegral ((maxBound::CUInt) `shiftR` ("
+				++ bitsPerField ++ " - " ++ show bs ++ "))"
+	      bitsPerField    = show $ size CIntPT * 8
+	      --
+	      insertBitfield  = "; let {val' = (org .&. " ++ middleMask
+				++ ") .|. val `shiftL` " 
+				++ show bitOffset ++ "}; "
+	      middleMask      = "fromIntegral (((maxBound::CUInt) `shiftL` "
+				++ show bs ++ ") `rotateL` " 
+				++ show bitOffset ++ ")"
+    setGetBody (BitSize offset 0 : offsets) =
       do
 	code <- setGetBody offsets
 	return $ "ptr <- peekByteOff ptr " ++ show offset ++ "; " ++ code
---	return $ "ptr <- peekByteOff ptr " ++ show offset ++ "::IO Ptr (Ptr ?);" ++ code
--- should be sufficient without explicit type
+    setGetBody (BitSize _      _ : _      ) =
+      derefBitfieldErr pos
+    --
+    -- check that the type can be marshalled and compute extra operations for
+    -- bitfields
+    --
+    checkType (IOET      _    )          = interr "GenBind.setGet: Illegal \
+						  \type!"
+    checkType (UnitET         )          = voidFieldErr pos
+    checkType (DefinedET _ _  )          = return Nothing-- can't check further
+    checkType (PrimET    (CUFieldPT bs)) = return $ Just (False, bs)
+    checkType (PrimET    (CSFieldPT bs)) = return $ Just (True , bs)
+    checkType _		                 = return Nothing
+    --
+    peekOp off tyTag     = "peekByteOff ptr " ++ show off ++ " ::IO " ++ tyTag
+    pokeOp off tyTag var = "pokeByteOff ptr " ++ show off ++ " (" ++ var
+		           ++ "::" ++ tyTag ++ ")"
 
 -- generate the type definition for a pointer hook and enter the required type
 -- mapping into the `ptrmap'
@@ -1081,60 +1139,40 @@ isFunExtType _            = False
 
 -- pretty print an external type
 --
-showExtType :: ExtType -> String
-showExtType  = showExtType' NoBL
-
--- to keep track of the brace environment
+-- * a previous version of this function attempted to not print unnecessary
+--   brackets; this however doesn't work consistently due to `DefinedET'; so,
+--   we give up on the idea (preferring simplicity)
 --
-data BraceLevel = NoBL
-	        | FunBL
-	        | NameBL	
-		deriving (Eq, Ord)
-
--- conditionally add parenthesis to a string
---
-maybeParen :: BraceLevel        -- current brace level
-	   -> BraceLevel	-- minimum brace level that requires parens
-	   -> String		-- the maybe parenthesised string
-	   -> String
-maybeParen currBL minBL str | currBL >= minBL = "(" ++ str ++ ")"
-			    | otherwise       = str
-
--- pretty print an external type with a minimum of braces
---
-showExtType' :: BraceLevel -> ExtType -> String
-showExtType' b (FunET UnitET res)  = showExtType' b res
-showExtType' b (FunET arg res)	   = maybeParen b FunBL $ 
-				       showExtType' FunBL arg ++ " -> " 
-				       ++ showExtType' NoBL res
-showExtType' b (IOET t)		   = maybeParen b NameBL $ 
-				       "IO " ++ showExtType' NameBL t
-showExtType' b (PtrET t)	   = let ptrCon = if isFunExtType t 
-						  then "FunPtr" else "Ptr"
-				     in
-				     maybeParen b NameBL $ 
-				       ptrCon ++ " " ++ showExtType' NameBL t
--- FIXME: This is where this whole BraceLevel idea fails, the string may have a
---	  complex type or not, but we can't tell here anymore; so maybe remove
---	  it again?  This code is not really for human consumption anyway.
-showExtType' _ (DefinedET _ str)   = "(" ++ str ++ ")"
-showExtType' b (PrimET CPtrPT)     = maybeParen b NameBL $ "Ptr ()"
-showExtType' b (PrimET CFunPtrPT)  = maybeParen b NameBL $ "FunPtr ()"
-showExtType' _ (PrimET CCharPT)    = "CChar"
-showExtType' _ (PrimET CUCharPT)   = "CUChar"
-showExtType' _ (PrimET CSCharPT)   = "CSChar"
-showExtType' _ (PrimET CIntPT)     = "CInt"
-showExtType' _ (PrimET CShortPT)   = "CShort"
-showExtType' _ (PrimET CLongPT)    = "CLong"
-showExtType' _ (PrimET CLLongPT)   = "CLLong"
-showExtType' _ (PrimET CUIntPT)    = "CUInt"
-showExtType' _ (PrimET CUShortPT)  = "CUShort"
-showExtType' _ (PrimET CULongPT)   = "CULong"
-showExtType' _ (PrimET CULLongPT)  = "CULLong"
-showExtType' _ (PrimET CFloatPT)   = "CFloat"
-showExtType' _ (PrimET CDoublePT)  = "CDouble"
-showExtType' _ (PrimET CLDoublePT) = "CLDouble"
-showExtType' _ UnitET		   = "()"
+showExtType                        :: ExtType -> String
+showExtType (FunET UnitET res)      = showExtType res
+showExtType (FunET arg res)	    = "(" ++ showExtType arg ++ " -> " 
+				      ++ showExtType res ++ ")"
+showExtType (IOET t)		    = "(IO " ++ showExtType t ++ ")"
+showExtType (PtrET t)	            = let ptrCon = if isFunExtType t 
+						   then "FunPtr" else "Ptr"
+				      in
+				      "(" ++ ptrCon ++ " " ++ showExtType t 
+				      ++ ")"
+showExtType (DefinedET _ str)       = "(" ++ str ++ ")"
+showExtType (PrimET CPtrPT)         = "(Ptr ())"
+showExtType (PrimET CFunPtrPT)      = "(FunPtr ())"
+showExtType (PrimET CCharPT)        = "CChar"
+showExtType (PrimET CUCharPT)       = "CUChar"
+showExtType (PrimET CSCharPT)       = "CSChar"
+showExtType (PrimET CIntPT)         = "CInt"
+showExtType (PrimET CShortPT)       = "CShort"
+showExtType (PrimET CLongPT)        = "CLong"
+showExtType (PrimET CLLongPT)       = "CLLong"
+showExtType (PrimET CUIntPT)        = "CUInt"
+showExtType (PrimET CUShortPT)      = "CUShort"
+showExtType (PrimET CULongPT)       = "CULong"
+showExtType (PrimET CULLongPT)      = "CULLong"
+showExtType (PrimET CFloatPT)       = "CFloat"
+showExtType (PrimET CDoublePT)      = "CDouble"
+showExtType (PrimET CLDoublePT)     = "CLDouble"
+showExtType (PrimET (CSFieldPT bs)) = "CInt{-:" ++ show	bs ++ "-}"
+showExtType (PrimET (CUFieldPT bs)) = "CUInt{-:" ++ show bs ++ "-}"
+showExtType UnitET		    = "()"
 
 -- compute the type of the C function declared by the given C object
 --
@@ -1237,9 +1275,10 @@ extractCompType isResult cdecl@(CDecl specs declrs ats)  =
   if length declrs > 1 
   then interr "GenBind.extractCompType: Too many declarators!"
   else case declrs of
-    [(Just declr, _, _)] | isPtrDeclr declr -> ptrType declr
-			 | isFunDeclr declr -> funType
-    _					    -> aliasOrSpecType
+    [(Just declr, _, size)] | isPtrDeclr declr -> ptrType declr
+			    | isFunDeclr declr -> funType
+			    | otherwise	       -> aliasOrSpecType size
+    []					       -> aliasOrSpecType Nothing
   where
     -- handle explicit pointer types
     --
@@ -1271,16 +1310,21 @@ extractCompType isResult cdecl@(CDecl specs declrs ats)  =
     --
     -- handle all types, which are not obviously pointers or functions 
     --
-    aliasOrSpecType = do
-      traceAliasOrSpecType
+    aliasOrSpecType :: Maybe CExpr -> GB CompType
+    aliasOrSpecType size = do
+      traceAliasOrSpecType size
       case checkForOneAliasName cdecl of
-        Nothing   -> specType (posOf cdecl) specs
+        Nothing   -> specType (posOf cdecl) specs size
 	Just ide  -> do                    -- this is a typedef alias
+	  traceAlias ide
 	  oHsRepr <- queryPtr (False, ide) -- check for pointer hook alias     
 	  case oHsRepr of
 	    Nothing   -> do		   -- skip current alias (only one)
-			   cdecl'    <- getDeclOf ide
-			   let sdecl  = ide `simplifyDecl` cdecl'
+			   cdecl' <- getDeclOf ide
+			   let CDecl specs [(declr, init, _)] at =
+			         ide `simplifyDecl` cdecl'
+                               sdecl = CDecl specs [(declr, init, size)] at
+			       -- propagate `size' down (slightly kludgy)
 			   extractCompType isResult sdecl
 	    Just repr -> ptrAlias repr     -- found a pointer hook alias
     --
@@ -1301,7 +1345,12 @@ extractCompType isResult cdecl@(CDecl specs declrs ats)  =
     --
     tracePtrType = traceGenBind $ "extractCompType: explicit pointer type\n"
     traceFunType = traceGenBind $ "extractCompType: explicit function type\n"
-    traceAliasOrSpecType = traceGenBind $ "checking for alias\n"
+    traceAliasOrSpecType Nothing  = traceGenBind $ 
+      "extractCompType: checking for alias\n"
+    traceAliasOrSpecType (Just _) = traceGenBind $ 
+      "extractCompType: checking for alias of bitfield\n"
+    traceAlias ide = traceGenBind $ 
+      "extractCompType: found an alias called `" ++ identToLexeme ide ++ "'\n"
 
 -- C to Haskell type mapping described in the DOCU section
 --
@@ -1353,26 +1402,26 @@ typeMap  = [([void]                      , UnitET           ),
 --
 -- * may not be called for a specifier that defines a typedef alias
 --
-specType            :: Position -> [CDeclSpec] -> GB CompType
-specType cpos specs  = 
+specType :: Position -> [CDeclSpec] -> Maybe CExpr -> GB CompType
+specType cpos specs osize = 
   let tspecs = [ts | CTypeSpec ts <- specs]
   in case lookupTSpec tspecs typeMap of
-    Just et -> if isUnsupportedType et
-	         then unsupportedTypeSpecErr cpos
-	         else return $ ExtType et
-    Nothing -> case tspecs of
-	         [CSUType   cu _] -> return $ SUType cu     -- struct or union
-		 [CEnumType _  _] -> return $ ExtType (PrimET CIntPT)  -- enum
-	         [CTypeDef  _  _] -> 
-		   interr "GenBind.specType: Illegal typedef alias!"
-		 _		  -> illegalTypeSpecErr cpos
+    Just et | isUnsupportedType et -> unsupportedTypeSpecErr cpos
+	    | isNothing osize	   -> return $ ExtType et     -- not a bitfield
+	    | otherwise		   -> bitfieldSpec tspecs et osize  -- bitfield
+    Nothing                        -> 
+      case tspecs of
+	[CSUType   cu _] -> return $ SUType cu               -- struct or union
+	[CEnumType _  _] -> return $ ExtType (PrimET CIntPT) -- enum
+	[CTypeDef  _  _] -> interr "GenBind.specType: Illegal typedef alias!"
+	_		 -> illegalTypeSpecErr cpos
   where
     lookupTSpec = lookupBy matches
     --
-    isUnsupportedType (PrimET et) = sizes!et == 0
+    isUnsupportedType (PrimET et) = size et == 0  -- can't be a bitfield (yet)
     isUnsupportedType _		  = False
     --
-    -- check whether twp type sepcifier lists denote the same type; handles
+    -- check whether two type specifier lists denote the same type; handles
     -- types like `long long' correctly, as `deleteBy' removes only the first
     -- occurrence of the given element
     --
@@ -1396,66 +1445,128 @@ specType cpos specs  =
     eqSpec (CEnumType _ _) (CEnumType _ _) = True
     eqSpec (CTypeDef  _ _) (CTypeDef  _ _) = True
     eqSpec _		   _		   = False
+    --
+    bitfieldSpec :: [CTypeSpec] -> ExtType -> Maybe CExpr -> GB CompType
+    bitfieldSpec tspecs et (Just sizeExpr) =  -- never called with `Nothing'
+      do
+        let pos = posOf sizeExpr
+	sizeResult <- evalConstCExpr sizeExpr
+	case sizeResult of
+	  FloatResult _     -> illegalConstExprErr pos "a float result"
+	  IntResult   size' -> do
+	    let size = fromInteger size'
+	    case et of
+	      PrimET CUIntPT                      -> returnCT $ CUFieldPT size
+	      PrimET CIntPT 
+	        |  [signed]      `matches` tspecs 
+		|| [signed, int] `matches` tspecs -> returnCT $ CSFieldPT size
+		|  [int]         `matches` tspecs -> 
+		  returnCT $ if bitfieldIntSigned then CSFieldPT size 
+						  else CUFieldPT size
+	      _			 		  -> illegalFieldSizeErr pos
+	    where
+	      returnCT = return . ExtType . PrimET
+	      --
+	      int    = CIntType    undefined
+	      signed = CSignedType undefined
+
+
+-- offset and size computations
+-- ----------------------------
+
+-- precise size representation
+--
+-- * this is a pair of a number of octets and a number of bits
+--
+-- * if the number of bits is nonzero, the octet component is aligned by the
+--   alignment constraint for `CIntPT' (important for accessing bitfields with
+--   more than 8 bits)
+--
+data BitSize = BitSize Int Int
+	     deriving (Eq, Show)
+
+-- ordering relation compares in terms of required storage units
+--
+instance Ord BitSize where
+  bs1@(BitSize o1 b1) < bs2@(BitSize o2 b2) = 
+    padBits bs1 < padBits bs2 || (o1 == o2 && b1 < b2)
+
+-- add two bit size values
+--
+addBitSize                                 :: BitSize -> BitSize -> BitSize
+addBitSize (BitSize o1 b1) (BitSize o2 b2)  = BitSize (o1 + o2 + overflow) rest
+  where
+    bitsPerBitfield  = size CIntPT * 8
+    (overflow, rest) = (b1 + b2) `divMod` bitsPerBitfield
+
+-- pad any storage unit that is partially used by a bitfield
+--
+padBits               :: BitSize -> Int
+padBits (BitSize o 0)  = o
+padBits (BitSize o _)  = o + size CIntPT
 
 -- compute the offset of the declarator in the second argument when it is
 -- preceded by the declarators in the first argument
 --
-offsetInStruct                :: [CDecl] -> CDecl -> CStructTag -> GB Int
-offsetInStruct []    _    _    = return 0
+offsetInStruct                :: [CDecl] -> CDecl -> CStructTag -> GB BitSize
+offsetInStruct []    _    _    = return $ BitSize 0 0
 offsetInStruct decls decl tag  = 
   do
     (offset, _) <- sizeAlignOfStruct decls tag
     (_, align)  <- sizeAlignOf decl
-    return $ ((offset - 1) `div` align + 1) * align
+    return $ alignOffset offset align
 
--- compute the size and alignment (no padding at the end) of the declarators
--- forming a struct
+-- compute the size and alignment (no padding at the end) of a set of
+-- declarators from a struct
 --
-sizeAlignOfStruct                  :: [CDecl] -> CStructTag -> GB (Int, Int)
-sizeAlignOfStruct []    _           = return (0, 1)
+sizeAlignOfStruct :: [CDecl] -> CStructTag -> GB (BitSize, Int)
+sizeAlignOfStruct []    _           = return (BitSize 0 0, 1)
 sizeAlignOfStruct decls CStructTag  = 
   do
     (offset, preAlign) <- sizeAlignOfStruct (init decls) CStructTag
     (size, align)      <- sizeAlignOf       (last decls)
-    let sizeOfStruct  = ((offset - 1) `div` align + 1) * align + size
-	alignOfStruct = preAlign `max` align
+    let sizeOfStruct  = alignOffset offset align `addBitSize` size
+	align'	      = if align > 0 then align else bitfieldAlignment
+	alignOfStruct = preAlign `max` align'
     return (sizeOfStruct, alignOfStruct)
 sizeAlignOfStruct decls CUnionTag   =
   do
     (sizes, aligns) <- mapAndUnzipM sizeAlignOf decls
-    return (maximum sizes, maximum aligns)
+    let aligns' = [if align > 0 then align else bitfieldAlignment
+		  | align <- aligns]
+    return (maximum sizes, maximum aligns')
 
 -- compute the size and alignment of the declarators forming a struct
 -- including any end-of-struct padding that is needed to make the struct ``tile
 -- in an array'' (K&R A7.4.8)
 --
-sizeAlignOfStructPad                :: [CDecl] -> CStructTag -> GB (Int, Int)
+sizeAlignOfStructPad :: [CDecl] -> CStructTag -> GB (BitSize, Int)
 sizeAlignOfStructPad decls tag =
   do
     (size, align) <- sizeAlignOfStruct decls tag
-    return (((size - 1) `div` align + 1) * align, align)
+    return (alignOffset size align, align)
 
 -- compute the size and alignment constraint of a given C declaration
 --
-sizeAlignOf       :: CDecl -> GB (Int, Int)
+sizeAlignOf       :: CDecl -> GB (BitSize, Int)
 --
--- * We make use of the assertion that `extractCompType' can only return a
---   `DefinedET' when the declaration is a pointer declaration.
+-- * we make use of the assertion that `extractCompType' can only return a
+--   `DefinedET' when the declaration is a pointer declaration
 --
 sizeAlignOf cdecl  = 
   do
     ct <- extractCompType False cdecl
     case ct of
-      ExtType (FunET _ _        ) -> return (sizes!CFunPtrPT, 
-					     alignments!CFunPtrPT)
+      ExtType (FunET _ _        ) -> return (bitSize CFunPtrPT, 
+					     alignment CFunPtrPT)
       ExtType (IOET  _          ) -> interr "GenBind.sizeof: Illegal IO type!"
       ExtType (PtrET t          ) 
-        | isFunExtType t          -> return (sizes!CFunPtrPT, 
-					     alignments!CFunPtrPT)
-        | otherwise		  -> return (sizes!CPtrPT, alignments!CPtrPT)
-      ExtType (DefinedET _ _    ) -> return (sizes!CPtrPT, alignments!CPtrPT)
+        | isFunExtType t          -> return (bitSize CFunPtrPT, 
+					     alignment CFunPtrPT)
+        | otherwise		  -> return (bitSize CPtrPT, alignment CPtrPT)
+      ExtType (DefinedET _ _    ) -> return (bitSize CPtrPT, alignment CPtrPT)
         -- FIXME: The defined type could be a function pointer!!!
-      ExtType (PrimET pt        ) -> return (sizes!pt, alignments!pt)
+      ExtType (PrimET pt        ) -> return (bitSize pt, alignment pt)
       ExtType UnitET              -> voidFieldErr (posOf cdecl)
       SUType su                   -> 
         do
@@ -1471,6 +1582,36 @@ sizeAlignOf cdecl  =
 						     (fst . structMembers $ su)
                          _                       -> return fields
 	  sizeAlignOfStructPad fields' tag
+  where
+    bitSize et | sz < 0    = BitSize 0  (-sz)	-- size is in bits
+	       | otherwise = BitSize sz 0
+	       where
+	         sz = size et
+
+-- apply the given alignment constraint at the given offset
+--
+-- * if the alignment constraint is negative or zero, it is the alignment
+--   constraint for a bitfield
+--
+alignOffset :: BitSize -> Int -> BitSize
+alignOffset offset@(BitSize octetOffset bitOffset) align 
+  | align > 0 && bitOffset /= 0 =		-- close bitfield first
+    alignOffset (BitSize (octetOffset + (bitOffset + 7) `div` 8) 0) align
+  | align > 0 && bitOffset == 0 =	        -- no bitfields involved
+    BitSize (((octetOffset - 1) `div` align + 1) * align) 0
+  | bitOffset == 0 	        	        -- start a bitfield
+    || overflowingBitfield	=		-- .. or overflowing bitfield
+    alignOffset offset bitfieldAlignment
+  | otherwise			=		-- stays in current bitfield
+    offset
+  where
+    bitsPerBitfield     = size CIntPT * 8
+    overflowingBitfield = bitOffset - align >= bitsPerBitfield
+				    -- note, `align' is negative
+
+
+-- constant folding
+-- ----------------
 
 -- evaluate a constant expression
 --
@@ -1502,7 +1643,7 @@ evalConstCExpr (CSizeofExpr _ _) =
 evalConstCExpr (CSizeofType decl _) =
   do
     (size, _) <- sizeAlignOf decl
-    return $ IntResult (fromIntegral size)
+    return $ IntResult (fromIntegral . padBits $ size)
 evalConstCExpr (CAlignofExpr _ _) =
   todo "GenBind.evalConstCExpr: alignof (GNU C extension) not implemented yet."
 evalConstCExpr (CAlignofType decl _) =
@@ -1605,6 +1746,10 @@ applyUnary cpos CNegOp     (IntResult   x) =
   in return (IntResult r)
 applyUnary cpos CNegOp     (FloatResult _) = 
   illegalConstExprErr cpos "! applied to a float"
+
+
+-- auxilliary functions
+-- --------------------
 
 -- print trace message
 --
@@ -1722,3 +1867,15 @@ pointerTypeMismatchErr pos className superName =
      ++ "' is of a different kind",
      "than that of the class hook for `" ++ superName ++ "'; this is illegal",
      "as the latter is defined to be an (indirect) superclass of the former."]
+
+illegalFieldSizeErr      :: Position -> GB a
+illegalFieldSizeErr cpos  =
+  raiseErrorCTExc cpos 
+    ["Illegal field size!",
+     "Only signed and unsigned `int' types may have a size annotation."]
+
+derefBitfieldErr      :: Position -> GB a
+derefBitfieldErr pos  =
+  raiseErrorCTExc pos 
+    ["Illegal dereferencing of a bit field!",
+     "Bit fields cannot be dereferenced."]

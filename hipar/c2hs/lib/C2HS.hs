@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 19 August 99
 --
---  Version $Revision: 1.9 $ from $Date: 2001/02/16 07:28:26 $
+--  Version $Revision: 1.10 $ from $Date: 2001/11/14 09:08:12 $
 --
 --  Copyright (c) [1999...2000] Manuel M. T. Chakravarty
 --
@@ -40,6 +40,7 @@ module C2HS (
   -- re-export the language-independent component of the FFI 
   --
 --  module Foreign, -- have to be more precise while supporting old systems
+  module Bits,
   module Int,
   module Word,
   module Ptr,
@@ -66,6 +67,7 @@ module C2HS (
 ) where 
 
 
+import Bits	    (Bits(..), shiftL, shiftR, rotateL, rotateR)
 import Int          (Int8, Int16, Int32, Int64)
 import Word	    (Word8, Word16, Word32, Word64)
 import Ptr	    (Ptr, nullPtr, castPtr, plusPtr, alignPtr, minusPtr,

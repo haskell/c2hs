@@ -662,9 +662,11 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.10.1 "Altocumulus Stratiformis Perlucidus Undulatus"
+<sect1>Version 0.10.2 "Altocumulus Stratiformis Perlucidus Undulatus"
 <p>
 <itemize>
+<item>Support for bitfields (they are correctly handled when computing struct
+offsets and they can be accessed using <tt/set/ and <tt/get/ hooks)
 <item>Some more support for GNU C extensions ("alignof" and better support
 "__attribute__")
 <item>Added <tt/class/ hooks
