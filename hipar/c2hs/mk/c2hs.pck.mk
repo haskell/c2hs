@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.2 $ from $Date: 2002/02/13 10:17:44 $
+#  Version $Revision: 1.3 $ from $Date: 2002/03/05 13:08:38 $
 #
 #  Copyright (c) 1999 Manuel M. T. Chakravarty
 #
@@ -19,7 +19,7 @@
 #
 #  = DOCU =====================================================================
 #
-#  Contains the global package dependent information for the C -> Haskell
+#  Contains the global package dependent information for the C->Haskell
 #  Compiler.
 #
 #  = TODO =====================================================================
@@ -30,7 +30,7 @@
 
 # files lists for tar balls
 #
-C2HSFILES=doc/c2hs mk/c2hs.mk c2hs
+C2HSFILES=doc/c2hs c2hs/mk/c2hs.pck.mk c2hs
 
 # file that contain a `versnum = "x.y.z"' line
 #

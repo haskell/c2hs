@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 25 July 1998
 #
-#  Version $Revision: 1.9 $ from $Date: 2002/02/13 10:17:43 $
+#  Version $Revision: 1.10 $ from $Date: 2002/03/05 13:08:38 $
 #
 #  Copyright (c) [1998..2002] Manuel M T Chakravarty
 #
@@ -61,10 +61,13 @@ test   : rectest
 
 # the library achieve containing the whole CTK
 #
+# NB: Don't put the addsuffix expression to the to dependencies, as the 
+#     wildcard won't expand to anything sensible in a clean tree.
+#
 libctk: libctk.a
-libctk.a: $(addsuffix /*.o,$(PARTS))
+libctk.a: objs
 	-$(RM) $@
-	$(AR) -crs $@ $^
+	$(AR) -crs $@ $(addsuffix /*.o,$(PARTS))
 
 # auxilliary targets
 #

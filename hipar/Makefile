@@ -1,11 +1,11 @@
 #  Compiler Toolkit Toplevel: root makefile 
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Created: 24 July 1998 (derived from HiPar root makefile)
 #
-#  Version $Revision: 1.64 $ from $Date: 2002/02/10 13:34:26 $
+#  Version $Revision: 1.65 $ from $Date: 2002/03/05 13:08:38 $
 #
-#  Copyright (c) [1995..2000] Manuel M. T. Chakravarty
+#  Copyright (c) [1995..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by

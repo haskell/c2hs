@@ -1,5 +1,7 @@
 2002-03-05  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
+	* Makefile: fixed libctk.a target
+
 	* ../configure.in: make sure to include the posix package only for
 	GHC (and not for nhc98)
 
