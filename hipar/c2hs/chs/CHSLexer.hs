@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 13 August 99
 --
---  Version $Revision: 1.18 $ from $Date: 2003/02/12 09:41:02 $
+--  Version $Revision: 1.19 $ from $Date: 2003/04/16 11:13:10 $
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
@@ -90,7 +90,7 @@
 --
 --      ident       -> letter (letter | digit | `'')*
 --      reservedid  -> `as' | `call' | `class' | `context' | `deriving' 
---		     | `enum' | `foreign' | `fun' | `get' | `header' | `lib' 
+--		     | `enum' | `foreign' | `fun' | `get' | `lib' 
 --		     | `newtype' | `pointer' | `prefix' | `pure' | `set'
 --		     | `sizeof' | `stable' | `type' | `underscoreToCase' 
 --		     | `unsafe' | `with'
@@ -207,7 +207,6 @@ data CHSToken = CHSTokArrow   Position		-- `->'
 	      | CHSTokForeign Position          -- `foreign'
 	      | CHSTokFun     Position		-- `fun'
 	      | CHSTokGet     Position		-- `get'
-	      | CHSTokHeader  Position		-- `header'
 	      | CHSTokImport  Position		-- `import'
 	      | CHSTokLib     Position		-- `lib'
 	      | CHSTokNewtype Position		-- `newtype'
@@ -254,7 +253,6 @@ instance Pos CHSToken where
   posOf (CHSTokForeign pos  ) = pos
   posOf (CHSTokFun     pos  ) = pos
   posOf (CHSTokGet     pos  ) = pos
-  posOf (CHSTokHeader  pos  ) = pos
   posOf (CHSTokImport  pos  ) = pos
   posOf (CHSTokLib     pos  ) = pos
   posOf (CHSTokNewtype pos  ) = pos
@@ -301,7 +299,6 @@ instance Eq CHSToken where
   (CHSTokForeign  _  ) == (CHSTokForeign  _  ) = True
   (CHSTokFun      _  ) == (CHSTokFun      _  ) = True
   (CHSTokGet      _  ) == (CHSTokGet      _  ) = True
-  (CHSTokHeader   _  ) == (CHSTokHeader   _  ) = True
   (CHSTokImport   _  ) == (CHSTokImport   _  ) = True
   (CHSTokLib      _  ) == (CHSTokLib      _  ) = True
   (CHSTokNewtype  _  ) == (CHSTokNewtype  _  ) = True
@@ -349,7 +346,6 @@ instance Show CHSToken where
   showsPrec _ (CHSTokForeign _  ) = showString "foreign"
   showsPrec _ (CHSTokFun     _  ) = showString "fun"
   showsPrec _ (CHSTokGet     _  ) = showString "get"
-  showsPrec _ (CHSTokHeader  _  ) = showString "header"
   showsPrec _ (CHSTokImport  _  ) = showString "import"
   showsPrec _ (CHSTokLib     _  ) = showString "lib"
   showsPrec _ (CHSTokNewtype _  ) = showString "newtype"
@@ -438,7 +434,7 @@ chslexer  =      haskell	-- Haskell code
 	    >||< nested		-- nested comments
 	    >||< ctrl		-- control code (that has to be preserved)
 	    >||< hook		-- start of a binding hook
---	    >||< cpp		-- a pre-processor directive (or `#c')
+	    >||< cpp		-- a pre-processor directive (or `#c')
 
 -- stream of Haskell code (terminated by a control character or binding hook)
 --
@@ -458,12 +454,10 @@ haskell  = (    anyButSpecial`star` epsilon
 	    >|< specialButQuotes
 	    >|< char '"'  +> inhstr`star` char '"'
 	    >|< string "'\"'"				-- special case of "
+	    >|< string "--" +> anyButNL`star` epsilon   -- comment
 	   )
 	   `lexaction` copyVerbatim
-	   >||< string "--" +> anyButNL`star` char '\n'	          -- comment
-                `lexmeta` (\cs pos s -> (Just $ Right (CHSTokHaskell pos cs),
-					 retPos pos, s, Nothing))
-	   >||< char '"'		             -- this is a bad kludge
+	   >||< char '"'		                -- this is a bad kludge
 		`lexactionErr` 
 		  \_ pos -> (Left $ makeError ErrorErr pos
 					      ["Lexical error!", 
@@ -566,19 +560,21 @@ hook  = string "{#"
 
 -- pre-processor directives and `#c'
 --
+-- * we lex `#c' as a directive and special case it in the action
+--
 cpp :: CHSLexer
-cpp =      directive
-      >||< startC
+cpp = directive
       where
         directive = 
 	  string "\n#" +> alt ('\t':inlineSet)`star` char '\n'
 	  `lexmeta` 
-	     \(_:_:dir) pos s -> (Just $ Right (CHSTokCPP pos (init dir)), 
-			          retPos (retPos pos), s, Nothing)
-        --
-        startC = string "\n#c" +> (alt " \t")`star` char '\n'
-	         `lexmeta` 
-		   \_ pos s -> (Nothing, retPos (retPos pos), s, Just cLexer)
+	     \(_:_:dir) pos s ->	-- strip off the "\n#"
+	       case dir of
+	         'c':sp:_ | sp `elem` " \t\n" ->	-- #c
+		   (Nothing, retPos (retPos pos), s, Just cLexer)
+                 _                            ->        -- CPP directive
+		   (Just $ Right (CHSTokCPP pos (init dir)), 
+		    retPos (retPos pos), s, Nothing)
 
 -- the binding hook lexer
 --
@@ -641,7 +637,6 @@ identOrKW  =
     idkwtok pos "foreign"	   _	= CHSTokForeign pos
     idkwtok pos "fun"              _    = CHSTokFun     pos
     idkwtok pos "get"              _    = CHSTokGet     pos
-    idkwtok pos "header"           _    = CHSTokHeader  pos
     idkwtok pos "import"           _    = CHSTokImport  pos
     idkwtok pos "lib"              _    = CHSTokLib     pos
     idkwtok pos "newtype"          _    = CHSTokNewtype pos

@@ -2,18 +2,24 @@
                                 C2HS TODO
                                 =========
 
-Next: - We can now make passing the header file on the command line optional,
-	as #include directives can be embedded in the binding module.
-
-      - Points raised by PeteG:
+Next: - Points raised by PeteG:
 	* The initial comment put by c2hs shouldn't be put in the first line,
 	  as this makes it difficult to add {-# OPTIONS #-} pragma to the .chs
 	  file, as this pragma must be in the first line.
 	* c2hs' initial comment also seems to confuse haddock (maybe also
 	  other things done by c2hs; check!)
 
+      - Ian requests {#const SYM#} where SYM is a pre-preprocessor symbol to 
+        evaluate to the C value of SYM.  Main problem is that the value might
+        be of various C types.
+
       - move over to Standard FFI, but support the old syntax when --old-ffi
-        given (remove the old meaning of --old-ffi)
+        given (remove the old meaning of --old-ffi); emit <Lib>.h into the
+        extent portion foreign import declarations
+
+      - All the C2HS binding hook keyword, such as `type', cannot be used in
+	access paths of get/set hooks! (See `gdk/GdkVisual.chs'.)  Sean needs
+	this, too.
 
       - extend the C lexer/parser to accept full C (not just declarations, but
         also code); then, inline C can include code and we can actually
@@ -36,8 +42,7 @@ Next: - We can now make passing the header file on the command line optional,
       - check profiling; also make sure all .p_hi, .p_o etc files are removed
         when cleaning
 
-      Major features to be added after the release: conditions (incl phase
-      re-ordering), structure marshalling.
+      Next Major feature to be added: structure marshalling.
 
       - Separate CTK from C->Haskell and use new CVS repository.
 
@@ -83,10 +88,6 @@ Next: - We can now make passing the header file on the command line optional,
       - the use of get/set hooks with `class'ed newtypes is complicated, as
         the type doesn't match `Ptr a'; see, eg, `GtkCList.cListGetNoOfRows'
 
-      - when we first read the .chs file and pre-process it to generate some
-        more C header code, it might be nice to move the reading of .chi files
-        into the pre-processing phase, too
-
       - class methods should be able to get user-defined names (needed for
         GtkData.chs)
 
@@ -109,28 +110,18 @@ Next: - We can now make passing the header file on the command line optional,
         been bound in a header file.  The Position info schould be sufficient
         to determine this.  Maybe also add {#ignore foo#}, which makes it not
         list a given identifier (for private functions listed in the header).
-      - add lndir to hipar/ (start utils dir)
-      - make clean and make cleanhi don't clean the lib/ subdir
       - In `GdkGL.chs', the prefix is not properly removed from the
         constructors of `GdkGL.Configs'; same problem with
         `GdkEvents.EventType'
       - install the executable (c2hs and c2hs-config) with a version number
         suffix and make a symbolic link for the name without version number
         (makes installing multiple versions easier)
-      - what about the bug re cyclic structures in nhc with the new version
-        1.0? supposedly, fixed
       - the import path (/usr/lib/c2hs-0.7.5/ghc4/import) has to be more
 	specific and has to also include the minor version number of ghc
 	(as interface file formats change with minor versions :-(
-      - #define enum's (see below) - also requires reordering of phases
-      - Add an optional header="..." option in context hooks (can be used
-        instead of giving the .h file on the command line)?
-	STARTED: `header' tag is recognised in context hooks, BUT not yet
-		 used - usage requires reordering the phases
+      - #define enum's (see below)
       - intro a safe flag (as opposite to unsafe, but make safe the default)
       - overload stdAddr etc for ForeignObj (stable ptr & cast)
-      - All the C2HS binding hook keyword, such as `type', cannot be used in
-	access paths of get/set hooks! (See `gdk/GdkVisual.chs'.)
       - C2HSMarsh: from qrczak@knm.org.pl (Marcin 'Qrczak' Kowalczyk)
 	  mallocForeignObj:: Int -> IO ForeignObj     -- malloc + freeing finalizer
       - C2HSMarsh: 
@@ -174,9 +165,16 @@ Next: - We can now make passing the header file on the command line optional,
 
 Short term
 ~~~~~~~~~~
-* It would be nicer if `-k'ept files would be copied to the local directory
-  and renamed instead of being left in the temporary directory under the
-  random name.
+* The C99 spec says (sec. 6.7.2.1):
+
+       [#4] Each  enumerated  type  shall  be  compatible  with  an
+       integer     type.      The     choice     of     type     is
+       implementation-defined   but   shall   be   capable   of
+       representing  the  values  of  all  the   members   of   the
+       enumeration. [...]
+
+  Hence, c2hs has to be a bit more clever about determining the inetgral type
+  used to represent an enum.
 
 * The definition of `GenBind.HsObjectMap' doesn't take into account that in
   Haskell a single name can be used for both a type and a class.
@@ -235,9 +233,6 @@ Short term
   Isn't it a mitake to have explicit calling convention in the FFI?  Shouldn't 
   that be adapted automatically depending on the target architecture?
 
-* Tutorial with ideas about conventions for binding libraries (naming
-  conventions etc)
-
 * Sven: How about exporting Haskell functions (also dynamic export)?
   - callback registration function that explicitly have the type of the
     callback function (from which we might want to generate a foreign export
@@ -254,24 +249,6 @@ Short term
   information to circumvent such usage, but it would still be more elegant to
   support basic types as arguments, too.
 
-Side issues:
-------------
-
-* FFI: How can structs as function results be realised?
-
-* FFI: If the FFI for C functions returning a structure would return a pointer 
-  to that structure, we could handle them without extra impedance code in C.
-  The problem is of course, where to store the structure (and how to free it).
-
-Tip from Alastair: 
-     If you compile a C file (with gcc) with debugging on
-     and use 
-
-       objdump --debugging main.o
-
-     to examine it, it prints out the size and offset of the fields of a
-     struct.
-
 Middle term
 ~~~~~~~~~~~
 
@@ -283,10 +260,6 @@ Middle term
   C compiler errors.  A cheap way out would be {#const "C expr"#} to avoid
   parsing the C expression, but then we can get even more errors during
   compiling the C.
-
-* Directories contained in `C_INCLUDE_PATH' should be searched for header
-  files after directories extracted from the -I option in cpp options, but
-  before the standard header file directories are searched.
 
 * C->HS might get a lot easier to use by providing as optional marshalling
   libraries modules that handle often occurring standard stuff like converting 
@@ -320,24 +293,7 @@ Problems:
   There are, however, a number of interesting options supported by gcc -E that
   might make alternative solutions to the problem feasible.
 
-Approach:
-
-* Split `CHS' into a more conventional `CHSAST', `CHSSyntax', and `CHSAnalysis'
-  (or similar) structure and with `CHSAnalysis' add a pass that goes over the
-  binding file before `GenBind' is used.  Tasks: Static semantic checks
-  (context hook is first etc), collect all enum-define hooks etc
-
-* .chs has to be read before .h (due to the enum-define hooks)
-
-* Generating a header file that includes the bound to header and running this
-  through cpp has the added advantage that we don't have to give a path for
-  headers that are in any of the standard paths
-
 END of ----- Pre-1.0 rewrite ---------------
-
-* We could specify which header files matches a Haskell binding module in a
-  hook (context hook?) in the binding file.  We could even include some
-  verbatim C code, instead of having extra C files.
 
 * Do we like direct support for mapping complete structs (if they are
   sufficiently wellbehaved?) into Haskell data structures - both by generating

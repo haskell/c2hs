@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 16 August 99
 --
---  Version $Revision: 1.22 $ from $Date: 2003/02/12 09:41:02 $
+--  Version $Revision: 1.23 $ from $Date: 2003/04/16 11:13:10 $
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
@@ -60,7 +60,7 @@
 --	      | `set' apath
 --	      | `pointer' ['*'] idalias ptrkind
 --	      | `class' [ident `=>'] ident ident
---  ctxt     -> [`header' `=' string] [`lib' `=' string] [prefix]
+--  ctxt     -> [`lib' `=' string] [prefix]
 --  idalias  -> ident [`as' (ident | `^')]
 --  prefix   -> `prefix' `=' string
 --  deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
@@ -159,8 +159,7 @@ data CHSHook = CHSImport  Bool			-- qualified?
 			  Ident			-- module name
 			  String		-- content of .chi file
 			  Position
-	     | CHSContext (Maybe String)	-- header name
-			  (Maybe String)	-- library name
+	     | CHSContext (Maybe String)	-- library name
 			  (Maybe String)	-- prefix
 			  Position
 	     | CHSType    Ident			-- C type
@@ -203,7 +202,7 @@ data CHSHook = CHSImport  Bool			-- qualified?
 
 instance Pos CHSHook where
   posOf (CHSImport  _ _ _         pos) = pos
-  posOf (CHSContext _ _ _         pos) = pos
+  posOf (CHSContext _ _           pos) = pos
   posOf (CHSType    _             pos) = pos
   posOf (CHSSizeof  _             pos) = pos
   posOf (CHSEnum    _ _ _ _ _     pos) = pos
@@ -219,8 +218,8 @@ instance Pos CHSHook where
 instance Eq CHSHook where
   (CHSImport qual1 ide1 _      _) == (CHSImport qual2 ide2 _      _) =    
     qual1 == qual2 && ide1 == ide2
-  (CHSContext h1 olib1 opref1  _) == (CHSContext h2 olib2 opref2  _) =    
-    h1 == h2 && olib1 == olib1 && opref1 == opref2
+  (CHSContext olib1 opref1  _   ) == (CHSContext olib2 opref2  _   ) =    
+    olib1 == olib1 && opref1 == opref2
   (CHSType ide1                _) == (CHSType ide2                _) = 
     ide1 == ide2
   (CHSSizeof ide1              _) == (CHSSizeof ide2              _) = 
@@ -439,13 +438,8 @@ showCHSHook (CHSImport isQual ide _ _) =
     showString "import "
   . (if isQual then showString "qualified " else id)
   . showCHSIdent ide
-showCHSHook (CHSContext oheader olib oprefix _) =   
+showCHSHook (CHSContext olib oprefix _) =   
     showString "context "
-  . (case oheader of
-       Nothing     -> showString ""
-       Just header ->   showString "header = " 
-		      . showString header 
-		      . showString " ")
   . (case olib of
        Nothing  -> showString ""
        Just lib -> showString "lib = " . showString lib . showString " ")
@@ -702,6 +696,10 @@ parseCHSModule pos cs  = do
 -- * in case of an error, all tokens that are neither Haskell nor control
 --   tokens are skipped; afterwards parsing continues
 --
+-- * when encountering inline-C code we scan forward over all inline-C and
+--   control tokens to avoid turning the control tokens within a sequence of
+--   inline-C into Haskell fragments
+--
 parseFrags      :: [CHSToken] -> CST s [CHSFrag]
 parseFrags toks  = do
 		     parseFrags0 toks
@@ -718,9 +716,7 @@ parseFrags toks  = do
     parseFrags0 (CHSTokCPP     pos s:toks) = do
 					       frags <- parseFrags toks
 					       return $ CHSCPP s pos : frags
-    parseFrags0 (CHSTokC       pos s:toks) = do
-					       frags <- parseFrags toks
-					       return $ CHSC s pos : frags
+    parseFrags0 (CHSTokC       pos s:toks) = parseC       pos s      toks 
     parseFrags0 (CHSTokImport  pos  :toks) = parseImport  pos        toks
     parseFrags0 (CHSTokContext pos  :toks) = parseContext pos        toks
     parseFrags0 (CHSTokType    pos  :toks) = parseType    pos        toks
@@ -741,6 +737,20 @@ parseFrags toks  = do
     contFrags toks@(CHSTokCtrl    _ _:_   ) = parseFrags toks
     contFrags      (_                :toks) = contFrags  toks
 
+parseC :: Position -> String -> [CHSToken] -> CST s [CHSFrag]
+parseC pos s toks = 
+  do
+    frags <- collectCtrlAndC toks
+    return $ CHSC s pos : frags
+  where
+    collectCtrlAndC (CHSTokCtrl pos c:toks) = do
+					        frags <- collectCtrlAndC toks
+						return $ CHSC [c] pos : frags
+    collectCtrlAndC (CHSTokC    pos s:toks) = do
+					        frags <- collectCtrlAndC toks
+						return $ CHSC s   pos : frags
+    collectCtrlAndC toks		    = parseFrags toks
+
 parseImport :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseImport pos toks = do
   (qual, modid, toks') <- 
@@ -755,12 +765,11 @@ parseImport pos toks = do
 
 parseContext          :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseContext pos toks  = do
-		           (oheader , toks' )  <- parseOptHeader       toks
-		           (olib    , toks'' ) <- parseOptLib          toks'
+		           (olib    , toks'' ) <- parseOptLib          toks
 		           (opref   , toks''') <- parseOptPrefix False toks''
 		           toks''''	       <- parseEndHook	       toks'''
 		           frags               <- parseFrags           toks''''
-			   let frag = CHSContext oheader olib opref pos
+			   let frag = CHSContext olib opref pos
 		           return $ CHSHook frag : frags
 
 parseType :: Position -> [CHSToken] -> CST s [CHSFrag]
@@ -941,14 +950,6 @@ parseClass pos (CHSTokIdent _ classIde :
     frags <- parseFrags toks'
     return $ CHSHook (CHSClass Nothing classIde typeIde pos) : frags
 parseClass _ toks = syntaxError toks
-
-parseOptHeader :: [CHSToken] -> CST s (Maybe String, [CHSToken])
-parseOptHeader (CHSTokHeader _    :
-	        CHSTokEqual  _    :
-	        CHSTokString _ str:
-	        toks)	             = return (Just str, toks)
-parseOptHeader (CHSTokHeader _:toks) = syntaxError toks
-parseOptHeader toks		     = return (Nothing, toks)
 
 parseOptLib :: [CHSToken] -> CST s (Maybe String, [CHSToken])
 parseOptLib (CHSTokLib    _    :

@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 5 February 2003
 --
---  Version $Revision: 1.1 $
+--  Version $Revision: 1.2 $
 --
 --  Copyright (c) 2003 Manuel M T Chakravarty
 --
@@ -54,7 +54,7 @@ import Monad     (when)
 import Common    (Position, Pos(..), nopos)
 import DLists	 (DList, openDL, closeDL, zeroDL, unitDL, joinDL, snocDL)
 import Errors	 (interr)
-import Idents	 (internalIdent)
+import Idents	 (onlyPosIdent)
 import UNames    (NameSupply, Name, names)
 
 -- C->Haskell
@@ -80,8 +80,8 @@ genHeader :: CHSModule -> CST s ([String], CHSModule, String)
 genHeader mod = 
   do
     supply <- getNameSupply
-    (header, mod') <- runCST (ghModule mod) (names supply)
-		      `ifGHExc` return ([], CHSModule [])
+    (header, mod) <- runCST (ghModule mod) (names supply)
+		     `ifGHExc` return ([], CHSModule [])
 
     -- check for errors and finalise
     --
@@ -100,7 +100,7 @@ genHeader mod =
 --
 newName :: CST [Name] String
 newName = transCST $
-  \supply -> (tail supply, "C2HS_COND_SENTRY" ++ show (head supply))
+  \supply -> (tail supply, "C2HS_COND_SENTRY_" ++ show (head supply))
 
 -- Various forms of processed fragments
 --
@@ -132,10 +132,10 @@ isEOF _   = False
 ghModule :: CHSModule -> GH ([String], CHSModule)
 ghModule (CHSModule frags) =
   do
-    (header, frags', last, rest) <- ghFrags frags
+    (header, frags, last, rest) <- ghFrags frags
     when (not . isEOF $ last) $
       notOpenCondErr (posOf last)
-    return (closeDL header, CHSModule frags')
+    return (closeDL header, CHSModule frags)
 
 -- Collect header and fragments up to eof or a CPP directive that is part of a
 -- conditional
@@ -151,10 +151,10 @@ ghFrags frags =
     (header, frag, rest) <- ghFrag frags
     case frag of
       Frag aFrag -> do
-		      (header2, frags', frag', rest') <- ghFrags rest
+		      (header2, frags', frag', rest) <- ghFrags rest
 		      -- FIXME: Not tail rec
 		      return (header `joinDL` header2, aFrag:frags', 
-			      frag', rest')
+			      frag', rest)
       _          -> return (header, [], frag, rest)
 
 -- Process a single fragment *structure*; i.e., if the first fragment
@@ -187,10 +187,10 @@ ghFrag (frag@(CHSCPP  s  pos) : frags) =
     "if"     ->	openIf s pos frags
     "ifdef"  -> openIf s pos frags
     "ifndef" -> openIf s pos frags
-    "else"   -> return (zeroDL, Else   pos , frags)
-    "elif"   -> return (zeroDL, Elif s pos , frags)
-    "endif"  -> return (zeroDL, Endif  pos , frags)
-    _        -> return (zeroDL, Frag   frag, frags)
+    "else"   -> return (zeroDL              , Else   pos               , frags)
+    "elif"   -> return (zeroDL              , Elif s pos               , frags)
+    "endif"  -> return (zeroDL              , Endif  pos               , frags)
+    _        -> return (openDL ['#':s, "\n"], Frag   (CHSVerb "" nopos), frags)
   where
     -- enter a new conditional (may be an #if[[n]def] or #elif)
     --
@@ -244,7 +244,10 @@ ghFrag (frag@(CHSCPP  s  pos) : frags) =
     closeIf headerTail (s, fragsTh) alts oelse rest = 
       do
         sentryName <- newName
-	let sentry = internalIdent sentryName
+	let sentry = onlyPosIdent nopos sentryName
+		       -- don't use an internal ident, as we need to test for
+		       -- equality with identifiers read from the .i file
+		       -- during binding hook expansion
 	    header = openDL ['#':s, "\n",
 			     "struct ", sentryName, ";\n"] 
 			    `joinDL` headerTail

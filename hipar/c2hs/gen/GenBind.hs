@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.47 $ from $Date: 2003/02/12 09:41:03 $
+--  Version $Revision: 1.48 $ from $Date: 2003/04/16 11:13:11 $
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
@@ -135,14 +135,15 @@ import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 		   CInit(..), CExpr(..), CAssignOp(..), CBinaryOp(..),
 		   CUnaryOp(..), CConst (..),
 		   CT, readCT, transCT, getCHeaderCT, runCT, ifCTExc,
-		   raiseErrorCTExc, findFunObj, findTag, findTypeObj,
-		   applyPrefixToNameSpaces, isTypedef, simplifyDecl,
-		   declrFromDecl, declrNamed, structMembers, structName,
-		   tagName, declaredName , structFromDecl, funResultAndArgs,
-		   chaseDecl, findAndChaseDecl, checkForAlias,
-		   checkForOneAliasName, lookupEnum,  lookupStructUnion,
-		   lookupDeclOrTag, isPtrDeclr, dropPtrDeclr, isPtrDecl,
-		   getDeclOf, isFunDeclr, refersToNewDef, CDef(..))
+		   raiseErrorCTExc, findValueObj, findFunObj, findTag,
+		   findTypeObj, applyPrefixToNameSpaces, isTypedef,
+		   simplifyDecl, declrFromDecl, declrNamed, structMembers,
+		   structName, tagName, declaredName , structFromDecl,
+		   funResultAndArgs, chaseDecl, findAndChaseDecl,
+		   checkForAlias, checkForOneAliasName, lookupEnum,
+		   lookupStructUnion, lookupDeclOrTag, isPtrDeclr,
+		   dropPtrDeclr, isPtrDecl, getDeclOf, isFunDeclr,
+		   refersToNewDef, CDef(..))
 
 -- friends
 import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
@@ -294,7 +295,7 @@ expandModule (CHSModule frags)  =
     -- expand hooks
     --
     traceInfoExpand
-    frags'       <- mapM expandFrag frags
+    frags'       <- expandFrags frags
     delayedFrags <- getDelayedCode
 
     -- get .chi dump
@@ -322,13 +323,46 @@ expandModule (CHSModule frags)  =
     traceInfoOK     = putTraceStr tracePhasesSW 
 			("...successfully completed.\n")
 
-expandFrag :: CHSFrag -> GB CHSFrag
-expandFrag verb@(CHSVerb _ _) = return verb
-expandFrag      (CHSHook h  ) = 
+expandFrags :: [CHSFrag] -> GB [CHSFrag]
+expandFrags = liftM concat . mapM expandFrag
+
+expandFrag :: CHSFrag -> GB [CHSFrag]
+expandFrag verb@(CHSVerb _ _     ) = return [verb]
+expandFrag      (CHSHook h       ) = 
   do
     code <- expandHook h
-    return $ CHSVerb code builtinPos
-  `ifCTExc` return (CHSVerb "** ERROR **" builtinPos)
+    return [CHSVerb code builtinPos]
+  `ifCTExc` return [CHSVerb "** ERROR **" builtinPos]
+expandFrag      (CHSCPP  s _     ) = 
+  interr $ "GenBind.expandFrag: Left over CHSCPP!\n---\n" ++ s ++ "\n---"
+expandFrag      (CHSC    s _     ) = 
+  interr $ "GenBind.expandFrag: Left over CHSC!\n---\n" ++ s ++ "\n---"
+expandFrag      (CHSCond alts dft) = 
+  do
+    traceInfoCond
+    select alts
+  where
+    select []                  = do
+				   traceInfoDft dft
+				   expandFrags (maybe [] id dft)
+    select ((ide, frags):alts) = do
+				   oobj <- findTag ide
+				   traceInfoVal ide oobj
+				   if isNothing oobj
+				     then
+				       select alts
+				     else	     -- found right alternative
+				       expandFrags frags
+    --
+    traceInfoCond         = traceGenBind "** CPP conditional:\n"
+    traceInfoVal ide oobj = traceGenBind $ identToLexeme ide ++ " is " ++
+			      (if isNothing oobj then "not " else "") ++
+			      "defined.\n"
+    traceInfoDft dft      = if isNothing dft 
+			    then 
+			      return () 
+			    else 
+			      traceGenBind "Choosing else branch.\n"
 
 expandHook :: CHSHook -> GB String
 expandHook (CHSImport qual ide chi _) =
@@ -336,7 +370,7 @@ expandHook (CHSImport qual ide chi _) =
     mergeMaps chi
     return $ 
       "import " ++ (if qual then "qualified " else "") ++ identToLexeme ide
-expandHook (CHSContext _ olib oprefix _) =
+expandHook (CHSContext olib oprefix _) =
   do
     setContext olib oprefix		      -- enter context information
     mapMaybeM applyPrefixToNameSpaces oprefix -- use the prefix on name spaces
@@ -1650,6 +1684,10 @@ alignOffset offset@(BitSize octetOffset bitOffset) align
 
 -- evaluate a constant expression
 --
+-- FIXME: this is a bit too simplistic, as the range of expression allowed as
+--	  constant expression varies depending on the context in which the
+--	  constant expression occurs
+--
 evalConstCExpr :: CExpr -> GB ConstResult
 evalConstCExpr (CComma _ at) =
   illegalConstExprErr (posOf at) "a comma expression"
@@ -1691,8 +1729,40 @@ evalConstCExpr (CCall _ _ at) =
   illegalConstExprErr (posOf at) "function call"
 evalConstCExpr (CMember _ _ _ at) =
   illegalConstExprErr (posOf at) "a . or -> operator"
-evalConstCExpr (CVar _ _ ) =
-  todo "GenBind.evalConstCExpr: variable names not implemented yet."
+evalConstCExpr (CVar ide at) =
+  do
+    (cobj, _) <- findValueObj ide False
+    case cobj of
+      EnumCO ide (CEnum _ enumrs _) -> liftM IntResult $ 
+				         enumTagValue ide enumrs 0
+      _		                    -> 
+        todo $ "GenBind.evalConstCExpr: variable names not implemented yet " ++
+	       show (posOf at)
+  where
+    -- FIXME: this is not very nice; instead, CTrav should have some support
+    --	      for determining enum tag values (but then, constant folding needs
+    --	      to be moved to CTrav, too)
+    --
+    -- Compute the tag value for `ide' defined in the given enumerator list
+    --
+    enumTagValue _   []                     _   = 
+      interr "GenBind.enumTagValue: enumerator not in declaration"
+    enumTagValue ide ((ide', oexpr):enumrs) val =
+      do
+	val' <- case oexpr of
+		  Nothing  -> return val
+		  Just exp -> 
+		    do
+		      val' <- evalConstCExpr exp
+		      case val' of
+			IntResult val' -> return val'
+			FloatResult _  ->
+			  illegalConstExprErr (posOf exp) "a float result"
+	if ide == ide'
+	  then			-- found the right enumerator
+	    return val'
+	  else			-- continue down the enumerator list
+	    enumTagValue ide enumrs (val' + 1)
 evalConstCExpr (CConst c _) =
   evalCConst c
 

@@ -1,3 +1,38 @@
+2003-04-16  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenHeader.hs (ghFrag): sentries for conditionals must not be
+	turned into internal identifiers, as this spoils later equality
+	tests with identifiers read from the pre-processed header file;
+	bug reported by Axel Simon <A.Simon@ukc.ac.uk>
+
+	* toplevel/Version.hs (versnum): 0.11.3
+
+2003-03-04  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (evalConstCExpr): supporting enumerators in
+	constant expressions
+
+	* toplevel/Version.hs (versnum): 0.11.2
+
+2003-02-13  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs: removed the "header" tag (we now support the CPP
+	#include directive)
+
+	* Configuration-related patch by Ian Lynagh <igloo@earth.li> that
+	removes issues with GHC 5.05
+
+2003-02-12  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandFrag): Expanding conditionals
+
+	* chs/CHSLexer.hs (haskell): the lexeme for one-line comments
+	shouldn't include the terminating newline, as this removes the
+	newline for following lexemes (eg, CPP directives) and is not
+	really necessary due to the Principle of the Longest Match
+
+	* gen/GenHeader.hs: debugging
+
 2003-02-05  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenHeader.hs: New module extracting CPP directives and

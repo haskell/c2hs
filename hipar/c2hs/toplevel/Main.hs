@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Derived: 12 August 99
 --
---  Version $Revision: 1.17 $ from $Date: 2003/02/12 09:41:04 $
+--  Version $Revision: 1.18 $ from $Date: 2003/04/16 11:13:12 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -91,7 +91,9 @@
 --        Place output in file FILE.
 --
 --        If `-o' is not specified, the default is to put the output for
---	  `source.chs' in `source.hs'.
+--	  `source.chs' in `source.hs' in the current directory.  If specified,
+--	  the emitted C header file is put into the same directory as the
+--	  output file.
 --
 --  -v,
 --  --version
@@ -118,7 +120,7 @@ import Monad      (when, unless, mapM)
 import Common     (errorCodeFatal)
 import GetOpt     (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo,
 		   getOpt)
-import FNameOps   (suffix, basename, stripSuffix, addPath)
+import FNameOps   (suffix, basename, dirname, stripSuffix, addPath)
 import Errors	  (interr)
 
 import C2HSState  (CST, nop, runC2HS, fatal, fatalsHandledBy, getId,
@@ -470,25 +472,26 @@ process headerFile bndFile  =
     -- replaced by structured conditionals)
     --
     (header, strippedCHSMod, warnmsgs) <- genHeader chsMod
-    mapM putStrCIO header
     putStrCIO warnmsgs
     --
-    -- create temporary header file, make it #include `headerFile', and emit
-    -- CPP and inline-C of .chs file into the temporary header
+    -- create new header file, make it #include `headerFile', and emit
+    -- CPP and inline-C of .chs file into the new header
     --
-    (tmpHeader, tmpHeaderFile) <- mktempCIO (tmpdir `addPath` bndFile) ".h"
-    let preprocFile = basename tmpHeaderFile ++ isuffix
-    openFileCIO preprocFile WriteMode >>= hCloseCIO-- create 2nd temporary file
+    outFName <- getSwitch outputSB
+    let dir           = if null outFName then "" else dirname outFName
+	newHeaderFile = dir `addPath` basename bndFile ++ hsuffix
+	preprocFile   = basename newHeaderFile ++ isuffix
+    newHeader <- openFileCIO newHeaderFile WriteMode
     unless (null headerFile) $
-      hPutStrLnCIO tmpHeader $ "#include \"" ++ headerFile ++ "\""
-    mapM (hPutStrCIO tmpHeader) header
-    hCloseCIO tmpHeader
+      hPutStrLnCIO newHeader $ "#include \"" ++ headerFile ++ "\""
+    mapM (hPutStrCIO newHeader) header
+    hCloseCIO newHeader
     --
     -- run C preprocessor over the header
     --
     cpp     <- getSwitch cppSB
     cppOpts <- getSwitch cppOptsSB
-    let cmd  = unwords [cpp, cppOpts, tmpHeaderFile, ">" ++ preprocFile]
+    let cmd  = unwords [cpp, cppOpts, newHeaderFile, ">" ++ preprocFile]
     tracePreproc cmd
     exitCode <- systemCIO cmd
     case exitCode of 
@@ -503,13 +506,11 @@ process headerFile bndFile  =
     -- remove the custom header and the pre-processed header
     --
     keep <- getSwitch keepSB
-    unless keep $ do
-      removeFileCIO tmpHeaderFile
+    unless keep $
       removeFileCIO preprocFile
     --
     -- expand binding hooks into plain Haskell
     --
--- !!!this must be adapted to handle the conditionals
     (hsMod, chi, warnmsgs) <- expandHooks cheader strippedCHSMod
     putStrCIO warnmsgs
     --

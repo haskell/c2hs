@@ -3,30 +3,34 @@
 module Cpp
 where
 
+import C2HS
+
+-- CPP directive
+-- -
+#define VERSION 2
+
+
+-- conditional binding
+-- -
 #if (VERSION == 1)
 
 -- this does not match the C definition
 --
-foo :: Int -> Int
-foo = {#call fooC#}
+foo :: CInt -> CInt
+foo = {#call pure fooC#}
 
 #else
 
 -- this does
 --
-foo :: Int -> Int -> Int
-foo = {#call fooC#}
+foo :: CInt -> CInt -> CInt
+foo = {#call pure fooC#}
 
-#end
+#endif
 
 
 -- C code
-
+-- -
 #c
-
-#define VERSION 2
-
 int fooC (int, int);
-
 #endc
-

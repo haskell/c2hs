@@ -39,7 +39,7 @@ marsh: Marsh.chs marsh.h
 
 cpp: Cpp.chs cpp.h
 	$(C2HS) Cpp.chs
-	$(HC) -o cpp Cpp.hs -#include\"cpp.h\" $(HCFLAGS)
+	$(HC) -c Cpp.hs -#include\"Cpp.h\" $(HCFLAGS)
 
 # runs
 
