@@ -1,3 +1,16 @@
+2001-02-12  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CTrav.hs: Handle `CAttrs.BuiltinCO'
+
+	* c/CNames.hs (nameAnalysis): add builtin type definitions
+
+	* c/CBuiltin.hs: predefine `__builtin_va_list' as a
+	typedef'd name
+
+	* c/CParser.hs (parseCHeader): use `CBuiltin'
+
+	* toplevel/Version.hs (versnum): 0.8.2
+
 2001-02-11  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* releasing version 0.8.1 "Gentle Moon"

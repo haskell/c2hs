@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 October 99
 --
---  Version $Revision: 1.4 $ from $Date: 1999/11/16 15:27:38 $
+--  Version $Revision: 1.5 $ from $Date: 2001/02/12 06:34:39 $
 --
 --  Copyright (c) 1999 Manuel M. T. Chakravarty
 --
@@ -337,10 +337,17 @@ getDeclOf ide  =
       DontCareCD -> interr "CTrav.getDeclOf: Don't care!"
       TagCD _    -> interr "CTrav.getDeclOf: Illegal tag!"
       ObjCD obj  -> case obj of
-		      TypeCO decl -> return decl
-		      ObjCO  decl -> return decl
-		      EnumCO _ _  -> interr "CTrav.getDeclOf: Illegal enum!"
-
+		      TypeCO    decl -> return decl
+		      ObjCO     decl -> return decl
+		      EnumCO    _ _  -> illegalEnum
+		      BuiltinCO	     -> illegalBuiltin
+  where
+    illegalEnum    = interr "CTrav.getDeclOf: Illegal enum!"
+    illegalBuiltin = interr "CTrav.getDeclOf: Attempted to get declarator of \
+			    \builtin entity!"
+		     -- if the latter ever becomes necessary, we have to
+		     -- change the representation of builtins and give them
+		     -- some dummy declarator
 
 -- convenience functions
 --
@@ -357,9 +364,10 @@ findTypeObj ide useShadows  =
 	    then findObjShadow ide 
 	    else liftM (fmap (\obj -> (obj, ide))) $ findObj ide
     case oobj of
-      Just obj@(TypeCO _, _) -> return obj
-      Just _                 -> typedefExpectedErr ide
-      Nothing		     -> unknownObjErr ide
+      Just obj@(TypeCO _ , _) -> return obj
+      Just obj@(BuiltinCO, _) -> return obj
+      Just _                  -> typedefExpectedErr ide
+      Nothing		      -> unknownObjErr ide
 
 -- find an object, function, or enumerator in the object name space; raises an
 -- error and exception if the identifier is not defined (EXPORTED)

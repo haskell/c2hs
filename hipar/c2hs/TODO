@@ -14,7 +14,6 @@ Next: -= phase re-ordering & parser clean up =-
 	  } CORBA_sequence_TaggedComponent;
 
 	  typedef struct CORBA_sequence_TaggedComponent IOP_MultipleComponentProfile;
-      - Check with glib.h (see michaelz's bug report)
       - {#enum ...#} should create an instance of Storable as follows:
 	  instance Storable MyEnum where
 	    sizeOf    _ = sizeOf    (undefined :: CInt)
@@ -28,7 +27,6 @@ Next: -= phase re-ordering & parser clean up =-
         to determine this.  Maybe also add {#ignore foo#}, which makes it not
         list a given identifier (for private functions listed in the header).
       - Simon Marlow's bug (+inbox/37148)
-      - pre-define __builtin_va_list as a typedef'ed symbol
       - add lndir to hipar/ (start utils dir)
       - Axel's proposal for a {#newAddr Blah#} and {#newForeign Blah#} hook
 	(+inbox/39452)

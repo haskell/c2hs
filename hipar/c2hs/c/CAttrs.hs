@@ -3,9 +3,9 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 12 August 99
 --
---  Version $Revision: 1.5 $ from $Date: 1999/11/16 15:27:38 $
+--  Version $Revision: 1.6 $ from $Date: 2001/02/12 06:34:38 $
 --
---  Copyright (c) 1999 Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -273,9 +273,10 @@ softenDefOfIdentsAttrC ac  = ac {defsAC = softenAttrTable (defsAC ac)}
 
 -- C objects data definition (EXPORTED)
 --
-data CObj = TypeCO  CDecl		-- typedef declaration
-	  | ObjCO   CDecl		-- object or function declaration
-	  | EnumCO  Ident CEnum		-- enumerator
+data CObj = TypeCO    CDecl		-- typedef declaration
+	  | ObjCO     CDecl		-- object or function declaration
+	  | EnumCO    Ident CEnum	-- enumerator
+	  | BuiltinCO			-- builtin object
 
 -- two C objects are equal iff they are defined by the same structure
 -- tree node (i.e., the two nodes referenced have the same attribute
@@ -288,9 +289,10 @@ instance Eq CObj where
   _		      == _		     = False
 
 instance Pos CObj where
-  posOf (TypeCO def  ) = posOf def
-  posOf (ObjCO  def  ) = posOf def
-  posOf (EnumCO ide _) = posOf ide
+  posOf (TypeCO    def  ) = posOf def
+  posOf (ObjCO     def  ) = posOf def
+  posOf (EnumCO    ide _) = posOf ide
+  posOf (BuiltinCO      ) = builtinPos
 
 
 -- C tagged objects including operations

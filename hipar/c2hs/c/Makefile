@@ -3,9 +3,9 @@
 #  Author : Manuel M. T. Chakravarty
 #  Derived: 6 March 1999
 #
-#  Version $Revision: 1.6 $ from $Date: 1999/10/19 04:09:22 $
+#  Version $Revision: 1.7 $ from $Date: 2001/02/12 06:34:39 $
 #
-#  Copyright (c) 1999 Manuel M. T. Chakravarty
+#  Copyright (c) [1999..1002] Manuel M. T. Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -31,7 +31,8 @@
 #
 PACKAGE = c2hs
 PART    = c
-SRCS	= C.hs CAST.hs CAttrs.hs CLexer.hs CNames.hs CParser.hs CTrav.hs
+SRCS	= C.hs CAST.hs CAttrs.hs CBuiltin.hs CLexer.hs CNames.hs CParser.hs\
+	  CTrav.hs
 OBJS	= $(patsubst %.hs,%.o,$(filter %.hs,$(SRCS)))
 
 include ../../mk/common.mk

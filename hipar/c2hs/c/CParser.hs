@@ -3,9 +3,9 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.12 $ from $Date: 2000/02/28 05:53:37 $
+--  Version $Revision: 1.13 $ from $Date: 2001/02/12 06:34:39 $
 --
---  Copyright (c) 1999 Manuel M. T. Chakravarty
+--  Copyright (c) [1999.2001] Manuel M. T. Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@
 --    comma-separated list of arguments, which may be numbers, strings, and
 --    identifiers. 
 --
---  * We also recognize GNU C `__attribute__' annotations (however, they are
+--  * We also recognize GNU C `__extension__' annotations (however, they are
 --    not entered into the structure tree, but ignored).  More specifically, 
 --
 --      __extension__
@@ -63,6 +63,8 @@
 --    may occur in a specifier list.
 --
 --  * There may be a `,' behind the last element of a enum.
+--
+--  * Builtin type names are imported from `CBuiltin'.
 --
 --- TODO ----------------------------------------------------------------------
 --
@@ -92,6 +94,7 @@ import CAST       (CHeader(..), CExtDecl, CDecl(..), CDeclSpec(..),
 		   CStructUnion(..), CStructTag(..), CEnum(..), CDeclr(..),
 		   CInit(..), CExpr(..), CAssignOp(..), CBinaryOp(..),
 		   CUnaryOp(..), CConst (..))
+import CBuiltin   (builtinTypeNames)
 
 
 infixl 3 `actionAttrs`, `opAction`
@@ -259,9 +262,10 @@ parseCHeader            :: Position -> [CToken] -> CST s CHeader
 parseCHeader pos tokens  = 
   do
     nameSupply <- getNameSupply
-    let name = (head . names) nameSupply
-	at   = newAttrs pos name
-    decls <- parseCExtDeclList tokens
+    let name          = (head . names) nameSupply
+	at            = newAttrs pos name
+	predefTypeIds = map fst builtinTypeNames
+    decls <- parseCExtDeclList (morphTypeNames predefTypeIds tokens)
     return (CHeader decls at)
   where
     -- the set contains all identifiers that were turned into a

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 October 99
 --
---  Version $Revision: 1.5 $ from $Date: 1999/11/16 15:27:38 $
+--  Version $Revision: 1.6 $ from $Date: 2001/02/12 06:34:39 $
 --
 --  Copyright (c) 1999 Manuel M. T. Chakravarty
 --
@@ -46,6 +46,7 @@ import Idents	 (Ident, identToLexeme)
 import C2HSState (CST, nop)
 import CAST
 import CAttrs    (AttrC, CObj(..), CTag(..), CDef(..))
+import CBuiltin  (builtinTypeNames)
 import CTrav     (CT, getCHeaderCT, runCT, enter, enterObjs, leave, leaveObjs,
 		  ifCTExc, raiseErrorCTExc, defObj, findTypeObj, findValueObj,
 		  defTag, refersToDef, isTypedef) 
@@ -75,6 +76,12 @@ nameAnalysis ac  = do
 --
 naCHeader :: NA ()
 naCHeader  = do
+	       -- establish definitions for builtins
+	       --
+	       mapM_ (uncurry defObjOrErr) builtinTypeNames
+	       --
+	       -- analyse the header
+	       --
 	       CHeader decls _ <- getCHeaderCT
 	       mapM_ (\decl -> naCDecl decl `ifCTExc` nop) decls
 
