@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 27 February 99
 --
---  Version $Revision: 1.21 $ from $Date: 2000/09/14 17:51:52 $
+--  Version $Revision: 1.22 $ from $Date: 2001/02/09 02:36:10 $
 --
 --  Copyright (c) [1999..2000] Manuel M. T. Chakravarty
 --
@@ -80,9 +80,7 @@ module Parsers (Token, Parser, empty, token, skip, (<|>), (*$>), (*>), ($>),
 		sep, seplist, sep1, seplist1, execParser)
 where
 
---import SysDep (trace)
-
-import List   (sort)
+import List       (sort)
 
 import Common     (Position, Pos (posOf), nopos)
 import FiniteMaps (FiniteMap, unitFM, joinCombFM, mapFM, lookupFM, toListFM)
