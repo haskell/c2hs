@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 30 October 1999
 #
-#  Version $Revision: 1.8 $ from $Date: 2002/05/16 07:49:20 $
+#  Version $Revision: 1.9 $ from $Date: 2002/07/06 09:59:40 $
 #
 #  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
@@ -28,7 +28,7 @@ default: all
 
 # slurp in the common definitions (the TOP definition is not nice yet)
 #
-TOP=../../..
+TOP=../..
 
 include $(TOP)/mk/config.mk $(TOP)/c2hs/mk/c2hs.pck.mk
 

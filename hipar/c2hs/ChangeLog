@@ -1,3 +1,7 @@
+2002-07-06  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.10.15
+
 2002-05-16  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* lib/C2HSMarsh.hs: added support for bit masks
