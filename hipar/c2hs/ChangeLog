@@ -1,4 +1,22 @@
+2004-10-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (noDftMarshErr): better error message when
+	default marshallers are not available
+
+	* toplevel/Main.hs (process): if there is no explicit output file
+	specified, the header file is put in the same directory as the
+	binding file; otherwise, it goes in the directory where the output
+	file is put
+
 2004-10-09  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Main.hs (process): store header file name in switch board
+
+	* state/Switches.hs: Store the name of the generated header file
+	(needed to generate complete foreign import declarations)
+
+	* gen/GenBind.hs (foreignImport): Add name of header file to
+	extent strings of generated foreign import declarations
 
 	* c/CAttrs.hs (applyPrefix): never create empty shadow identifiers
 

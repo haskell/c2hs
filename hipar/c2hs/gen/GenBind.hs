@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.51 $ from $Date: 2004/06/11 07:10:17 $
+--  Version $Revision: 1.52 $ from $Date: 2004/10/13 06:16:10 $
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
@@ -163,7 +163,8 @@ import GBMonad    (TransFun, transTabToTransFun, HsObject(..), GB,
 
 -- FIXME: 
 -- - we might have a dynamically extended table in the monad if needed (we
---   could marshall enums this way)
+--   could marshall enums this way and also save the `id' marshallers for
+--   pointers defined via (newtype) pointer hooks)
 -- - the checks for the Haskell types are quite kludgy
 
 -- determine the default "in" marshaller for the given Haskell and C types
@@ -661,7 +662,8 @@ callImport hook isPure isUns ideLexeme hsLexeme cdecl pos =
     -- export declaration
     --
     extType <- extractFunType pos cdecl isPure
-    delayCode hook (foreignImport ideLexeme hsLexeme isUns extType)
+    header  <- getSwitch headerSB
+    delayCode hook (foreignImport header ideLexeme hsLexeme isUns extType)
     traceFunType extType
   where
     traceFunType et = traceGenBind $ 
@@ -669,12 +671,10 @@ callImport hook isPure isUns ideLexeme hsLexeme cdecl pos =
 
 -- Haskell code for the foreign import declaration needed by a call hook
 --
--- * appends a configuration dependent library suffix `dlsuffix'
---
-foreignImport :: String -> String -> Bool -> ExtType -> String
-foreignImport ident hsIdent isUnsafe ty  =
-  "foreign import ccall " ++ safety ++ " \"" ++ ident ++ "\"\n  " ++ 
-  hsIdent ++ " :: " ++ showExtType ty ++ "\n"
+foreignImport :: String -> String -> String -> Bool -> ExtType -> String
+foreignImport header ident hsIdent isUnsafe ty  =
+  "foreign import ccall " ++ safety ++ " \"" ++ header ++ " " ++ ident ++ 
+  "\"\n  " ++ hsIdent ++ " :: " ++ showExtType ty ++ "\n"
   where
     safety = if isUnsafe then "unsafe" else "safe"
 
@@ -857,7 +857,7 @@ addDftMarshaller pos parms parm cdecl = do
     addDftIn pos imMarsh@Nothing          hsTy cTys = do
       marsh <- lookupDftMarshIn hsTy cTys
       when (isNothing marsh) $
-        noDftMarshErr pos "\"in\""
+        noDftMarshErr pos "\"in\"" hsTy cTys
       return (marsh, case marsh of {Just (_, kind) -> kind == CHSIOArg})
     --
     addDftOut _   omMarsh@(Just (_, kind)) _    _    = return (omMarsh,
@@ -865,7 +865,7 @@ addDftMarshaller pos parms parm cdecl = do
     addDftOut pos omMarsh@Nothing          hsTy cTys = do
       marsh <- lookupDftMarshOut hsTy cTys
       when (isNothing marsh) $
-        noDftMarshErr pos "\"out\""
+        noDftMarshErr pos "\"out\"" hsTy cTys
       return (marsh, case marsh of {Just (_, kind) -> kind == CHSIOArg})
     --
     -- add void marshaller if no explict one is given
@@ -1990,9 +1990,11 @@ marshArgMismatchErr pos reason  =
     ["Function arity mismatch!",
      reason]
 
-noDftMarshErr           :: Position -> String -> GB a
-noDftMarshErr pos inOut  =
+noDftMarshErr :: Position -> String -> String -> [ExtType] -> GB a
+noDftMarshErr pos inOut hsTy cTys  =
   raiseErrorCTExc pos
     ["Missing " ++ inOut ++ " marshaller!",
      "There is no default marshaller for this combination of Haskell and \
-     \C type available."]
+     \C type:",
+     "Haskell type: " ++ hsTy,
+     "C type      : " ++ concat (intersperse " " (map showExtType cTys))]

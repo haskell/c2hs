@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 6 March 99
 --
---  Version $Revision: 1.11 $ from $Date: 2003/02/12 09:41:03 $
+--  Version $Revision: 1.12 $ from $Date: 2004/10/13 06:16:10 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -73,6 +73,7 @@ data SwitchBoard = SwitchBoard {
 		     keepSB    :: Bool,		-- keep intermediate file
 		     tracesSB  :: Traces,	-- trace flags
 		     outputSB  :: FilePath,	-- output file
+		     headerSB  :: FilePath,	-- generate header file
 		     oldFFI    :: Bool,		-- GHC 4.XX compatible code
 		     chiPathSB :: [FilePath]	-- .chi file directories
 		   }
@@ -87,6 +88,7 @@ initialSwitchBoard  = SwitchBoard {
 			keepSB	  = False,
 		        tracesSB  = initialTraces,
 			outputSB  = "",
+			headerSB  = "",
 			oldFFI	  = False,
 			chiPathSB = ["."]
 		      }

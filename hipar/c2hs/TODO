@@ -57,15 +57,6 @@ Next: - Points raised by PeteG:
 
       - Separate CTK from C->Haskell and use new CVS repository.
 
-      - Some headers (eg, `/usr/include/sys/stat.h' in Linux) include inline
-        functions, which have a body (ie, aren't just a prototype).  So far
-        the parser chokes on function bodies.  It wouldn't be too difficult to
-        parse, but otherwise ignore them.
-
-	Workaround for the moment: Often there is a preprocessor symbol that
-	  allows to diable inlined functions (eg, not setting __GNUC__ when
-	  processing Linux headers, but passing ``-C "-D__GNUC__"'' to c2hs).
-
       - the `hsverb' should be normalised with respect to white space and
         parenthesis 
 

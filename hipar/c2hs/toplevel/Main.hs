@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Derived: 12 August 99
 --
---  Version $Revision: 1.18 $ from $Date: 2003/04/16 11:13:12 $
+--  Version $Revision: 1.19 $ from $Date: 2004/10/13 06:16:11 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -441,6 +441,11 @@ setOutput fname  = do
 		       raiseErrs ["Output file should end in .hs!\n"]
 		     setSwitch $ \sb -> sb {outputSB = stripSuffix fname}
 
+-- set the name of the generated header file
+--
+setHeader       :: FilePath -> CST s ()
+setHeader fname  = setSwitch $ \sb -> sb {headerSB = fname}
+
 -- set flag wether or not to use the old pre-GHC-5.00 FFI without `Ptr a'
 --
 setOldFFI      :: Bool -> CST s ()
@@ -478,7 +483,9 @@ process headerFile bndFile  =
     -- CPP and inline-C of .chs file into the new header
     --
     outFName <- getSwitch outputSB
-    let dir           = if null outFName then "" else dirname outFName
+    let dir           = if null outFName 
+			then dirname bndFile 
+			else dirname outFName
 	newHeaderFile = dir `addPath` basename bndFile ++ hsuffix
 	preprocFile   = basename newHeaderFile ++ isuffix
     newHeader <- openFileCIO newHeaderFile WriteMode
@@ -486,6 +493,7 @@ process headerFile bndFile  =
       hPutStrLnCIO newHeader $ "#include \"" ++ headerFile ++ "\""
     mapM (hPutStrCIO newHeader) header
     hCloseCIO newHeader
+    setHeader newHeaderFile
     --
     -- run C preprocessor over the header
     --
