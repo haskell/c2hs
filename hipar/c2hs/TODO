@@ -9,8 +9,6 @@ Next: -= phase re-ordering & parser clean up =-
 
 	** tests/Pointer.chs illustrates the problem now
 
-      - Bug in generation of expression for `val4' in Structs.chs
-
    --- release ---
 
       - Pending suggestions from Axel Simon:

@@ -13,22 +13,22 @@ unPoint :: Point -> {#type point#}
 unPoint (Point p) = p
 
 makePoint     :: Int -> Int -> Point
-makePoint x y  = Point ({#call fun make_point#} (cFromInt x) (cFromInt y))
+makePoint x y  = Point ({#call fun make_point#} (cIntConv x) (cIntConv y))
 
 main :: IO () 
 main  = do
-          val   <- liftM cToInt $ {#get _point.y#} $! unPoint pnt
-          val'  <- liftM cToInt $ {#get point->y#} $! unPoint pnt
+          val   <- liftM cIntConv $ {#get _point.y#} $! unPoint pnt
+          val'  <- liftM cIntConv $ {#get point->y#} $! unPoint pnt
 	  when (val /= val') $
 	    error "val /= val': Panic!"
 	  weird <- {#call make_weird#}
-          val2  <- liftM cToInt $ {#get weird->x#} weird
-          val3  <- liftM cToInt $ {#get weird->nested.z#} weird
-          val4  <- liftM cToInt $ {#get weird->nested.pnt->y#} weird
-          const nop $ {#set cpoint->col#} nullAddr 5 
+          val2  <- liftM cIntConv $ {#get weird->x#} weird
+          val3  <- liftM cIntConv $ {#get weird->nested.z#} weird
+          val4  <- liftM cIntConv $ {#get weird->nested.pnt->y#} weird
+          const nop $ {#set cpoint->col#} nullPtr 5 
 		      -- only for seeing what is generated
           spacePtr <- {#call getSpacePtr#}
-	  space <- liftM cToChar $ {#get *mychar#} spacePtr;
+	  space <- liftM castCCharToChar $ {#get *mychar#} spacePtr;
 	  putStr (show val  ++ " & " ++ 
 		  show val2 ++ " & " ++ 
 		  show val3 ++ " & " ++ 

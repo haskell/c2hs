@@ -1,5 +1,7 @@
 2001-08-25  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
+	* gen/GenBind.hs (setGet): missed ";" in code generation
+
 	* c/CParser.hs (cidOrTN): after struct or union tag we may have a
 	normal idenifier or a type name; spotted by Simon Bowden
 	<simonb@cse.unsw.edu.au> and Michael Zinn <michaelz@cse.unsw.edu.au>

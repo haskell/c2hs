@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.33 $ from $Date: 2001/08/24 14:42:05 $
+--  Version $Revision: 1.34 $ from $Date: 2001/08/25 13:16:31 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -822,7 +822,7 @@ setGet pos access offsets ty =
     setGetBody (offset:offsets) =
       do
 	code <- setGetBody offsets
-	return $ "ptr <- peekByteOff ptr " ++ show offset ++ code
+	return $ "ptr <- peekByteOff ptr " ++ show offset ++ "; " ++ code
 --	return $ "ptr <- peekByteOff ptr " ++ show offset ++ "::IO Ptr (Ptr ?);" ++ code
 -- should be sufficient without explicit type
 
