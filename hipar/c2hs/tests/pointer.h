@@ -11,6 +11,8 @@ struct _Point {
 
 typedef struct _Point Point;
 
+typedef struct _Point *PointPtr;
+
 Point *make_point (int x, int y);
 
 Point *trans_point (Point *pnt, int x, int y);

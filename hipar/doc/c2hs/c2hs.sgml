@@ -389,7 +389,10 @@ particular, it enables the use of <tt/ForeignPtr/ and <tt/StablePtr/ types and
 defines type name translations for pointers to non-basic types.  In general,
 such a hook establishes an association between the C type <it/cid/ or
 <tt/*/<it/cid/ and the Haskell type <it/hsid/, where the latter defaults to
-<it/cid/ if not explicitly given.  Optionally, the Haskell representation of
+<it/cid/ if not explicitly given.  The identifier <it/cid/ will usually be a
+type name, but in the case of <tt/*/<it/cid/ may also be a struct, union, or
+enum tag.  If both a type name and a tag of the same name are available, the
+type name takes precedence.  Optionally, the Haskell representation of
 the pointer can be by a <tt/ForeignPtr/ or <tt/StablePtr/ instead of a plain
 <tt/Ptr/.  If the <tt/newtype/ tag is given, the Haskell type <it/hsid/ is
 defined as a <tt/newtype/ rather than a transparent type synonym.  In case of
@@ -447,14 +450,14 @@ We can represent it in Haskell as
 <p>
 <p>
 <tscreen><verb>
-data Point = Point {x :: Int, x :: Int}
+data Point = Point {x :: Int, y :: Int}
 {#pointer point as PointPtr -> Point#}
 </verb></tscreen>
 <p>
 which will translate to
 <p>
 <tscreen><verb>
-data Point = Point {x :: Int, x :: Int}
+data Point = Point {x :: Int, y :: Int}
 type PointPtr = Ptr Point
 </verb></tscreen>
 <p>

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.26 $ from $Date: 2001/05/06 07:10:11 $
+--  Version $Revision: 1.27 $ from $Date: 2001/05/13 11:10:01 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -161,11 +161,11 @@ import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 		   raiseErrorCTExc, findFunObj, findTag, findTypeObj,
 		   applyPrefixToNameSpaces, isTypedef, simplifyDecl,
 		   declrFromDecl, declrNamed, structMembers, structName,
-		   declaredName , structFromDecl, funResultAndArgs, 
+		   tagName, declaredName , structFromDecl, funResultAndArgs,
 		   chaseDecl, findAndChaseDecl, checkForAlias,
 		   checkForOneAliasName, lookupEnum,  lookupStructUnion,
-		   isPtrDeclr, dropPtrDeclr, isPtrDecl, getDeclOf,
-		   isFunDeclr, refersToNewDef, CDef(..))
+		   lookupDeclOrTag, isPtrDeclr, dropPtrDeclr, isPtrDecl,
+		   getDeclOf, isFunDeclr, refersToNewDef, CDef(..))
 import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 		   CHSAccess(..), CHSAPath(..),CHSPtrType(..))
 import CInfo      (CPrimType(..), sizes, alignments)
@@ -502,45 +502,50 @@ expandHook (CHSField access path pos) =
 expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType pos) =
   do
     traceInfoPointer
-    --
-    -- get the pointer declaration considering shadow entries, but not
-    -- skipping indirections
-    --
-    cdecl <- findAndChaseDecl cName False True
-    cNameFull <- case declaredName cdecl of
-		   Just ide -> return ide
-		   Nothing  -> interr "GenBind.expandHook: Where is the name?"
-    cNameFull `refersToNewDef` ObjCD (TypeCO cdecl) -- assoc needed for chasing
-    traceInfoCName cNameFull
-    unless (isStar || isPtrDecl cdecl) $ 
-      ptrExpectedErr (posOf cName)
     let hsName = identToLexeme $ fromMaybe cName oalias
-    hsType <- case oRefType of
-		Nothing     -> do
-			         cDecl <- chaseDecl cNameFull (not isStar)
-				 et    <- extractPtrType cDecl
-				 return $ showExtType et
-		Just hsType -> return (identToLexeme hsType)
-    traceInfoHsType hsName hsType
-    keepOld <- getSwitch oldFFI
-    let ptrArg  = if keepOld 
-		  then "()"		-- legacy FFI interface
-		  else if isNewtype 
-		  then hsName		-- abstract type
-		  else hsType		-- concrete type
-	ptrType = show ptrKind ++ " (" ++ ptrArg ++ ")"
-	thePtr  = (isStar, cNameFull)
-    case ptrKind of
-      CHSForeignPtr -> thePtr `ptrMapsTo` (hsName, "Ptr (" ++ ptrArg ++ ")")
-      _		    -> thePtr `ptrMapsTo` (hsName, hsName)
-    return $
-      if isNewtype 
-      then "newtype " ++ hsName ++ " = " ++ hsName ++ " (" ++ ptrType ++ ")"
-      else "type "    ++ hsName ++ " = "                   ++ ptrType
+    --
+    -- we check for a typedef declaration or tag (struct, union, or enum)
+    --
+    declOrTag <- lookupDeclOrTag cName True
+    case declOrTag of
+      Left cdecl -> do				-- found a typedef declaration
+	cNameFull <- case declaredName cdecl of
+		       Just ide -> return ide
+		       Nothing  -> interr 
+				     "GenBind.expandHook: Where is the name?"
+	cNameFull `refersToNewDef` ObjCD (TypeCO cdecl) 
+				   -- assoc needed for chasing
+	traceInfoCName "declaration" cNameFull
+	unless (isStar || isPtrDecl cdecl) $ 
+	  ptrExpectedErr (posOf cName)
+	hsType <- case oRefType of
+		    Nothing     -> do
+				     cDecl <- chaseDecl cNameFull (not isStar)
+				     et    <- extractPtrType cDecl
+				     return $ showExtType (adjustPtr isStar et)
+		    Just hsType -> return (identToLexeme hsType)
+	traceInfoHsType hsName hsType
+	pointerDef isStar cNameFull hsName ptrKind isNewtype hsType
+      Right tag -> do			        -- found a tag definition
+        let cNameFull = tagName tag
+	traceInfoCName "tag definition" cNameFull
+	unless isStar $				-- tags need an explicit `*'
+	  ptrExpectedErr (posOf cName)
+	let hsType = case oRefType of
+		       Nothing     -> "()"
+		       Just hsType -> identToLexeme hsType
+	traceInfoHsType hsName hsType
+	pointerDef isStar cNameFull hsName ptrKind isNewtype hsType
   where
-    traceInfoPointer   = traceGenBind "** Pointer hook:\n"
-    traceInfoCName ide = traceGenBind $ 
-      "found C object `" ++ identToLexeme ide ++ "'\n"
+    -- remove a pointer level if the first argument is `False'
+    --
+    adjustPtr True  et         = et
+    adjustPtr False (PtrET et) = et
+    adjustPtr _	    _	       = interr "GenBind.adjustPtr: Where is the Ptr?"
+    --
+    traceInfoPointer        = traceGenBind "** Pointer hook:\n"
+    traceInfoCName kind ide = traceGenBind $ 
+      "found C " ++ kind ++ " for `" ++ identToLexeme ide ++ "'\n"
     traceInfoHsType name ty = traceGenBind $ 
       "associated with Haskell entity `" ++ name ++ "'\nhaving type " ++ ty 
       ++ "\n"
@@ -787,6 +792,34 @@ setGet pos access offsets ty =
 	return $ "ptr <- peekByteOff ptr " ++ show offset ++ code
 --	return $ "ptr <- peekByteOff ptr " ++ show offset ++ "::IO Ptr (Ptr ?);" ++ code
 -- should be sufficient without explicit type
+
+-- generate the type definition for a pointer hook and enter the required type
+-- mapping into the `ptrmap'
+--
+pointerDef :: Bool		-- explicit `*' in pointer hook
+	   -> Ident		-- full C name
+	   -> String		-- Haskell name
+	   -> CHSPtrType	-- kind of the pointer
+	   -> Bool		-- explicit newtype tag
+	   -> String		-- Haskell type expression of ptr argument
+	   -> GB String
+pointerDef isStar cNameFull hsName ptrKind isNewtype hsType =
+  do
+    keepOld <- getSwitch oldFFI
+    let ptrArg  = if keepOld 
+		  then "()"		-- legacy FFI interface
+		  else if isNewtype 
+		  then hsName		-- abstract type
+		  else hsType		-- concrete type
+	ptrType = show ptrKind ++ " (" ++ ptrArg ++ ")"
+	thePtr  = (isStar, cNameFull)
+    case ptrKind of
+      CHSForeignPtr -> thePtr `ptrMapsTo` (hsName, "Ptr (" ++ ptrArg ++ ")")
+      _		    -> thePtr `ptrMapsTo` (hsName, hsName)
+    return $
+      if isNewtype 
+      then "newtype " ++ hsName ++ " = " ++ hsName ++ " (" ++ ptrType ++ ")"
+      else "type "    ++ hsName ++ " = "                   ++ ptrType
 
 
 -- C code computations

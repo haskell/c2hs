@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 October 99
 --
---  Version $Revision: 1.11 $ from $Date: 2001/05/06 07:10:11 $
+--  Version $Revision: 1.12 $ from $Date: 2001/05/13 11:10:01 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -66,16 +66,18 @@ module CTrav (CT, readCT, transCT, getCHeaderCT, runCT, throwCTExc, ifCTExc,
 	      enter, enterObjs, leave, leaveObjs, defObj, findObj,
 	      findObjShadow, defTag, findTag, findTagShadow,
 	      applyPrefixToNameSpaces, getDefOf, refersToDef, refersToNewDef,
-	      getDeclOf, findTypeObj, findValueObj, findFunObj, 
+	      getDeclOf, findTypeObjMaybe, findTypeObj, findValueObj,
+	      findFunObj,
 	      --
 	      -- C structure tree query functions
 	      --
 	      isTypedef, simplifyDecl, declrFromDecl, declrNamed,
 	      declaredDeclr, declaredName, structMembers, expandDecl,
-	      structName, isPtrDeclr, dropPtrDeclr, isPtrDecl, isFunDeclr,
-	      structFromDecl, funResultAndArgs, chaseDecl, findAndChaseDecl,
-	      checkForAlias, checkForOneAliasName, lookupEnum,
-	      lookupStructUnion)
+	      structName, enumName, tagName, isPtrDeclr, dropPtrDeclr,
+	      isPtrDecl, isFunDeclr, structFromDecl, funResultAndArgs,
+	      chaseDecl, findAndChaseDecl, checkForAlias,
+	      checkForOneAliasName, lookupEnum, lookupStructUnion,
+	      lookupDeclOrTag)
 where
 
 import List       (find)
@@ -364,22 +366,34 @@ getDeclOf ide  =
 -- convenience functions
 --
 
+-- find a type object in the object name space; returns `nothing' if the
+-- identifier is not defined (EXPORTED)
+--
+-- * if the second argument is `True', use `findObjShadow'
+--
+findTypeObjMaybe                :: Ident -> Bool -> CT s (Maybe (CObj, Ident))
+findTypeObjMaybe ide useShadows  = 
+  do
+    oobj <- if useShadows 
+	    then findObjShadow ide 
+	    else liftM (fmap (\obj -> (obj, ide))) $ findObj ide
+    case oobj of
+      Just obj@(TypeCO _ , _) -> return $ Just obj
+      Just obj@(BuiltinCO, _) -> return $ Just obj
+      Just _                  -> typedefExpectedErr ide
+      Nothing		      -> return $ Nothing
+
 -- find a type object in the object name space; raises an error and exception
 -- if the identifier is not defined (EXPORTED)
 --
 -- * if the second argument is `True', use `findObjShadow'
 --
 findTypeObj                :: Ident -> Bool -> CT s (CObj, Ident)
-findTypeObj ide useShadows  = 
-  do
-    oobj <- if useShadows 
-	    then findObjShadow ide 
-	    else liftM (fmap (\obj -> (obj, ide))) $ findObj ide
-    case oobj of
-      Just obj@(TypeCO _ , _) -> return obj
-      Just obj@(BuiltinCO, _) -> return obj
-      Just _                  -> typedefExpectedErr ide
-      Nothing		      -> unknownObjErr ide
+findTypeObj ide useShadows  = do
+  oobj <- findTypeObjMaybe ide useShadows
+  case oobj of
+    Nothing  -> unknownObjErr ide
+    Just obj -> return obj
 
 -- find an object, function, or enumerator in the object name space; raises an
 -- error and exception if the identifier is not defined (EXPORTED)
@@ -490,8 +504,25 @@ expandDecl (CDecl specs decls at)  =
 
 -- get a struct's name (EXPORTED)
 --
-structName		         :: CStructUnion -> Maybe Ident
-structName (CStruct _ oide _ _)   = oide
+structName		        :: CStructUnion -> Maybe Ident
+structName (CStruct _ oide _ _)  = oide
+
+-- get an enum's name (EXPORTED)
+--
+enumName	          :: CEnum -> Maybe Ident
+enumName (CEnum oide _ _)  = oide
+
+-- get a tag's name (EXPORTED)
+--
+-- * fail if the tag is anonymous
+--
+tagName     :: CTag -> Ident
+tagName tag  =
+  case tag of
+   StructUnionCT struct -> maybe err id $ structName struct
+   EnumCT	 enum   -> maybe err id $ enumName   enum
+  where
+    err = interr "CTrav.tagName: Anonymous tag definition"
 
 -- checks whether the given declarator defines an object that is a pointer to
 -- some other type (EXPORTED)
@@ -708,6 +739,29 @@ lookupStructUnion ide ind useShadows
 	decl <- findAndChaseDecl ide ind useShadows
 	structFromDecl (posOf ide) decl
 
+-- for the given identifier, check for the existance of both a type definition
+-- or a struct, union, or enum definition (EXPORTED)
+--
+-- * if a typedef and a tag exists, the typedef takes precedence
+--
+-- * typedefs are chased
+--
+-- * if the second argument is `True', look for shadows, too
+--
+lookupDeclOrTag		       :: Ident -> Bool -> CT s (Either CDecl CTag)
+lookupDeclOrTag ide useShadows  = do
+  oobj <- findTypeObjMaybe ide useShadows
+  case oobj of
+    Just (_, ide) -> liftM Left $ findAndChaseDecl ide False False 
+					           -- already did check shadows
+    Nothing       -> do
+                       otag <- if useShadows 
+			       then liftM (fmap fst) $ findTagShadow ide
+			       else findTag ide
+		       case otag of
+			 Nothing  -> unknownObjErr ide
+			 Just tag -> return $ Right tag
+
 
 -- auxiliary routines (internal)
 --
@@ -762,7 +816,7 @@ extractStruct pos (StructUnionCT su)  =
 				      _	        -> err
     _			       -> return su
   where
-    err = interr "CTrav.lookupStructUnion: Illegal reference!"
+    err = interr "CTrav.extractStruct: Illegal reference!"
 
 -- yield the name declared by a declarator if any
 --

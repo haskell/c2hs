@@ -16,6 +16,10 @@ data Point = Point {
 
 {#pointer *Point as CPoint foreign -> Point#}
 
+-- this is just to exercise some more paths in GenBind.hs
+{#pointer *_Point as C_Point foreign -> Point#}
+{#pointer PointPtr#}
+
 makeCPoint     :: Int -> Int -> IO CPoint
 makeCPoint x y  = do
   ptr <- {#call unsafe make_point#} (cIntConv x) (cIntConv y)

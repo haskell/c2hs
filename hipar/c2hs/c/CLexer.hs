@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 6 March 99
 --
---  Version $Revision: 1.14 $ from $Date: 2000/04/15 13:33:01 $
+--  Version $Revision: 1.15 $ from $Date: 2001/05/13 11:10:01 $
 --
 --  Copyright (c) [1999..2000] Manuel M. T. Chakravarty
 --
@@ -554,7 +554,7 @@ intconst  =      char '0' +> octdigit`star` ul
 charconst :: CLexer
 charconst  =      char '\'' +> (inchar >|< charesc) +> char '\''
 	          `lexaction` 
-		    \cs pos -> Just (CTokCLit pos ((fst . oneChar) cs))
+		    \cs pos -> Just (CTokCLit pos ((fst . oneChar) (tail cs)))
 
 -- character escape sequence (follows K&R A2.5.2)
 --

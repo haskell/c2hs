@@ -1,3 +1,18 @@
+2001-05-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): revised to properly handle struct,
+	union, and enum tags as C identifiers in pointer hooks; also
+	handles non-abstract pointers with explicit "*" now better; the
+	problems were pointed out by Marcin Kowalczyk <qrczak@knm.org.pl>
+
+	* c/CTrav.hs (findTypeObjMaybe): added
+	(lookupDeclOrTag): added
+	(enumName): added
+	(tagName): added
+
+	* c/CLexer.hs (charconst): Patch from Armin Sander
+	<armin@mindwalker.org> regarding character constants
+
 2001-05-11  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* c2hs-config.in: Patch from Jens-Ulrik Petersen
