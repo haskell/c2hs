@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.6 $ from $Date: 2000/02/25 08:46:22 $
+--  Version $Revision: 1.7 $ from $Date: 2001/06/18 07:27:05 $
 --
 --  Copyright (c) 1999 Manuel M. T. Chakravarty
 --
@@ -332,7 +332,7 @@ instance Eq CInit where
 -- * these can be arbitrary expression, as the argument of `sizeof' can be
 --   arbitrary, even if appearing in a constant expression
 --
-data CExpr = CComma      [CExpr]	-- non-empty comma expression list
+data CExpr = CComma      [CExpr]	-- comma expression list, n >= 2
 		         Attrs
 	   | CAssign     CAssignOp	-- assignment operator
 		         CExpr		-- l-value

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.13 $ from $Date: 2001/02/12 06:34:39 $
+--  Version $Revision: 1.14 $ from $Date: 2001/06/18 07:27:05 $
 --
 --  Copyright (c) [1999.2001] Manuel M. T. Chakravarty
 --
@@ -914,7 +914,9 @@ parseCExpr :: CParser CExpr
 parseCExpr  = seplist1 comma_ parseCAssigExpr
 	      `actionAttrs`
 	        (\exprs -> (posOf . head) exprs) $
-		\exprs at -> CComma exprs at
+		\exprs at -> if length exprs == 1  -- CComma requires n >= 2
+			     then head exprs
+			     else CComma exprs at
 
 -- parse C constant expression (K&R A7.19)
 --
