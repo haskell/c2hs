@@ -2,10 +2,17 @@
                                 C2HS TODO
                                 =========
 
-Next: -= phase re-ordering & parser clean up =-
+Next: - add flag marshalling
 
       - configuration oracle should have an option to print the Haskell
         compiler and version it was compiled for
+
+      - check building with latest NHC
+
+      *** Next Release ***
+
+      Major features to be added after the release: conditions (incl phase
+      re-ordering), structure marshalling.
 
       - the `hsverb' should be normalised with respect to white space and
         parenthesis 
@@ -14,11 +21,6 @@ Next: -= phase re-ordering & parser clean up =-
         module-by-module basis generating many small depend files rather than
         one big one
 
-      - split GenBind into multiple modules
-
-      - use GHC's package manager and register the c2hs libs as a package at
-        install time (also in rpm)
-
       - Pending suggestions from Axel Simon:
 	+ succ/pred definitions for enum hooks
 	+ Compilation of multiple files in one c2hs invocation
@@ -26,7 +28,7 @@ Next: -= phase re-ordering & parser clean up =-
       - Pending suggestions from Armin Sander:
 	+ MarshalFlags.hs
 
-      - marshalling of structs and support for function arguments in call hooks
+      - marshalling of structs
 
       - We need to handle the time stamps of .chi files more carefully;
         otherwise, we often get lots of unnecessary re-runs of c2hs.
@@ -41,42 +43,6 @@ Next: -= phase re-ordering & parser clean up =-
         import the same object from different modules, due to an implicit
         reexport at the moment.  Either eliminate those reexports, or we have
         the same problems as in Haskell to determine object identity.
-
-      - Idea from Alastair: To make life easier for people who want to
-        distribute tools including c2hs-generated code, it would be good to
-        have an option to delay the inclusion of system-dependent information
-        until the generated files are compiled (possibly generating files that
-        have to be run through cpp or sed or so).  With the New FFI Libraries
-        this shouldn't be too difficult, because most of the autoconf
-        information is to build c2hs and doesn't have an impact on the
-        generated code.  The obvious exception is the use of the sizes and
-        alignments of primitive C types bei c2hs.  So, here we should Haskell
-        expression computing these values from Storable rather than constants
-        computed by c2hs.
-
-        A further complication is when we exchange the passes reading the
-        header and the binding modules and have features like enum define
-        hooks.  Maybe we should not exchange the phases after all, but devise
-        a mechanism so that the necessary information is obtained at the time
-        where the Haskell file generated from the binding module is
-        initialised.  The basic idea would be that *all* numeric values
-        obtained by c2hs are enquired by foreign calls at startup time.  Then,
-        c2hs won't hardcode any such values into the binding module, but emit
-        expressions that compute the values when they are needed.  If the
-        values are defined as CAFs, they will only be obtained once.
-        (However, as this still prevents some optimisations, we might only
-        want it as an option.)
-
-        The downside of this approach is that it is spoiled as soon as the
-        read C header files have #ifdefs that behave different on the build
-        and the execute platform.  An alternative scheme for cross-compilation
-        would be to have a mechanism by which c2hs can read the machine
-        specific parameters from a database rather than testing them in the
-        cross compilation case.  (But also note that we are dealing with two
-        features here: ability to cross compile and ability to ship
-        architecture neutral .hs files that have been produced by c2hs; the
-        point about the latter is that the recipient doesn't have to have c2hs
-        around.)
 
       - c2hs has to properly process GNU C "aligned" attributes.  Otherwise,
         it's routine to calculate structure layout may deviate from that of
@@ -111,10 +77,7 @@ Next: -= phase re-ordering & parser clean up =-
         been bound in a header file.  The Position info schould be sufficient
         to determine this.  Maybe also add {#ignore foo#}, which makes it not
         list a given identifier (for private functions listed in the header).
-      - Simon Marlow's bug (+inbox/37148)
       - add lndir to hipar/ (start utils dir)
-      - In `GtkCList.cListGetNoOfRows' wird der Offset falsch berechnet
-        (sollte 84 sein) 
       - make clean and make cleanhi don't clean the lib/ subdir
       - In `GdkGL.chs', the prefix is not properly removed from the
         constructors of `GdkGL.Configs'; same problem with
@@ -156,9 +119,6 @@ Next: -= phase re-ordering & parser clean up =-
         Axel also proposes this
 	  byValue :: b -> Marsh () b
 	  byValue x = use x :> forget
-      - C2HSMarsh: 
-	  - should re-export unsafePerformIO
-	  - define marsh4 and marsh5 
       - Axel suggests,
 	  2b. Automatisches Marshalling von Strukturen.
 	  Eigentlich müßte es doch möglich sein, automatisch Instanzen von
@@ -179,91 +139,6 @@ Next: -= phase re-ordering & parser clean up =-
       - maybe compilers based on the CTK should add a README.1ST to the root
 	directory when they are tarified
       - kill the --old-ffi option when the old FFI disappeared
-
-
-Marshalling templates
-~~~~~~~~~~~~~~~~~~~~~
-
-{#fun foo {`Int', with* `Int', with* `Int' peek*} -> `Char'#}
-
-{#fun foo `GtkWidget a' => {widget `a'} -> `a'#}
-
-Purely functional conversion:
-
-  {#fun foo {cIntConv `Int'} -> `()'#}
-
-A side-effecting conversion:
-
-  {#fun foo {with* `Int'} -> `()'#}
-
-A string inout parameter:
-
-  {#fun foo {`String' peekCString*} -> `()'#}
-
-A string with explicit length:
-
-  {#fun foo {withCStringLen* `String'& peekCStringLen*} -> `()'#}
-
-An out parameter:
-
-  {#fun foo {new- `Bar' peek*} -> `()'#}
-
-Defaults:
-- Args: in-function defaults:
-    * C is Ptr CChar => "withCString"
-    * C is Ptr CChar with an integral type => "withCStringLen"
-    * C is Ptr t, Haskell is t => "with"
-    * C is Ptr t, Haskell is [t] => "withArray"
-    * C is integral, Haskell is integral => "cIntConv"
-    * C is integral, Haskell is Bool => "fromBool"
-- Args: out-function default is "void"
-- Result: in-function default is "void" (must be "void", anything else is an
-  error) 
-- Result: out-function defaults:
-    * C is Ptr CChar => peekCString
-    * C is Ptr => peek
-    * C is integral, Haskell is integral => "cIntConv"
-    * C is integral, Haskell is Bool => "toBool"
-
-
-* the generic version for arguments is
-
-      {#call bar {inExpr >>> outExpr}#}
-
-    =>
-
-      do {
-        arg <- inExpr; 
-	res <- bar arg; 
-	argres <- outExpr arg; 
-	return (res, argres)
-      }
-
-  we may optionally allow the tag "inout" before the argument description
-
-* special versions:
-
-    in{e}   => {e >>> free}
-    pure{e} => {return e >>> return . const ()}
-    out{e}  => {malloc >>> 
-                \arg -> do{res <- liftM e $ peek arg; free arg; return res}}
-
-* example:
-
-      {#call foo in{newCString str} pure{cFromEnum kind} out{cToEnum}#}
-
-    =>
-
-      do {
-	arg1 <- newCString str;
-	let arg2 = cFromEnum kind;
-	arg3 <- malloc :: Ptr CInt;
-	res <- foo arg1 arg2 arg3;
-	free arg1;
-	arg3res <- liftM cToEnum $ peek arg3;
-	free arg3;
-	return (res, arg3res)
-      }
 
 
 Short term
