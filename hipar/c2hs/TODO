@@ -4,7 +4,13 @@
 
 Next: -= phase re-ordering & parser clean up =-
 
+      - the idea of the hipar/mk*.mk file to identify which projects are
+        present doesn't really cut it as `cvs update' will always check these
+        files out; fix this!
+
       - we need a list of .chi directories and search them in `CHS.loadCHI'
+
+      - document the .chi file story
 
       - when we first read the .chs file and pre-process it to generate some
         more C header code, it might be nice to move the reading of .chi files

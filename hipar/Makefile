@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 24 July 1998 (derived from HiPar root makefile)
 #
-#  Version $Revision: 1.61 $ from $Date: 2001/02/06 13:29:59 $
+#  Version $Revision: 1.62 $ from $Date: 2001/05/13 11:43:34 $
 #
 #  Copyright (c) [1995..2000] Manuel M. T. Chakravarty
 #
@@ -232,7 +232,7 @@ cleanhi:
 # Remove all builds
 #
 spotless:
-	-$(RM) -rf build
+	-$(RM) -rf build config.cache
 
 # Remove everything that is not in the source tar
 #
