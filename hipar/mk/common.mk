@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.49 $ from $Date: 2002/03/12 12:39:17 $
+#  Version $Revision: 1.50 $ from $Date: 2002/05/16 07:49:20 $
 #
 #  Copyright (c) [1997..2002] Manuel M T Chakravarty
 #
@@ -97,6 +97,14 @@ ifneq ($(strip $(PCKMKS)),)
 endif
 PCKS=$(notdir $(basename $(basename $(PCKMKS))))
 
+# $(PCKNAME) is the name used for the package in the Haskell system's package 
+# manager (GHC > 5.02 uses the name `base' already, so we need to use 
+# something different)
+#
+ifeq ($(strip $(PCKNAME)),)
+  PCKNAME=$(PACKAGE)
+endif
+
 # Search path for make
 # ====================
 #
@@ -123,9 +131,9 @@ endif
 HIDIRSINCL = $(addprefix $(HIDIROPT),$(HIDIRS))
 ifeq ($(HASPKG),yes)
   ifneq ($(strip $(PACKAGE)),base)
-    HCFLAGS += -package-conf $(TOP)/base/base.build.conf -package base
+    HCFLAGS += -package-conf $(TOP)/base/base.build.conf -package ctk
   endif
-  HCFLAGS   += -package-name $(PACKAGE)
+  HCFLAGS   += -package-name $(PCKNAME)
 endif
 HCFLAGS     += $(PROF) $(HIDIRSINCL) $(EXTRAHCFLAGS)
 

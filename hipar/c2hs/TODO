@@ -3,7 +3,7 @@
                                 =========
 
 Next: - Ignore gcc's __extension__ keyword (see report by Jay Cox
-	<sqrtofone@yahoo.com>)
+	<sqrtofone@yahoo.com>); see also bug report from Andrew & Simon
 
       - add flag marshalling
 

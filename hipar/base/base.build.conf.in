@@ -1,5 +1,5 @@
 [Package
-    {name = "base",
+    {name = "ctk",
      import_dirs = [@IMPORT_DIRS@],
      source_dirs = [],
      library_dirs = [@LIBRARY_DIRS@],

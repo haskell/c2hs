@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 30 October 1999
 #
-#  Version $Revision: 1.7 $ from $Date: 2002/02/25 06:19:56 $
+#  Version $Revision: 1.8 $ from $Date: 2002/05/16 07:49:20 $
 #
 #  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
@@ -66,25 +66,25 @@ $(MANPAGES): %: %.in
 .PHONY: install
 install:
 	@for f in $(MANPAGES); do\
-	  echo $(INSTALL_DATA) -d `dirname $(MANDIR)/$$f`;\
-	  $(INSTALL_DATA) -d `dirname $(MANDIR)/$$f`;\
+	  echo $(INSTALL) -d `dirname $(MANDIR)/$$f`;\
+	  $(INSTALL) -d `dirname $(MANDIR)/$$f`;\
 	  echo $(INSTALL_DATA) $$f $(MANDIR)/$$f;\
 	  $(INSTALL_DATA) $$f $(MANDIR)/$$f;\
 	done
 
-	$(INSTALL_DATA) -d $(SGMLDIR)
+	$(INSTALL) -d $(SGMLDIR)
 	@for f in *.sgml; do\
 	  echo $(INSTALL_DATA) $$f $(SGMLDIR)/$$f;\
 	  $(INSTALL_DATA) $$f $(SGMLDIR)/$$f;\
 	done
 
-	$(INSTALL_DATA) -d $(HTMLDIR)
+	$(INSTALL) -d $(HTMLDIR)
 	@for f in *.html; do\
 	  echo $(INSTALL_DATA) $$f $(HTMLDIR)/$$f;\
 	  $(INSTALL_DATA) $$f $(HTMLDIR)/$$f;\
 	done
 
-	$(INSTALL_DATA) -d $(TXTDIR)
+	$(INSTALL) -d $(TXTDIR)
 	@for f in *.txt; do\
 	  echo $(INSTALL_DATA) $$f $(TXTDIR)/$$f;\
 	  $(INSTALL_DATA) $$f $(TXTDIR)/$$f;\

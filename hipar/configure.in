@@ -226,7 +226,8 @@ fi
 
 dnl Misc
 
-dnl Settings for the build time package configuration of the `base' package
+dnl Settings for the build time package configuration of the `base'/`ctk' 
+dnl package
 PACKAGES_STRINGS=""
 for pkg_name in $PACKAGES; do
   if test -z "$PACKAGES_STRINGS"; then

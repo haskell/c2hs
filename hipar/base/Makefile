@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 25 July 1998
 #
-#  Version $Revision: 1.11 $ from $Date: 2002/03/12 12:39:13 $
+#  Version $Revision: 1.12 $ from $Date: 2002/05/16 07:49:19 $
 #
 #  Copyright (c) [1998..2002] Manuel M T Chakravarty
 #
@@ -33,6 +33,7 @@
 # package name (must be before the include due to conditionals in `common.mk')
 #
 PACKAGE=base
+PCKNAME=ctk
 PCKVERSION=$(BASEVERSION)
 
 include ../mk/common.mk

@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 12 October 99
 --
---  Version $Revision: 1.21 $ from $Date: 2002/02/25 06:19:56 $
+--  Version $Revision: 1.22 $ from $Date: 2002/05/16 07:49:20 $
 --
 --  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
@@ -54,6 +54,7 @@ import MarshalAlloc (free)
 import NewStorable  (Storable(..))
 import MarshalUtils (withObject, new, fromBool, toBool)
 import CString      (withCStringLen, peekCStringLen)
+import Bits	    (Bits(..))
 
 -- friends
 import C2HSBase     (cIntConv, cFloatConv, cFromEnum, cToEnum)
@@ -144,3 +145,23 @@ nothingIf p f x  = if p x then Nothing else Just $ f x
 --
 nothingIfNull :: (Ptr a -> b) -> Ptr a -> Maybe b
 nothingIfNull  = nothingIf (== nullPtr)
+
+
+-- support for flags
+-- -----------------
+
+- we need to distinguish between flags (ie, bit positions in masks) and
+  masks; moreover, flags can be represented in two ways: as the bit position
+  or as a mask where only one bit is set
+- we want to make enumerations instances of the Flag class
+
+
+class (Bounded a, Enum a, Show a) => Flag a where
+  fromFlag :: Num b => a -> b
+
+data Flags a b = Flags {unFlags :: b} deriving Eq
+
+
+
+--TODO: in GMarsh: we might need to provide the old functions in terms of the
+--new for a while

@@ -1,3 +1,10 @@
+2002-05-16  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* changed name if base package to `ctk' to not clash with GHC's
+	new package naming scheme
+
+	* admin/BaseVersion.hs (versnum): 0.24.2
+
 2002-03-22  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* ../configure.in: test for availability of the `posix' package
