@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Derived: 19 March 1999
 #
-#  Version $Revision: 1.11 $ from $Date: 2001/02/09 05:02:10 $
+#  Version $Revision: 1.12 $ from $Date: 2001/02/16 07:28:27 $
 #
 #  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 #
@@ -35,7 +35,7 @@
 PACKAGE = c2hs
 PART    = lib
 SRCS	= C2HS.hs C2HSBase.hs C2HSDeprecated.hs C2HSMarsh.hs\
-	  NewStorable.hs
+	  NewStorable.hs NewStablePtr.hs
 OBJS	= $(patsubst %.hs,%.o,$(filter %.hs,$(SRCS)))
 
 # C->Haskell specific configuration
@@ -77,7 +77,7 @@ depend:
 ifeq ($(LEGACY_FFI),no)
 	grep -v -e CError -e CForeign -e CString\
 		-e ForeignPtr -e MarshalAlloc -e MarshalArray\
-		-e MarshalError -e MarshalUtils -e Ptr .depend\
+		-e MarshalError -e MarshalUtils -e "\bPtr" .depend\
 		>.depend.new
 	mv .depend.new .depend
 # mkdependHS is a bit stupid here and does include files if present even if

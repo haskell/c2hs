@@ -228,35 +228,24 @@ instance Storable CTime where
   poke (Ptr addr) v = Storable.poke addr v
 
 instance Storable.Storable (Ptr a) where
-  sizeOf    _ = Storable.sizeOf    (undefined :: Addr)
-  alignment _ = Storable.alignment (undefined :: Addr)
+  Storable.sizeOf    _ = Storable.sizeOf    (undefined :: Addr)
+  Storable.alignment _ = Storable.alignment (undefined :: Addr)
 
-  peekElemOff addr i         = liftM Ptr $ Storable.peekElemOff addr i
-  pokeElemOff addr i (Ptr v) = Storable.pokeElemOff addr i v
-
-  peekByteOff addr i         = liftM Ptr $ Storable.peekByteOff addr i
-  pokeByteOff addr i (Ptr v) = Storable.pokeByteOff addr i v
-
-  peek addr         = liftM Ptr $ Storable.peek addr
-  poke addr (Ptr v) = Storable.poke addr v
+  Storable.peek addr         = liftM Ptr $ Storable.peek addr
+  Storable.poke addr (Ptr v) = Storable.poke addr v
 
 instance Storable.Storable (FunPtr a) where
-  sizeOf    _ = Storable.sizeOf    (undefined :: Addr)
-  alignment _ = Storable.alignment (undefined :: Addr)
+  Storable.sizeOf    _ = Storable.sizeOf    (undefined :: Addr)
+  Storable.alignment _ = Storable.alignment (undefined :: Addr)
 
-  peekElemOff addr i            = liftM FunPtr $ Storable.peekElemOff addr i
-  pokeElemOff addr i (FunPtr v) = Storable.pokeElemOff addr i v
-
-  peekByteOff addr i            = liftM FunPtr $ Storable.peekByteOff addr i
-  pokeByteOff addr i (FunPtr v) = Storable.pokeByteOff addr i v
-
-  peek (Ptr addr)            = liftM FunPtr $ Storable.peek addr
-  poke (Ptr addr) (FunPtr v) = Storable.poke addr v
+  Storable.peek addr            = liftM FunPtr $ Storable.peek addr
+  Storable.poke addr (FunPtr v) = Storable.poke addr v
 
 instance Storable.Storable Bool where
-   sizeOf _    = Storable.sizeOf (undefined::CInt)
-   alignment _ = Storable.alignment (undefined::CInt)
-   peek p      = liftM (/= (0::CInt)) $ Storable.peek (castPtr p)
-   poke p x    = Storable.poke (castPtr p) (if x then 1 else 0::CInt)
+   Storable.sizeOf _    = Storable.sizeOf (undefined::CInt)
+   Storable.alignment _ = Storable.alignment (undefined::CInt)
+
+   Storable.peek a      = liftM (/= (0::CInt)) $ Storable.peek a
+   Storable.poke a x    = Storable.poke a (if x then 1 else 0::CInt)
 
 @END_LEGACY_FFI@

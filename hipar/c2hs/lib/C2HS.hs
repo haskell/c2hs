@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 19 August 99
 --
---  Version $Revision: 1.8 $ from $Date: 2001/02/04 12:27:31 $
+--  Version $Revision: 1.9 $ from $Date: 2001/02/16 07:28:26 $
 --
 --  Copyright (c) [1999...2000] Manuel M. T. Chakravarty
 --
@@ -44,7 +44,7 @@ module C2HS (
   module Word,
   module Ptr,
   module ForeignPtr,
-  module StablePtr,
+  module NewStablePtr, -- compensates old types in old versions of `StablePtr'
   module NewStorable,  -- compensates old types in old versions of `Storable'
   module MarshalAlloc,
   module MarshalArray,
@@ -68,12 +68,14 @@ module C2HS (
 
 import Int          (Int8, Int16, Int32, Int64)
 import Word	    (Word8, Word16, Word32, Word64)
-import Ptr	    (Ptr(..), nullPtr, castPtr, plusPtr, alignPtr, minusPtr)
+import Ptr	    (Ptr, nullPtr, castPtr, plusPtr, alignPtr, minusPtr,
+		     FunPtr, nullFunPtr, castFunPtr, castFunPtrToPtr,
+		     castPtrToFunPtr, freeHaskellFunPtr)
 import ForeignPtr   (ForeignPtr, newForeignPtr, addForeignPtrFinalizer,
 		     withForeignPtr, foreignPtrToPtr, touchForeignPtr,
 		     castForeignPtr)
-import StablePtr    (StablePtr, makeStablePtr, deRefStablePtr, freeStablePtr,
-		     stablePtrToAddr, addrToStablePtr)
+import NewStablePtr (StablePtr, newStablePtr, deRefStablePtr, freeStablePtr, 
+		     castStablePtrToPtr, castPtrToStablePtr)
 import NewStorable  (Storable(..))
 import MarshalAlloc (malloc, mallocBytes, alloca, allocaBytes, reallocBytes,
 		     free)

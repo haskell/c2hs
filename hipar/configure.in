@@ -26,7 +26,7 @@ dnl SYSFEATURES - list of feature tags (like `posix') indicating the features
 dnl 		  available on the target system; used by the Makefile in 
 dnl               sysdep/
 
-dnl Initialise and set specify the subdirectories containing additional 
+dnl Initialise and specify the subdirectories containing additional 
 dnl `configure' scripts.
 AC_INIT(base/admin/BaseVersion.hs)
 AC_CONFIG_SUBDIRS(c2hs)

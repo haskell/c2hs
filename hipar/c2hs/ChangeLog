@@ -1,4 +1,11 @@
+2001-02-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/NewStablePtr.hs.in: Adaptation layer for StablePtr for the
+	legacy FFI interface
+
 2001-02-12  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HS.hs: Forgot to export `FunPtr' and associated functions
 
 	* lib/C2HSDeprecated.hs: Some exports had been missing
 

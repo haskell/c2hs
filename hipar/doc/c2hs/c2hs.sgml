@@ -309,6 +309,8 @@ documented in the following.
 <sect1>Version 0.8.2 "Gentle Moon"
 <p>
 <itemize>
+<item>Adaptation layer for legacy <tt/StablePtr/ interface
+<item>Forgot to export <tt/FunPtr/ and associated functions from <tt/C2HS/
 <item>Forgot to export some names in <tt/C2HSDeprecated/
 <item>Added support for gcc's <tt/__builtin_va_list/
 </itemize>
