@@ -1,7 +1,25 @@
+2004-10-17  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): We use the shadow identifier for
+	generating the Haskell name.
+
+	* chs/CHSLexer.hs (identOrKW): Identifier may be put in single quotes
+
+	* toplevel/Version.hs (versnum): 0.13.4
+
 2004-10-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHSLexer.hs (cpp): fixed lexing of directives such that they
+	don't consume the '\n' that ends them
+
+	* toplevel/Version.hs (versnum): 0.13.3
+
+	* toplevel/Main.hs (Flag): Added `--output-dir' option and removed
+	`--old-ffi'.
 
 	* gen/GenBind.hs (noDftMarshErr): better error message when
 	default marshallers are not available
+	(isIntegralCPrimType): handle C chars as integral types for marshalling
 
 	* toplevel/Main.hs (process): if there is no explicit output file
 	specified, the header file is put in the same directory as the

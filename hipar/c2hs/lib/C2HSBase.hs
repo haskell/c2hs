@@ -5,9 +5,9 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 27 September 99
 --
---  Version $Revision: 1.10 $ from $Date: 2004/05/15 08:34:50 $
+--  Version $Revision: 1.11 $ from $Date: 2004/10/17 08:31:08 $
 --
---  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2004] Manuel M. T. Chakravarty
 --
 --  This library is free software; you can redistribute it and/or
 --  modify it under the terms of the GNU Library General Public
@@ -49,12 +49,12 @@ import MarshalUtils (fromBool, toBool)
 -- conversion routines
 -- -------------------
 
--- integral conversion (EXPORTED)
+-- |Integral conversion
 --
 cIntConv :: (Integral a, Integral b) => a -> b
 cIntConv  = fromIntegral
 
--- floating conversion (EXPORTED)
+-- |Floating conversion
 --
 cFloatConv :: (RealFloat a, RealFloat b) => a -> b
 cFloatConv  = realToFrac
@@ -64,22 +64,22 @@ cFloatConv  = realToFrac
   "cFloatConv/Double->Double" forall (x::Double). cFloatConv x = x
  #-}
 
--- obtain C value from Haskell `Bool' (EXPORTED)
+-- |Obtain C value from Haskell `Bool'
 --
 cFromBool :: Num a => Bool -> a
 cFromBool  = fromBool
 
--- obtain Haskell `Bool' from C value (EXPORTED)
+-- |Obtain Haskell `Bool' from C value
 --
 cToBool :: Num a => a -> Bool
 cToBool  = toBool
 
--- convert a C enumeration to Haskell (EXPORTED)
+-- |Convert a C enumeration to Haskell
 --
 cToEnum :: (Integral i, Enum e) => i -> e
 cToEnum  = toEnum . cIntConv
 
--- convert a Haskell enumeration to C (EXPORTED)
+-- |Convert a Haskell enumeration to C
 --
 cFromEnum :: (Enum e, Integral i) => e -> i
 cFromEnum  = cIntConv . fromEnum

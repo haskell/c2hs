@@ -1,11 +1,11 @@
 --  C -> Haskell Compiler: management of switches
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 6 March 99
 --
---  Version $Revision: 1.12 $ from $Date: 2004/10/13 06:16:10 $
+--  Version $Revision: 1.13 $ from $Date: 2004/10/17 08:31:08 $
 --
---  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -43,20 +43,18 @@
 --
 --    - information about phase activation and phase completion
 --
---  * The output path determines the file where the result of the compilation
---    is stored (it is supposed to include a suffix).  If it is empty, the
---    name of the Haskell binding file is used to determine the file name.
---
---  * With the advent of the new FFI in GHC 5.00 we adopt c2hs to fully support
---    these interfaces. To compile .chs files for earlier versions of GHC use
---    --new-ffi=no .
+--  * After processing the compiler options, `outputSB' contains the base name
+--    for the generated Haskell, C header, and .chi files.  However, during
+--    processing compiler options, `outputSB' contains arguments to the
+--    `--output' option and `outDirSB' contains arguments to the
+--    `--output-dir' option.
 --
 --- TODO ----------------------------------------------------------------------
 --
 
-module Switches (SwitchBoard(..), Traces(..), 
-		 initialSwitchBoard)  
-where
+module Switches (
+  SwitchBoard(..), Traces(..), initialSwitchBoard
+) where
 
 
 -- the switch board contains all toolkit switches
@@ -72,8 +70,9 @@ data SwitchBoard = SwitchBoard {
 		       -- ..remove from 0.12 series
 		     keepSB    :: Bool,		-- keep intermediate file
 		     tracesSB  :: Traces,	-- trace flags
-		     outputSB  :: FilePath,	-- output file
-		     headerSB  :: FilePath,	-- generate header file
+		     outputSB  :: FilePath,	-- basename of generated files
+		     outDirSB  :: FilePath,	-- dir where generated files go
+		     headerSB  :: FilePath,	-- generated header file
 		     oldFFI    :: Bool,		-- GHC 4.XX compatible code
 		     chiPathSB :: [FilePath]	-- .chi file directories
 		   }
@@ -88,6 +87,7 @@ initialSwitchBoard  = SwitchBoard {
 			keepSB	  = False,
 		        tracesSB  = initialTraces,
 			outputSB  = "",
+			outDirSB  = "",
 			headerSB  = "",
 			oldFFI	  = False,
 			chiPathSB = ["."]

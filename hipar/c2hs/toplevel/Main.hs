@@ -1,11 +1,11 @@
 --  C -> Haskell Compiler: main module
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Derived: 12 August 99
 --
---  Version $Revision: 1.19 $ from $Date: 2004/10/13 06:16:11 $
+--  Version $Revision: 1.20 $ from $Date: 2004/10/17 08:31:09 $
 --
---  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -91,9 +91,19 @@
 --        Place output in file FILE.
 --
 --        If `-o' is not specified, the default is to put the output for
---	  `source.chs' in `source.hs' in the current directory.  If specified,
---	  the emitted C header file is put into the same directory as the
---	  output file.
+--	  `source.chs' in `source.hs' in the same directory that contains the
+--	  binding file.  If specified, the emitted C header file is put into
+--	  the same directory as the output file.  The same holds for
+--	  C->Haskell interface file.  All generated files also share the
+--	  basename. 
+--
+--  -t PATH
+--  --output-dir=PATH
+--        Place generated files in the directory PATH.
+--
+--        If this option as well as the `-o' option is given, the basename of
+--        the file specified with `-o' is put in the directory specified with
+--        `-t'. 
 --
 --  -v,
 --  --version
@@ -117,12 +127,14 @@ import List	  (isPrefixOf)
 import IO	  ()
 import Monad      (when, unless, mapM)
 
+-- base libraries
 import Common     (errorCodeFatal)
 import GetOpt     (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo,
 		   getOpt)
 import FNameOps   (suffix, basename, dirname, stripSuffix, addPath)
 import Errors	  (interr)
 
+-- c2hs modules
 import C2HSState  (CST, nop, runC2HS, fatal, fatalsHandledBy, getId,
 		   ExitCode(..), stderr, IOMode(..), putStrCIO, hPutStrCIO,
 		   hPutStrLnCIO, exitWithCIO, getArgsCIO, getProgNameCIO,
@@ -176,8 +188,8 @@ data Flag = CPPOpts String      -- additional options for C preprocessor
 	  | Keep	        -- keep the .i file
 	  | Include String	-- list of directories to search .chi files
 	  | Output  String      -- file where the generated file should go
+	  | OutDir  String      -- directory where generates files should go
 	  | Version	        -- print version information on stderr
-	  | OldFFI  Bool	-- use the pre-standard FFI (pre-GHC 4.11)
 	  | Error   String      -- error occured during processing of options
 	  deriving Eq
 
@@ -219,14 +231,14 @@ options  = [
 	 ["output"] 
 	 (ReqArg Output "FILE") 
 	 "output result to FILE (should end in .hs)",
+  Option ['t'] 
+	 ["output-dir"] 
+	 (ReqArg OutDir "PATH") 
+	 "place generated files in PATH",
   Option ['v'] 
 	 ["version"] 
 	 (NoArg Version) 
-	 "show version information",
-  Option []
-	 ["old-ffi"]
-	 (OptArg oldFFISwitch "OLDFFI")
-	 "use the FFI without `Ptr a'"]
+	 "show version information"]
 
 -- convert argument of `Dump' option
 --
@@ -236,15 +248,6 @@ dumpArg "genbind"  = Dump GenBind
 dumpArg "ctrav"    = Dump CTrav
 dumpArg "chs"      = Dump CHS
 dumpArg _          = Error "Illegal dump type."
-
--- convert argument of `old-ffi' option
---
-oldFFISwitch              :: Maybe String -> Flag
-oldFFISwitch (Just "yes")  = OldFFI True
-oldFFISwitch (Just "no" )  = OldFFI False
-oldFFISwitch Nothing       = OldFFI True
-oldFFISwitch _		   = 
-  Error "Please supply either `yes' or `no' to the `--old-ffi' option."
 
 -- main process (set up base configuration, analyse command line, and execute
 -- compilation process)
@@ -326,8 +329,10 @@ execute opts args | Help `elem` opts = help
       let (headerFile, bndFile) = case args of
 				    [       bfile] -> (""   , bfile)
 				    [hfile, bfile] -> (hfile, bfile)
-      in
-      process headerFile (stripSuffix bndFile)
+          bndFileWithoutSuffix  = stripSuffix bndFile
+      in do
+      computeOutputName bndFileWithoutSuffix
+      process headerFile bndFileWithoutSuffix
 	`fatalsHandledBy` 
 	  \ioerr -> do
 		      name <- getProgNameCIO
@@ -356,10 +361,10 @@ processOpt (Dump    dt     )  = setDump    dt
 processOpt (Keep           )  = setKeep
 processOpt (Include dirs   )  = setInclude dirs
 processOpt (Output  fname  )  = setOutput  fname
+processOpt (OutDir  fname  )  = setOutDir  fname
 processOpt Version            = do
 			          (version, _, _) <- getId 
 			          putStrCIO (version ++ "\n")
-processOpt (OldFFI  flag   )  = setOldFFI  flag
 processOpt (Error   msg    )  = abort      msg
 
 -- emit error message and raise an error
@@ -369,6 +374,26 @@ abort msg  = do
 	       hPutStrLnCIO stderr msg
 	       hPutStrCIO stderr errTrailer
 	       fatal "Error in command line options"
+
+-- Compute the base name for all generated files (Haskell, C header, and .chi
+-- file)
+--
+-- * The result is available from the `outputSB' switch
+--
+computeOutputName :: FilePath -> CST s ()
+computeOutputName bndFileNoSuffix =
+  do
+    output <- getSwitch outputSB
+    outDir <- getSwitch outDirSB
+    let dir  = if      null outDir && null output then dirname bndFileNoSuffix
+	       else if null outDir		  then dirname output
+	       else				       outDir
+    let base = if null output then basename bndFileNoSuffix
+	       else                basename output
+    setSwitch $ \sb -> sb {
+		         outputSB = dir `addPath` base,
+			 outDirSB = dir
+		       }
 
 
 -- set switches
@@ -441,15 +466,15 @@ setOutput fname  = do
 		       raiseErrs ["Output file should end in .hs!\n"]
 		     setSwitch $ \sb -> sb {outputSB = stripSuffix fname}
 
+-- set the output directory
+--
+setOutDir       :: FilePath -> CST s ()
+setOutDir fname  = setSwitch $ \sb -> sb {outDirSB = fname}
+
 -- set the name of the generated header file
 --
 setHeader       :: FilePath -> CST s ()
 setHeader fname  = setSwitch $ \sb -> sb {headerSB = fname}
-
--- set flag wether or not to use the old pre-GHC-5.00 FFI without `Ptr a'
---
-setOldFFI      :: Bool -> CST s ()
-setOldFFI flag  = setSwitch $ \sb -> sb {oldFFI = flag}
 
 
 -- compilation process
@@ -483,10 +508,7 @@ process headerFile bndFile  =
     -- CPP and inline-C of .chs file into the new header
     --
     outFName <- getSwitch outputSB
-    let dir           = if null outFName 
-			then dirname bndFile 
-			else dirname outFName
-	newHeaderFile = dir `addPath` basename bndFile ++ hsuffix
+    let newHeaderFile = outFName ++ hsuffix
 	preprocFile   = basename newHeaderFile ++ isuffix
     newHeader <- openFileCIO newHeaderFile WriteMode
     unless (null headerFile) $
@@ -524,10 +546,8 @@ process headerFile bndFile  =
     --
     -- output the result
     --
-    outFName <- getSwitch outputSB
-    let hsFile  = if null outFName then basename bndFile else outFName
-    dumpCHS hsFile hsMod True
-    dumpCHI hsFile chi		-- different suffix will be appended
+    dumpCHS outFName hsMod True
+    dumpCHI outFName chi		-- different suffix will be appended
   where
     tracePreproc cmd = putTraceStr tracePhasesSW $
 		         "Invoking cpp as `" ++ cmd ++ "'...\n"

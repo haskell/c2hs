@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.52 $ from $Date: 2004/10/13 06:16:10 $
+--  Version $Revision: 1.53 $ from $Date: 2004/10/17 08:31:08 $
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
@@ -247,9 +247,14 @@ isFloatHsType _	       = False
 
 -- check for integral C types
 --
+-- * For marshalling purposes C char's are integral types (see also types
+--   classes for which the FFI guarantees instances for `CChar', `CSChar', and
+--   `CUChar')
+--
 isIntegralCPrimType :: CPrimType -> Bool
-isIntegralCPrimType  = (`elem` [CIntPT, CShortPT, CLongPT, CLLongPT, CUIntPT, 
-			        CUShortPT, CULongPT, CULLongPT])
+isIntegralCPrimType  = (`elem` [CCharPT, CSCharPT, CIntPT, CShortPT, CLongPT,
+				CLLongPT, CUIntPT, CUCharPT, CUShortPT,
+				CULongPT, CULLongPT]) 
 
 -- check for floating C types
 --
@@ -440,12 +445,12 @@ expandHook hook@(CHSFun isPure isUns ide oalias ctxt parms parm pos) =
     -- function; we use shadow identifiers, so the returned identifier is used 
     -- afterwards instead of the original one
     --
-    (ObjCO cdecl, ide) <- findFunObj ide True
+    (ObjCO cdecl, cide) <- findFunObj ide True
     let ideLexeme = identToLexeme ide  -- orignal name might have been a shadow
 	hsLexeme  = ideLexeme `maybe` identToLexeme $ oalias
 	fiLexeme  = hsLexeme ++ "'_"   -- *Urgh* - probably unqiue...
 	fiIde     = onlyPosIdent nopos fiLexeme
-        cdecl'    = ide `simplifyDecl` cdecl
+        cdecl'    = cide `simplifyDecl` cdecl
 	callHook  = CHSCall isPure isUns ide (Just fiIde) pos
     callImport callHook isPure isUns ideLexeme fiLexeme cdecl' pos
     funDef isPure hsLexeme fiLexeme cdecl' ctxt parms parm pos
@@ -685,7 +690,7 @@ funDef :: Bool		     -- pure function?
        -> String	     -- Haskell name of the foreign imported C function
        -> CDecl		     -- simplified declaration of the C function
        -> Maybe String	     -- type context of the new Haskell function
-       -> [CHSParm]	     -- parameter marhsalling description
+       -> [CHSParm]	     -- parameter marshalling description
        -> CHSParm	     -- result marshalling description 
        -> Position	     -- source location of the hook
        -> GB String	     -- Haskell code in text form

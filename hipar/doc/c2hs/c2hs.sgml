@@ -7,7 +7,7 @@
 
 <title>The Binding Generator C->Haskell
 <author>Manuel M. T. Chakravarty, <tt/chak@cse.unsw.edu.au/
-<date>v0.17, 13 October 2004
+<date>v0.18, 13 October 2004
 <abstract>
 C-&gt;Haskell is an interface generator that simplifies the development of
 <htmlurl url="http://haskell.org" name="Haskell"> bindings to C libraries.  The
@@ -118,42 +118,46 @@ interfaces.
 
 <sect1>Usage of <tt/c2hs/
 <p>
-  <tt/FIXME: Preferred use is to hash include headers (instead of specifying
-  them on the command line).  Specify where which generated files go.
-<p>
 C-&gt;Haskell is implemented by the executable <tt/c2hs/.  The simplest form
 of usage is
+<p>
+<quote>
+<tt/c2hs /<em/Lib/<tt/.chs/
+</quote>
+<p>
+where <em/Lib/<tt/.chs/ is the Haskell binding module defining the Haskell
+interface to a C library together with the required marshalling code.  If
+C-&gt;Haskell is invoked in this manner, the binding module must contain a cpp
+<tt/#include/ directive to determine the C-side interface of the library.
+Alternatively, a C header file can be specified on the command line, as in
 <p>
 <quote>
 <tt/c2hs /<em/lib/<tt/.h /<em/Lib/<tt/.chs/
 </quote>
 <p>
-where <em/lib/<tt/.h/ is the header file and <em/Lib/<tt/.chs/ the Haskell
-binding module, which define the C- and Haskell-side interface, respectively.
-If no errors occur, the result is a pure Haskell module <em/Lib/<tt/.hs/,
-which implements the Haskell API of the library.  It is possible to omit the C
-header file <em/lib/<tt/.h/ if instead appropriate CPP directives or inline C
-code is used in the Haskell binding module <em/Lib/<tt/.chs/ (see <ref
-id="cpp" name="the section on CPP directives"> for details.)  In any case, in
-addition to the Haskell module <em/Lib/<tt/.hs/, a C header file
-<em/Lib/<tt/.h/ is generated.  This header file should be provided to the
-Haskell compiler when compiling <em/Lib/<tt/.hs/.  Please ensure that no
-user-supplied header file is overwritten.
+However, the latter option is only preserved for backwards compatibility and
+not recommended.  If no errors occur, C-&gt;Haskell generates three files: (1)
+a pure Haskell module <em/Lib/<tt/.hs/, which implements the Haskell API of
+the library, (2) a C header file <em/Lib/<tt/.h/ which some Haskell systems
+need to compile the generated Haskell code, and (3) a C-&gt;Haskell interface
+file <em/Lib/<tt/.chi/ that is used by other binding modules that import
+<em/Lib/<tt/.hs/ using an import hook (see <ref id="import" name="the section
+on import hooks"> for details).
 
 The executable <tt/c2hs/ has a couple more options:
 <p>
 <tscreen><verb>
 Usage: c2hs [ option... ] [header-file] binding-file
 
-  -C CPPOPTS  --cppopts=CPPOPTS   pass CPPOPTS to the C preprocessor         
-  -c CPP      --cpp=CPP           use executable CPP to invoke C preprocessor
-  -d TYPE     --dump=TYPE         dump internal information (for debugging)  
-  -h, -?      --help              brief help (the present message)           
-  -i INCLUDE  --include=INCLUDE   include paths for .chi files               
-  -k          --keep              keep pre-processed C header                
-  -o FILE     --output=FILE       output result to FILE (should end in .hs)  
-  -v          --version           show version information                   
-              --old-ffi[=OLDFFI]  use the FFI without `Ptr a'                
+  -C CPPOPTS  --cppopts=CPPOPTS  pass CPPOPTS to the C preprocessor         
+  -c CPP      --cpp=CPP          use executable CPP to invoke C preprocessor
+  -d TYPE     --dump=TYPE        dump internal information (for debugging)  
+  -h, -?      --help             brief help (the present message)           
+  -i INCLUDE  --include=INCLUDE  include paths for .chi files               
+  -k          --keep             keep pre-processed C header                
+  -o FILE     --output=FILE      output result to FILE (should end in .hs)  
+  -t PATH     --output-dir=PATH  place generated files in PATH              
+  -v          --version          show version information                   
 
 The header file must be a C header file matching the given binding file.
 The dump TYPE can be
@@ -169,7 +173,7 @@ the C pre-processor, here is the place to pass them.  A call may look like
 this:
 <p>
 <quote>
-<tt>c2hs --cppopts='-I/some/obscure/dir -DEXTRA' </tt><em/lib/<tt/.h /<em/Lib/<tt/.chs/
+<tt>c2hs --cppopts='-I/some/obscure/dir -DEXTRA' </tt><em/Lib/<tt/.chs/
 </quote>
 <p>
 Do not forget the quotes if you have more than one option that you want to
@@ -270,7 +274,7 @@ interface) can still be used by importing <tt/C2HSDeprecated/ instead of
 The remainder of this section describes the hooks that are available in
 binding modules.
 
-<sect1>Import Hooks
+<sect1>Import Hooks<label id="import">
 <p>
 <tscreen>
 {#import [qualified] <it/modid/#}
@@ -385,8 +389,8 @@ As an example, consider
 {#enum WindowType {underscoreToCase} deriving (Eq)#}
 </tscreen>
 <p>
-<bf/Note:/ The <tt/enum define/ hooks described in the C-&gt;Haskell are not
-implemented yet.
+<bf/Note:/ The <tt/enum define/ hooks described in the C-&gt;Haskell paper are
+not implemented yet.
 
 <sect1>Call Hooks
 <p>
@@ -419,14 +423,15 @@ sin  = {#call pure sin as "_sin"#}
 <p>
 Function hooks are call hooks including parameter marshalling.  Thus, the
 components of a function hook up to and including the <tt/as/ alias are the
-same as for call hooks.  The remaining components use literals enclosed in
-backwards and foward single quotes (<tt/`/ and <tt/'/) to denote Haskell code
-fragments (or more precisely, parts of the Haskell type signature for the
-bound function).  The first one is the phrase <it/ctxt/ preceding <tt/=>/,
-which denotes the type context.  This is followed by zero or more type and
-marshalling specifications <it/parm1/ to <it/parmn/ for the function arguments
-and one <it/parm/ for the function result.  Each such specification <it/parm/
-has the form
+same as for call hooks.  However, an <tt/as/ alias has a different meaning; it
+specifies the name of the generated Haskell function.  The remaining
+components use literals enclosed in backwards and foward single quotes (<tt/`/
+and <tt/'/) to denote Haskell code fragments (or more precisely, parts of the
+Haskell type signature for the bound function).  The first one is the phrase
+<it/ctxt/ preceding <tt/=>/, which denotes the type context.  This is followed
+by zero or more type and marshalling specifications <it/parm1/ to <it/parmn/
+for the function arguments and one <it/parm/ for the function result.  Each
+such specification <it/parm/ has the form
 <p>
 <tscreen>
 [<it/inmarsh/ [* | -]] <it/hsty/ [&] [<it/outmarsh/ [* | -]]
@@ -465,7 +470,7 @@ marshallers/ are provided by C-&gt;Haskell if no explicit marshaller is
 given.   The out marshaller for function arguments is by default <tt/void-/.
 The defaults for the in marshallers for function arguments are as follows:
 <itemize>
-<item><tt/Bool/ and integral C type: <tt/cFromBool/
+<item><tt/Bool/ and integral C type (including chars): <tt/cFromBool/
 <item>Integral Haskell and integral C type: <tt/cIntConv/
 <item>Floating Haskell and floating C type: <tt/cFloatConv/
 <item><tt/String/ and <tt/char*/: <tt/withCString*/
@@ -797,6 +802,9 @@ alias    -> `underscoreToCase'
 ptrkind  -> [`foreign' | `stable'] ['newtype' | '->' ident]
 </verb>
 </tscreen>
+<p>
+Identifier <tt/ident/ follow the lexis of Haskell.  They may be enclosed in
+single quotes to disambiguate them from C->Haskell keywords.
 
 <sect>The Haskell FFI Marshalling Library
 <p>
@@ -880,12 +888,18 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.13.2 "Pressing Forward"
+<sect1>Version 0.13.4 "Pressing Forward"
 <p>
 <itemize>
+<item>Identifier may optionally be put in single quotes.  (This is useful if
+they would otherwise collide with a C-&gt;Haskell keyword.)
+<item>Some smaller bug fixes
+<item>C chars are treated as integral types for marshalling purposes.
 <item>If there is no explicit output file specified, the generated header file
 is put in the same directory as the binding file; otherwise, it goes in the
-directory where the output file is put.
+directory where the output file is put.  Moreover, the <tt/--output-dir/
+option enables the specification of directory where all generated files are to
+be put.
 <item>Foreign import declarations include the name of the header file
 generated by C-&gt;Haskell (ie, it needs neither be passed to the Haskell
 compiler at the command line nor in an OPTIONS pragma).

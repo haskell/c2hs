@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 16 August 99
 --
---  Version $Revision: 1.25 $ from $Date: 2004/10/08 22:32:46 $
+--  Version $Revision: 1.26 $ from $Date: 2004/10/17 08:31:08 $
 --
 --  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --
@@ -408,8 +408,8 @@ showCHSModule (CHSModule frags) pureHaskell  =
 	nextState	 = if generated then Wait else NoLine
       in
 	(if emitNow then
-	   showString ("{-# LINE " ++ show (line `max` 0) ++ " " ++ show fname 
-		       ++ " #-}\n")
+	   showString ("\n{-# LINE " ++ show (line `max` 0) ++ " " ++ 
+		       show fname ++ " #-}")
 	 else id)
       . showString s
       . showFrags pureHs nextState frags
@@ -974,7 +974,7 @@ parseOptPrefix _     (CHSTokPrefix _:toks) = syntaxError toks
 parseOptPrefix _     toks		   = return (Nothing, toks)
 
 -- first argument is the identifier that is to be used when `^' is given and
--- the second indicates whether the first characters has to be upper case
+-- the second indicates whether the first character has to be upper case
 --
 parseOptAs :: Ident -> Bool -> [CHSToken] -> CST s (Maybe Ident, [CHSToken])
 parseOptAs _   _     (CHSTokAs _:CHSTokIdent _ ide:toks) = 
