@@ -1,4 +1,13 @@
+2002-09-13  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
+
+	* toplevel/c2hs_config.c: removed the `signed' modifier on
+	suggestion of Seth Kurtzberg <seth@cql.com> as it apparently
+	confuses the Solaris 8 C compiler
+
 2002-09-07  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
+
+	* c2hs.spec.in: add post install and uninstall scripts to register
+	and deregister the package with GHC
 
 	* configure.in: fixed REQUIRES_HASKELL for ghc
 

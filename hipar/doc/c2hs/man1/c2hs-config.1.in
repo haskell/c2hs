@@ -1,6 +1,6 @@
 .\" Hey Emacs! This file is -*- nroff -*- source.
 .\"
-.\" Version $Revision: 1.1 $ from $Date: 1999/11/17 14:21:02 $
+.\" Version $Revision: 1.2 $ from $Date: 2002/09/15 07:00:41 $
 .\"
 .TH C2HS 1 "14 November 1999" "Version @VERSION@" C\->Haskell
 .SH NAME
@@ -68,8 +68,8 @@ and \-\-libs options.  This option must be specified before any
 .I @DOCDIR@/html/c2hs.html
 
 .SH COPYRIGHT
-C\->Haskell Version @VERSION@ Copyright (c) 1999 Manuel M. T. Chakravarty
-<chak@is.tsukuba.ac.jp>
+C\->Haskell Version @VERSION@ Copyright (c) [1999..2002] 
+Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
 
 .SH AUTHOR
 This manual page was mainly copied from the gtk-config manual page.

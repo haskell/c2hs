@@ -35,6 +35,11 @@ More info plus the language definition is at http://www.haskell.org/.
 
 %changelog
 
+* Sat Sep 7 2002 Manuel Chakravarty
+- add post install and uninstall scripts to register and deregister the 
+  package with GHC
+- fixed docu packaging
+
 * Tue Mar 12 2002 Manuel Chakravarty
 - require a specific Haskell compiler (namely, the one for which the packages 
   was compiled)
@@ -57,10 +62,18 @@ make prefix=$RPM_BUILD_ROOT%{prefix} install-doc
 %clean
 rm -rf $RPM_BUILD_ROOT
 
+%post
+%{prefix}/bin/c2hs-config --package-conf\
+  | ghc-pkg --update-package --auto-ghci-libs
+
+%postun
+ghc-pkg --remove-package=c2hs
+
 %files
 %doc c2hs/ChangeLog c2hs/TODO c2hs/COPYING c2hs/COPYING.LIB
 %doc c2hs/README c2hs/AUTHORS
-%doc build/doc/c2hs c2hs/tests c2hs/examples/libghttpHS
+%doc doc/c2hs/*.html doc/c2hs/*.txt doc/c2hs/lib c2hs/tests
 %{prefix}/bin/c2hs
 %{prefix}/bin/c2hs-config
 %{prefix}/lib/c2hs-%{version}/
+%{prefix}/man/

@@ -3,9 +3,9 @@
  *  Author : Manuel M T Chakravarty
  *  Created: 12 November 1
  *
- *  Version $Revision: 1.2 $ from $Date: 2001/12/11 02:26:26 $
+ *  Version $Revision: 1.3 $ from $Date: 2002/09/15 07:00:40 $
  *
- *  Copyright (c) 2001 Manuel M T Chakravarty
+ *  Copyright (c) [2001..2002] Manuel M T Chakravarty
  *
  *  This file is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@ union bitfield_padding_union {
   }					allbits;
   struct {
     unsigned int first_bit : 1;
-    signed   int full_unit : sizeof (signed int) * 8;
+	     int full_unit : sizeof (int) * 8;
   }					somebits;
 };
 

@@ -4,8 +4,14 @@
 
 Next: - Tutorial
 
+      - Printing of error message seems to be broken in 0.10.16.  Seems as if
+        they are `print'ed instead of `putStr'ed.  Might be a problem with
+        catching exceptions.  This seemed to happen only since compiling with
+        GHC 5.04.
+
       - check building with latest nhc; issues with 1.14 were:
-	- problems in `Parsers'
+	- problems in `Parsers' (Malcolm suggests that it might be an
+	  interaction of type classes with existential types)
 	- exports FFI libraries from `FFI' instead of `Foreign' and `CForeign'
 
       - Bug exposed in Glade.chs where the `init' function gets the wrong name
@@ -374,6 +380,6 @@ Release Checklist
 
 (9) Optionally also release the current version of CTK
 
-(10) Update the C2HS library files under the Web page's lib/ directory
+(10) Update the documentation under the Web page's docu/ directory
 
 (11) Announce: haskell@haskell.org, freshmeat.net
