@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.21 $ from $Date: 2004/05/15 08:34:50 $
+--  Version $Revision: 1.22 $ from $Date: 2004/06/11 07:10:16 $
 --
 --  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --
@@ -26,10 +26,13 @@
 --
 --  language: Haskell 98
 --
---  The parser recognizes all of ANCI C except function bodies.  The parser
---  combinators follow K&R Appendix A, but we make use of the richer grammar
---  constructs provided by `Parsers'.  It supports the C99 `restrict'
---  extension and `inline'.
+--  The parser recognizes all of ANCI C.  The parser combinators follow K&R
+--  Appendix A, but we make use of the richer grammar constructs provided by
+--  `Parsers'.  It supports the C99 `restrict' extension and `inline'.  The
+--  parser is rather permissive with respect to the formation of declarators
+--  in function definitions (it doesn't enforce strict function syntax).
+--  Non-complying definitions need to be detected by subsequent passes if
+--  strict checking is required.
 --
 --  Comments:
 --
@@ -72,9 +75,6 @@
 --
 --- TODO ----------------------------------------------------------------------
 --
---  * Is the token transformation (`CTokIdent' -> `CTokTypeName') in
---    `parseCHeader' a performance bottleneck?  Doesn't seem so...
---
 
 module CParser (parseC)
 where
@@ -94,11 +94,11 @@ import Parsers    (Token, Parser, empty, token, skip, (<|>), (*$>), (*>), ($>),
 
 import C2HSState  (CST, raise, getNameSupply)
 import CLexer     (CToken(..), GnuCTok(..), lexC)
-import CAST       (CHeader(..), CExtDecl, CDecl(..), CDeclSpec(..),
-		   CStorageSpec(..), CTypeSpec(..), CTypeQual(..),
-		   CStructUnion(..), CStructTag(..), CEnum(..), CDeclr(..),
-		   CInit(..), CExpr(..), CAssignOp(..), CBinaryOp(..),
-		   CUnaryOp(..), CConst (..))
+import CAST       (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..),
+		   CDecl(..), CDeclSpec(..), CStorageSpec(..), CTypeSpec(..),
+		   CTypeQual(..), CStructUnion(..), CStructTag(..), CEnum(..),
+		   CDeclr(..), CInit(..), CExpr(..), CAssignOp(..),
+		   CBinaryOp(..), CUnaryOp(..), CConst (..))
 import CBuiltin   (builtinTypeNames)
 
 
@@ -306,8 +306,10 @@ parseCHeader pos tokens  =
 
     -- extract all identifiers turned into `typedef-name's
     --
-    getTDefNames :: CDecl -> [Ident]
-    getTDefNames (CDecl specs declrs _)
+    getTDefNames :: CExtDecl -> [Ident]
+    getTDefNames (CFDefExt _                     ) 
+                  = []
+    getTDefNames (CDeclExt (CDecl specs declrs _))
       | isTypedef = catMaybes [declrToOptIdent declr 
 			      | (Just declr, _, _) <- declrs]
       | otherwise = []
@@ -330,11 +332,148 @@ parseCHeader pos tokens  =
 
 -- parse external C declaration (K&R A10)
 --
--- * The omission of the variant of "function definitions" means that we can
---   only handle headers.
---
 parseCExtDecl :: CParser CExtDecl
-parseCExtDecl  = parseCDecl
+parseCExtDecl  =     parseCFunDef `action` CFDefExt
+		 <|> parseCDecl   `action` CDeclExt
+
+-- parse C function definition (K&R A10.1)
+--
+parseCFunDef :: CParser CFunDef
+parseCFunDef  = 
+  list (
+      ctoken_ (CTokGnuC GnuCExtTok) `opt` ()      -- ignore GCC's __extension__
+  -*> parseCDeclSpec 
+  *-> optMaybe parseGnuCAttr			  -- ignore GCC's __attribute__
+  )*> parseCDeclr 
+  *> list parseCDecl 
+  *> parseCCompStat
+  `actionAttrs`
+    (\(((specs, declr), _), _) -> head (map posOf specs ++ [posOf declr])) $
+    (\(((specs, declr), decls), stat) at -> CFunDef specs declr decls stat at)
+
+-- parse C statement (K&R A9)
+--
+parseCStat :: CParser CStat
+parseCStat  =     parseCLabelStat
+	      <|> parseCExprStat
+	      <|> parseCCompStat
+	      <|> parseCSelStat
+	      <|> parseCIterStat
+	      <|> parseCJumpStat
+
+-- parse C labeled statement (K&R A9.1)
+--
+parseCLabelStat :: CParser CStat
+parseCLabelStat  =
+      (cid *> ctoken CTokColon *> parseCStat
+       `actionAttrs`
+         (\((_, pos), _) -> pos) $
+	 (\((ide, pos), stat) at -> CLabel ide stat at))
+  <|> (ctoken CTokCase *> parseCConstExpr *-> ctoken_ CTokColon *> parseCStat
+       `actionAttrs`
+         (\((pos, _), _) -> pos) $
+	 (\((_, expr), stat) at -> CCase expr stat at))
+  <|> (ctoken CTokDefault *-> ctoken_ CTokColon *> parseCStat
+       `actionAttrs`
+         (\(pos, _) -> pos) $
+	 (\(_, stat) at -> CDefault stat at))
+  <|> (semic
+       `actionAttrs`
+         id $
+	 (\_ at -> CExpr Nothing at))
+
+-- parse C expression statement (K&R A9.2)
+--
+parseCExprStat :: CParser CStat
+parseCExprStat  =
+  optMaybe parseCExpr *> semic
+    `actionAttrs`
+      (\(optExpr, pos) -> maybe pos posOf optExpr) $
+      (\(expr, _) at -> CExpr expr at)
+
+-- parse C compound statement (K&R A9.3)
+--
+parseCCompStat :: CParser CStat
+parseCCompStat  =
+  ctoken CTokLBrace *>
+  list parseCDecl   *>
+  list parseCStat   *->
+  ctoken_ CTokRBrace
+  `actionAttrs`
+    (\((pos, _), _) -> pos) $
+    (\((_, decls), stats) at -> CCompound decls stats at)
+
+-- parse C selection statement (K&R A9.4)
+--
+parseCSelStat :: CParser CStat
+parseCSelStat  =
+      (ctoken CTokIf                                              *>
+       (ctoken_ CTokLParen -*> parseCExpr *-> ctoken_ CTokRParen) *>
+       parseCStat                                                 *>
+       optMaybe (ctoken_ CTokElse -*> parseCStat)
+       `actionAttrs`
+         (\(((pos, _), _), _) -> pos) $
+	 (\(((_, expr), thenStat), elseStat) at -> 
+	    CIf expr thenStat elseStat at))
+  <|> (ctoken CTokSwitch                                          *>
+       (ctoken_ CTokLParen -*> parseCExpr *-> ctoken_ CTokRParen) *>
+       parseCStat
+       `actionAttrs`
+         (\((pos, _), _) -> pos) $
+	 (\((_, expr), body) at -> CSwitch expr body at))
+
+-- parse C iteration statement (K&R A9.5)
+--
+parseCIterStat :: CParser CStat
+parseCIterStat  =
+      (ctoken CTokWhile                                           *>
+       (ctoken_ CTokLParen -*> parseCExpr *-> ctoken_ CTokRParen) *>
+       parseCStat
+       `actionAttrs`
+         (\((pos, _), _) -> pos) $
+	 (\((_, expr), body) at -> CWhile expr body False at))
+  <|> (ctoken CTokDo                                              *>
+       parseCStat                                                 *->
+       ctoken_ CTokWhile                                          *>
+       (ctoken_ CTokLParen -*> parseCExpr *-> ctoken_ CTokRParen) *->
+       semic_
+       `actionAttrs`
+         (\((pos, _), _) -> pos) $
+	 (\((_, body), expr) at -> CWhile expr body True at))
+  <|> (ctoken CTokFor      *->
+       ctoken CTokLParen   *>
+       optMaybe parseCExpr *->
+       semic_		   *>
+       optMaybe parseCExpr *->
+       semic_		   *>
+       optMaybe parseCExpr *->
+       ctoken CTokRParen   *>
+       parseCStat
+       `actionAttrs`
+         (\((((pos, _), _), _), _) -> pos) $
+	 (\((((_, expr1), expr2), expr3), body) at -> 
+	    CFor expr1 expr2 expr3 body at))
+
+-- parse C jump statement (K&R A9.6)
+--
+parseCJumpStat :: CParser CStat
+parseCJumpStat  =
+      (ctoken CTokGoto *> cid *-> semic_
+       `actionAttrs`
+         (\(pos, _) -> pos) $
+	 (\(_, label) at -> CGoto label at))
+  <|> (ctoken CTokContinue *-> semic_
+       `actionAttrs`
+         id $
+	 (\_ at -> CCont at))
+  <|> (ctoken CTokBreak *-> semic_
+       `actionAttrs`
+         id $
+	 (\_ at -> CBreak at))
+  <|> (ctoken CTokReturn *> optMaybe parseCExpr *-> semic_
+       `actionAttrs`
+         (\(pos, _) -> pos) $
+	 (\(_, expr) at -> CReturn expr at))
 
 -- parse C declaration (K&R A8)
 --
@@ -344,7 +483,7 @@ parseCExtDecl  = parseCDecl
 --
 parseCDecl :: CParser CDecl
 parseCDecl  = 
-  list (
+  list1 (
       ctoken_ (CTokGnuC GnuCExtTok) `opt` ()      -- ignore GCC's __extension__
   -*> parseCDeclSpec 
   *-> optMaybe parseGnuCAttr			  -- ignore GCC's __attribute__
@@ -395,9 +534,11 @@ parseCInitDecl  = parseCDeclr *> optMaybe (ctoken_ CTokAssign -*> parseCInit)
 -- parse C storage class specifier (K&R A8.1)
 --
 parseCStorageSpec :: CParser CStorageSpec
-parseCStorageSpec  =     CTokStatic  `tokenToAttrs` CStatic
-		     <|> CTokExtern  `tokenToAttrs` CExtern
-		     <|> CTokTypedef `tokenToAttrs` CTypedef
+parseCStorageSpec  =     CTokAuto     `tokenToAttrs` CAuto
+		     <|> CTokRegister `tokenToAttrs` CRegister
+		     <|> CTokStatic   `tokenToAttrs` CStatic
+		     <|> CTokExtern   `tokenToAttrs` CExtern
+		     <|> CTokTypedef  `tokenToAttrs` CTypedef
 
 -- parse C type specifier (K&R A8.2)
 --

@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.50 $ from $Date: 2003/10/20 08:00:44 $
+--  Version $Revision: 1.51 $ from $Date: 2004/06/11 07:10:17 $
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
@@ -1082,12 +1082,23 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun =
 	ptrType = ptrCon ++ " (" ++ ptrArg ++ ")"
 	thePtr  = (isStar, cNameFull)
     case ptrKind of
-      CHSForeignPtr -> thePtr `ptrMapsTo` (hsName, "Ptr (" ++ ptrArg ++ ")")
+      CHSForeignPtr -> thePtr `ptrMapsTo` ("Ptr (" ++ ptrArg ++ ")", 
+					   "Ptr (" ++ ptrArg ++ ")")
       _		    -> thePtr `ptrMapsTo` (hsName, hsName)
     return $
       if isNewtype 
-      then "newtype " ++ hsName ++ " = " ++ hsName ++ " (" ++ ptrType ++ ")"
+      then "newtype " ++ hsName ++ " = " ++ hsName ++ " (" ++ ptrType ++ ")" ++
+	   withForeignFun
       else "type "    ++ hsName ++ " = "                   ++ ptrType
+    where
+      -- if we have a foreign pointer wrapped into a newtype, provide a
+      -- safe unwrapping function automatically
+      --
+      withForeignFun 
+        | ptrKind == CHSForeignPtr = 
+	  "\n" ++
+          "with" ++ hsName ++ " (" ++ hsName ++ " fptr) = withForeignPtr fptr"
+	| otherwise		   = ""
 
 -- generate the class and instance definitions for a class hook
 --

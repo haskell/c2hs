@@ -3,9 +3,9 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.9 $ from $Date: 2002/07/12 06:29:39 $
+--  Version $Revision: 1.10 $ from $Date: 2004/06/11 07:10:16 $
 --
---  Copyright (c) [1999..2001] Manuel M T Chakravarty
+--  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -25,20 +25,11 @@
 --
 --  language: Haskell 98
 --
---  The tree structure corresponds to the grammar in Appendix A of K&R with
---  the restriction that we only consider declarations that may appear in
---  header files.  In other words, we represent a set of C declarations
---  without any function definition.  Strictly speaking, a C header may also
---  contain a function definition, but that would immediately lead to problems
---  if a header is included more than once into the files comprising a
---  program.  Hence, we assume that a well-formed header does not contain any
---  function definitions.
---
---  This abstract syntax simplifies the concrete syntax by merging similar
---  concrete constructs into a single type of abstract tree structure:
---  declarations are merged with structure declarations, parameter
---  declarations and type names, and declarators are merged with abstract
---  declarators.
+--  The tree structure corresponds to the grammar in Appendix A of K&R.  This
+--  abstract syntax simplifies the concrete syntax by merging similar concrete
+--  constructs into a single type of abstract tree structure: declarations are
+--  merged with structure declarations, parameter declarations and type names,
+--  and declarators are merged with abstract declarators.
 --
 --  With K&R we refer to ``The C Programming Language'', second edition, Brain
 --  W. Kernighan and Dennis M. Ritchie, Prentice Hall, 1988.  This module
@@ -49,10 +40,11 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module CAST (CHeader(..), CExtDecl, CDecl(..), CDeclSpec(..),
-	     CStorageSpec(..), CTypeSpec(..), CTypeQual(..), CStructUnion(..), 
-	     CStructTag(..), CEnum(..), CDeclr(..), CInit(..), CExpr(..),
-	     CAssignOp(..), CBinaryOp(..), CUnaryOp(..), CConst (..))
+module CAST (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..), CDecl(..),
+	     CDeclSpec(..), CStorageSpec(..), CTypeSpec(..), CTypeQual(..),
+	     CStructUnion(..),  CStructTag(..), CEnum(..), CDeclr(..),
+	     CInit(..), CExpr(..), CAssignOp(..), CBinaryOp(..), CUnaryOp(..),
+	     CConst (..)) 
 where
 
 import Common     (Position, Pos(posOf), nopos)
@@ -73,10 +65,107 @@ instance Eq CHeader where
 
 -- external C declaration (K&R A10) (EXPORTED)
 --
--- * The omission of the variant of "function definitions" means that we can
---   only handle headers.
+data CExtDecl = CDeclExt CDecl
+	      | CFDefExt CFunDef
+
+instance Pos CExtDecl where
+  posOf (CDeclExt decl) = posOf decl
+  posOf (CFDefExt fdef) = posOf fdef
+
+instance Eq CExtDecl where
+  CDeclExt decl1 == CDeclExt decl2 = decl1 == decl2
+  CFDefExt fdef1 == CFDefExt fdef2 = fdef1 == fdef2
+
+-- C function definition (K&R A10.1) (EXPORTED)
 --
-type CExtDecl = CDecl
+-- * The only type specifiers allowed are `extern' and `static'.
+--
+-- * The declarator must specify explicitly that the declared identifier has
+--   function type.
+--
+-- * The optional declaration list is for old-style function declarations.
+--
+-- * The statement must be a compound statement.
+--
+data CFunDef = CFunDef [CDeclSpec]	-- type specifier and qualifier
+		       CDeclr		-- declarator
+		       [CDecl]		-- optional declaration list
+		       CStat		-- compound statement
+		       Attrs
+
+instance Pos CFunDef where
+  posOf (CFunDef _ _ _ _ at) = posOf at
+
+instance Eq CFunDef where
+  CFunDef _ _ _ _ at1 == CFunDef _ _ _ _ at2 = at1 == at2
+
+-- C statement (A9) (EXPORTED)
+--
+data CStat = CLabel    Ident		-- label
+		       CStat
+		       Attrs
+           | CCase     CExpr		-- constant expression
+		       CStat
+		       Attrs
+           | CDefault  CStat		-- default case
+		       Attrs
+           | CExpr     (Maybe CExpr)	-- expression statement, maybe empty
+		       Attrs
+           | CCompound [CDecl]		-- optional declaration list
+		       [CStat]		-- optional statement list
+		       Attrs
+           | CIf       CExpr		-- conditional expression
+		       CStat
+		       (Maybe CStat)    -- optional "else" case
+		       Attrs
+           | CSwitch   CExpr	        -- selector
+		       CStat
+		       Attrs
+           | CWhile    CExpr
+		       CStat
+		       Bool		-- `True' implies "do-while" statement
+		       Attrs
+           | CFor      (Maybe CExpr)
+		       (Maybe CExpr)
+		       (Maybe CExpr)
+		       CStat
+		       Attrs
+           | CGoto     Ident		-- label
+		       Attrs
+           | CCont     Attrs		-- continue statement
+	   | CBreak    Attrs		-- break statement
+	   | CReturn   (Maybe CExpr)
+		       Attrs
+
+instance Pos CStat where
+  posOf (CLabel    _ _     at) = posOf at
+  posOf (CCase     _ _     at) = posOf at
+  posOf (CDefault  _       at) = posOf at
+  posOf (CExpr     _       at) = posOf at
+  posOf (CCompound _ _     at) = posOf at
+  posOf (CIf       _ _ _   at) = posOf at
+  posOf (CSwitch   _ _     at) = posOf at
+  posOf (CWhile    _ _ _   at) = posOf at
+  posOf (CFor      _ _ _ _ at) = posOf at
+  posOf (CGoto     _	   at) = posOf at
+  posOf (CCont     	   at) = posOf at
+  posOf (CBreak    	   at) = posOf at
+  posOf (CReturn   _   	   at) = posOf at
+
+instance Eq CStat where
+  (CLabel    _ _     at1) == (CLabel    _ _     at2) = at1 == at2
+  (CCase     _ _     at1) == (CCase     _ _     at2) = at1 == at2
+  (CDefault  _       at1) == (CDefault  _       at2) = at1 == at2
+  (CExpr     _       at1) == (CExpr     _       at2) = at1 == at2
+  (CCompound _ _     at1) == (CCompound _ _     at2) = at1 == at2
+  (CIf       _ _ _   at1) == (CIf       _ _ _   at2) = at1 == at2
+  (CSwitch   _ _     at1) == (CSwitch   _ _     at2) = at1 == at2
+  (CWhile    _ _ _   at1) == (CWhile    _ _ _   at2) = at1 == at2
+  (CFor      _ _ _ _ at1) == (CFor      _ _ _ _ at2) = at1 == at2
+  (CGoto     _	     at1) == (CGoto     _	at2) = at1 == at2
+  (CCont	     at1) == (CCont		at2) = at1 == at2
+  (CBreak	     at1) == (CBreak		at2) = at1 == at2
+  (CReturn   _	     at1) == (CReturn   _	at2) = at1 == at2
 
 -- C declaration (K&R A8), structure declaration (K&R A8.3), parameter
 -- declaration (K&R A8.6.3), and type name (K&R A8.8) (EXPORTED) 
@@ -146,22 +235,25 @@ instance Pos CDeclSpec where
 
 -- C storage class specifier (K&R A8.1) (EXPORTED)
 --
--- * We omit the "auto" and "register" storage class specifiers, as they may
---   only appear within functions definitions (ie, not in header files).
---
-data CStorageSpec = CStatic  Attrs
-		  | CExtern  Attrs
-		  | CTypedef Attrs	-- syntactic awkwardness of C
+data CStorageSpec = CAuto     Attrs
+		  | CRegister Attrs
+		  | CStatic   Attrs
+		  | CExtern   Attrs
+		  | CTypedef  Attrs	-- syntactic awkwardness of C
 
 instance Pos CStorageSpec where
-  posOf (CStatic  at) = posOf at
-  posOf (CExtern  at) = posOf at
-  posOf (CTypedef at) = posOf at
+  posOf (CAuto     at) = posOf at
+  posOf (CRegister at) = posOf at
+  posOf (CStatic   at) = posOf at
+  posOf (CExtern   at) = posOf at
+  posOf (CTypedef  at) = posOf at
 
 instance Eq CStorageSpec where
-  (CStatic  at1) == (CStatic  at2) = at1 == at2
-  (CExtern  at1) == (CExtern  at2) = at1 == at2
-  (CTypedef at1) == (CTypedef at2) = at1 == at2
+  (CAuto     at1) == (CAuto     at2) = at1 == at2
+  (CRegister at1) == (CRegister at2) = at1 == at2
+  (CStatic   at1) == (CStatic   at2) = at1 == at2
+  (CExtern   at1) == (CExtern   at2) = at1 == at2
+  (CTypedef  at1) == (CTypedef  at2) = at1 == at2
 
 -- C type specifier (K&R A8.2) (EXPORTED)
 --

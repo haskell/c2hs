@@ -1,3 +1,24 @@
+2004-06-11  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (pointerDef): Adapted to the standard interface
+	for foreign pointers
+
+2004-06-10  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CParser.hs: Added parsing of function bodies
+
+	* c/CLexer.hs: Added tokens occuring in the statement syntax
+
+2004-06-09  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CAST.hs: Added function bodies
+
+	* c/CPretty.hs: Added `auto' and `register' storage specifiers
+
+	* c/CLexer.hs: Added tokens for `auto' and `register' keywords
+
+	* toplevel/Version.hs (versnum): 0.13.1
+
 2004-05-15  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* c/CParser.hs (parseCHeader): Duncan Coutts

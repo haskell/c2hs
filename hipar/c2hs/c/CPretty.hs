@@ -1,11 +1,11 @@
 --  C->Haskell Compiler: pretty printing of C abstract syntax
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 25 August 1
 --
---  Version $Revision: 1.1 $ from $Date: 2001/08/26 08:34:24 $
+--  Version $Revision: 1.2 $ from $Date: 2004/06/11 07:10:16 $
 --
---  Copyright (c) 2001 Manuel M. T. Chakravarty
+--  Copyright (c) [2001..2004] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -63,9 +63,11 @@ instance Pretty CDeclSpec where
   pretty (CTypeQual    qspec) = pretty qspec
 
 instance Pretty CStorageSpec where
-  pretty (CStatic  _) = text "static"
-  pretty (CExtern  _) = text "extern"
-  pretty (CTypedef _) = text "typedef"
+  pretty (CAuto     _) = text "auto"
+  pretty (CRegister _) = text "register"
+  pretty (CStatic   _) = text "static"
+  pretty (CExtern   _) = text "extern"
+  pretty (CTypedef  _) = text "typedef"
 
 instance Pretty CTypeSpec where
   pretty (CVoidType      _) = text "void"

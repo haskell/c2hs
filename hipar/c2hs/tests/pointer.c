@@ -1,5 +1,11 @@
 #include "pointer.h"
 
+string concat (string str1, string str2)
+{
+  printf ("concat doesn't do anything");
+  return str1;
+}
+
 Point *make_point (int x, int y)
 {
   Point *pnt;

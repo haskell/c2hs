@@ -26,7 +26,7 @@ enums: Enums.chs enums.h
 pointer: Pointer.chs pointer.h pointer.c
 	$(C2HS) pointer.h Pointer.chs
 	$(CC) -c pointer.c
-	$(HC) -o pointer Pointer.hs -#include\"pointer.h\" $(HCFLAGS)
+	$(HC) -o pointer pointer.o Pointer.hs -#include\"pointer.h\" $(HCFLAGS)
 
 structs: Structs.chs structs.h structs.c
 	$(C2HS) structs.h Structs.chs
@@ -63,6 +63,11 @@ calls.build: calls
 enums.run: enums
 	@echo "---=== Output for \`enums'":
 	@./enums
+	@echo "---=== End of Output"
+
+pointer.run: pointer
+	@echo "---=== Output for \`pointer'":
+	@./pointer
 	@echo "---=== End of Output"
 
 structs.run: structs

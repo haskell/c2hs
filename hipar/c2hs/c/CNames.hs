@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 October 99
 --
---  Version $Revision: 1.7 $ from $Date: 2001/10/16 14:16:32 $
+--  Version $Revision: 1.8 $ from $Date: 2004/06/11 07:10:16 $
 --
 --  Copyright (c) 1999 Manuel M. T. Chakravarty
 --
@@ -83,7 +83,17 @@ naCHeader  = do
 	       -- analyse the header
 	       --
 	       CHeader decls _ <- getCHeaderCT
-	       mapM_ (\decl -> naCDecl decl `ifCTExc` nop) decls
+	       mapM_ (\decl -> naCExtDecl decl `ifCTExc` nop) decls
+
+-- Processing of toplevel declarations
+--
+-- * We turn function definitions into prototypes, as we are not interested in
+--   function bodies.
+--
+naCExtDecl :: CExtDecl -> NA ()
+naCExtDecl (CDeclExt decl                        ) = naCDecl decl
+naCExtDecl (CFDefExt (CFunDef specs declr _ _ at)) = 
+  naCDecl $ CDecl specs [(Just declr, Nothing, Nothing)] at
 
 naCDecl :: CDecl -> NA ()
 naCDecl decl@(CDecl specs decls _) =

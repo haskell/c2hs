@@ -1,11 +1,11 @@
 --  C -> Haskell Compiler: Lexer for C Header Files
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 6 March 99
 --
---  Version $Revision: 1.20 $ from $Date: 2003/10/19 10:46:09 $
+--  Version $Revision: 1.21 $ from $Date: 2004/06/11 07:10:16 $
 --
---  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -135,31 +135,45 @@ data CToken = CTokLParen   Position		-- `('
 	    | CTokAlignof  Position		-- `alignof' 
 						-- (or `__alignof', 
 						-- `__alignof__')
+	    | CTokAuto     Position		-- `auto'
+	    | CTokBreak    Position		-- `break'
+	    | CTokCase     Position		-- `case'
 	    | CTokChar     Position		-- `char'
 	    | CTokConst    Position		-- `const' 
 						-- (or `__const', `__const__')
+	    | CTokContinue Position		-- `continue' 
+	    | CTokDefault  Position		-- `default'
+	    | CTokDo       Position		-- `do'
 	    | CTokDouble   Position		-- `double'
+	    | CTokElse     Position		-- `else'
 	    | CTokEnum     Position		-- `enum'
 	    | CTokExtern   Position		-- `extern'
-	    | CTokFloat    Position		-- `float'
+ 	    | CTokFloat    Position		-- `float'
+ 	    | CTokFor      Position		-- `for'
+ 	    | CTokGoto     Position		-- `goto'
+ 	    | CTokIf       Position		-- `if'
 	    | CTokInline   Position		-- `inline'
 						-- (or `__inline', 
 						-- `__inline__')
 	    | CTokInt      Position		-- `int'
 	    | CTokLong     Position		-- `long'
+	    | CTokRegister Position		-- `register'
 	    | CTokRestrict Position		-- `restrict'
 						-- (or `__restrict', 
 						-- `__restrict__')
+	    | CTokReturn   Position		-- `return'
 	    | CTokShort    Position		-- `short'
 	    | CTokSigned   Position		-- `signed'
 	    | CTokSizeof   Position		-- `sizeof'
 	    | CTokStatic   Position		-- `static'
 	    | CTokStruct   Position		-- `struct'
+	    | CTokSwitch   Position		-- `switch'
 	    | CTokTypedef  Position		-- `typedef'
 	    | CTokUnion    Position		-- `union'
 	    | CTokUnsigned Position		-- `unsigned'
 	    | CTokVoid     Position		-- `void'
 	    | CTokVolatile Position		-- `volatile'
+	    | CTokWhile    Position		-- `while'
 	    | CTokCLit	   Position Char	-- character constant
 	    | CTokILit	   Position Integer	-- integer constant
 	    | CTokFLit	   Position String	-- float constant
@@ -223,25 +237,39 @@ instance Pos CToken where
   posOf (CTokRBrace   pos  ) = pos
   posOf (CTokEllipsis pos  ) = pos
   posOf (CTokAlignof  pos  ) = pos
+  posOf (CTokAuto     pos  ) = pos
+  posOf (CTokBreak    pos  ) = pos
+  posOf (CTokCase     pos  ) = pos
   posOf (CTokChar     pos  ) = pos
   posOf (CTokConst    pos  ) = pos
+  posOf (CTokContinue pos  ) = pos
+  posOf (CTokDefault  pos  ) = pos
+  posOf (CTokDo       pos  ) = pos
   posOf (CTokDouble   pos  ) = pos
+  posOf (CTokElse     pos  ) = pos
   posOf (CTokEnum     pos  ) = pos
   posOf (CTokExtern   pos  ) = pos
   posOf (CTokFloat    pos  ) = pos
+  posOf (CTokFor      pos  ) = pos
+  posOf (CTokGoto     pos  ) = pos
   posOf (CTokInt      pos  ) = pos
+  posOf (CTokIf       pos  ) = pos
   posOf (CTokLong     pos  ) = pos
+  posOf (CTokRegister pos  ) = pos
   posOf (CTokRestrict pos  ) = pos
+  posOf (CTokReturn   pos  ) = pos
   posOf (CTokShort    pos  ) = pos
   posOf (CTokSigned   pos  ) = pos
   posOf (CTokSizeof   pos  ) = pos
   posOf (CTokStatic   pos  ) = pos
   posOf (CTokStruct   pos  ) = pos
+  posOf (CTokSwitch   pos  ) = pos
   posOf (CTokTypedef  pos  ) = pos
   posOf (CTokUnion    pos  ) = pos
   posOf (CTokUnsigned pos  ) = pos
   posOf (CTokVoid     pos  ) = pos
   posOf (CTokVolatile pos  ) = pos
+  posOf (CTokWhile    pos  ) = pos
   posOf (CTokCLit     pos _) = pos
   posOf (CTokILit     pos _) = pos
   posOf (CTokFLit     pos _) = pos
@@ -298,26 +326,40 @@ instance Show CToken where
   showsPrec _ (CTokRBrace   _  ) = showString "}"
   showsPrec _ (CTokEllipsis _  ) = showString "..."
   showsPrec _ (CTokAlignof  _  ) = showString "alignof"
+  showsPrec _ (CTokAuto     _  ) = showString "auto"
+  showsPrec _ (CTokBreak    _  ) = showString "break"
+  showsPrec _ (CTokCase     _  ) = showString "case"
   showsPrec _ (CTokChar     _  ) = showString "char"
   showsPrec _ (CTokConst    _  ) = showString "const"
+  showsPrec _ (CTokContinue _  ) = showString "continue"
+  showsPrec _ (CTokDefault  _  ) = showString "default"
   showsPrec _ (CTokDouble   _  ) = showString "double"
+  showsPrec _ (CTokDo       _  ) = showString "do"
+  showsPrec _ (CTokElse     _  ) = showString "else"
   showsPrec _ (CTokEnum     _  ) = showString "enum"
   showsPrec _ (CTokExtern   _  ) = showString "extern"
   showsPrec _ (CTokFloat    _  ) = showString "float"
+  showsPrec _ (CTokFor      _  ) = showString "for"
+  showsPrec _ (CTokGoto     _  ) = showString "goto"
+  showsPrec _ (CTokIf       _  ) = showString "if"
   showsPrec _ (CTokInline   _  ) = showString "inline"
   showsPrec _ (CTokInt      _  ) = showString "int"
   showsPrec _ (CTokLong     _  ) = showString "long"
+  showsPrec _ (CTokRegister _  ) = showString "register"
   showsPrec _ (CTokRestrict _  ) = showString "restrict"
+  showsPrec _ (CTokReturn   _  ) = showString "return"
   showsPrec _ (CTokShort    _  ) = showString "short"
   showsPrec _ (CTokSigned   _  ) = showString "signed"
   showsPrec _ (CTokSizeof   _  ) = showString "sizeof"
   showsPrec _ (CTokStatic   _  ) = showString "static"
   showsPrec _ (CTokStruct   _  ) = showString "struct"
+  showsPrec _ (CTokSwitch   _  ) = showString "switch"
   showsPrec _ (CTokTypedef  _  ) = showString "typedef"
   showsPrec _ (CTokUnion    _  ) = showString "union"
   showsPrec _ (CTokUnsigned _  ) = showString "unsigned"
   showsPrec _ (CTokVoid     _  ) = showString "void"
   showsPrec _ (CTokVolatile _  ) = showString "volatile"
+  showsPrec _ (CTokWhile    _  ) = showString "while"
   showsPrec _ (CTokCLit     _ c) = showChar c
   showsPrec _ (CTokILit     _ i) = (showString . show) i
   showsPrec _ (CTokFLit     _ s) = showString s
@@ -376,26 +418,40 @@ instance Tag CToken where
   tag (CTokRBrace   _  ) = 45
   tag (CTokEllipsis _  ) = 46
   tag (CTokAlignof  _  ) = 74
+  tag (CTokAuto     _  ) = 76
+  tag (CTokBreak    _  ) = 78
+  tag (CTokCase     _  ) = 79
   tag (CTokChar     _  ) = 47
   tag (CTokConst    _  ) = 48
+  tag (CTokContinue _  ) = 80
+  tag (CTokDefault  _  ) = 81
+  tag (CTokDo       _  ) = 82
   tag (CTokDouble   _  ) = 49
+  tag (CTokElse     _  ) = 83
   tag (CTokEnum     _  ) = 50
   tag (CTokExtern   _  ) = 51
   tag (CTokFloat    _  ) = 52
+  tag (CTokFor      _  ) = 84
+  tag (CTokGoto     _  ) = 85
+  tag (CTokIf       _  ) = 86
   tag (CTokInline   _  ) = 75
   tag (CTokInt      _  ) = 53
   tag (CTokLong     _  ) = 54
+  tag (CTokRegister _  ) = 77
   tag (CTokRestrict _  ) = 55
+  tag (CTokReturn   _  ) = 87
   tag (CTokShort    _  ) = 56
   tag (CTokSigned   _  ) = 57
   tag (CTokSizeof   _  ) = 58
   tag (CTokStatic   _  ) = 59
   tag (CTokStruct   _  ) = 60
+  tag (CTokSwitch   _  ) = 88
   tag (CTokTypedef  _  ) = 61
   tag (CTokUnion    _  ) = 62
   tag (CTokUnsigned _  ) = 63
   tag (CTokVoid     _  ) = 64
   tag (CTokVolatile _  ) = 65
+  tag (CTokWhile    _  ) = 89
   tag (CTokCLit     _ _) = 66
   tag (CTokILit     _ _) = 67
   tag (CTokFLit     _ _) = 68
@@ -404,7 +460,7 @@ instance Tag CToken where
   tag (CTokTypeName _ _) = 71
   tag (CTokGnuC GnuCAttrTok _) = 72
   tag (CTokGnuC GnuCExtTok  _) = 73
-  -- current max is 75 (see `CTokInline')
+  -- current max is 89 (see `CTokWhile')
 
 
 -- local state instantiation
@@ -496,10 +552,6 @@ pragma  = char '#' +> ppwhite +> string "pragma" +> anyButNL`star` char '\n'
 
 -- identifiers and keywords (follows K&R A2.3 and A2.4)
 --
--- * the following keywords are not recognized as they may only appear in
---   function bodies: auto, break, case, continue, default, do, else, for,
---   goto, if, register, return, switch, and while
---
 identOrKW :: CLexer
 --
 -- the strictness annotations seem to help a bit
@@ -511,32 +563,46 @@ identOrKW  =
     idkwtok pos "alignof"       _    = CTokAlignof  pos
     idkwtok pos "__alignof"     _    = CTokAlignof  pos
     idkwtok pos "__alignof__"   _    = CTokAlignof  pos
+    idkwtok pos "auto"		_    = CTokAuto     pos
+    idkwtok pos "break"		_    = CTokBreak    pos
+    idkwtok pos "case"		_    = CTokCase     pos
     idkwtok pos "char"          _    = CTokChar     pos
     idkwtok pos "const"		_    = CTokConst    pos
     idkwtok pos "__const"	_    = CTokConst    pos
     idkwtok pos "__const__"	_    = CTokConst    pos
+    idkwtok pos "continue"	_    = CTokContinue pos
+    idkwtok pos "default"	_    = CTokDefault  pos
+    idkwtok pos "do"		_    = CTokDo	    pos
     idkwtok pos "double"	_    = CTokDouble   pos
+    idkwtok pos "else"		_    = CTokElse     pos
     idkwtok pos "enum"		_    = CTokEnum     pos
     idkwtok pos "extern"	_    = CTokExtern   pos
     idkwtok pos "float"		_    = CTokFloat    pos
+    idkwtok pos "for"		_    = CTokFor	    pos
+    idkwtok pos "goto"		_    = CTokGoto     pos
+    idkwtok pos "if"		_    = CTokIf	    pos
     idkwtok pos "inline"	_    = CTokInline   pos
     idkwtok pos "__inline"	_    = CTokInline   pos
     idkwtok pos "__inline__"	_    = CTokInline   pos
     idkwtok pos "int"		_    = CTokInt      pos
     idkwtok pos "long"		_    = CTokLong     pos
+    idkwtok pos "register"	_    = CTokRegister pos
     idkwtok pos "restrict"	_    = CTokRestrict pos
     idkwtok pos "__restrict"	_    = CTokRestrict pos
     idkwtok pos "__restrict__"	_    = CTokRestrict pos
+    idkwtok pos "return"	_    = CTokReturn   pos
     idkwtok pos "short"		_    = CTokShort    pos
     idkwtok pos "signed"	_    = CTokSigned   pos
     idkwtok pos "sizeof"	_    = CTokSizeof   pos
     idkwtok pos "static"	_    = CTokStatic   pos
     idkwtok pos "struct"	_    = CTokStruct   pos
+    idkwtok pos "switch"	_    = CTokSwitch   pos
     idkwtok pos "typedef"	_    = CTokTypedef  pos
     idkwtok pos "union"		_    = CTokUnion    pos
     idkwtok pos "unsigned"	_    = CTokUnsigned pos
     idkwtok pos "void"		_    = CTokVoid     pos
     idkwtok pos "volatile"	_    = CTokVolatile pos
+    idkwtok pos "while"		_    = CTokWhile    pos
     idkwtok pos "__attribute__"	_    = CTokGnuC     GnuCAttrTok pos
     idkwtok pos "__extension__" _    = CTokGnuC     GnuCExtTok  pos
     idkwtok pos cs              name = CTokIdent    pos 
