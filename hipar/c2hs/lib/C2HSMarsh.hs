@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 12 October 99
 --
---  Version $Revision: 1.22 $ from $Date: 2002/05/16 07:49:20 $
+--  Version $Revision: 1.23 $ from $Date: 2002/05/16 13:58:34 $
 --
 --  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
@@ -41,7 +41,11 @@ module C2HSMarsh (
 
   -- conditional results using `Maybe'
   --
-  nothingIf, nothingIfNull
+  nothingIf, nothingIfNull,
+
+  -- bit masks
+  --
+  combineBitMasks, containsBitMask, extractBitMasks
 ) where
 
 -- standard libraries
@@ -147,21 +151,29 @@ nothingIfNull :: (Ptr a -> b) -> Ptr a -> Maybe b
 nothingIfNull  = nothingIf (== nullPtr)
 
 
--- support for flags
--- -----------------
+-- support for bit masks
+-- ---------------------
 
-- we need to distinguish between flags (ie, bit positions in masks) and
-  masks; moreover, flags can be represented in two ways: as the bit position
-  or as a mask where only one bit is set
-- we want to make enumerations instances of the Flag class
+-- given a list of enumeration values that represent bit masks, combine these
+-- masks using bitwise disjunction
+--
+combineBitMasks :: (Enum a, Bits b) => [a] -> b
+combineBitMasks = foldl (.|.) 0 . map (fromIntegral . fromEnum)
 
+-- tests whether the given bit mask is contained in the given bit pattern
+-- (i.e., all bits set in the mask are also set in the pattern)
+--
+containsBitMask :: (Bits a, Enum b) => a -> b -> Bool
+bits `containsBitMask` bm = let bm' = fromIntegral . fromEnum $ bm
+			    in
+			    bm' .&. bits == bm'
 
-class (Bounded a, Enum a, Show a) => Flag a where
-  fromFlag :: Num b => a -> b
-
-data Flags a b = Flags {unFlags :: b} deriving Eq
-
-
-
---TODO: in GMarsh: we might need to provide the old functions in terms of the
---new for a while
+-- given a bit pattern, yield all bit masks that it contains
+--
+-- * this does *not* attempt to compute a minimal set of bit masks that when
+--   combined yield the bit pattern, instead all contained bit masks are
+--   produced
+--
+extractBitMasks :: (Bits a, Enum b, Bounded b) => a -> [b]
+extractBitMasks bits = 
+  [bm | bm <- [minBound..maxBound], bits `containsBitMask` bm]

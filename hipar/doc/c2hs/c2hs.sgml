@@ -796,9 +796,10 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.10.8 "Altocumulus Stratiformis Perlucidus Undulatus"
+<sect1>Version 0.10.14 "Altocumulus Stratiformis Perlucidus Undulatus"
 <p>
 <itemize>
+<item>Marshalling support for bit masks represented as enumeration types
 <item>Added <tt/fun/ hooks
 <item><tt/as/ aliases can use <tt/^/ convert the orignal identifier with
 underscore2case
