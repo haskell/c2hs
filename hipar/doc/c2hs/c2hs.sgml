@@ -422,7 +422,7 @@ has the form
 <p>
 where <it/hsty/ is a Haskell code fragment denoting a Haskell type.  The
 optional information to the left and right of this type determines the
-marshalliung of the corresponding Haskell value to and from C; they are called
+marshalling of the corresponding Haskell value to and from C; they are called
 the <em/in/ and <em/out/ marshaller, respectively.
 <p>
 Each marshalling specification <it/parm/ corresponds to one or two arguments
