@@ -1,3 +1,9 @@
+2002-09-07  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
+
+	* configure.in: fixed REQUIRES_HASKELL for ghc
+
+	* toplevel/Version.hs (versnum): 0.10.17
+
 2002-09-06  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
 
 	* toplevel/C2HSConfig.hs.in (cppopts): Added "-x c" on suggestion

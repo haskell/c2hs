@@ -96,7 +96,7 @@ if test $hc_base = ghc; then
   SYS=ghc$hc_maj_vers
   HCID="GHC $hc_vers"
   HIDIROPT=-i
-  REQUIRES_HASKELL=ghc-$hc_vers
+  REQUIRES_HASKELL="ghc = $hc_vers"
 fi
 
 dnl Check nhc98's details.
