@@ -2,7 +2,18 @@
                                 C2HS TODO
                                 =========
 
-Next: - add flag marshalling
+Next: - Ignore gcc's __extension__ keyword (see report by Jay Cox
+	<sqrtofone@yahoo.com>)
+
+      - add flag marshalling
+
+        `GdkMarsh.GFlag' should be in the C2HS library (as `Flag') and we
+        might want something like {#enum flag ...#} for marshalling masks like
+	`GdkEventMask'.  The latter would not generate an `Enum' instance, but
+	a `Flag' instance.  (See also `GdkEvents.EventMask'.)
+
+        Pending suggestions from Armin Sander:
+	+ MarshalFlags.hs
 
       - configuration oracle should have an option to print the Haskell
         compiler and version it was compiled for
@@ -27,9 +38,6 @@ Next: - add flag marshalling
       - Pending suggestions from Axel Simon:
 	+ succ/pred definitions for enum hooks
 	+ Compilation of multiple files in one c2hs invocation
-
-      - Pending suggestions from Armin Sander:
-	+ MarshalFlags.hs
 
       - marshalling of structs
 
@@ -160,11 +168,6 @@ Short term
     you can easily reuse it.
 
 * #define enums in C: siehe unten - scheinen aber wichtig
-
-* `GdkMarsh.GFlag' should be in the C2HS library (as `Flag') and we might want
-  Something like {#enum flag ...#} for marshalling masks like `GdkEventMask'.
-  The latter would not generate an `Enum' instance, but a `Flag' instance.
-  (See also `GdkEvents.EventMask'.)
 
 * line directives for the Haskell compiler (emit only after chunks of
   C->HS generated code); there should be an option to disable this

@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.45 $ from $Date: 2002/02/25 06:19:56 $
+--  Version $Revision: 1.46 $ from $Date: 2002/05/14 05:48:48 $
 --
 --  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
@@ -972,16 +972,16 @@ setGet pos access offsets ty =
 	let tyTag = showExtType ty
         bf <- checkType ty
 	case bf of
-	  Nothing        -> return $ case access of	-- not a bitfield
-			      CHSGet -> peekOp offset tyTag
-			      CHSSet -> pokeOp offset tyTag "val"
+	  Nothing      -> return $ case access of	-- not a bitfield
+			    CHSGet -> peekOp offset tyTag
+			    CHSSet -> pokeOp offset tyTag "val"
 --FIXME: must take `bitfieldDirection' into account
-	  Just (sig, bs) -> return $ case access of	-- a bitfield
-			      CHSGet -> "val <- " ++ peekOp offset tyTag
-					++ extractBitfield
-			      CHSSet -> "org <- " ++ peekOp offset tyTag
-					++ insertBitfield 
-					++ pokeOp offset tyTag "val'"
+	  Just (_, bs) -> return $ case access of	-- a bitfield
+			    CHSGet -> "val <- " ++ peekOp offset tyTag
+				      ++ extractBitfield
+			    CHSSet -> "org <- " ++ peekOp offset tyTag
+				      ++ insertBitfield 
+				      ++ pokeOp offset tyTag "val'"
 	    where
 	      -- we have to be careful here to ensure proper sign extension;
 	      -- in particular, shifting right followed by anding a mask is
@@ -991,15 +991,13 @@ setGet pos access offsets ty =
 	      extractBitfield = "; return $ (val `shiftL` (" 
 				++ bitsPerField ++ " - " 
 				++ show (bs + bitOffset) ++ ")) `shiftR` ("
-				++ bitsPerField ++ " - " ++ show bitOffset 
+				++ bitsPerField ++ " - " ++ show bs
 				++ ")"
-	      mask            = "fromIntegral ((maxBound::CUInt) `shiftR` ("
-				++ bitsPerField ++ " - " ++ show bs ++ "))"
 	      bitsPerField    = show $ size CIntPT * 8
 	      --
 	      insertBitfield  = "; let {val' = (org .&. " ++ middleMask
-				++ ") .|. val `shiftL` " 
-				++ show bitOffset ++ "}; "
+				++ ") .|. (val `shiftL` " 
+				++ show bitOffset ++ ")}; "
 	      middleMask      = "fromIntegral (((maxBound::CUInt) `shiftL` "
 				++ show bs ++ ") `rotateL` " 
 				++ show bitOffset ++ ")"

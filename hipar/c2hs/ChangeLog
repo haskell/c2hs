@@ -1,3 +1,15 @@
+2002-05-10  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (setGet): corrected bug in bit fiddling
+
+2002-05-02  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.10.13
+
+2002-04-16  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.10.12
+
 2002-03-20  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* chs/CHSLexer.hs (haskell): Debug the handling of character literals
