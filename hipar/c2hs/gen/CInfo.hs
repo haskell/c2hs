@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 5 February 01
 --
---  Version $Revision: 1.3 $
+--  Version $Revision: 1.4 $
 --
 --  Copyright (c) 2001 Manuel M. T. Chakravarty
 --
@@ -40,7 +40,7 @@ import CTypes
 -- we can't rely on the compiler used to compile c2hs already having the new
 -- FFI, so this is system dependent
 --
-import C2HSConfig (Ptr,
+import C2HSConfig (Ptr, FunPtr,
 		   Storable(sizeOf, alignment))
 
 
@@ -49,8 +49,11 @@ import C2HSConfig (Ptr,
 
 -- C's primitive types (EXPORTED)
 --
-data CPrimType = CAddrPT	-- void *
-	       | CFunAddrPT	-- void *
+-- * `CFunPtrPT' doesn't occur in Haskell representations of C types, but we
+--   need to know their size, which may be different from `CPtrPT'
+--
+data CPrimType = CPtrPT		-- void *
+	       | CFunPtrPT	-- void *()
 	       | CCharPT	-- char
 	       | CUCharPT	-- unsigned char
 	       | CSCharPT	-- signed char
@@ -71,9 +74,8 @@ data CPrimType = CAddrPT	-- void *
 --
 sizes :: Array CPrimType Int
 sizes  = array (minBound, maxBound) [
-           (CAddrPT   , sizeOf (undefined :: Ptr ())),
--- FIXME: this should be FunPtr in compilers with the new FFI
-	   (CFunAddrPT, sizeOf (undefined :: {-Fun-}Ptr ())),
+           (CPtrPT    , sizeOf (undefined :: Ptr ())),
+	   (CFunPtrPT , sizeOf (undefined :: FunPtr ())),
 	   (CCharPT   , 1),
 	   (CUCharPT  , 1),
 	   (CSCharPT  , 1),
@@ -97,9 +99,8 @@ sizes  = array (minBound, maxBound) [
 --
 alignments :: Array CPrimType Int
 alignments  = array (minBound, maxBound) [
-                (CAddrPT   , alignment (undefined :: Ptr ())),
--- FIXME: this should be FunPtr in compilers with the new FFI
-	        (CFunAddrPT, alignment (undefined :: {-Fun-}Ptr ())),
+                (CPtrPT    , alignment (undefined :: Ptr ())),
+	        (CFunPtrPT , alignment (undefined :: FunPtr ())),
 		(CCharPT   , 1),
 		(CUCharPT  , 1),
 		(CSCharPT  , 1),

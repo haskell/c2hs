@@ -6,7 +6,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 27 September 99
 --
---  Version $Revision: 1.10 $ from $Date: 2001/02/09 05:02:11 $
+--  Version $Revision: 1.11 $ from $Date: 2001/05/02 09:28:16 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -36,7 +36,7 @@ module C2HSConfig (
   -- system-dependent definitions, as the New FFI isn't fully supported on all
   -- systems yet
   --
-  Ptr, Storable(sizeOf, alignment)
+  Ptr, FunPtr, Storable(sizeOf, alignment)
 ) where
 
 import Ix    (Ix)
@@ -44,7 +44,7 @@ import Array (Array, array)
 
 @BEGIN_NEW_FFI@
 import 
- Ptr  (Ptr)  -- on an extra line to trick the stupid `mkdependHS'
+ Ptr  (Ptr, FunPtr)  -- on an extra line to trick the stupid `mkdependHS'
 @END_NEW_FFI@
 
 @BEGIN_LEGACY_FFI@
@@ -92,5 +92,6 @@ dlsuffix  = "@DLSUFFIX@"
 -- -----------------------------------------
 
 @BEGIN_LEGACY_FFI@
-type Ptr a = Addr
+type Ptr    a = Addr
+type FunPtr a = Ptr a
 @END_LEGACY_FFI@

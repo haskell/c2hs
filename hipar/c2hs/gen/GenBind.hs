@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.21 $ from $Date: 2001/04/30 14:06:31 $
+--  Version $Revision: 1.22 $ from $Date: 2001/05/02 09:28:15 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -162,7 +162,8 @@ import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 		   declrFromDecl, declrNamed, structMembers, structName,
 		   declaredName , structFromDecl, funResultAndArgs, 
 		   chaseDecl, findAndChaseDecl, checkForAlias, lookupEnum,
-		   lookupStructUnion, extractAliasNames)
+		   lookupStructUnion, isPtrDeclr, dropPtrDeclr, isPtrDecl,
+		   isFunDeclr)  
 import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 		   CHSAccess(..), CHSAPath(..),CHSPtrType(..))
 import CInfo      (CPrimType(..), sizes, alignments)
@@ -236,6 +237,21 @@ transTabToTransFun prefix (CHSTrans _2Case table) =
 -- the local monad
 -- ---------------
 
+-- map that for maps C pointer types to Haskell types for pointer that have
+-- been registered using a pointer hook
+--
+-- * the `Bool' indicates whether for a C type "ctype", we map "ctype" itself
+--   or "*ctype"
+--
+-- * in the co-domain, the first string is the type for function arguments and
+--   the second string is for function results; this distinction is necessary
+--   as `ForeignPtr's cannot be returned by a foreign function; the
+--   restriction on function result types is only for the actual result, not
+--   for type arguments to parametrised pointer types, ie, it holds for `res'
+--   in `Int -> IO res', but not in `Int -> Ptr res'
+--
+type PointerMap = FiniteMap (Bool, Ident) (String, String)
+
 -- the local state consists of
 --
 -- (1) the dynamic library specified by the context hook,
@@ -245,13 +261,10 @@ transTabToTransFun prefix (CHSTrans _2Case table) =
 --     that created them (the latter allows avoid duplication of foreign
 --     export declarations), and
 -- (4) a map associating C pointer types with their Haskell representation
---     (the `Bool' indicates whether for a C type "ctype", we map "ctype"
---     itself or "*ctype")
 --     
 -- access to the attributes of the C structure tree is via the `CT' monad of
 -- which we use an instance here
 --
-type PointerMap = FiniteMap (Bool, Ident) Ident  -- stored?, Haskell type
 data GBState  = GBState {
 		  lib     :: String,		   -- dynamic library
 		  prefix  :: String,		   -- prefix
@@ -324,15 +337,15 @@ getDelayedCode  = readCT (map snd . frags)
 
 -- add an entry to the pointer map
 --
-ptrMapsTo :: (Bool, Ident) -> Ident -> CHSPtrType -> GB ()
-(isStar, cName) `ptrMapsTo` hsName =
+ptrMapsTo :: (Bool, Ident) -> (String, String) -> GB ()
+(isStar, cName) `ptrMapsTo` hsRepr =
   transCT (\state -> (state { 
-		        ptrmap = addToFM (isStar, cName) hsName (ptrmap state)
+		        ptrmap = addToFM (isStar, cName) hsRepr (ptrmap state)
 		      }, ()))
 
 -- query the pointer map
 --
-queryPtr        :: (Bool, Ident) -> GB (Maybe Ident)
+queryPtr        :: (Bool, Ident) -> GB (Maybe (String, String))
 queryPtr pcName  = do
 		     fm <- readCT ptrmap
 		     return $ lookupFM fm pcName
@@ -397,7 +410,7 @@ expandHook (CHSContext _ olib oprefix _) =
 expandHook (CHSType ide pos) =
   do
     decl <- findAndChaseDecl ide False True	-- no indirection, but shadows
-    ty <- extractSimpleType pos decl
+    ty <- extractSimpleType False pos decl
     return $ showExtType ty
 expandHook (CHSEnum cide oalias chsTrans derive _) =
   do
@@ -417,46 +430,59 @@ expandHook hook@(CHSCall isFun isUns ide oalias pos) =
     -- function; we use shadow identifiers, so the returned identifier is used 
     -- afterwards instead of the original one
     --
-    (cobj, ide) <- findFunObj ide True
+    (ObjCO cdecl, ide) <- findFunObj ide True
     let ideLexeme = identToLexeme ide  -- orignal name might have been a shadow
 	hsLexeme  = ideLexeme `maybe` identToLexeme $ oalias
+        cdecl'    = ide `simplifyDecl` cdecl
     --
     -- compute the external type from the declaration, get the library, and
     -- delay the foreign export declaration
     --
-    extType <- extractFunType pos ide cobj isFun
+    extType <- extractFunType pos cdecl' isFun
     lib     <- getLibrary
     delayCode hook (foreignImport lib ideLexeme hsLexeme isUns extType)
     return hsLexeme
 expandHook (CHSField access path pos) =
   do
     (decl, offsets) <- accessPath path
-    ty <- extractSimpleType pos decl
+    ty <- extractSimpleType False pos decl
     setGet pos access offsets ty
-expandHook (CHSPointer isStar cName oalias ptrType isNewtype oRefType pos) =
+expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType pos) =
   do
-FIXME: in case of a hook without a *, check that the type really is a pointer
     -- look up the original name in the C syntax tree using shadow entries;
     -- if the user does not supply her own Haskell name we generate one from
     -- the C name
     --
     (_, cNameFull) <- findTypeObj cName True
-    let hsName = fromMaybe cName oalias
-    keepOld <- getSwitch oldFFI
-    hsType <- if keepOld 
-	      then return AddrET
-	      else case oRefType of
+    unless isStar $ 
+      assertIsPtr cNameFull
+    let hsName = identToLexeme $ fromMaybe cName oalias
+    hsType <- case oRefType of
 		Nothing     -> do
 			         cDecl <- chaseDecl cNameFull (not isStar)
 				 et    <- extractPtrType cDecl
 				 return $ showExtType et
-		Just hsType -> return hsType
-    let repr = show ptrType ++ " " ++ (if isNewtype then hsName else hsType)
-    (isStar, cNameFull) `ptrMapsTo` hsName
+		Just hsType -> return (identToLexeme hsType)
+    keepOld <- getSwitch oldFFI
+    let ptrArg  = if keepOld 
+		  then "()"		-- legacy FFI interface
+		  else if isNewtype 
+		  then hsName		-- abstract type
+		  else hsType		-- concrete type
+	ptrType = show ptrKind ++ " (" ++ ptrArg ++ ")"
+	thePtr  = (isStar, cNameFull)
+    case ptrKind of
+      CHSForeignPtr -> thePtr `ptrMapsTo` (hsName, "Ptr (" ++ ptrArg ++ ")")
+      _		    -> thePtr `ptrMapsTo` (hsName, hsName)
     return $
       if isNewtype 
-      then "newtype " ++ hsName ++ " = " ++ hsName ++ "(" ++ repr ++ ")"
-      else "type "    ++ hsName ++ " = "                  ++ repr
+      then "newtype " ++ hsName ++ " = " ++ hsName ++ "(" ++ ptrType ++ ")"
+      else "type "    ++ hsName ++ " = "                  ++ ptrType
+  where
+    assertIsPtr ide = do
+		        isPtr <- isPtrDecl ide
+			unless isPtr $
+			  ptrExpectedErr (posOf cName)
 
 -- produce code for an enumeration
 --
@@ -679,28 +705,21 @@ setGet pos access offsets ty =
   where
     setGetBody [offset] =
       do
-	typeTag <- accessType ty
+	let typeTag = showExtType' NameBL ty
+        checkType ty
 	return $ case access of
 	  CHSSet -> "pokeByteOff ptr " ++ show offset 
 		    ++ " (val::" ++ typeTag ++ ")"
 	  CHSGet -> "peekByteOff ptr " ++ show offset ++ " ::IO " ++ typeTag
       where
-	accessType (FunET      at rt) = do
-					  keepOld <- getSwitch oldFFI
-					  if keepOld 
-					    then return "Addr"
-					    else do
-					      argt <- accessType at
-					      rest <- accessType rt
-					      return $
-					        "FunPtr (" ++ argt ++ " -> "
-						  ++ rest ++ ")"
-	accessType (IOET       _    ) = interr "GenBind.setGet: Illegal type!"
-	accessType (DefinedET  ide _) = chaseDecl ide False   >>=
-					extractSimpleType pos >>=
-					accessType
-	accessType (UnitET          ) = voidFieldErr pos
-	accessType ty	              = return $ showExtType' NameBL ty
+        -- check that the type can be marshalled
+	--
+	checkType (FunET     at rt) = checkType at >> checkType rt
+	checkType (IOET      _    ) = interr "GenBind.setGet: Illegal type!"
+	checkType (PtrET     t    ) = checkType t
+	checkType (DefinedET _ _  ) = return ()  -- can't check any further
+	checkType (PrimET    _    ) = return ()
+	checkType (UnitET         ) = voidFieldErr pos
     setGetBody (offset:offsets) =
       do
 	code <- setGetBody offsets
@@ -719,13 +738,19 @@ data ConstResult = IntResult   Integer
 
 -- types that may occur in foreign declarations, ie, Haskell land types
 --
--- * defined types are represented by their C idenifier and the Haskell name
---   used for them (after the application of possible translations)
+-- * aliased types (`DefinedET') are represented by a string plus their C
+--   declaration; the latter is for functions interpreting the following
+--   structure 
+--
+-- * the representation for pointers does not distinguish between normal,
+--   function, foreign, and stable pointers; function pointers are identified
+--   by their argument and foreign and stable pointers are only used
+--   indirectly, by referring to type names introduced by a `pointer' hook
 --
 data ExtType = FunET     ExtType ExtType	-- function
 	     | IOET      ExtType		-- operation with side effect
-	     | PtrET	 CHSPtrType ExtType	-- typed pointer
-	     | DefinedET Ident String		-- typedef'ed type
+	     | PtrET	 ExtType	        -- typed pointer
+	     | DefinedET CDecl String		-- aliased type
 	     | PrimET    CPrimType		-- basic C type
 	     | UnitET				-- void
 
@@ -762,12 +787,16 @@ showExtType' b (FunET arg res)	   = maybeParen b FunBL $
 				       showExtType' FunBL arg ++ " -> " 
 				       ++ showExtType' NoBL res
 showExtType' b (IOET t)		   = maybeParen b NameBL $ 
-				       "IO "++ showExtType' NameBL t
-showExtType' b (PtrET pt t)	   = maybeParen b NameBL $ 
-				       show pt ++ " " ++ showExtType' NameBL t
-showExtType' _ (DefinedET _ str)   = str
-showExtType' _ (PrimET CAddrPT)    = "Addr"
-showExtType' _ (PrimET CFunAddrPT) = "Addr"
+				       "IO " ++ showExtType' NameBL t
+showExtType' b (PtrET t)	   = let ptrCon = case t of
+						    FunET _ _ -> "FunPtr"
+						    _	      -> "Ptr"
+				     in
+				     maybeParen b NameBL $ 
+				       ptrCon ++ " " ++ showExtType' NameBL t
+showExtType' _ (DefinedET _ str)     = str
+showExtType' _ (PrimET CPtrPT)     = "Ptr ()"
+showExtType' _ (PrimET CFunPtrPT)  = "FunPtr ()"
 showExtType' _ (PrimET CCharPT)    = "CChar"
 showExtType' _ (PrimET CUCharPT)   = "CUChar"
 showExtType' _ (PrimET CSCharPT)   = "CSChar"
@@ -794,23 +823,22 @@ showExtType' _ UnitET		   = "()"
 -- * the caller has to guarantee that the object does indeed refer to a
 --   function 
 --
-extractFunType :: Position -> Ident -> CObj -> Bool -> GB ExtType
-extractFunType pos ide (ObjCO cdecl) isFun = 
+extractFunType                  :: Position -> CDecl -> Bool -> GB ExtType
+extractFunType pos cdecl isPure  = 
   do
     -- remove all declarators except that of the function we are processing;
     -- then, extract the functions arguments and result type (also check that
     -- the function is not variadic); finally, compute the external type for
     -- the result
     --
-    let decl'                        = ide `simplifyDecl` cdecl
-	(args, resultDecl, variadic) = funResultAndArgs decl'
+    let (args, resultDecl, variadic) = funResultAndArgs cdecl
     when variadic $
       variadicErr pos cpos
-    preResultType <- extractSimpleType pos resultDecl
+    preResultType <- extractSimpleType True pos resultDecl
     --
     -- we can now add the `IO' monad if this is no pure function 
     --
-    let resultType = if isFun 
+    let resultType = if isPure 
 		     then      preResultType 
 		     else IOET preResultType
     --
@@ -818,14 +846,12 @@ extractFunType pos ide (ObjCO cdecl) isFun =
     -- prototype with `void' as its single argument declares a nullary
     -- function) 
     --
-    argTypes <- mapM (extractSimpleType pos) args
+    argTypes <- mapM (extractSimpleType False pos) args
     case argTypes of
       [UnitET] -> return resultType
       _	       -> return (foldr FunET resultType argTypes)
   where
     cpos = posOf cdecl
-extractFunType _ _ _ _ = 
-  interr "GenBind.extractFunType: Illegal C object!"
 
 -- compute a non-struct/union type from the given declaration 
 --
@@ -834,10 +860,10 @@ extractFunType _ _ _ _ =
 -- * C functions are represented as `PtrFun <typedef>' or `Addr' if in
 --   compatibility mode (ie, `--old-ffi=yes')
 --
-extractSimpleType           :: Position -> CDecl -> GB ExtType
-extractSimpleType pos cdecl  =
+extractSimpleType                    :: Bool -> Position -> CDecl -> GB ExtType
+extractSimpleType isResult pos cdecl  =
   do
-    ct <- extractCompType cdecl
+    ct <- extractCompType isResult cdecl
     case ct of
       ExtType et -> return et
       SUType  _  -> illegalStructUnionErr (posOf cdecl) pos
@@ -848,9 +874,11 @@ extractSimpleType pos cdecl  =
 --
 -- * struct/union types are mapped to `()'
 --
+-- * NB: this is by definition not a result type
+--
 extractPtrType       :: CDecl -> GB ExtType
 extractPtrType cdecl  = do
-  ct <- extractCompType cdecl
+  ct <- extractCompType False cdecl
   case ct of
     ExtType et -> return et
     SUType  _  -> return UnitET
@@ -865,113 +893,77 @@ extractPtrType cdecl  = do
 --
 -- * typedef'ed types are chased
 --
-extractCompType                              :: CDecl -> GB CompType
-extractCompType cdecl@(CDecl specs declrs _)  = do
-  oalias <- extractAlias cdecl True
-  case oalias of
-    --
-    -- anything but a typedef'ed type or a pointer to a typedef'ed type
-    --
-    Nothing             -> if isPtr
-			   then
-			     cdecl' <- stripCPtr cdecl
-			     ct     <- extractCompType cdecl'
-			     case ct of
-			       ExtType fet@(FunET _ _) -> 
-			         returnX $ PtrET CHSFunctionPtr fet
-			       ExtType et              -> 
-			         returnX $ PtrET CHSPtr et
-			       SUType  _               -> 
-			         returnX $ PtrET CHSPtr UnitET
-			   else
-			     specType (posOf cdecl) specs
-FIXME: implement stripCPtr in CTrav
-FIXME: PtrET braucht die CHSForeignPtr und CHSStablePtr Varianten nicht mehr,
-       oder? 
-    --
-    -- this does catch all *named* pointer types, as only "real" pointers and
-    -- not functions nor arrays can be defined with an explicit "*" in a
-    -- pointer hook; thus, functions and arrays must be typedef'ed explicitly
-    --
-    Just (ide, notAPtr) -> do
-			     oHsName <- queryPtr (not notAPtr, ide)
-			     case oHsName of
-			       Nothing     -> do
-				 decl  <- chaseDecl ide' False
-				 ct    <- extractCompType decl
-				 let et = case ct of -- can't represent structs
-					    ExtType et -> et
-					    SUType  _  -> UnitET
-				 returnX $
-				   if notAPtr then et else PtrET et
-			       Just hsName ->             -- alias was defined
-			         returnX $ DefinedET ide (identToLexeme hsName)
+-- * the first argument specifies whether the type specifies the result of a
+--   function (these is only applicable to direct results and not to type
+--   parameters for pointers that are a result)
+--
+extractCompType :: Bool -> CDecl -> GB CompType
+extractCompType isResult cdecl@(CDecl specs declrs ats)  = 
+  case declrs of
+    []                                      -> aliasOrSpecType
+    [(Just declr, _, _)] | isPtrDeclr declr -> ptrType declr
+			 | isFunDeclr declr -> funType
+			 | otherwise	    -> aliasOrSpecTypeDeclr
+    _                                       ->
+      interr "GenBind.extractCompType: Too many declarators!"
   where
+    -- handle explicit pointer types
+    --
+    ptrType declr = do
+      oHsRepr <- case declaredName cdecl of  -- check for pointer hook alias
+		   Nothing  -> return Nothing
+		   Just ide -> queryPtr (True, ide)
+      case oHsRepr of
+	Nothing             -> do
+	  let declrs' = dropPtrDeclr declr
+	      cdecl'  = CDecl specs [(Just declrs', Nothing, Nothing)] ats
+	  ct <- extractCompType False cdecl'
+	  returnX $ case ct of
+		      ExtType et -> PtrET et
+		      SUType  _  -> PtrET UnitET
+        Just (repr1, repr2) -> 
+	  returnX $ DefinedET cdecl (if isResult then repr2 else repr1)
+    --
+    -- handle explicit function types
+    --
+    -- FIXME: we currently regard any functions as being impure (ie, being IO
+    --	      functions); is this ever going to be a problem?
+    --
+    funType = do
+	        et <- extractFunType (posOf cdecl) cdecl False
+		returnX et
+    --
+    -- if the declarator is not anonymous, check for a pointer hook without an
+    -- explicit `*' 
+    --
+    aliasOrSpecTypeDeclr =
+      case declaredName cdecl of
+        Nothing  -> aliasOrSpecType
+	Just ide -> do
+		      oHsRepr <- queryPtr (False, ide)
+		      case oHsRepr of
+			Nothing             -> aliasOrSpecType
+		        Just (repr1, repr2) -> 
+			  returnX $ 
+			    DefinedET cdecl (if isResult then repr2 else repr1)
+    --
+    -- handle all types, which are not obviously pointers or functions 
+    --
+    aliasOrSpecType = do
+		        oalias <- checkForAlias cdecl
+			case oalias of
+			  Nothing    -> specType (posOf cdecl) specs
+			  Just decl' -> extractCompType isResult decl'
+    --
     -- wrap an `ExtType' into a `CompType' and convert parametrised pointers
     -- to `Addr' if needed
     --
-    returnX retval@(CHSPtr _ et) = do
-				     keepOld <- getSwitch oldFFI
-				     if keepOld 
-				       then return $ ExtType (PrimET CAddrPT)
-				       else return $ ExtType retval
-    returnX retval               = return $ ExtType retval
-    ---
-    isPtr = case declrs of
-	      []                   -> False
-	      [(Just declr, _, _)] -> isPtrType declr
-	      _		           -> moreThanOneDeclrErr
-    moreThanOneDeclrErr = interr "GenBind.extractCompType: There was more \
-				 \than one declarator!"
-
-
-
-extractCompType cdecl  = do
-  (isPtr, aliases, cdecl'@(CDecl spec _ _)) <- extractAliasNames cdecl
-  ctype <- specType (posOf cdecl) spec
-  --
-  -- `ptrType' will be set to `CHSPtr' if no modifier like `foreign' was
-  -- specified; we will therefore ignore this if we marshall a plain value or
-  -- a function pointer
-  --
-  (cTypeAlias, ptrType) <- checkUserRequest ctype aliases
-  keepOld <- getSwitch oldFFI
-  if isPtr
-    then
-      if keepOld 
-        then ExtType (PrimET CFunAddrPT)
-	else return $ branch (isFun cdecl') ptrType ctypeAlias
-    else
-      cTypeAlias  -- this is the original type if there is no alias
-  where
-    -- check whether an alias is registered for this type 
-    --
-    checkUserRequest ty aliasesC = do
-      candidates <- mapM getAlias aliasesC
-      let reqs = [(ExtType $ DefinedET cName (identToLexeme hsName), ptrType)
-	         | (cName, Just (hsName, ptrType)) <- zip aliasesC candidates]
-      if isNull reqs then (ty, CHSPtr) else first reqs
-
-    -- check if this C pointer is a function pointer
-    --
-    isFun 
-      (CDecl _ [(Just (CPtrDeclr [_] (CFunDeclr _ _ _ _) _),_,_)] _) = True
-    isFun _ = False
-
-    -- figure out what to return
-    --
-    branch :: Bool -> CHSPtrType -> CompType -> CompType
-    branch False CHSPtr (ExtType ta)         = PtrET CHSPtr ta
-    branch True  pt     (ExtType ta) 
-      | pt == CHSPtr || pt == CHSFunctionPtr = PtrET CHSFunctionPtr ta 
-      | otherwise			     = errNoForeignFunctions
-    branch False pt     (ExtType ta)         = PtrET pt ta
-    branch False pt     (SUType su)          = PtrET pt UnitET
-    branch _     _      _                    = errBogus
-    errNoForeignFunctions = 
-      interr "extractCompType: cannot generate a function pointer as a \
-	     \`ForeignPtr' or `StablePtr' object"
-    errBogus = interr "extractCompType: unable to find a decent Haskell type"
+    returnX retval@(PtrET et) = do
+				  keepOld <- getSwitch oldFFI
+				  if keepOld 
+				    then return $ ExtType (PrimET CPtrPT)
+				    else return $ ExtType retval
+    returnX retval            = return $ ExtType retval
 
 -- C to Haskell type mapping described in the DOCU section
 --
@@ -1021,6 +1013,8 @@ typeMap  = [([void]                      , UnitET           ),
 
 -- compute the complex (external) type determined by a list of type specifiers
 --
+-- * may not be called for a specifier that defines a typedef alias
+--
 specType            :: Position -> [CDeclSpec] -> GB CompType
 specType cpos specs  = 
   let tspecs = [ts | CTypeSpec ts <- specs]
@@ -1029,12 +1023,11 @@ specType cpos specs  =
 	         then unsupportedTypeSpecErr cpos
 	         else return $ ExtType et
     Nothing -> case tspecs of
-	         [CTypeDef  ide _] -> let name = identToLexeme ide 
-				      in
-				      return $ ExtType (DefinedET ide name)
-	         [CSUType   cu  _] -> return $ SUType cu     -- struct or union
-		 [CEnumType _   _] -> return $ ExtType (PrimET CIntPT)  -- enum
-		 _		   -> illegalTypeSpecErr cpos
+	         [CSUType   cu _] -> return $ SUType cu     -- struct or union
+		 [CEnumType _  _] -> return $ ExtType (PrimET CIntPT)  -- enum
+	         [CTypeDef  _  _] -> 
+		   interr "GenBind.specType: Illegal typedef alias!"
+		 _		  -> illegalTypeSpecErr cpos
   where
     lookupTSpec = lookupBy matches
     --
@@ -1099,25 +1092,18 @@ sizeAlignOfStruct decls CUnionTag   =
 sizeAlignOf       :: CDecl -> GB (Int, Int)
 sizeAlignOf cdecl  = 
   do
-    ct <- extractCompType cdecl
+    ct <- extractCompType False cdecl
     case ct of
-      ExtType (FunET _ _) -> 
-	return (sizes!CFunAddrPT, alignments!CFunAddrPT)
-      ExtType (IOET _) -> 
-        interr "GenBind.sizeof: Illegal IO type!"
-      ExtType (PtrET CHSPtr _) -> 
-	return (sizes!CAddrPT, alignments!CAddrPT)
-      ExtType (PtrET CHSFunctionPtr _) -> 
-	return (sizes!CFunAddrPT, alignments!CFunAddrPT)
-      ExtType (PtrET CHSForeignPtr _) -> 
-        return (sizes!CAddrPT, alignments!CAddrPT)
-      ExtType (DefinedET ide _) -> 
-        chaseDecl ide False >>= sizeAlignOf
-      ExtType (PrimET pt) -> 
-	return (sizes!pt, alignments!pt)
-      ExtType (UnitET) -> 
-        voidFieldErr (posOf cdecl)
-      SUType su -> 
+      ExtType (FunET _ _        ) -> return (sizes!CFunPtrPT, 
+					     alignments!CFunPtrPT)
+      ExtType (IOET  _          ) -> interr "GenBind.sizeof: Illegal IO type!"
+      ExtType (PtrET (FunET _ _)) -> return (sizes!CFunPtrPT, 
+					     alignments!CFunPtrPT)
+      ExtType (PtrET _          ) -> return (sizes!CPtrPT, alignments!CPtrPT)
+      ExtType (DefinedET decl _ ) -> sizeAlignOf decl
+      ExtType (PrimET pt        ) -> return (sizes!pt, alignments!pt)
+      ExtType UnitET              -> voidFieldErr (posOf cdecl)
+      SUType su                   -> 
         do
 	  let (fields, tag) = structMembers su
 	  fields' <- let ide = structName su 
@@ -1330,6 +1316,6 @@ structExpectedErr ide  =
 ptrExpectedErr     :: Position -> GB a
 ptrExpectedErr pos  =
   raiseErrorCTExc pos
-    ["Expected a pointer!",
-     "Attempt to dereference a non-pointer object."]
-
+    ["Expected a pointer object!",
+     "Attempt to dereference a non-pointer object or to use it in a `pointer' \
+     \hook."]

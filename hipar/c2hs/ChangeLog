@@ -1,4 +1,29 @@
+2001-05-02  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (extractCompType): as pointed out by Axel Simon,
+	we can't return `ForeignPtr's from imported foreign functions
+	(setGet): the `accessType' story is largely redundant with the new
+	formulation of `extractCompType', but we still need to check the
+	marshaled type
+	(setGet): `DefinedET' now takes a declaration rather than an
+	identifier as its first argument; this is necessary for anonymous
+	declerators
+
+	* c/CTrav.hs (isPtrDecl): works on identifiers now and chases
+	declarations
+	(dropPtrDeclr): added
+
+	* gen/GenBind.hs (extractCompType): completely rewrote this
+	function to properly handle pointer and function types and honour
+	aliases introduced by pointer hooks
+
 2001-05-01  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CTrav.hs (isPtrDeclr): functions types without an explizit
+	pointer constructor are no longer regarded as pointers
+
+	* gen/CInfo.hs: renamed `CAddrPT' and `CFunAddrPT' to `CPtrPT' and
+	`CFunPtrPT', respectively
 
 	* gen/GenBind.hs (extractCompType): revised for pointer hooks
 

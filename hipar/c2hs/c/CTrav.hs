@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 October 99
 --
---  Version $Revision: 1.7 $ from $Date: 2001/04/30 14:06:30 $
+--  Version $Revision: 1.8 $ from $Date: 2001/05/02 09:28:15 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -68,13 +68,13 @@ module CTrav (CT, readCT, transCT, getCHeaderCT, runCT, throwCTExc, ifCTExc,
 	      applyPrefixToNameSpaces, getDefOf, refersToDef, findTypeObj,
 	      findValueObj, findFunObj, 
 	      --
-	      -- auxiliary functions on C structure tree fragments
+	      -- C structure tree query functions
 	      --
 	      isTypedef, simplifyDecl, declrFromDecl, declrNamed,
 	      declaredDeclr, declaredName, structMembers, expandDecl,
-	      structName, isPtrType, structFromDecl, funResultAndArgs,
-	      chaseDecl, findAndChaseDecl, checkForAlias, lookupEnum,
-	      lookupStructUnion, extractAliasNames)
+	      structName, isPtrDeclr, dropPtrDeclr, isPtrDecl, isFunDeclr,
+	      structFromDecl, funResultAndArgs, chaseDecl, findAndChaseDecl,
+	      checkForAlias, lookupEnum, lookupStructUnion)
 where
 
 import List       (find)
@@ -443,7 +443,7 @@ ide `declrFromDecl` decl  =
 -- tests whether the given declarator has the given name (EXPORTED)
 --
 declrNamed             :: CDeclr -> Ident -> Bool
-declr `declrNamed` ide  = declrName declr == ide
+declr `declrNamed` ide  = declrName declr == Just ide
 
 -- get the declarator of a declaration that has at most one declarator
 -- (EXPORTED) 
@@ -455,13 +455,11 @@ declaredDeclr decl		            =
   interr $ "CTrav.declaredDeclr: Too many declarators!\n\
 	   \  Declaration at " ++ show (posOf decl)
 
--- get the name declared by a declaration that has exactly one declerator
+-- get the name declared by a declaration that has exactly one declarator
 -- (EXPORTED) 
 --
-declaredName :: CDecl -> Ident
-declaredName  = declrName . fromMaybe err . declaredDeclr
-		where
-		  err = interr "CTrav.declaredName: Anonymous declaration!"
+declaredName      :: CDecl -> Maybe Ident
+declaredName decl  = declaredDeclr decl >>= declrName
 
 -- obtains the member definitions and the tag of a struct (EXPORTED)
 --
@@ -486,17 +484,56 @@ structName (CStruct _ oide _ _)   = oide
 -- checks whether the given declarator defines an object that is a pointer to
 -- some other type (EXPORTED)
 --
--- * as far as parameter passing is concerned, arrays and functions are also
---   pointer 
+-- * as far as parameter passing is concerned, arrays are also pointer
 --
-isPtrType                                   :: CDeclr -> Bool
-isPtrType (CPtrDeclr _ (CVarDeclr _ _)   _)  = True
-isPtrType (CPtrDeclr _ declr             _)  = isPtrType declr
-isPtrType (CArrDeclr (CVarDeclr _ _) _   _)  = True
-isPtrType (CArrDeclr declr _             _)  = isPtrType declr
-isPtrType (CFunDeclr (CVarDeclr _ _) _ _ _)  = True
-isPtrType (CFunDeclr declr _ _           _)  = isPtrType declr
-isPtrType _                                  = False
+isPtrDeclr                                 :: CDeclr -> Bool
+isPtrDeclr (CPtrDeclr _ (CVarDeclr _ _) _)  = True
+isPtrDeclr (CPtrDeclr _ declr           _)  = isPtrDeclr declr
+isPtrDeclr (CArrDeclr (CVarDeclr _ _) _ _)  = True
+isPtrDeclr (CArrDeclr declr _           _)  = isPtrDeclr declr
+isPtrDeclr (CFunDeclr declr _ _         _)  = isPtrDeclr declr
+isPtrDeclr _                                = False
+
+-- drops the first pointer level from the given declarator (EXPORTED)
+--
+-- * the declarator must declare a pointer object
+--
+-- FIXME: this implementation isn't nice, because we retain the `CVarDeclr'
+--	  unchanged; as the declarator is changed, we should maybe make this
+--	  into an anonymous declarator and also change its attributes
+--
+dropPtrDeclr                                       :: CDeclr -> CDeclr
+dropPtrDeclr (CPtrDeclr _ declr@(CVarDeclr _ _) _)  = declr
+dropPtrDeclr (CPtrDeclr _ declr                 _)  = dropPtrDeclr declr
+dropPtrDeclr (CArrDeclr declr@(CVarDeclr _ _) _ _)  = declr
+dropPtrDeclr (CArrDeclr declr                 _ _)  = dropPtrDeclr declr
+dropPtrDeclr (CFunDeclr declr _ _               _)  = dropPtrDeclr declr
+dropPtrDeclr _                                      = 
+  interr "CTrav.dropPtrDeclr: No pointer!"
+
+-- checks whether the declaration of the given identifier defines a pointer
+-- object (EXPORTED)
+--
+-- * there may only be a single declarator in the declaration
+--
+isPtrDecl     :: Ident -> CT s Bool
+isPtrDecl ide = do
+		  decl <- chaseDecl ide False
+		  case decl of
+		    CDecl _ []                   _ -> return False
+		    CDecl _ [(Just declr, _, _)] _ -> return $ isPtrDeclr declr
+		    _				   -> 
+		       interr "CTrav.isPtrDecl: \
+		       \There was more than one declarator!"
+
+-- checks whether the given declarator defines a function object (EXPORTED)
+--
+isFunDeclr                                   :: CDeclr -> Bool
+isFunDeclr (CPtrDeclr _ declr             _)  = isFunDeclr declr
+isFunDeclr (CArrDeclr declr _             _)  = isFunDeclr declr
+isFunDeclr (CFunDeclr (CVarDeclr _ _) _ _ _)  = True
+isFunDeclr (CFunDeclr declr _ _           _)  = isFunDeclr declr
+isFunDeclr _				      = False
 
 -- extract the structure from the type specifiers of a declaration (EXPORTED)
 --
@@ -586,60 +623,6 @@ checkForAlias decl  =
     Nothing        -> return Nothing
     Just (ide', _) -> liftM Just $ chaseDecl ide' False
 
--- chase alias declarators while collecting all names encountered on the way;
--- at most one indirection is followed (EXPORTED)
---
--- * this is similar to `checkForAlias' but indicates whether an indirection
---   was followed (first component of the result)
---
--- * if the declarator is a pointer (first component of the result is `True')
---   the resulting list of synonyms does not necessarily refer to the 
---   same type; consider:
---
---     typedef a int; typedef b a; typedef c *b; typedef d c;
---
---   The result for `(d ptrvar)' would be `[b,a,d,c]'.  The variable is
---   a pointer to the first two types `b' (most abstract) and `a'
---   (least abstract).  The types `d' and `c' are equal to `ptrvar'
---   itself but in cases like
---
---     typedef void (*myfunc)(void)
---
---   it is desirable for the user to be able to refer to the alias
---   in, eg, `(myfunc f)' as there is no name for the function.
---
-FIXME: revise
-extractAliasNames :: CDecl -> CT s (Bool, [Ident], CDecl)
-extractAliasNames decl = chasePointer decl []
-  where
-    getSimpleDecl :: Ident -> CT s CDecl
-    getSimpleDecl id = do
-      cdecl <- getDeclOf id
-      return (id `simplifyDecl` cdecl)
-
-    chasePointer :: CDecl -> [Ident] -> CT s (Bool, [Ident], CDecl)
-    chasePointer cdecl ids = 
-      case extractAlias cdecl True of
-        Just (ide, True)  -> do
-	  cdecl' <- getSimpleDecl ide
-	  chasePointer cdecl' (ide:ids)
-	Just (ide, False) -> do
-	  cdecl' <- getSimpleDecl ide
-	  (ids', cdecl'') <- checkPointer cdecl' []
-	  return (True, reverse ids ++ reverse (ide:ids'), cdecl'')
-        Nothing		  ->
-	  return (maybe False isPtrType (declaredDeclr cdecl), 
-		 reverse ids, cdecl)
-
-    checkPointer :: CDecl -> [Ident] -> CT s ([Ident], CDecl)
-    checkPointer cdecl ids =
-      case extractAlias cdecl False of
-	Just (ide, _) -> do
-	  cdecl' <- getSimpleDecl ide
-	  checkPointer cdecl' (ide:ids)
-        Nothing       -> 
-	  return (ids, cdecl)
-
 -- smart lookup
 --
 
@@ -695,11 +678,21 @@ lookupStructUnion ide ind useShadows
 	structFromDecl (posOf ide) decl
 
 
--- auxiliary routines
+-- auxiliary routines (internal)
 --
 
 -- if the given declaration (which may have at most one declarator) is a
 -- `typedef' alias, yield the referenced name
+--
+-- * a `typedef' alias has one of the following forms
+--
+--     <specs> at  x, ...;
+--     <specs> at *x, ...;
+--
+--   where `at' is the alias type, which has been defined by a `typedef', and
+--   <specs> are arbitrary specifiers and qualifiers.  Note that `x' may be a
+--   variable, a type name (if `typedef' is in <specs>), or be entirely
+--   omitted.
 --
 -- * if `ind = True', the alias may be via an indirection
 --
@@ -711,8 +704,8 @@ lookupStructUnion ide ind useShadows
 --
 extractAlias :: CDecl -> Bool -> Maybe (Ident, Bool)
 extractAlias decl@(CDecl specs _ _) ind =
-  case [ts | CTypeSpec ts <- specs] of		-- type spec is aliased ident
-    [CTypeDef ide' _] -> 
+  case [ts | CTypeSpec ts <- specs] of
+    [CTypeDef ide' _] ->	      		-- type spec is aliased ident
       case declaredDeclr decl of
 	Nothing				       -> Just (ide', ind)
 	Just (CVarDeclr _ _                  ) -> Just (ide', ind)
@@ -740,14 +733,13 @@ extractStruct pos (StructUnionCT su)  =
   where
     err = interr "CTrav.lookupStructUnion: Illegal reference!"
 
--- yield the name declared by a declarator
+-- yield the name declared by a declarator if any
 --
-declrName                          :: CDeclr -> Ident
-declrName (CVarDeclr (Just ide) _)  = ide
+declrName                          :: CDeclr -> Maybe Ident
+declrName (CVarDeclr oide       _)  = oide
 declrName (CPtrDeclr _ declr    _)  = declrName declr
 declrName (CArrDeclr declr    _ _)  = declrName declr
 declrName (CFunDeclr declr  _ _ _)  = declrName declr
-declrName (CVarDeclr Nothing    _)  = interr "CTrav.declrName: Anonymous!"
 
 -- raise an error if the given declarator does not declare a C function or if
 -- the function is supposed to return an array (the latter is illegal in C)
