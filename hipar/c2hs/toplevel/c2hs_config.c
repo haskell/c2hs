@@ -3,7 +3,7 @@
  *  Author : Manuel M T Chakravarty
  *  Created: 12 November 1
  *
- *  Version $Revision: 1.1 $ from $Date: 2001/11/14 09:08:13 $
+ *  Version $Revision: 1.2 $ from $Date: 2001/12/11 02:26:26 $
  *
  *  Copyright (c) 2001 Manuel M T Chakravarty
  *
@@ -31,11 +31,11 @@
  */
 
 union bitfield_direction_union {
-  unsigned int allbits;
+  unsigned int			        allbits;
   struct {
     unsigned int first_bit  : 1;
     unsigned int second_bit : 1;
-  };
+  }					twobits;
 };
 
 int bitfield_direction ()
@@ -46,8 +46,8 @@ int bitfield_direction ()
    * the value `2', the direction of bitfields must be increasing towards the
    * MSB 
    */
-  v.allbits    = 0;
-  v.second_bit = 1;
+  v.allbits            = 0;
+  v.twobits.second_bit = 1;
 
   return (2 == v.allbits ? 1 : -1);
 }
@@ -61,11 +61,11 @@ union bitfield_padding_union {
   struct {
     unsigned int allbits1;
     unsigned int allbits2;
-  };
+  }					allbits;
   struct {
     unsigned int first_bit : 1;
     signed   int full_unit : sizeof (signed int) * 8;
-  };
+  }					somebits;
 };
 
 int bitfield_padding ()
@@ -74,11 +74,11 @@ int bitfield_padding ()
 
   /* test whether more than one bit of `full_unit' spills over into `allbits2'
    */
-  v.allbits1 = 0;
-  v.allbits2 = 0;
-  v.full_unit = -1;
+  v.allbits.allbits1   = 0;
+  v.allbits.allbits2   = 0;
+  v.somebits.full_unit = -1;
 
-  return v.allbits2 == -1;
+  return v.allbits.allbits2 == -1;
 }
 
 /* is an `int' bitfield signed?
@@ -89,10 +89,10 @@ union bitfield_int_signed_union {
   struct {
     unsigned int first_bit  : 1;
     unsigned int second_bit : 1;
-  };
+  }					two_single_bits;
   struct {
     int two_bits : 2;
-  };
+  }					two_bits;
 };
 
 int bitfield_int_signed ()
@@ -102,10 +102,10 @@ int bitfield_int_signed ()
   /* check whether a two bit field with both bits set, gives us a negative
    * number; then, `int' bitfields must be signed
    */
-  v.first_bit  = 1;
-  v.second_bit = 1;
+  v.two_single_bits.first_bit  = 1;
+  v.two_single_bits.second_bit = 1;
 
-  return v.two_bits == -1;
+  return v.two_bits.two_bits == -1;
 }
 
 

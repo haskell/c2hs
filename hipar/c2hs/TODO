@@ -75,6 +75,9 @@ Next: -= phase re-ordering & parser clean up =-
         it's routine to calculate structure layout may deviate from that of
         the C compiler, which may lead to nasty bugs in bindings.
 
+      - the use of get/set hooks with `class'ed newtypes is complicated, as
+        the type doesn't match `Ptr a'; see, eg, `GtkCList.cListGetNoOfRows'
+
       - the idea of the hipar/mk/*.mk file to identify which projects are
         present doesn't really cut it as `cvs update' will always check these
         files out; fix this!
