@@ -862,6 +862,8 @@ documented in the following.
 <sect1>Version 0.12.0 "Springtime"
 <p>
 <itemize>
+<item>Removed support for deprecated <tt/C2HS/ interface and for old versions
+of the FFI libraries
 <item>Improved line pragma generation
 <item>Works with GHC 6.3
 <item>Builds on Mac OS X thanks to a patch by Sean Seefried

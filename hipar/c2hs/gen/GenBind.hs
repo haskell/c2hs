@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.49 $ from $Date: 2003/05/22 04:15:02 $
+--  Version $Revision: 1.50 $ from $Date: 2003/10/20 08:00:44 $
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
@@ -153,7 +153,7 @@ import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 import CInfo      (CPrimType(..), size, alignment, bitfieldIntSigned,
 		   bitfieldAlignment)
 import GBMonad    (TransFun, transTabToTransFun, HsObject(..), GB,
-		   initialGBState, setContext, getLibrary, getPrefix, 
+		   initialGBState, setContext, getPrefix, 
 		   delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
 		   queryObj, queryClass, queryPointer, mergeMaps, dumpMaps)
 
@@ -657,12 +657,11 @@ callImport :: CHSHook -> Bool -> Bool -> String -> String -> CDecl -> Position
 	   -> GB ()
 callImport hook isPure isUns ideLexeme hsLexeme cdecl pos =
   do
-    -- compute the external type from the declaration, get the library, and
-    -- delay the foreign export declaration
+    -- compute the external type from the declaration, and delay the foreign
+    -- export declaration
     --
     extType <- extractFunType pos cdecl isPure
-    lib     <- getLibrary
-    delayCode hook (foreignImport lib ideLexeme hsLexeme isUns extType)
+    delayCode hook (foreignImport ideLexeme hsLexeme isUns extType)
     traceFunType extType
   where
     traceFunType et = traceGenBind $ 
@@ -672,15 +671,12 @@ callImport hook isPure isUns ideLexeme hsLexeme cdecl pos =
 --
 -- * appends a configuration dependent library suffix `dlsuffix'
 --
-foreignImport :: String -> String -> String -> Bool -> ExtType -> String
-foreignImport lib ident hsIdent isUnsafe ty  =
-  "foreign import ccall " ++ libName ++ "\"" ++ ident ++ "\"" ++ maybeUnsafe 
-  ++ "\n  " ++ hsIdent ++ " :: " ++ showExtType ty ++ "\n"
+foreignImport :: String -> String -> Bool -> ExtType -> String
+foreignImport ident hsIdent isUnsafe ty  =
+  "foreign import ccall " ++ safety ++ " \"" ++ ident ++ "\"\n  " ++ 
+  hsIdent ++ " :: " ++ showExtType ty ++ "\n"
   where
---    libName	= if null lib then "" else "\"" ++ lib ++ dlsuffix ++ "\" "
-    libName = ""
--- FIXME: libName removed until the new FFI conventions for libs are impl.
-    maybeUnsafe = if isUnsafe then " unsafe" else ""
+    safety = if isUnsafe then "unsafe" else "safe"
 
 -- produce a Haskell function definition for a fun hook
 --

@@ -6,9 +6,9 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 27 September 99
 --
---  Version $Revision: 1.14 $ from $Date: 2003/02/12 09:41:04 $
+--  Version $Revision: 1.15 $ from $Date: 2003/10/20 08:00:45 $
 --
---  Copyright (c) [1999..2001] Manuel M T Chakravarty
+--  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -46,8 +46,6 @@ module C2HSConfig (
 import Ix    (Ix)
 import Array (Array, array)
 
-@BEGIN_NEW_FFI@
-
 @BEGIN_NOT_NHC@
 import 
  Foreign (Ptr, FunPtr)  -- on an extra line to trick the stupid `mkdependHS'
@@ -57,13 +55,6 @@ import
 import 
  FFI (Ptr, FunPtr)  -- on an extra line to trick the stupid `mkdependHS'
 @END_NHC@
-
-@END_NEW_FFI@
-
-@BEGIN_LEGACY_FFI@
-import 
- Addr (Addr)  -- on an extra line to trick the stupid `mkdependHS'
-@END_LEGACY_FFI@
 
 @BEGIN_NOT_NHC@
 import Foreign  (Storable(sizeOf, alignment), toBool)
@@ -111,15 +102,6 @@ dlsuffix  = "@DLSUFFIX@"
 --
 tmpdir :: String
 tmpdir = "@TMPDIR@"
-
-
--- the FFI of older systems doesn't have Ptr
--- -----------------------------------------
-
-@BEGIN_LEGACY_FFI@
-type Ptr    a = Addr
-type FunPtr a = Ptr a
-@END_LEGACY_FFI@
 
 
 -- parameters of the targeted C compiler

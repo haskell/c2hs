@@ -5,7 +5,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 5 April 1999 (from parts of common.mk)
 #
-#  Version $Revision: 1.16 $ from $Date: 2002/02/19 07:34:49 $
+#  Version $Revision: 1.17 $ from $Date: 2003/10/20 08:00:50 $
 #
 #  Copyright (c) [1997..1999] Manuel M. T. Chakravarty
 #
@@ -115,3 +115,9 @@ HASPKG	    = @HASPKG@
 # * `== yes' when enabled
 #
 ENABLE_ADD_PACKAGE = @ENABLE_ADD_PACKAGE@
+
+
+# Mac OS X uses '-all_load' instead '--whole-archive' as a linker flag.
+# This holds the correct flag for the correct platform.
+WHOLE_ARCHIVE_FLAG=@WHOLE_ARCHIVE_FLAG@
+

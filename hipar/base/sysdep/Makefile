@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 24 October 1997
 #
-#  Version $Revision: 1.18 $ from $Date: 2003/10/19 10:45:27 $
+#  Version $Revision: 1.19 $ from $Date: 2003/10/20 08:00:43 $
 #
 #  Copyright (c) [1997..2003] Manuel M T Chakravarty
 #
@@ -99,7 +99,7 @@ config:
 	@$(RM) SysDepGHC5.hs SysDepGHC6.hs
 	@$(LN) -s SysDepGHC4.hs SysDepGHC5.hs
 	@$(LN) -s SysDepGHC4.hs SysDepGHC6.hs
-ifeq ($(SYSDEPHS),$(findstring $(SYSDEPHS),$(AVAIL_SYSDEPHS) SysDepGHC5.hs SysDepGHC5.hs))
+ifeq ($(SYSDEPHS),$(findstring $(SYSDEPHS),$(AVAIL_SYSDEPHS) SysDepGHC5.hs SysDepGHC6.hs))
 	$(RM) SysDep.hs
 	$(LN) -s $(SYSDEPHS) SysDep.hs
 	@echo "*** Configured for compilation system $(SYS)."

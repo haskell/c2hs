@@ -1,3 +1,19 @@
+2003-10-20  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (foreignImport): brought generated foreign import
+	declarations in line with FFI Addendum
+
+	* toplevel/C2HSConfig.hs.in: removed legacy FFI support
+
+	* configure.in: removed legacy FFI support
+
+	* mk/config.mk.in: removed legacy FFI support
+
+	* lib/Makefile: Removed all deprecated code and support code for
+	old versions of the FFI
+
+	* toplevel/Version.hs (versnum): 0.12.1
+
 2003-10-19  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* c2hs.spec.in: Contributions by Jens Petersen

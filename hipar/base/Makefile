@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 25 July 1998
 #
-#  Version $Revision: 1.15 $ from $Date: 2002/09/16 13:36:58 $
+#  Version $Revision: 1.16 $ from $Date: 2003/10/20 08:00:43 $
 #
 #  Copyright (c) [1998..2002] Manuel M T Chakravarty
 #
@@ -85,7 +85,7 @@ libctk.a: objs
 	$(AR) -crs $@ $(addsuffix /*.o,$(PARTS))
 
 ctk.o: libctk.a
-	ld -r -x -o $@ --whole-archive $<
+	ld -r -x -o $@ $(WHOLE_ARCHIVE_FLAG) $<
 
 # auxilliary targets
 #

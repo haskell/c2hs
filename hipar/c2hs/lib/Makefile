@@ -3,9 +3,9 @@
 #  Author : Manuel M. T. Chakravarty
 #  Derived: 19 March 1999
 #
-#  Version $Revision: 1.16 $ from $Date: 2002/03/12 12:39:16 $
+#  Version $Revision: 1.17 $ from $Date: 2003/10/20 08:00:44 $
 #
-#  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
+#  Copyright (c) [1999..2003] Manuel M. T. Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -34,30 +34,12 @@
 #
 PACKAGE = c2hs
 PART    = lib
-SRCS	= C2HS.hs C2HSBase.hs C2HSDeprecated.hs C2HSMarsh.hs\
-	  NewStorable.hs NewStablePtr.hs
+SRCS	= C2HS.hs C2HSBase.hs
 OBJS	= $(patsubst %.hs,%.o,$(filter %.hs,$(SRCS)))
 
 # C->Haskell specific configuration
 #
-# This must be before the legacy sources
-#
 -include ../mk/config.mk
-
-# Legacy sources
-#
-# The following additional library sources are used when building C2HS for 
-# Haskell systems using an old version of the Haskell FFI (this includes,
-# for example, the GHC 4.08.x series).
-#
-ifeq ($(LEGACY_FFI),yes)
-SRCS   += CError.hs CForeign.hs CString.hs ForeignPtr.hs MarshalAlloc.hs\
-	  MarshalArray.hs MarshalError.hs MarshalUtils.hs Ptr.hs
-endif
-
-# This must be after legacy sources, as some rules depend on the setting
-# of $(SRCS) and $(OBJS)
-#
 include  ../../mk/common.mk
 -include $(DEPEND)
 
@@ -74,23 +56,13 @@ HIDIRS=.
 depend:
 	$(MKDEPENDHS) -optdep-f -optdep$(DEPEND) $(HCFLAGS)\
 	  $(EXTRAMKDEPENDOPTS) $(SRCS)
-ifeq ($(LEGACY_FFI),no)
-	$(GREP) -v -e CError -e CForeign -e CString\
-		   -e ForeignPtr -e MarshalAlloc -e MarshalArray\
-		   -e MarshalError -e MarshalUtils -e "\<Ptr" .depend\
-		   >.depend.new
-	$(MV) .depend.new .depend
-# mkdependHS is a bit stupid here and does include files if present even if
-# they are part of a syslib; moreover, the -x option never works for me 
-# anyway, so let's do it the hard way
-endif
 
 # Extra flags for the Haskell compiler
 #
 # * The following enables the use of the FFI; if we are building a package, 
 #   one more extra option is needed.
 #
-EXTRAHCFLAGS = -fglasgow-exts $(LIB_HCFLAGS)
+EXTRAHCFLAGS = -ffi $(LIB_HCFLAGS)
 
 # make all object files
 #
