@@ -306,6 +306,13 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
+<sect1>Version 0.8.2 "Gentle Moon"
+<p>
+<itemize>
+<item>Forgot to export some names in <tt/C2HSDeprecated/
+<item>Added support for gcc's <tt/__builtin_va_list/
+</itemize>
+
 <sect1>Version 0.8.1 "Gentle Moon"
 <p>
 <itemize>

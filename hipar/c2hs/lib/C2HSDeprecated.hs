@@ -4,7 +4,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 18 August 1999
 --
---  Version $Revision: 1.1 $ from $Date: 2001/02/04 12:27:32 $
+--  Version $Revision: 1.2 $ from $Date: 2001/02/12 12:21:00 $
 --
 --  Copyright (c) [2000..2001] Manuel M. T. Chakravarty
 --
@@ -50,14 +50,15 @@ module C2HSDeprecated (
   cToChar, cFromChar, cToInt, cFromInt, cToFloat, cFromFloat, cToDouble,
   cFromDouble,
   -- old serialisation interface
-  ToAddr(stdAddr), FromAddr(addrStdKeep),
+  ToAddr(stdAddr), FromAddr(addrStdKeep), addrStd,
   -- exception handling is now part of the standard FFI
   ifRaise, ifNegRaise, ifNegRaise_, ifNullRaise,
   -- old (de)serilisation of lists
   listToAddrWithLen, addrWithLenToList, listToAddrWithMarker,
   addrWithMarkerToList,
   -- marshalling templates
-  use, forget, void, ref, toAddr, toAddrKeep, toFromAddr,  
+  Marsh(..), marsh1, marsh1_, marsh2, marsh2_, marsh3, marsh3_, use, forget,
+  void, ref, toAddr, toAddrKeep, toFromAddr,
   --
   -- we ex-export all of the new interface that doesn't clash with any of the
   -- old definitions (namespace-wise)
@@ -79,7 +80,7 @@ import qualified
 -- in the new FFI, so let's simulate part of it (EXPORTED)
 --
 type Addr = Ptr ()
-nullAddr  = nullPtr
+nullAddr  = nullPtr :: Addr
 plusAddr  = plusPtr
 alignAddr = alignPtr
 minusAddr = minusPtr
@@ -121,6 +122,14 @@ class Storable a where
   deref  :: Addr -> IO (a, Addr)
 
 instance Storable Char where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+instance Storable Int where
   sizeof = C2HS.sizeOf
   assign addr v = do
     C2HS.poke (castPtr addr) v
@@ -216,6 +225,121 @@ instance Storable Addr where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+
+instance Storable CChar where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+instance Storable CSChar where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+instance Storable CUChar where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+instance Storable CShort where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+instance Storable CUShort where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+instance Storable CInt where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+instance Storable CUInt where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+instance Storable CLong where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+instance Storable CULong where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+instance Storable CLLong where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+instance Storable CULLong where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+{-
+instance Storable CFloat where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+instance Storable CDouble where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+instance Storable CLDouble where
+  sizeof = C2HS.sizeOf
+  assign addr v = do
+    C2HS.poke (castPtr addr) v
+    return (addr `plusPtr` sizeof v)
+  deref addr = do
+    v <- C2HS.peek (castPtr addr)
+    return (v, addr `plusPtr` sizeof v)
+-}
 
 -- assignment with byte offset (EXPORTED)
 --
@@ -315,6 +439,18 @@ instance ToAddr Float
 instance ToAddr Double
 instance ToAddr Addr
 
+instance ToAddr CChar
+instance ToAddr CSChar
+instance ToAddr CUChar
+instance ToAddr CShort
+instance ToAddr CUShort
+instance ToAddr CInt
+instance ToAddr CUInt
+instance ToAddr CLong
+instance ToAddr CULong
+instance ToAddr CLLong
+instance ToAddr CULLong
+
 instance ToAddr String where
   stdAddr = listToAddrWithMarker '\NUL'
 
@@ -334,6 +470,18 @@ instance FromAddr Word32
 instance FromAddr Float
 instance FromAddr Double
 instance FromAddr Addr
+
+instance FromAddr CChar
+instance FromAddr CSChar
+instance FromAddr CUChar
+instance FromAddr CShort
+instance FromAddr CUShort
+instance FromAddr CInt
+instance FromAddr CUInt
+instance FromAddr CLong
+instance FromAddr CULong
+instance FromAddr CLLong
+instance FromAddr CULLong
 
 instance FromAddr String where
   addrStdKeep = addrWithMarkerToList '\NUL'
