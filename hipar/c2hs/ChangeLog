@@ -1,3 +1,18 @@
+2001-10-07  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs: handling class hooks
+
+	* Makefile: improved cleaning targets
+
+	* chs/CHS.hs (parseClass): added class hooks
+
+	* chs/CHSLexer.hs: added tokens `class' and `=>'
+
+	* gen/GenBind.hs (isFunExtType): IO types are function types
+
+	* toplevel/Version.hs (versnum): 0.10.0 "Altocumulus Stratiformis
+	Perlucidus Undulatus"
+
 2001-08-26  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenBind.hs (foreignImport): `libName' removed until the new

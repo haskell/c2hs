@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 August 99
 --
---  Version $Revision: 1.16 $ from $Date: 2001/06/20 09:25:13 $
+--  Version $Revision: 1.17 $ from $Date: 2001/10/08 04:07:16 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -58,6 +58,7 @@
 --	      | `get' apath
 --	      | `set' apath
 --	      | `pointer' ['*'] idalias ptrkind
+--	      | `class' [ident `=>'] ident ident
 --  ctxt     -> [`header' `=' string] [`lib' `=' string] [prefix]
 --  idalias  -> ident [`as' ident]
 --  prefix   -> `prefix' `=' string
@@ -147,6 +148,10 @@ data CHSHook = CHSImport  Bool			-- qualified?
 			  Bool			-- create new type?
 			  (Maybe Ident)		-- Haskell type pointed to
 			  Position
+             | CHSClass   (Maybe Ident)		-- superclass
+			  Ident			-- class name
+			  Ident			-- name of pointer type
+			  Position
 
 instance Pos CHSHook where
   posOf (CHSImport  _ _ _       pos) = pos
@@ -157,6 +162,7 @@ instance Pos CHSHook where
   posOf (CHSCall    _ _ _ _     pos) = pos
   posOf (CHSField   _ _         pos) = pos
   posOf (CHSPointer _ _ _ _ _ _ pos) = pos
+  posOf (CHSClass   _ _ _	pos) = pos
 
 -- two hooks are equal if they have the same Haskell name and reference the
 -- same C object 
@@ -179,6 +185,8 @@ instance Eq CHSHook where
   (CHSPointer _ ide1 oalias1 _ _ _ _) 
 			          == (CHSPointer _ ide2 oalias2 _ _ _ _) =
     ide1 == ide2 && oalias1 == oalias2
+  (CHSClass _ ide1 _           _) == (CHSClass _ ide2 _           _) =
+    ide1 == ide2
   _                               == _                          = False
 
 -- translation table (EXPORTED)
@@ -211,6 +219,14 @@ instance Show CHSPtrType where
   show CHSPtr		 = "Ptr"
   show CHSForeignPtr	 = "ForeignPtr"
   show CHSStablePtr	 = "StablePtr"
+
+instance Read CHSPtrType where
+  readsPrec _ (                            'P':'t':'r':rest) = 
+    [(CHSPtr, rest)]
+  readsPrec _ ('F':'o':'r':'e':'i':'g':'n':'P':'t':'r':rest) = 
+    [(CHSForeignPtr, rest)]
+  readsPrec _ ('S':'t':'a':'b':'l':'e'    :'P':'t':'r':rest) = 
+    [(CHSStablePtr, rest)]
 
 
 -- load and dump a CHS file
@@ -359,6 +375,14 @@ showCHSHook (CHSPointer star ide oalias ptrType isNewtype oRefType _) =
        (True , _       ) -> showString " newtype" 
        (False, Just ide) -> showString " -> " . showCHSIdent ide
        (False, Nothing ) -> showString "")
+showCHSHook (CHSClass oclassIde classIde typeIde _) =   
+    showString "class "
+  . (case oclassIde of
+       Nothing       -> showString ""
+       Just classIde -> showCHSIdent classIde . showString " => ")
+  . showCHSIdent classIde
+  . showString " "
+  . showCHSIdent typeIde
 
 showPrefix                        :: Maybe String -> Bool -> ShowS
 showPrefix Nothing       _         = showString ""
@@ -562,6 +586,7 @@ parseFrags toks  = do
     parseFrags0 (CHSTokCall    pos:toks) = parseCall    pos        toks
     parseFrags0 (CHSTokGet     pos:toks) = parseField   pos CHSGet toks
     parseFrags0 (CHSTokSet     pos:toks) = parseField   pos CHSSet toks
+    parseFrags0 (CHSTokClass   pos:toks) = parseClass   pos        toks
     parseFrags0 (CHSTokPointer pos:toks) = parsePointer pos        toks
     parseFrags0 toks			 = syntaxError toks
     --
@@ -685,6 +710,25 @@ parsePointer pos toks =
     norm ide Nothing                   = Nothing
     norm ide (Just ide') | ide == ide' = Nothing
 			 | otherwise   = Just ide'
+
+parseClass :: Position -> [CHSToken] -> CST s [CHSFrag]
+parseClass pos (CHSTokIdent  _ sclassIde:
+	        CHSTokDArrow _          :
+		CHSTokIdent  _ classIde :
+		CHSTokIdent  _ typeIde  :
+		toks)                     =
+  do
+    toks' <- parseEndHook toks
+    frags <- parseFrags toks'
+    return $ CHSHook (CHSClass (Just sclassIde) classIde typeIde pos) : frags
+parseClass pos (CHSTokIdent _ classIde :
+		CHSTokIdent _ typeIde  :
+		toks)                     =
+  do
+    toks' <- parseEndHook toks
+    frags <- parseFrags toks'
+    return $ CHSHook (CHSClass Nothing classIde typeIde pos) : frags
+parseClass _ toks = syntaxError toks
 
 parseOptHeader :: [CHSToken] -> CST s (Maybe String, [CHSToken])
 parseOptHeader (CHSTokHeader _    :

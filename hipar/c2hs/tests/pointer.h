@@ -9,7 +9,14 @@ struct _Point {
   int x, y;
 };
 
+struct _ColourPoint {
+  int          x, y;
+  unsigned int colour;
+};
+
 typedef struct _Point Point;
+
+typedef struct _ColourPoint ColourPoint;
 
 typedef struct _Point *PointPtr;
 

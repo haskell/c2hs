@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 13 August 99
 --
---  Version $Revision: 1.12 $ from $Date: 2001/06/20 09:25:13 $
+--  Version $Revision: 1.13 $ from $Date: 2001/10/08 04:07:16 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -75,12 +75,13 @@
 --    transfers control to the following binding-hook lexer:
 --
 --      ident       -> letter (letter | digit | ')*
---      reservedid  -> `as' | `call' | `context' | `deriving' 
+--      reservedid  -> `as' | `call' | `class' | `context' | `deriving' 
 --		     | `enum' | `foreign' | `fun' | `get' | `header' | `lib' 
 --		     | `newtype' | `pointer' | `prefix' | `set' | `sizeof'
 --		     | `stable' | `type' | `underscoreToCase' | `unsafe' 
 --		     | `with'
---      reservedsym -> `{#' | `#}' | `{' | `}' | `,' | `.' | `->' | `=' | `*'
+--      reservedsym -> `{#' | `#}' | `{' | `}' | `,' | `.' | `->' | `=' 
+--		     | `=>' | `*'
 --      string      -> `"' instr* `"'
 --      instr       -> ` '..`\127' \\ `"'
 --      comment	    -> `--' (any \\ `\n')* `\n'
@@ -144,6 +145,7 @@ import C2HSState (CST, raise, raiseError, nop, getNameSupply)
 -- possible tokens (EXPORTED)
 --
 data CHSToken = CHSTokArrow   Position		-- `->'
+	      | CHSTokDArrow  Position		-- `=>'
 	      | CHSTokDot     Position		-- `.'
 	      | CHSTokComma   Position		-- `,'
 	      | CHSTokEqual   Position		-- `='
@@ -155,6 +157,7 @@ data CHSToken = CHSTokArrow   Position		-- `->'
 	      | CHSTokEndHook Position		-- `#}'
 	      | CHSTokAs      Position		-- `as'
 	      | CHSTokCall    Position		-- `call'
+	      | CHSTokClass   Position		-- `class'
 	      | CHSTokContext Position		-- `context'
 	      | CHSTokDerive  Position		-- `deriving'
 	      | CHSTokEnum    Position		-- `enum'
@@ -182,6 +185,7 @@ data CHSToken = CHSTokArrow   Position		-- `->'
 
 instance Pos CHSToken where
   posOf (CHSTokArrow   pos  ) = pos
+  posOf (CHSTokDArrow  pos  ) = pos
   posOf (CHSTokDot     pos  ) = pos
   posOf (CHSTokComma   pos  ) = pos
   posOf (CHSTokEqual   pos  ) = pos
@@ -193,6 +197,7 @@ instance Pos CHSToken where
   posOf (CHSTokEndHook pos  ) = pos
   posOf (CHSTokAs      pos  ) = pos
   posOf (CHSTokCall    pos  ) = pos
+  posOf (CHSTokClass   pos  ) = pos
   posOf (CHSTokContext pos  ) = pos
   posOf (CHSTokDerive  pos  ) = pos
   posOf (CHSTokEnum    pos  ) = pos
@@ -220,6 +225,7 @@ instance Pos CHSToken where
 
 instance Eq CHSToken where
   (CHSTokArrow    _  ) == (CHSTokArrow    _  ) = True
+  (CHSTokDArrow   _  ) == (CHSTokDArrow   _  ) = True
   (CHSTokDot      _  ) == (CHSTokDot      _  ) = True
   (CHSTokComma    _  ) == (CHSTokComma    _  ) = True
   (CHSTokEqual    _  ) == (CHSTokEqual    _  ) = True
@@ -231,6 +237,7 @@ instance Eq CHSToken where
   (CHSTokEndHook  _  ) == (CHSTokEndHook  _  ) = True
   (CHSTokAs       _  ) == (CHSTokAs       _  ) = True
   (CHSTokCall     _  ) == (CHSTokCall     _  ) = True
+  (CHSTokClass    _  ) == (CHSTokClass    _  ) = True
   (CHSTokContext  _  ) == (CHSTokContext  _  ) = True
   (CHSTokDerive   _  ) == (CHSTokDerive   _  ) = True
   (CHSTokEnum     _  ) == (CHSTokEnum     _  ) = True
@@ -259,6 +266,7 @@ instance Eq CHSToken where
 
 instance Show CHSToken where
   showsPrec _ (CHSTokArrow   _  ) = showString "->"
+  showsPrec _ (CHSTokDArrow  _  ) = showString "=>"
   showsPrec _ (CHSTokDot     _  ) = showString "."
   showsPrec _ (CHSTokComma   _  ) = showString ","
   showsPrec _ (CHSTokEqual   _  ) = showString "="
@@ -270,6 +278,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokEndHook _  ) = showString "#}"
   showsPrec _ (CHSTokAs      _  ) = showString "as"
   showsPrec _ (CHSTokCall    _  ) = showString "call"
+  showsPrec _ (CHSTokClass   _  ) = showString "class"
   showsPrec _ (CHSTokContext _  ) = showString "context"
   showsPrec _ (CHSTokDerive  _  ) = showString "deriving"
   showsPrec _ (CHSTokEnum    _  ) = showString "enum"
@@ -512,6 +521,7 @@ identOrKW  =
   where
     idkwtok pos "as"               _    = CHSTokAs      pos
     idkwtok pos "call"             _    = CHSTokCall    pos
+    idkwtok pos "class"            _    = CHSTokClass   pos
     idkwtok pos "context"          _    = CHSTokContext pos
     idkwtok pos "deriving"	   _	= CHSTokDerive  pos
     idkwtok pos "enum"             _    = CHSTokEnum    pos
@@ -539,6 +549,7 @@ identOrKW  =
 --
 symbol :: CHSLexer
 symbol  =      sym "->" CHSTokArrow
+	  >||< sym "=>" CHSTokDArrow
 	  >||< sym "."  CHSTokDot
 	  >||< sym ","  CHSTokComma
 	  >||< sym "="  CHSTokEqual

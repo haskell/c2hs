@@ -4,12 +4,20 @@
 
 Next: -= phase re-ordering & parser clean up =-
 
+      - configuration oracle should have an option to print the Haskell
+        compiler and version it was compiled for
+
+      - use GHC's package manager and register the c2hs libs as a package at
+        install time (also in rpm)
+
       - Pending suggestions from Axel Simon:
 	+ succ/pred definitions for enum hooks
 	+ Compilation of multiple files in one c2hs invocation
 
       - Pending suggestions from Armin Sander:
 	+ MarshalFlags.hs
+
+      - marshalling of structs and support for function arguments in call hooks
 
       - We need to handle the time stamps of .chi files more carefully;
         otherwise, we often get lots of unnecessary re-runs of c2hs.

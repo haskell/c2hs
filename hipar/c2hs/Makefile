@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.12 $ from $Date: 2001/02/19 04:33:11 $
+#  Version $Revision: 1.13 $ from $Date: 2001/10/08 04:07:15 $
 #
 #  Copyright (c) 1999 Manuel M. T. Chakravarty
 #
@@ -107,7 +107,9 @@ install: all
 depend: gendepend
 	$(MAKE) -C lib $(MFLAGS) $@
 clean: recclean
+	$(MAKE) -C lib $(MFLAGS) clean
 	-rm -f c2hs
 cleanhi: reccleanhi
-distclean:
+	$(MAKE) -C lib $(MFLAGS) cleanhi
+distclean: cleanall
 	-$(RM) config.status config.log config.cache

@@ -55,6 +55,11 @@ AC_ARG_WITH(ghcnative,
             [  --with-ghc-native       use GHC native code generator (if available)],
 	    [ghc_native=$withval], [ghc_native=no])
 
+dnl Select a specific version of hmake.
+AC_ARG_WITH(hmake, 
+            [  --with-hmake=HC         use hmake version HMAKE (full path required)],
+	    [HMAKE=$withval])
+
 dnl Link with electric fence?
 AC_ARG_WITH(efence, 
 	    [  --with-efence           link with efence malloc debugger],
@@ -89,12 +94,12 @@ dnl if lndir understands -silent, use it
 dnl (greps through the usage info - not very nice...)
 $LNDIR 2>&1 | grep silent >/dev/null && LNDIR="$LNDIR -silent"
 
-dnl Haskell compiler; currently ghc 3.02, ghc 4.02 upwards & nhc98 1.0
+dnl Haskell compiler; currently ghc 4.02 upwards & nhc98 1.0
 dnl (The next command is not executed, if $HC is already set.)
 AC_PATH_PROGS(HC, ghc nhc98)
 if test -z "$HC"; then
  AC_MSG_ERROR([Could not find a Haskell compiler!
-Currently supported are ghc 3.02, ghc 4.02 upwards & nhc98 1.0.
+Currently supported are ghc 4.02 upwards & nhc98 1.0.
 ** Check \"http://haskell.org\". **])
 fi
 dnl The following can happen if a wrong --with-hc=HC option is given.
@@ -193,7 +198,12 @@ if test $hc_base = ghc; then
   MKDEPENDHS="$HC -M"
 fi
 if test $SYS = nhc1; then
-  AC_PATH_PROG(HMAKE,hmake)
+  dnl (The next command is not executed, if $HC is already set.)
+  AC_PATH_PROGS(HMAKE, hmake)
+  if test -z "$HMAKE"; then
+ AC_MSG_ERROR([Could not find the tool hmake (needed for use with nhc98)!
+** Check \"http://www.cs.york.ac.uk/fp/nhc98/hmake/hmake.html\". **])
+  fi
   MKDEPENDHS="$HMAKE -n -M -nhc98"
 fi
 AC_MSG_RESULT([selecting mkdependHS... $MKDEPENDHS])

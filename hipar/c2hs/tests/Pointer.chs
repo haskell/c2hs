@@ -38,5 +38,13 @@ type PtrString = {#type stringPtr#}
 checkType :: PtrString -> Ptr (Ptr CChar)
 checkType  = id
 
+-- test classes
+{#pointer *Point as APoint newtype#}
+{#class APointClass APoint#}
+
+{#pointer *ColourPoint as AColourPoint newtype#}
+{#class APointClass => AColourPointClass AColourPoint#}
+
+
 main = putStrLn "This test doesn't compute much; it's all about the generated \
 		\types."

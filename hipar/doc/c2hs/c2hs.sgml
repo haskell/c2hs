@@ -7,7 +7,7 @@
 
 <title>The Binding Generator C->Haskell
 <author>Manuel M. T. Chakravarty, <tt/chak@cse.unsw.edu.au/
-<date>v0.7, 18 June 2001
+<date>v0.8, 7 October 2001
 <abstract>
 C-&gt;Haskell is an interface generator that simplifies the development of
 <htmlurl url="http://haskell.org" name="Haskell"> bindings to C libraries.  The
@@ -310,10 +310,10 @@ admissible.
 <p>
 A sizeof hooks maps a C type to its size in bytes.  As an example, consider
 <p>
-<tscreen>
-gIntSize :: Int<br>
+<tscreen><verb>
+gIntSize :: Int
 gIntSize  = {#sizeof gint#}
-</tscreen>
+</verb></tscreen>
 <p>
 The type must be a defined type, primitive types, such as <tt/int/, are not
 admissible.  The size of primitive types can always be obtained using
@@ -362,7 +362,7 @@ that the appropriate foreign import declaration is generated.  The tags
 functional and cannot re-enter the Haskell runtime, respectively.  If
 <it/hsid/ is present, it is used as the identifier for the foreign
 declaration, which otherwise defaults to the <it/cid/.
-
+<p>
 As an example, consider
 <p>
 <tscreen><verb>
@@ -502,6 +502,52 @@ and establish a type association between <tt/point/ and <tt/PointPtr/.
 <em/Restriction:/ The name <it/cid/ cannot be a basic C type (such as
 <tt/int/), it must be a defined name.
 
+<sect1>Class Hooks
+<p>
+<tscreen>
+{#class [<it/hsid1/ =>] <it/hsid2/ <it/hsid3/#}
+</tscreen>
+<p>
+Class hooks facilitate the definition of a single inheritance class hierachy
+for external pointers including up and down cast functionality.  This is meant
+to be used in cases where the objects referred to by the external pointers are
+order in such a hierachy in the external API - such structures are encountered
+in C libraries that provide an object-oriented interface.  Each class hook
+rewrites to a class declaration and one or more instance declarations.
+<p>
+All classes in a hierarchy, except the root, will have a superclass identified
+by <it/hsid1/.  The new class is given by <it/hsid2/ and the corresponding
+external pointer is identified by <it/hsid3/.  Both the superclass and the
+pointer type must already have been defined by binding hooks that precede the
+class hook.
+<p>
+The pointers in a hierachy must either all be foreign pointers or all be
+normal pointers.  Stable pointers are not allowed.  Both pointer defined as
+<tt/newtype/s and those defined by type synonyms may be used in class
+declarations and they may be mixed.  In the case of synonyms, Haskell's usual
+restrictions regarding overlapping instance declarations apply.
+<p>
+The newly defined class has two members whose names are derived from the type
+name <it/hsid3/.  The name of first member is derived from <it/hsid3/ by
+converting the first character to lower case.  This function casts from any
+superclass to the current class.  The name of the second member is derived by
+prefixing <it/hsid3/ with the <tt/from/.  It casts from the current class to
+any superclass.  A class hook generates an instance for the pointer in the
+newly defined class as well as in all its superclasses.
+<p>
+As an example, consider
+<p>
+<tscreen><verb>
+{#pointer *GtkObject newtype#}
+{#class GtkObjectClass GtkObject#}
+
+{#pointer *GtkWidget newtype#}
+{#class GtkObjectClass => GtkWidgetClass GtkWidget#}
+</verb></tscreen>
+<p>
+The second class hook generates an instance for <tt/GtkWidget/ for both the
+<tt/GtkWidgetClass/ as well as for the <tt/GtkObjectClass/.
+
 <sect1>Grammar Rules
 <p>
 The following grammar rules define the syntax of binding hooks:
@@ -517,6 +563,7 @@ inner    -> `import' ['qualified'] ident
           | `get' apath
           | `set' apath
           | `pointer' ['*'] idalias ptrkind
+          | `class' [ident `=>'] ident ident
 
 ctxt     -> [`header' `=' string] [`lib' `=' string] [prefix]
 idalias  -> ident [`as' ident]
@@ -614,6 +661,12 @@ The GNU Free Documentation License is available at
 <p>
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
+
+<sect1>Version 0.10.0 "Altocumulus Stratiformis Perlucidus Undulatus"
+<p>
+<itemize>
+<item>Added <tt/class/ hooks
+</itemize>
 
 <sect1>Version 0.9.9 "Blue Ginger"
 <p>
