@@ -1,11 +1,11 @@
 --  Compiler Toolkit: Self-optimizing LL(1) parser combinators
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 27 February 99
 --
---  Version $Revision: 1.22 $ from $Date: 2001/02/09 02:36:10 $
+--  Version $Revision: 1.23 $ from $Date: 2004/05/15 08:33:21 $
 --
---  Copyright (c) [1999..2000] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --
 --  This library is free software; you can redistribute it and/or
 --  modify it under the terms of the GNU Library General Public
@@ -398,6 +398,11 @@ seplist1 sepp p  = let me =     (\x -> [x]) $> p
 
 -- apply a parser to a token sequence (EXPORTED)
 --
+-- * The token mapping is applied to every token just before consumption.  It
+--   is useful if a processing phase needs to be put between scanner and
+--   lexer, where only the tokens actually consumed are to be processed (and
+--   the rest returned in their original form).
+--
 -- * Trailing tokens are returned in the third component of the result (the
 --   longest match is found).
 --
@@ -405,7 +410,12 @@ seplist1 sepp p  = let me =     (\x -> [x]) $> p
 --   returned pair) is undefined in case of an error (this changes when error
 --   correction is added).
 --
-execParser :: Token t => Parser a t r -> a -> [t] -> (r, [Error], [t])
+execParser :: Token t 
+	   => Parser a t r		-- parser specification
+	   -> a				-- initial state
+	   -> (t -> t)			-- token mapping
+	   -> [t]			-- token stream
+	   -> (r, [Error], [t])		-- result with errors and rest tokens
 --
 -- * Regarding the case cascade in the second equation, note that laziness is
 --   not our friend here.  The root of the parse tree will be constructed at
@@ -413,25 +423,27 @@ execParser :: Token t => Parser a t r -> a -> [t] -> (r, [Error], [t])
 --   with following stages here (and then there are the error messages, which
 --   also spoil pipelining).
 --
-execParser (Parser (Action m con) c) a [] =   -- eof
+execParser (Parser (Action m con) c) a _ [] =   -- eof
   case c of 
     Empty x _ -> (con (snd . m $ a) errtoken x, [], [])
     _         -> (errresult, [makeError FatalErr nopos eofErr], [])
-execParser (Parser (Action m con) c) a ts =   -- eat one token
-  case m a of				      --   execute meta action
-    (a', x') -> case cont c a' ts of	      --   process next input token
+execParser (Parser (Action m con) c) a f ts =   -- eat one token
+  case m a of				        --   execute meta action
+    (a', x') -> case cont c a' f ts of	        --   process next input token
 -- !!!		  (t, (x, errs, ts')) -> ((((con $! x') $ t) $!x), errs, ts')
 		  (t, (x, errs, ts')) -> ((((con $ x') $ t) $ x), errs, ts')
   where
-    cont :: Token t => Cont a t r -> a -> [t] -> (t, (r, [Error], [t]))
-    cont Done        _ (t:_)  = makeErr (posOf t) trailErr
-    cont (Alts alts) a (t:ts) = case lookupFM alts t of
-				  Nothing -> makeErr (posOf t) (illErr t)
-				  Just p  -> (t, execParser p a ts)
-    cont (Empty x p) a ts     =
+    cont :: Token t 
+	 => Cont a t r -> a -> (t -> t) -> [t] -> (t, (r, [Error], [t]))
+    cont Done        _ f (t:_)  = makeErr (posOf (f t)) trailErr
+    cont (Alts alts) a f (t:ts) = let t' = f t
+				  in case lookupFM alts t' of
+				    Nothing -> makeErr (posOf t') (illErr t')
+				    Just p  -> (t', execParser p a f ts)
+    cont (Empty x p) a f ts     =
       case p of
 	Parser _ Done      -> (errtoken, (x, [], ts))
-	_                  -> (errtoken, (execParser p a ts))
+	_                  -> (errtoken, (execParser p a f ts))
 
 makeErr pos err = (errtoken, (errresult, [makeError FatalErr pos err], []))
 
