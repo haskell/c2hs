@@ -4,6 +4,7 @@
 
 Next: -= phase re-ordering & parser clean up =-
 
+      - Check with glib.h (see michaelz's bug report)
       - {#enum ...#} should create an instance of Storable as follows:
 	  instance Storable MyEnum where
 	    sizeOf    _ = sizeOf    (undefined :: CInt)

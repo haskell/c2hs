@@ -3,9 +3,9 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.18 $ from $Date: 2000/08/06 04:17:28 $
+--  Version $Revision: 1.19 $ from $Date: 2001/02/04 14:59:01 $
 --
---  Copyright (c) [1999..2000] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -43,16 +43,16 @@
 --    void                      -> ()
 --    char		        -> CChar
 --    unsigned char             -> CUChar
---    signed char               -> CSChar
+--    signed char               -> CShort
 --    signed		        -> CInt
 --    [signed] int              -> CInt
 --    [signed] short [int]      -> CSInt
---    [signed] long [int]       -> CLInt
---    [signed] long long [int]  -> CLLInt
+--    [signed] long [int]       -> CLong
+--    [signed] long long [int]  -> CLLong
 --    unsigned [int]		-> CUInt
---    unsigned short [int]	-> CUSInt
---    unsigned long [int]	-> CULInt
---    unsigned long long [int]	-> CULLInt
+--    unsigned short [int]	-> CUShort
+--    unsigned long [int]	-> CULong
+--    unsigned long long [int]	-> CULLong
 --    float			-> CFloat
 --    double			-> CDouble
 --    long double		-> CLDouble
@@ -132,7 +132,7 @@ import Errors	  (interr, todo)
 import Idents     (Ident, identToLexeme, onlyPosIdent)
 import Attributes (newAttrsOnlyPos)
 
-import C2HSConfig (CPrimType(..), sizes, alignments, dlsuffix)
+import C2HSConfig (dlsuffix)
 import C2HSState  (CST, readCST, transCST, runCST, nop,
 		   raiseError, errorsPresent, showErrors, fatal,
 		   SwitchBoard(..), Traces(..), putTraceStr,
@@ -152,6 +152,7 @@ import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 		   lookupStructUnion)
 import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 		   CHSAccess(..), CHSAPath(..))
+import CInfo      (CPrimType(..), sizes, alignments)
 
 
 -- translation tables
@@ -672,13 +673,13 @@ showExtType (PrimET CCharPT)    = "CChar"
 showExtType (PrimET CUCharPT)   = "CUChar"
 showExtType (PrimET CSCharPT)   = "CSChar"
 showExtType (PrimET CIntPT)     = "CInt"
-showExtType (PrimET CSIntPT)    = "CSInt"
-showExtType (PrimET CLIntPT)    = "CLInt"
-showExtType (PrimET CLLIntPT)   = "CLLInt"
+showExtType (PrimET CShortPT)   = "CShort"
+showExtType (PrimET CLongPT)    = "CLong"
+showExtType (PrimET CLLongPT)   = "CLLong"
 showExtType (PrimET CUIntPT)    = "CUInt"
-showExtType (PrimET CUSIntPT)   = "CUSInt"
-showExtType (PrimET CULIntPT)   = "CULInt"
-showExtType (PrimET CULLIntPT)  = "CULLInt"
+showExtType (PrimET CUShortPT)  = "CUShort"
+showExtType (PrimET CULongPT)   = "CULong"
+showExtType (PrimET CULLongPT)  = "CULLong"
 showExtType (PrimET CFloatPT)   = "CFloat"
 showExtType (PrimET CDoublePT)  = "CDouble"
 showExtType (PrimET CLDoublePT) = "CLDouble"
@@ -775,26 +776,26 @@ typeMap  = [([void]                      , UnitET           ),
 	    ([signed]			 , PrimET CIntPT    ),
 	    ([int]			 , PrimET CIntPT    ),
 	    ([signed, int]		 , PrimET CIntPT    ),
-	    ([short]			 , PrimET CSIntPT   ),
-	    ([short, int]		 , PrimET CSIntPT   ),
-	    ([signed, short]		 , PrimET CSIntPT   ),
-	    ([signed, short, int]        , PrimET CSIntPT   ),
-	    ([long]                      , PrimET CLIntPT   ),
-	    ([long, int]                 , PrimET CLIntPT   ),
-	    ([signed, long]              , PrimET CLIntPT   ),
-	    ([signed, long, int]         , PrimET CLIntPT   ),
-	    ([long, long]                , PrimET CLLIntPT  ),
-	    ([long, long, int]           , PrimET CLLIntPT  ),
-	    ([signed, long, long]        , PrimET CLLIntPT  ),
-	    ([signed, long, long, int]   , PrimET CLLIntPT  ),
+	    ([short]			 , PrimET CShortPT  ),
+	    ([short, int]		 , PrimET CShortPT  ),
+	    ([signed, short]		 , PrimET CShortPT  ),
+	    ([signed, short, int]        , PrimET CShortPT  ),
+	    ([long]                      , PrimET CLongPT   ),
+	    ([long, int]                 , PrimET CLongPT   ),
+	    ([signed, long]              , PrimET CLongPT   ),
+	    ([signed, long, int]         , PrimET CLongPT   ),
+	    ([long, long]                , PrimET CLLongPT  ),
+	    ([long, long, int]           , PrimET CLLongPT  ),
+	    ([signed, long, long]        , PrimET CLLongPT  ),
+	    ([signed, long, long, int]   , PrimET CLLongPT  ),
 	    ([unsigned]			 , PrimET CUIntPT   ),
 	    ([unsigned, int]		 , PrimET CUIntPT   ),
-	    ([unsigned, short]		 , PrimET CUSIntPT  ),
-	    ([unsigned, short, int]	 , PrimET CUSIntPT  ),
-	    ([unsigned, long]		 , PrimET CULIntPT  ),
-	    ([unsigned, long, int]	 , PrimET CULIntPT  ),
-	    ([unsigned, long, long]	 , PrimET CULLIntPT ),
-	    ([unsigned, long, long, int] , PrimET CULLIntPT ),
+	    ([unsigned, short]		 , PrimET CUShortPT ),
+	    ([unsigned, short, int]	 , PrimET CUShortPT ),
+	    ([unsigned, long]		 , PrimET CULongPT  ),
+	    ([unsigned, long, int]	 , PrimET CULongPT  ),
+	    ([unsigned, long, long]	 , PrimET CULLongPT ),
+	    ([unsigned, long, long, int] , PrimET CULLongPT ),
 	    ([float]			 , PrimET CFloatPT  ),
 	    ([double]			 , PrimET CDoublePT ),
 	    ([long, double]		 , PrimET CLDoublePT),

@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Derived: 17 March 1999
 #
-#  Version $Revision: 1.1 $ from $Date: 1999/08/23 03:49:52 $
+#  Version $Revision: 1.2 $ from $Date: 2001/02/04 14:59:01 $
 #
 #  Copyright (c) 1999 Manuel M. T. Chakravarty
 #
@@ -31,7 +31,7 @@
 #
 PACKAGE = c2hs
 PART    = gen
-SRCS	= GenBind.hs
+SRCS	= CInfo.hs GenBind.hs
 OBJS	= $(patsubst %.hs,%.o,$(filter %.hs,$(SRCS)))
 
 include ../../mk/common.mk

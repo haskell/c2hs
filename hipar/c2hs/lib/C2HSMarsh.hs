@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 12 October 99
 --
---  Version $Revision: 1.17 $ from $Date: 2001/02/04 12:27:33 $
+--  Version $Revision: 1.18 $ from $Date: 2001/02/04 14:59:02 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -43,6 +43,31 @@ import Maybe        (isNothing)
 import Ptr          (Ptr, nullPtr, castPtr)
 import NewStorable  (Storable(..))
 import MarshalUtils (new)
+
+
+{-
+-- Is the following useful at all?
+type FromHaskell hsType cType = hsType -> IO (Ptr cType)
+type ToHaskell   hsType cType = Ptr cTyp  -> IO hsType
+
+fromInt :: Integral i => FromHaskell Int i
+fromInt  = new . cIntConv
+
+toInt   :: Integral i => ToHaskell Int i
+toInt p  = do {r <- peek p; free p; return $ cIntConv}
+
+fromFloat :: RealFloat i => FromHaskell Float i
+fromFloat  = new . cFloatConv
+
+toFloat   :: RealFloat i => ToHaskell Float i
+toFloat p  = do {r <- peek p; free p; return r$ cFloatConv}
+
+fromString :: FromHaskell String CChar
+fromString  = newCString
+
+toString   :: ToHaskell String CChar
+toString p  = do {res <- peekCString p; free p; return res}
+-}
 
 
 -- storing of `Maybe' values

@@ -1,3 +1,11 @@
+2001-02-05  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/C2HSConfig.hs.in: Moved the primitive characteristics
+	table to `CInfo' (it is based now on getting the information from
+	the FFI of the Haskell compiler compiling c2hs)
+
+	* gen/CInfo.hs: Added
+
 2001-02-04  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* lib/C2HSMarsh.hs: Moved almost everything to `C2HSDeprecated'
