@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 16 August 99
 --
---  Version $Revision: 1.26 $ from $Date: 2004/10/17 08:31:08 $
+--  Version $Revision: 1.27 $ from $Date: 2005/03/14 00:26:58 $
 --
 --  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --
@@ -421,12 +421,12 @@ showCHSModule (CHSModule frags) pureHaskell  =
     showFrags False  _     (CHSCPP  s    _     : frags) =   
         showChar '#'
       . showString s
-      . showChar '\n'
+--      . showChar '\n'
       . showFrags False Emit frags
     showFrags False  _     (CHSC    s    _     : frags) =
-        showString "\n#c\n"
+        showString "\n#c"
       . showString s
-      . showString "\n#endc\n"
+      . showString "\n#endc"
       . showFrags False Emit frags
     showFrags False  _     (CHSCond _    _     : frags) =
       interr "showCHSFrag: Cannot print `CHSCond'!"

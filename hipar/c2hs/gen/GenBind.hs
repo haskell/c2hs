@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.53 $ from $Date: 2004/10/17 08:31:08 $
+--  Version $Revision: 1.54 $ from $Date: 2005/03/14 00:26:58 $
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
@@ -451,8 +451,8 @@ expandHook hook@(CHSFun isPure isUns ide oalias ctxt parms parm pos) =
 	fiLexeme  = hsLexeme ++ "'_"   -- *Urgh* - probably unqiue...
 	fiIde     = onlyPosIdent nopos fiLexeme
         cdecl'    = cide `simplifyDecl` cdecl
-	callHook  = CHSCall isPure isUns ide (Just fiIde) pos
-    callImport callHook isPure isUns ideLexeme fiLexeme cdecl' pos
+	callHook  = CHSCall isPure isUns cide (Just fiIde) pos
+    callImport callHook isPure isUns (identToLexeme cide) fiLexeme cdecl' pos
     funDef isPure hsLexeme fiLexeme cdecl' ctxt parms parm pos
   where
     traceEnter = traceGenBind $ 

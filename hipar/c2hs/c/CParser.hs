@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.23 $ from $Date: 2004/10/08 22:32:46 $
+--  Version $Revision: 1.24 $ from $Date: 2005/03/14 00:26:58 $
 --
 --  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --
@@ -346,7 +346,7 @@ parseCFunDef  =
   list (
       ctoken_ (CTokGnuC GnuCExtTok) `opt` ()      -- ignore GCC's __extension__
   -*> parseCDeclSpec 
-  *-> optMaybe parseGnuCAttr			  -- ignore GCC's __attribute__
+  *-> list parseGnuCAttr			  -- ignore GCC's __attribute__
   )*> parseCDeclr 
   *> list parseCDecl 
   *> parseCCompStat
@@ -489,7 +489,7 @@ parseCDecl  =
   list1 (
       ctoken_ (CTokGnuC GnuCExtTok) `opt` ()      -- ignore GCC's __extension__
   -*> parseCDeclSpec 
-  *-> optMaybe parseGnuCAttr			  -- ignore GCC's __attribute__
+  *-> list parseGnuCAttr			  -- ignore GCC's __attribute__
   )*> seplist comma_ parseCInitDecl *-> semic_
   `actionAttrs`
     (\(specs, declrs) -> 
@@ -681,7 +681,7 @@ parseCDeclr  =
       (pointer `opt` id)
   *>  base
   *>  many (flip (.)) id (arrayType <|> newStyleFun <|> oldStyleFun)
-  *-> optMaybe parseGnuCAttr			  -- ignore GCC's __attribute__
+  *-> list parseGnuCAttr			  -- ignore GCC's __attribute__
   `action`
     \((ptr, base), declrTrans) -> ptr . declrTrans $ base 
   where

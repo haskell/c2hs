@@ -3,9 +3,9 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 13 August 99
 --
---  Version $Revision: 1.20 $ from $Date: 2004/10/17 08:31:08 $
+--  Version $Revision: 1.21 $ from $Date: 2005/03/14 00:26:58 $
 --
---  Copyright (c) [1999..2004] Manuel M T Chakravarty
+--  Copyright (c) [1999..2005] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -575,7 +575,10 @@ cpp = directive
 	  `lexmeta` 
 	     \(_:_:dir) pos s ->	-- strip off the "\n#"
 	       case dir of
-	         'c':sp:_ | sp `elem` " \t\n" ->	-- #c
+	         ['c']                      ->		-- #c
+		   (Nothing, retPos pos, s, Just cLexer)
+                 -- a #c may be followed by whitespace
+	         'c':sp:_ | sp `elem` " \t" ->		-- #c
 		   (Nothing, retPos pos, s, Just cLexer)
                  _                            ->        -- CPP directive
 		   (Just $ Right (CHSTokCPP pos dir), 
@@ -699,11 +702,10 @@ hsverb  = char '`' +> inhsverb`star` char '\''
 
 -- regular expressions
 --
-letter, digit, instr, inchar, inhsverb :: Regexp s t
+letter, digit, instr, inhsverb :: Regexp s t
 letter   = alt ['a'..'z'] >|< alt ['A'..'Z'] >|< char '_'
 digit    = alt ['0'..'9']
-instr    = alt ([' '..'\127'] \\ "\"\\")
-inchar   = alt ([' '..'\127'] \\ "\'")
+instr    = alt ([' '..'\255'] \\ "\"\\")
 inhsverb = alt ([' '..'\127'] \\ "\'")
 
 -- character sets

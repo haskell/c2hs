@@ -1,4 +1,24 @@
+2005-03-14  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CParser.hs: Allow lists of GNU C attributes (patch contributed
+	by Duncan Coutts <duncan.coutts@worc.ox.ac.uk>)
+
+	* chs/CHSLexer.hs (instr): Allow 8-bit characters (Volker Wysk
+	<post@volker-wysk.de> requested support for umlauts in strings)
+
+	* toplevel/Version.hs (versnum): 0.13.5
+
+2004-10-18  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs (showCHSModule): Don't add extra '\n' after directive
+	during pretty printing
+
+	* chs/CHSLexer.hs (cpp): forgot to adapt lexing of #c to the new
+	situation where directives don't consume the following '\n'
+
 2004-10-17  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs.conf.in: Modernised package deps and options
 
 	* gen/GenBind.hs (expandHook): We use the shadow identifier for
 	generating the Haskell name.

@@ -3,9 +3,9 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 5 February 2003
 --
---  Version $Revision: 1.2 $
+--  Version $Revision: 1.3 $
 --
---  Copyright (c) 2003 Manuel M T Chakravarty
+--  Copyright (c) 2004 Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by

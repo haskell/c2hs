@@ -888,9 +888,10 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.13.4 "Pressing Forward"
+<sect1>Version 0.13.5 "Pressing Forward"
 <p>
 <itemize>
+<item>Strings may contain 8-bit characters (e.g., umlauts).
 <item>Identifier may optionally be put in single quotes.  (This is useful if
 they would otherwise collide with a C-&gt;Haskell keyword.)
 <item>Some smaller bug fixes
