@@ -6,8 +6,9 @@ Next: - Points raised by PeteG:
 	* The initial comment put by c2hs shouldn't be put in the first line,
 	  as this makes it difficult to add {-# OPTIONS #-} pragma to the .chs
 	  file, as this pragma must be in the first line.
-	* c2hs' initial comment also seems to confuse haddock (maybe also
-	  other things done by c2hs; check!)
+
+          The only sensible solution seems to be to copy the first line of the
+          .chs file on top if it starts with the string "{-# OPTIONS".
 
       - We really should integrate c2hs' lib with the generated code and not
         require that c2hs is installed when using a program that happens to
@@ -26,18 +27,15 @@ Next: - Points raised by PeteG:
         marshalling library to profile programs including c2hs generated
         code.
 
-      - move over to Standard FFI, but support the old syntax when --old-ffi
-        given (remove the old meaning of --old-ffi); emit <Lib>.h into the
-        extent portion foreign import declarations
+      - remove --old-ffi option
 
       - All the C2HS binding hook keyword, such as `type', cannot be used in
 	access paths of get/set hooks! (See `gdk/GdkVisual.chs'.)  Sean needs
 	this, too.
 
-      - extend the C lexer/parser to accept full C (not just declarations, but
-        also code); then, inline C can include code and we can actually
-        compile it and hence put auxilliary C code in there instead of into
-        extra C files
+      - now that our frontend can do all of C (including function bodies),
+        inline C can include code and we can actually compile it and hence put
+        auxilliary C code in there instead of into extra C files
 
       - Tutorial
 

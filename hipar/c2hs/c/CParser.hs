@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.22 $ from $Date: 2004/06/11 07:10:16 $
+--  Version $Revision: 1.23 $ from $Date: 2004/10/08 22:32:46 $
 --
 --  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --
@@ -70,6 +70,9 @@
 --    may occur in a specifier list.
 --
 --  * There may be a `,' behind the last element of a enum.
+--
+--  * Structs and unions may lack any declarations; eg, `struct { } foo;' is
+--    valid. 
 --
 --  * Builtin type names are imported from `CBuiltin'.
 --
@@ -580,6 +583,10 @@ parseCTypeQual  =     CTokConst    `tokenToAttrs` CConstQual
 -- * Note: an identifier after a struct tag *may* be a type name; thus, we need
 --	   to use `cidOrTN' rather than just `cid'
 --
+-- * GNU C: Structs and unions may lack any declarations; eg, `struct { }
+--   foo;' is valid. 
+--
+--
 parseCStructUnion :: CParser CStructUnion
 parseCStructUnion  = 
       (parseCStructTag *> optMaybe cidOrTN *> parseCStructDeclList
@@ -595,7 +602,7 @@ parseCStructUnion  =
 		      <|> CTokUnion  `tokenToPos` CUnionTag
 
     parseCStructDeclList = ctoken_ CTokLBrace -*>
-			   list1 (parseCStructDecl) *->
+			   list (parseCStructDecl) *->
 			   ctoken_ CTokRBrace
 
 -- parse C structure declaration (K&R A8.3)

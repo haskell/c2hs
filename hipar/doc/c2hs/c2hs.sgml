@@ -7,7 +7,7 @@
 
 <title>The Binding Generator C->Haskell
 <author>Manuel M. T. Chakravarty, <tt/chak@cse.unsw.edu.au/
-<date>v0.15, 22 May 2003
+<date>v0.17, 8 October 2004
 <abstract>
 C-&gt;Haskell is an interface generator that simplifies the development of
 <htmlurl url="http://haskell.org" name="Haskell"> bindings to C libraries.  The
@@ -31,7 +31,7 @@ function hooks and conditional compilation.
 <p>
 <bf>Copyright &amp; Distribution</bf>
 <p>
-Copyright (c) [1999..2003] by <htmlurl
+Copyright (c) [1999..2004] by <htmlurl
 url="http://www.cse.unsw.edu.au/~chak/" name="Manuel M. T. Chakravarty">.  
 The manual is distributed under the terms GNU Free Documentation License
 available from
@@ -581,17 +581,17 @@ type argument is <tt/()/, but another type can be specified after the symbol
 For example, we may have
 <p>
 <tscreen><verb>
-{#pointer *GtkObject as Object foreign newtype#}
+{#pointer *GtkObject as Object newtype#}
 </verb></tscreen>
 <p>
 This will generate a new type <tt/Object/ as follows:
 <p>
 <tscreen><verb>
-newtype Object = Object (ForeignPtr Object)
+newtype Object = Object (Ptr Object)
 </verb></tscreen>
 <p>
-which allows to export <tt/Object/ as an abstract type and facilitates type
-checking at call sites of imported functions using the encapsulated foreign
+which enables exporting <tt/Object/ as an abstract type and facilitates type
+checking at call sites of imported functions using the encapsulated
 pointer.  The latter is achieved by C-&gt;Haskell as follows.  The tool
 remembers the association of the C type <tt/*GtkObject/ with the Haskell type
 <tt/Object/, and so, it generates for the C function
@@ -610,10 +610,28 @@ This function can obviously only be applied to pointers of the right type, and
 thus, protects against the common mistake of confusing the order of pointer
 arguments in function calls.
 <p>
-However, as the Haskell FFI does not allow to return <tt/ForeignPtr/s from
-function calls, the tool will use the type <tt/Ptr HsName/ in this case, where
-<tt/HsName/ is the Haskell name of the type.  In the above example, that would
-be <tt/Ptr Object/.
+However, as the Haskell FFI does not permit to directly pass <tt/ForeignPtr/s
+to function calls or return them, the tool will use the type <tt/Ptr HsName/
+in this case, where <tt/HsName/ is the Haskell name of the type.  So, if we
+modify the above declaration to be
+<p>
+<tscreen><verb>
+{#pointer *GtkObject as Object foreign newtype#}
+</verb></tscreen>
+<p>
+the type <tt/Ptr Object/ will be used instead of a plain <tt/Object/ in import
+declarations; i.e., the previous <tt/import/ declaration will become
+<p>
+<tscreen><verb>
+foreign import gtk_unref_object :: Ptr Object -> IO ()
+</verb></tscreen>
+<p>
+To simplify the required marshalling code for such pointers,
+the tool automatically generates a function
+<p>
+<tscreen><verb>
+withObject :: Object -> (Ptr Object -> IO a) -> IO a
+</verb></tscreen>
 <p>
 As an example that does not represent the pointer as an abstract type,
 consider the C type declaration:
@@ -859,7 +877,16 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.12.0 "Springtime"
+<sect1>Version 0.13.2 "Pressing Forward"
+<p>
+<itemize>
+<item>We allow structs and unions with no declarations.
+<item>Headers including function bodies are now parsed correctly.
+<item>Duncan Coutts identified a space leak in the parser whose removal
+improved performance significantly.
+</itemize>
+
+<sect1>Version 0.12.1 "Springtime"
 <p>
 <itemize>
 <item>Removed support for deprecated <tt/C2HS/ interface and for old versions

@@ -1,4 +1,5 @@
-HC     = ghc
+include ../../mk/config.mk
+
 HCFLAGS= -package lang -fglasgow-exts -i../lib -L../lib -lc2hs
 C2HS   = ../c2hs
 

@@ -1,3 +1,22 @@
+2004-10-09  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CAttrs.hs (applyPrefix): never create empty shadow identifiers
+
+2004-10-08  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs (dumpCHS): Header doesn't contain the "-- **"
+	sequence anymore that Haddock dislikes.
+
+	* c/CParser.hs (parseCStructUnion): We allow structs and unions
+	with no declarations, as GNU C does
+
+	* toplevel/Version.hs (versnum): 0.13.2
+
+2004-08-21  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* tests/Makefile: use configured $HC (courtesy Don Stewart
+	<dons@cse.unsw.edu.au>)
+
 2004-06-11  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenBind.hs (pointerDef): Adapted to the standard interface

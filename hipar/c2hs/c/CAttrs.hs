@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 12 August 99
 --
---  Version $Revision: 1.7 $ from $Date: 2004/05/15 08:34:50 $
+--  Version $Revision: 1.8 $ from $Date: 2004/10/08 22:32:46 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -228,6 +228,7 @@ applyPrefix ac prefix  =
   where
     strip prefix ide = case eat prefix (identToLexeme ide) of
 		         Nothing      -> Nothing
+			 Just ""      -> Nothing
 			 Just newName -> Just 
 					   (onlyPosIdent (posOf ide) newName,
 					    ide)
