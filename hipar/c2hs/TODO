@@ -4,6 +4,9 @@
 
 Next: -= phase re-ordering & parser clean up =-
 
+      - BUG in generating signatures for functions having "pointer to pointer"
+        arguments; see Gdk.chs
+
       - Pending suggestions from Axel Simon:
 	+ succ/pred definitions for enum hooks
 	+ Compilation of multiple files in one c2hs invocation
@@ -199,6 +202,9 @@ Short term
 
 * line directives for the Haskell compiler (emit only after chunks of
   C->HS generated code); there should be an option to disable this
+
+* In pointer hooks after a `->', we currently allow only type identifiers;
+  other forms of Haskell types would be nice, too (especially, `()').
 
 * A function prototype that uses a defined type on its left hand side may
   declare a function, while that is not obvious from the declaration itself
