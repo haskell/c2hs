@@ -2,17 +2,10 @@
                                 C2HS TODO
                                 =========
 
-Next: - configuration oracle should have an option to print the Haskell
-        compiler and version it was compiled for
-
-      - Test with GHC 5.04
-
-      - check building with latest nhc (still problems in `Parsers' with nhc98
+Next: - check building with latest nhc (still problems in `Parsers' with nhc98
         1.10) 
 
       - Bug exposed in Glade.chs where the `init' function gets the wrong name
-
-      *** Next Release ***
 
       Major features to be added after the release: conditions (incl phase
       re-ordering), structure marshalling.
