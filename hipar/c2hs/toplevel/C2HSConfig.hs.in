@@ -6,7 +6,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 27 September 99
 --
---  Version $Revision: 1.9 $ from $Date: 2001/02/09 02:37:00 $
+--  Version $Revision: 1.10 $ from $Date: 2001/02/09 05:02:11 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -48,7 +48,8 @@ import
 @END_NEW_FFI@
 
 @BEGIN_LEGACY_FFI@
-import Addr (Addr)
+import 
+ Addr (Addr)  -- on an extra line to trick the stupid `mkdependHS'
 @END_LEGACY_FFI@
 
 @BEGIN_NOT_NHC@
@@ -56,7 +57,8 @@ import Storable (Storable(sizeOf, alignment))
 @END_NOT_NHC@
 
 @BEGIN_NHC@
-import FFI (Storable(sizeOf, alignment))
+import 
+ FFI (Storable(sizeOf, alignment))  -- on an extra line to trick the stupid `mkdependHS'
 @END_NHC@
 
 
