@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Derived: 11 March 1999 (from SysDepGHC3.hs)
 --
---  Version $Revision: 1.4 $ from $Date: 2000/08/18 05:41:05 $
+--  Version $Revision: 1.5 $ from $Date: 2001/04/29 13:06:04 $
 --
 --  Copyright (c) [1996..2000] Manuel M. T. Chakravarty
 --
@@ -30,7 +30,7 @@
 --- DOCU ----------------------------------------------------------------------
 --
 --  language: Haskell 98 (tested with the low-level interfaces of 
---	      GHC 4.0[2..8])
+--	      GHC 4.0[2..8] and 5.00)
 --
 --  * may only import `Config'
 --

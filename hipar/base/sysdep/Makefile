@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 24 October 1997
 #
-#  Version $Revision: 1.12 $ from $Date: 2000/08/18 05:41:05 $
+#  Version $Revision: 1.13 $ from $Date: 2001/04/29 13:06:04 $
 #
 #  Copyright (c) [1997..1999] Manuel M. T. Chakravarty
 #
@@ -46,13 +46,13 @@ OBJS	= $(patsubst %.hs,%.o,$(SRCS))
 include ../../mk/common.mk
 -include ../$(DEPEND)
 
-# In case we use a GHC3 or GHC4 system, we need some extra options for 
+# In case we use a GHC4 or GHC5 system, we need some extra options for 
 # `SysDep.hs'. 
 #
 # * we currently need `-fvia-C', as the native code generator doesn't grok 
 #   some of the non-standard primitives
 #
-ifeq ($(SYS),$(findstring $(SYS),ghc3 ghc4))
+ifeq ($(SYS),$(findstring $(SYS),ghc4 ghc5))
   EXTRAHCFLAGS= -fglasgow-exts -fvia-C
 endif
 
@@ -80,7 +80,7 @@ all: testconfig objs
 # name of the Haskell module containing the system dependend code for
 # system $(SYS) -- "SysDep" ++ $(SYS) ++ ".hs"
 #
-# ?? Has anybody a good idea how to convert a string to all upper here ??
+# FIXME: Has anybody a good idea how to convert a string to all upper here
 #
 SYSUPPER      = $(subst nhc,NHC,$(subst ghc,GHC,$(SYS)))
 SYSDEPHS      = $(addsuffix .hs,$(addprefix SysDep,$(SYSUPPER)))
@@ -93,13 +93,18 @@ AVAIL_SYSDEPHS= $(wildcard SysDep*.hs)
 #
 # * Then, we check for supports of HSLibs' posix package
 #
+# * SysDepGHC5.hs is an alias of SysDepGHC4.hs
+#
 config:
-ifeq ($SYS,$(findstring $SYS,AVAIL_SYSDEPHS))
+	@$(RM) SysDepGHC5.hs
+	@$(LN) -s SysDepGHC4.hs SysDepGHC5.hs
+ifeq ($(SYSDEPHS),$(findstring $(SYSDEPHS),$(AVAIL_SYSDEPHS) SysDepGHC5.hs))
 	$(RM) SysDep.hs
 	$(LN) -s $(SYSDEPHS) SysDep.hs
 	@echo "*** Configured for compilation system $(SYS)."
 	$(MAKE) -C ../syntax $(MFLAGS) $@
 else
+	@echo "$(SYSDEPHS) in $(AVAIL_SYSDEPHS) SysDepGHC5.hs"
 	@echo "*** Unsupported Haskell compiler \`$(SYS)' specified! "
 	@exit 1
 endif

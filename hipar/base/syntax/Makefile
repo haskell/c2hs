@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.6 $ from $Date: 1999/11/30 17:08:21 $
+#  Version $Revision: 1.7 $ from $Date: 2001/04/29 13:06:04 $
 #
 #  Copyright (c) 1999 Manuel M. T. Chakravarty
 #
@@ -42,7 +42,7 @@ include ../../mk/common.mk
 
 # check whether we can use rank-2 type variables
 #
-RANK2 = $(findstring $(SYS),ghc4 nhc1)
+RANK2 = $(findstring $(SYS),ghc4 ghc5 nhc1)
 
 # if we cannot use rank-2 variables, exclude the `Parsers' modules
 #
