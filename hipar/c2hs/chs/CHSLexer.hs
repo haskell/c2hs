@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 13 August 99
 --
---  Version $Revision: 1.11 $ from $Date: 2001/06/16 12:36:06 $
+--  Version $Revision: 1.12 $ from $Date: 2001/06/20 09:25:13 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -75,10 +75,11 @@
 --    transfers control to the following binding-hook lexer:
 --
 --      ident       -> letter (letter | digit | ')*
---      reservedid  -> `as' | `call' | `context' | `deriving' | `enum' 
---		     | `foreign' | `fun' | `get' | `header' | `lib' 
---		     | `newtype' | `pointer' | `prefix' | `set' | `stable' 
---		     | `type' | `underscoreToCase' | `unsafe' | `with'
+--      reservedid  -> `as' | `call' | `context' | `deriving' 
+--		     | `enum' | `foreign' | `fun' | `get' | `header' | `lib' 
+--		     | `newtype' | `pointer' | `prefix' | `set' | `sizeof'
+--		     | `stable' | `type' | `underscoreToCase' | `unsafe' 
+--		     | `with'
 --      reservedsym -> `{#' | `#}' | `{' | `}' | `,' | `.' | `->' | `=' | `*'
 --      string      -> `"' instr* `"'
 --      instr       -> ` '..`\127' \\ `"'
@@ -168,6 +169,7 @@ data CHSToken = CHSTokArrow   Position		-- `->'
 	      | CHSTokPrefix  Position		-- `prefix'
 	      | CHSTokQualif  Position		-- `qualified'
 	      | CHSTokSet     Position		-- `set'
+	      | CHSTokSizeof  Position		-- `sizeof'
 	      | CHSTokStable  Position		-- `stable'
 	      | CHSTokType    Position		-- `type'
 	      | CHSTok_2Case  Position		-- `underscoreToCase'
@@ -205,6 +207,7 @@ instance Pos CHSToken where
   posOf (CHSTokPrefix  pos  ) = pos
   posOf (CHSTokQualif  pos  ) = pos
   posOf (CHSTokSet     pos  ) = pos
+  posOf (CHSTokSizeof  pos  ) = pos
   posOf (CHSTokStable  pos  ) = pos
   posOf (CHSTokType    pos  ) = pos
   posOf (CHSTok_2Case  pos  ) = pos
@@ -242,6 +245,7 @@ instance Eq CHSToken where
   (CHSTokPrefix   _  ) == (CHSTokPrefix   _  ) = True
   (CHSTokQualif   _  ) == (CHSTokQualif   _  ) = True
   (CHSTokSet      _  ) == (CHSTokSet      _  ) = True
+  (CHSTokSizeof   _  ) == (CHSTokSizeof   _  ) = True
   (CHSTokStable   _  ) == (CHSTokStable   _  ) = True
   (CHSTokType     _  ) == (CHSTokType     _  ) = True
   (CHSTok_2Case   _  ) == (CHSTok_2Case   _  ) = True
@@ -279,6 +283,8 @@ instance Show CHSToken where
   showsPrec _ (CHSTokPointer _  ) = showString "pointer"
   showsPrec _ (CHSTokPrefix  _  ) = showString "prefix"
   showsPrec _ (CHSTokQualif  _  ) = showString "qualified"
+  showsPrec _ (CHSTokSet     _  ) = showString "set"
+  showsPrec _ (CHSTokSizeof  _  ) = showString "sizeof"
   showsPrec _ (CHSTokStable  _  ) = showString "stable"
   showsPrec _ (CHSTokType    _  ) = showString "type"
   showsPrec _ (CHSTok_2Case  _  ) = showString "underscoreToCase"
@@ -520,6 +526,7 @@ identOrKW  =
     idkwtok pos "prefix"           _    = CHSTokPrefix  pos
     idkwtok pos "qualified"        _    = CHSTokQualif  pos
     idkwtok pos "set"              _    = CHSTokSet     pos
+    idkwtok pos "sizeof"           _    = CHSTokSizeof  pos
     idkwtok pos "stable"	   _	= CHSTokStable	pos
     idkwtok pos "type"             _    = CHSTokType    pos
     idkwtok pos "underscoreToCase" _    = CHSTok_2Case  pos

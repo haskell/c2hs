@@ -11,6 +11,17 @@ Next: -= phase re-ordering & parser clean up =-
       - Pending suggestions from Armin Sander:
 	+ MarshalFlags.hs
 
+      - We need to handle the time stamps of .chi files more carefully;
+        otherwise, we often get lots of unnecessary re-runs of c2hs.
+
+      - Conceptual problem with import hooks: Currently, everything imported
+        from a .chi file by a binding module is also dumped into its own .chi
+        file.  Is is not generally correct, but it would also not be correct
+        to omit everything that has been imported.  The conceptually correct
+        solution would be to dump an entry for a type into a .chi file if the
+        corresponding Haskell type is exported by the binding module.  To
+        achieve this, we would also need an export hook.
+
       - the idea of the hipar/mk/*.mk file to identify which projects are
         present doesn't really cut it as `cvs update' will always check these
         files out; fix this!
@@ -81,9 +92,6 @@ Next: -= phase re-ordering & parser clean up =-
 		 used - usage requires reordering the phases
       - intro a safe flag (as opposite to unsafe, but make safe the default)
       - overload stdAddr etc for ForeignObj (stable ptr & cast)
-      - {#sizeof <type>#} becomes `sizeof (<type>)'
-        BETTER have a {#const ...#} hook like hsc2hs; this also can be used
-        with sizeof, but also other constants
       - All the C2HS binding hook keyword, such as `type', cannot be used in
 	access paths of get/set hooks! (See `gdk/GdkVisual.chs'.)
       - C2HSMarsh: from qrczak@knm.org.pl (Marcin 'Qrczak' Kowalczyk)
@@ -128,37 +136,6 @@ Next: -= phase re-ordering & parser clean up =-
         special library-only compile and installation.
       - maybe compilers based on the CTK should add a README.1ST to the root
 	directory when they are tarified
-
-Alias Hooks
-~~~~~~~~~~~
-
-Given
-
-  void gtk_clist_select_all (GtkCList *clist);
-
-and 
-
-  {#alias CList foreign newtype#}
-
-  cListSelectAll clist = 
-    {#call clist_select_all#} (unCListClass clist)
-
-we get
-
-  newtype CList = CList (ForeignPtr CList)
-
-  foreign import cListSelectAll :: ForeignPtr CList -> IO ()
-
-Moreover,
-
-  {#alias CList foreign#}
-
-would become
-
-  type CList = Ptr 
-
-* Strictly speaking, we shouldn't even need an alias table for that, as the
-  FFI can look through newtypes.
 
 
 Marshalling templates
@@ -276,35 +253,19 @@ Short term
   an interlocked produced/consumer scheme for the lexer and whatever function
   is consuming the tokens).
 
+* sizeof and type hooks do only allow defined, but not basic types as
+  arguments.  This is not a real problem as C2HS provides all the needed
+  information to circumvent such usage, but it would still be more elegant to
+  support basic types as arguments, too.
+
 Side issues:
 ------------
 
-* FFI issue: There are no floating types with explicit sizes.  (Would be
-  needed to make the size mapping in `configure.in' more portable.)
-
-* FFI: Would it be nicer if the `Addr.read/writeXXXOffAddr' functions would
-  get an offset in bytes instead of in multiples of the kind of datum that
-  they are accessing (would definitely be better for accessing structures
-  etc.)
-
 * FFI: How can structs as function results be realised?
-
-* FFI: Would it be clean when a foreign import declaration generates the
-  necessary prototype corresponding to this automatically instead of relying
-  on ugly `-#include's?
-
-* FFI: Addr.plusAddr should get the precedence of (+)
 
 * FFI: If the FFI for C functions returning a structure would return a pointer 
   to that structure, we could handle them without extra impedance code in C.
   The problem is of course, where to store the structure (and how to free it).
-
-* FFI: It is not good for portability that .so is explicit in foreign
-  declarations. 
-
-* There should be a facility to import global C variables.  The name they are
-  bound to should return the address of the variable when accessed (thus,
-  everything remains ref trans).
 
 Tip from Alastair: 
      If you compile a C file (with gcc) with debugging on
@@ -317,6 +278,15 @@ Tip from Alastair:
 
 Middle term
 ~~~~~~~~~~~
+
+* A hook {#const <C expr>#} would be nice (as in hsc2hs).  Unfortunately, it
+  is not that easy to realise.  We need to parse the <C expr> in the binding
+  module.  Moreover, the main value of this would be when the <C expr> is
+  put into the C field together with `enum define' stuff, so that all
+  pre-processor symbols in it are resolved.  However, this can easily give us
+  C compiler errors.  A cheap way out would be {#const "C expr"#} to avoid
+  parsing the C expression, but then we can get even more errors during
+  compiling the C.
 
 * Directories contained in `C_INCLUDE_PATH' should be searched for header
   files after directories extracted from the -I option in cpp options, but

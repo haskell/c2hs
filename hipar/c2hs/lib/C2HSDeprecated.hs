@@ -4,7 +4,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 18 August 1999
 --
---  Version $Revision: 1.3 $ from $Date: 2001/02/22 00:35:07 $
+--  Version $Revision: 1.4 $ from $Date: 2001/06/20 09:25:14 $
 --
 --  Copyright (c) [2000..2001] Manuel M. T. Chakravarty
 --
@@ -41,8 +41,8 @@ module C2HSDeprecated (
   Addr, nullAddr, plusAddr, alignAddr, minusAddr,
   -- the names of theses types did change
   CSInt, CLInt, CLLInt, CUSInt, CULInt, CULLInt,
-  -- old C2HS-style Storable support
-  Storable(sizeof, assign, deref), assignOff, derefOff, assign_, deref_,
+  -- old C2HS-style Storable support PLUS the methods of the new Storable
+  Storable(..), assignOff, derefOff, assign_, deref_,
   assignOff_, derefOff_,
   -- these have different names now
   mallocBySize, malloc, 
@@ -121,6 +121,19 @@ class Storable a where
   assign :: Addr -> a -> IO Addr
   deref  :: Addr -> IO (a, Addr)
 
+  -- new methods
+  alignment   :: a -> Int
+  peekElemOff :: Ptr a -> Int      -> IO a
+  pokeElemOff :: Ptr a -> Int -> a -> IO ()
+  peekByteOff :: Ptr b -> Int      -> IO a
+  pokeByteOff :: Ptr b -> Int -> a -> IO ()
+  peek        :: Ptr a      -> IO a
+  poke        :: Ptr a -> a -> IO ()
+
+-- the new spelling of the old method
+sizeOf :: Storable a => a -> Int
+sizeOf  = sizeof
+
 instance Storable Char where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -129,6 +142,14 @@ instance Storable Char where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment   = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable Int where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -137,6 +158,14 @@ instance Storable Int where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable Int8 where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -145,6 +174,14 @@ instance Storable Int8 where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable Int16 where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -153,6 +190,14 @@ instance Storable Int16 where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable Int32 where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -161,6 +206,14 @@ instance Storable Int32 where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable Int64 where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -169,6 +222,14 @@ instance Storable Int64 where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable Word8 where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -177,6 +238,14 @@ instance Storable Word8 where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable Word16 where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -185,6 +254,14 @@ instance Storable Word16 where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable Word32 where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -193,6 +270,14 @@ instance Storable Word32 where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable Word64 where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -201,6 +286,14 @@ instance Storable Word64 where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable Float where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -209,6 +302,14 @@ instance Storable Float where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable Double where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -217,6 +318,14 @@ instance Storable Double where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable Addr where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -225,6 +334,14 @@ instance Storable Addr where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 
 instance Storable CChar where
   sizeof = C2HS.sizeOf
@@ -234,6 +351,14 @@ instance Storable CChar where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable CSChar where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -242,6 +367,14 @@ instance Storable CSChar where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable CUChar where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -250,6 +383,14 @@ instance Storable CUChar where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable CShort where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -258,6 +399,14 @@ instance Storable CShort where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable CUShort where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -266,6 +415,14 @@ instance Storable CUShort where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable CInt where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -274,6 +431,14 @@ instance Storable CInt where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable CUInt where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -282,6 +447,14 @@ instance Storable CUInt where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable CLong where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -290,6 +463,14 @@ instance Storable CLong where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable CULong where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -298,6 +479,14 @@ instance Storable CULong where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable CLLong where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -306,6 +495,14 @@ instance Storable CLLong where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable CULLong where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -314,6 +511,14 @@ instance Storable CULLong where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 {-
 instance Storable CFloat where
   sizeof = C2HS.sizeOf
@@ -323,6 +528,14 @@ instance Storable CFloat where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable CDouble where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -331,6 +544,14 @@ instance Storable CDouble where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 instance Storable CLDouble where
   sizeof = C2HS.sizeOf
   assign addr v = do
@@ -339,6 +560,14 @@ instance Storable CLDouble where
   deref addr = do
     v <- C2HS.peek (castPtr addr)
     return (v, addr `plusPtr` sizeof v)
+  --
+  alignment = C2HS.alignment
+  peekElemOff = C2HS.peekElemOff
+  pokeElemOff = C2HS.pokeElemOff
+  peekByteOff = C2HS.peekByteOff
+  pokeByteOff = C2HS.pokeByteOff
+  peek        = C2HS.peek
+  poke	      = C2HS.poke
 -}
 
 -- assignment with byte offset (EXPORTED)

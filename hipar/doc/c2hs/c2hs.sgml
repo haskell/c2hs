@@ -296,8 +296,28 @@ module.
 A type hooks maps a C type to a Haskell type.  As an example, consider
 <p>
 <tscreen>
-type GInt = {#type g_int#}
+type GInt = {#type gint#}
 </tscreen>
+<p>
+The type must be a defined type, primitive types, such as <tt/int/, are not
+admissible.
+
+<sect1>Sizeof Hooks
+<p>
+<tscreen>
+{#sizeof <it/ident/#}
+</tscreen>
+<p>
+A sizeof hooks maps a C type to its size in bytes.  As an example, consider
+<p>
+<tscreen>
+gIntSize :: Int<br>
+gIntSize  = {#sizeof gint#}
+</tscreen>
+<p>
+The type must be a defined type, primitive types, such as <tt/int/, are not
+admissible.  The size of primitive types can always be obtained using
+<tt/Storable.sizeOf/. 
 
 <sect1>Enumeration Hooks
 <p>
@@ -491,6 +511,7 @@ hook     -> `{#' inner `#}'
 inner    -> `import' ['qualified'] ident
 	  | `context' ctxt
           | `type' ident
+          | `sizeof' ident
           | `enum' idalias trans [`with' prefix] [deriving]
           | `call' [`fun'] [`unsafe'] idalias
           | `get' apath
@@ -594,10 +615,12 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.9.7 "Blue Ginger"
+<sect1>Version 0.9.8 "Blue Ginger"
 <p>
 <itemize>
 <item>Bug fixes
+<item>Added <tt/sizeof/ hooks; sizeof of type names is now also supported in
+constant expressions
 <item>Local prefix for <tt/enum/ hooks; courtesy of Armin Sander
 <item>Added <tt/import/ hooks
 <item>The documentation includes a description of binding hooks
@@ -629,7 +652,7 @@ importing <tt/C2HSDeprecated/
 <p>
 <itemize>
 <item>CygWin support; based on suggestions by Anibal Maffioletti Rodrigues de
-DEUS &gt;anibaldedeus@email.com&lt;
+DEUS &lt;anibaldedeus@email.com&gt;
 <item><tt/IntConv/ instances for <tt/Int8/, <tt/Word8/, and <tt/Char/
 </itemize>
 

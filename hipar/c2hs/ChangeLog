@@ -1,3 +1,22 @@
+2001-06-20  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): added sizeof hook
+	(sizeAlignOf): corrected size computation for structures to
+	conform to [K&R A7.4.8]
+	(sizeAlignOf): improved handling of `DefinedET', which led to an
+	endless loop
+
+	* chs/CHS.hs: added sizeof hook
+
+	* chs/CHSLexer.hs: added keyword `sizeof'
+
+	* gen/GenBind.hs (evalConstCExpr): sizeof now supported
+
+	* lib/C2HSDeprecated.hs: includes Storable methods of the new
+	Storable in addition to those of the old
+
+	* toplevel/Version.hs (versnum): 0.9.8
+
 2001-06-18  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* c/CParser.hs (parseCExpr): `CComma' requires at least two

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 August 99
 --
---  Version $Revision: 1.15 $ from $Date: 2001/06/16 12:36:06 $
+--  Version $Revision: 1.16 $ from $Date: 2001/06/20 09:25:13 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -52,6 +52,7 @@
 --  inner    -> `import' ['qualified'] ident
 --	      | `context' ctxt
 --	      | `type' ident
+--	      | `sizeof' ident
 --	      | `enum' idalias trans [`with' prefix] [deriving]
 --	      | `call' [`fun'] [`unsafe'] idalias
 --	      | `get' apath
@@ -123,6 +124,8 @@ data CHSHook = CHSImport  Bool			-- qualified?
 			  Position
 	     | CHSType    Ident			-- C type
 			  Position
+	     | CHSSizeof  Ident			-- C type
+			  Position
 	     | CHSEnum    Ident			-- C enumeration type
 			  (Maybe Ident)		-- Haskell name
 			  CHSTrans		-- translation table
@@ -149,6 +152,7 @@ instance Pos CHSHook where
   posOf (CHSImport  _ _ _       pos) = pos
   posOf (CHSContext _ _ _       pos) = pos
   posOf (CHSType    _           pos) = pos
+  posOf (CHSSizeof  _           pos) = pos
   posOf (CHSEnum    _ _ _ _ _   pos) = pos
   posOf (CHSCall    _ _ _ _     pos) = pos
   posOf (CHSField   _ _         pos) = pos
@@ -163,6 +167,8 @@ instance Eq CHSHook where
   (CHSContext h1 olib1 opref1  _) == (CHSContext h2 olib2 opref2  _) =    
     h1 == h2 && olib1 == olib1 && opref1 == opref2
   (CHSType ide1                _) == (CHSType ide2                _) = 
+    ide1 == ide2
+  (CHSSizeof ide1              _) == (CHSSizeof ide2              _) = 
     ide1 == ide2
   (CHSEnum ide1 oalias1 _ _ _  _) == (CHSEnum ide2 oalias2 _ _ _  _) = 
     oalias1 == oalias2 && ide1 == ide2
@@ -316,9 +322,11 @@ showCHSHook (CHSContext oheader olib oprefix _) =
        Nothing  -> showString ""
        Just lib -> showString "lib = " . showString lib . showString " ")
   . showPrefix oprefix False
-  
 showCHSHook (CHSType ide _) =   
     showString "type "
+  . showCHSIdent ide
+showCHSHook (CHSSizeof ide _) =   
+    showString "sizeof "
   . showCHSIdent ide
 showCHSHook (CHSEnum ide oalias trans oprefix derive _) =   
     showString "enum "
@@ -549,6 +557,7 @@ parseFrags toks  = do
     parseFrags0 (CHSTokImport  pos:toks) = parseImport  pos        toks
     parseFrags0 (CHSTokContext pos:toks) = parseContext pos        toks
     parseFrags0 (CHSTokType    pos:toks) = parseType    pos        toks
+    parseFrags0 (CHSTokSizeof  pos:toks) = parseSizeof  pos        toks
     parseFrags0 (CHSTokEnum    pos:toks) = parseEnum    pos        toks
     parseFrags0 (CHSTokCall    pos:toks) = parseCall    pos        toks
     parseFrags0 (CHSTokGet     pos:toks) = parseField   pos CHSGet toks
@@ -592,6 +601,14 @@ parseType pos (CHSTokIdent _ ide:toks) =
     frags <- parseFrags toks'
     return $ CHSHook (CHSType ide pos) : frags
 parseType _ toks = syntaxError toks
+
+parseSizeof :: Position -> [CHSToken] -> CST s [CHSFrag]
+parseSizeof pos (CHSTokIdent _ ide:toks) =
+  do
+    toks' <- parseEndHook toks
+    frags <- parseFrags toks'
+    return $ CHSHook (CHSSizeof ide pos) : frags
+parseSizeof _ toks = syntaxError toks
 
 parseEnum :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseEnum pos (CHSTokIdent _ ide:toks) =

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.31 $ from $Date: 2001/06/16 12:36:07 $
+--  Version $Revision: 1.32 $ from $Date: 2001/06/20 09:25:14 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -141,7 +141,7 @@ import Array	  (Array, (!))
 import Common     (Position, Pos(posOf), nopos)
 import Utils	  (lookupBy, mapMaybeM)
 import Errors	  (interr, todo)
-import Idents     (Ident, identToLexeme, onlyPosIdent, internalIdent)
+import Idents     (Ident, identToLexeme, onlyPosIdent)
 import Attributes (newAttrsOnlyPos)
 import FiniteMaps (FiniteMap, zeroFM, addToFM, lookupFM, joinFM, toListFM,
 		   listToFM)
@@ -366,7 +366,7 @@ mergePtrMap str  =
 		        ptrmap = joinFM (ptrmap state) readPtrMap
 		      }, ()))
   where
-    readPtrMap = listToFM [((isStar, internalIdent ide), repr)
+    readPtrMap = listToFM [((isStar, onlyPosIdent nopos ide), repr)
 			  | ((isStar, ide), repr) <- read str]
 
 -- convert the whole pointer map into printable form
@@ -457,6 +457,17 @@ expandHook (CHSType ide pos) =
     traceInfoDump decl ty = traceGenBind $
       "Declaration\n<need ppr for cdecl>\ntranslates to\n" 
       ++ showExtType ty ++ "\n"
+expandHook (CHSSizeof ide pos) =
+  do
+    traceInfoSizeof
+    decl <- findAndChaseDecl ide False True	-- no indirection, but shadows
+    (size, _) <- sizeAlignOf decl
+    traceInfoDump decl size
+    return $ show size
+  where
+    traceInfoSizeof         = traceGenBind "** Sizeof hook:\n"
+    traceInfoDump decl size = traceGenBind $
+      "Size of declaration\n<need ppr for cdecl>\nis" ++ show size ++ "\n"
 expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
   do
     -- get the corresponding C declaration
@@ -500,9 +511,21 @@ expandHook hook@(CHSCall isFun isUns ide oalias pos) =
       "Function type: " ++ showExtType et ++ "\n"
 expandHook (CHSField access path pos) =
   do
+    traceInfoField
     (decl, offsets) <- accessPath path
+    traceDepth offsets
     ty <- extractSimpleType False pos decl
+    traceValueType ty
     setGet pos access offsets ty
+  where
+    accessString       = case access of
+		           CHSGet -> "Get"
+		           CHSSet -> "Set"
+    traceInfoField     = traceGenBind $ "** " ++ accessString ++ " hook:\n"
+    traceDepth offsets = traceGenBind $ "Depth of access path: " 
+					++ show (length offsets) ++ "\n"
+    traceValueType et  = traceGenBind $ 
+      "Type of accessed value: " ++ showExtType et ++ "\n"
 expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType pos) =
   do
     traceInfoPointer
@@ -854,7 +877,9 @@ data ConstResult = IntResult   Integer
 --
 -- * aliased types (`DefinedET') are represented by a string plus their C
 --   declaration; the latter is for functions interpreting the following
---   structure 
+--   structure; an aliased type is always a pointer type that is contained in
+--   the pointer map (and got there either from a .chi or from a pointer hook
+--   in the same module)
 --
 -- * the representation for pointers does not distinguish between normal,
 --   function, foreign, and stable pointers; function pointers are identified
@@ -1020,8 +1045,17 @@ extractPtrType cdecl  = do
 -- * typedef'ed types are chased
 --
 -- * the first argument specifies whether the type specifies the result of a
---   function (these is only applicable to direct results and not to type
+--   function (this is only applicable to direct results and not to type
 --   parameters for pointers that are a result)
+--
+-- * takes the pointer map into account
+--
+-- * IMPORTANT NOTE: `sizeAlignOf' relies on `DefinedET' only being produced
+--		     for pointer types; if this ever changes, we need to
+--		     handle `DefinedET's differently.  The problem is that
+--		     entries in the pointer map currently prevent
+--		     `extractCompType' from looking further "into" the
+--		     definition of that pointer.
 --
 extractCompType :: Bool -> CDecl -> GB CompType
 extractCompType isResult cdecl@(CDecl specs declrs ats)  = 
@@ -1030,7 +1064,7 @@ extractCompType isResult cdecl@(CDecl specs declrs ats)  =
   else case declrs of
     [(Just declr, _, _)] | isPtrDeclr declr -> ptrType declr
 			 | isFunDeclr declr -> funType
-    _					    -> aliasOrSpecType False
+    _					    -> aliasOrSpecType
   where
     -- handle explicit pointer types
     --
@@ -1062,12 +1096,12 @@ extractCompType isResult cdecl@(CDecl specs declrs ats)  =
     --
     -- handle all types, which are not obviously pointers or functions 
     --
-    aliasOrSpecType isPtr = do
+    aliasOrSpecType = do
       traceAliasOrSpecType
       case checkForOneAliasName cdecl of
         Nothing   -> specType (posOf cdecl) specs
 	Just ide  -> do                    -- this is a typedef alias
-	  oHsRepr <- queryPtr (isPtr, ide) -- check for pointer hook alias     
+	  oHsRepr <- queryPtr (False, ide) -- check for pointer hook alias     
 	  case oHsRepr of
 	    Nothing   -> do		   -- skip current alias (only one)
 			   cdecl'    <- getDeclOf ide
@@ -1216,9 +1250,23 @@ sizeAlignOfStruct decls CUnionTag   =
     (sizes, aligns) <- mapAndUnzipM sizeAlignOf decls
     return (maximum sizes, maximum aligns)
 
+-- compute the size and alignment of the declarators forming a struct
+-- including any end-of-struct padding that is needed to make the struct ``tile
+-- in an array'' (K&R A7.4.8)
+--
+sizeAlignOfStructPad                :: [CDecl] -> CStructTag -> GB (Int, Int)
+sizeAlignOfStructPad decls tag =
+  do
+    (size, align) <- sizeAlignOfStruct decls tag
+    return (((size - 1) `div` align + 1) * align, align)
+
 -- compute the size and alignment constraint of a given C declaration
 --
 sizeAlignOf       :: CDecl -> GB (Int, Int)
+--
+-- * We make use of the assertion that `extractCompType' can only return a
+--   `DefinedET' when the declaration is a pointer declaration.
+--
 sizeAlignOf cdecl  = 
   do
     ct <- extractCompType False cdecl
@@ -1230,7 +1278,8 @@ sizeAlignOf cdecl  =
         | isFunExtType t          -> return (sizes!CFunPtrPT, 
 					     alignments!CFunPtrPT)
         | otherwise		  -> return (sizes!CPtrPT, alignments!CPtrPT)
-      ExtType (DefinedET decl _ ) -> sizeAlignOf decl
+      ExtType (DefinedET _ _    ) -> return (sizes!CPtrPT, alignments!CPtrPT)
+        -- FIXME: The defined type could be a function pointer!!!
       ExtType (PrimET pt        ) -> return (sizes!pt, alignments!pt)
       ExtType UnitET              -> voidFieldErr (posOf cdecl)
       SUType su                   -> 
@@ -1246,7 +1295,7 @@ sizeAlignOf cdecl  =
 			 Just (StructUnionCT su) -> return
 						     (fst . structMembers $ su)
                          _                       -> return fields
-	  sizeAlignOfStruct fields' tag
+	  sizeAlignOfStructPad fields' tag
 
 -- evaluate a constant expression
 --
@@ -1275,8 +1324,10 @@ evalConstCExpr (CUnary op arg at) =
     applyUnary (posOf at) op argVal
 evalConstCExpr (CSizeofExpr _ _) =
   todo "GenBind.evalConstCExpr: sizeof not implemented yet."
-evalConstCExpr (CSizeofType _ _) =
-  todo "GenBind.evalConstCExpr: sizeof not implemented yet."
+evalConstCExpr (CSizeofType decl _) =
+  do
+    (size, _) <- sizeAlignOf decl
+    return $ IntResult (fromIntegral size)
 evalConstCExpr (CIndex _ _ at) =
   illegalConstExprErr (posOf at) "array indexing"
 evalConstCExpr (CCall _ _ at) =
