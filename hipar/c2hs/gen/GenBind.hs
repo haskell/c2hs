@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.29 $ from $Date: 2001/06/16 08:48:22 $
+--  Version $Revision: 1.30 $ from $Date: 2001/06/16 09:33:05 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -788,12 +788,10 @@ setGet pos access offsets ty =
       where
         -- check that the type can be marshalled
 	--
-	checkType (FunET     at rt) = checkType at >> checkType rt
 	checkType (IOET      _    ) = interr "GenBind.setGet: Illegal type!"
-	checkType (PtrET     t    ) = checkType t
-	checkType (DefinedET _ _  ) = return ()  -- can't check any further
-	checkType (PrimET    _    ) = return ()
 	checkType (UnitET         ) = voidFieldErr pos
+	checkType (DefinedET _ _  ) = return ()  -- can't check any further
+	checkType _		    = return ()
     setGetBody (offset:offsets) =
       do
 	code <- setGetBody offsets

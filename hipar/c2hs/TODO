@@ -4,9 +4,7 @@
 
 Next: -= phase re-ordering & parser clean up =-
 
-      - ** fix Axel problem; to this end, test the .chi story properly **
-
-      - the idea of the hipar/mk*.mk file to identify which projects are
+      - the idea of the hipar/mk/*.mk file to identify which projects are
         present doesn't really cut it as `cvs update' will always check these
         files out; fix this!
 
