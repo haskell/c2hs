@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.47 $ from $Date: 2002/02/13 10:17:44 $
+#  Version $Revision: 1.48 $ from $Date: 2002/02/19 07:34:49 $
 #
 #  Copyright (c) [1997..2002] Manuel M T Chakravarty
 #
@@ -123,8 +123,8 @@ endif
 #   their package name and that all packages except `base' request the 
 #   inclusion of `base'.
 #
-#HIDIRSCOL  = $(subst $(space),:,$(strip $(HIDIRS)))
-HIDIRSINCL  = $(addprefix $(HIDIROPT),$(HIDIRS))
+#HIDIRSCOL = $(subst $(space),:,$(strip $(HIDIRS)))
+HIDIRSINCL = $(addprefix $(HIDIROPT),$(HIDIRS))
 ifeq ($(HASPKG),yes)
   ifneq ($(strip $(PACKAGE)),base)
     HCFLAGS += -package-conf $(TOP)/base/base.build.conf -package base
@@ -236,7 +236,7 @@ ifeq ($(SYS),$(findstring $(SYS),ghc4 ghc5))
 gendepend:
 	@echo "*** Generating dependencies for $(PACKAGE)..."
 	$(MKDEPENDHS) -optdep-f -optdep$(DEPEND)\
-          $(HIDIRSINCL) $(MKDEPENDOPTS)\
+          $(HCFLAGS) $(MKDEPENDOPTS)\
 	  $(MKDEPENDFILES)
 	$(MV) $(DEPEND) $(DEPEND).orig
 	$(GREP) -v base $(DEPEND).orig\

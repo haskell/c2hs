@@ -5,7 +5,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 5 April 1999 (from parts of common.mk)
 #
-#  Version $Revision: 1.15 $ from $Date: 2002/02/13 10:17:44 $
+#  Version $Revision: 1.16 $ from $Date: 2002/02/19 07:34:49 $
 #
 #  Copyright (c) [1997..1999] Manuel M. T. Chakravarty
 #
@@ -102,7 +102,7 @@ PROF	    = @PROF@
 
 # Utility programs
 #
-MKDEPENDHS  = @MKDEPENDHS@ @HCSYSFLAGS@
+MKDEPENDHS  = @MKDEPENDHS@
 HSTAGS      = @HSTAGS@
 
 # System features
