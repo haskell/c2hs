@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 October 99
 --
---  Version $Revision: 1.10 $ from $Date: 2001/05/05 08:48:42 $
+--  Version $Revision: 1.11 $ from $Date: 2001/05/06 07:10:11 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -66,7 +66,7 @@ module CTrav (CT, readCT, transCT, getCHeaderCT, runCT, throwCTExc, ifCTExc,
 	      enter, enterObjs, leave, leaveObjs, defObj, findObj,
 	      findObjShadow, defTag, findTag, findTagShadow,
 	      applyPrefixToNameSpaces, getDefOf, refersToDef, refersToNewDef,
-	      findTypeObj, findValueObj, findFunObj, 
+	      getDeclOf, findTypeObj, findValueObj, findFunObj, 
 	      --
 	      -- C structure tree query functions
 	      --
@@ -74,7 +74,8 @@ module CTrav (CT, readCT, transCT, getCHeaderCT, runCT, throwCTExc, ifCTExc,
 	      declaredDeclr, declaredName, structMembers, expandDecl,
 	      structName, isPtrDeclr, dropPtrDeclr, isPtrDecl, isFunDeclr,
 	      structFromDecl, funResultAndArgs, chaseDecl, findAndChaseDecl,
-	      checkForAlias, lookupEnum, lookupStructUnion)
+	      checkForAlias, checkForOneAliasName, lookupEnum,
+	      lookupStructUnion)
 where
 
 import List       (find)
@@ -645,6 +646,13 @@ checkForAlias decl  =
   case extractAlias decl False of
     Nothing        -> return Nothing
     Just (ide', _) -> liftM Just $ chaseDecl ide' False
+
+-- given a declaration (which must have exactly one declarator), if the
+-- declarator is an alias, yield the alias name; *no* chasing (EXPORTED)
+--
+checkForOneAliasName      :: CDecl -> Maybe Ident
+checkForOneAliasName decl  = fmap fst $ extractAlias decl False
+
 
 -- smart lookup
 --

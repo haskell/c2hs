@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.25 $ from $Date: 2001/05/05 08:48:43 $
+--  Version $Revision: 1.26 $ from $Date: 2001/05/06 07:10:11 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -162,8 +162,9 @@ import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 		   applyPrefixToNameSpaces, isTypedef, simplifyDecl,
 		   declrFromDecl, declrNamed, structMembers, structName,
 		   declaredName , structFromDecl, funResultAndArgs, 
-		   chaseDecl, findAndChaseDecl, checkForAlias, lookupEnum,
-		   lookupStructUnion, isPtrDeclr, dropPtrDeclr, isPtrDecl,
+		   chaseDecl, findAndChaseDecl, checkForAlias,
+		   checkForOneAliasName, lookupEnum,  lookupStructUnion,
+		   isPtrDeclr, dropPtrDeclr, isPtrDecl, getDeclOf,
 		   isFunDeclr, refersToNewDef, CDef(..))
 import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 		   CHSAccess(..), CHSAPath(..),CHSPtrType(..))
@@ -452,8 +453,8 @@ expandHook (CHSType ide pos) =
     traceInfoDump decl ty
     return $ showExtType ty
   where
-    traceInfoType         = putTraceStr traceGenBindSW "** Type hook:\n"
-    traceInfoDump decl ty = putTraceStr traceGenBindSW $
+    traceInfoType         = traceGenBind "** Type hook:\n"
+    traceInfoDump decl ty = traceGenBind $
       "Declaration\n<need ppr for cdecl>\ntranslates to\n" 
       ++ showExtType ty ++ "\n"
 expandHook (CHSEnum cide oalias chsTrans derive _) =
@@ -470,6 +471,7 @@ expandHook (CHSEnum cide oalias chsTrans derive _) =
     enumDef cide enum hide trans (map identToLexeme derive)
 expandHook hook@(CHSCall isFun isUns ide oalias pos) =
   do
+    traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
     -- function; we use shadow identifiers, so the returned identifier is used 
     -- afterwards instead of the original one
@@ -485,7 +487,13 @@ expandHook hook@(CHSCall isFun isUns ide oalias pos) =
     extType <- extractFunType pos cdecl' isFun
     lib     <- getLibrary
     delayCode hook (foreignImport lib ideLexeme hsLexeme isUns extType)
+    traceFunType extType
     return hsLexeme
+  where
+    traceEnter = traceGenBind $ 
+      "** Call hook for `" ++ identToLexeme ide ++ "':\n"
+    traceFunType et = traceGenBind $ 
+      "Function type: " ++ showExtType et ++ "\n"
 expandHook (CHSField access path pos) =
   do
     (decl, offsets) <- accessPath path
@@ -530,13 +538,12 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType pos) =
       then "newtype " ++ hsName ++ " = " ++ hsName ++ " (" ++ ptrType ++ ")"
       else "type "    ++ hsName ++ " = "                   ++ ptrType
   where
-    traceInfoPointer   = putTraceStr traceGenBindSW "** Pointer hook:\n"
-    traceInfoCName ide = putTraceStr traceGenBindSW $ 
-		           "found C object `" ++ identToLexeme ide
-			   ++ "'\n"
-    traceInfoHsType name ty = putTraceStr traceGenBindSW $ 
-			        "associated with Haskell entity `"
-			        ++ name ++ "'\nhaving type " ++ ty ++ "\n"
+    traceInfoPointer   = traceGenBind "** Pointer hook:\n"
+    traceInfoCName ide = traceGenBind $ 
+      "found C object `" ++ identToLexeme ide ++ "'\n"
+    traceInfoHsType name ty = traceGenBind $ 
+      "associated with Haskell entity `" ++ name ++ "'\nhaving type " ++ ty 
+      ++ "\n"
 
 -- produce code for an enumeration
 --
@@ -855,9 +862,12 @@ showExtType' b (PtrET t)	   = let ptrCon = case t of
 				     in
 				     maybeParen b NameBL $ 
 				       ptrCon ++ " " ++ showExtType' NameBL t
-showExtType' _ (DefinedET _ str)     = str
-showExtType' _ (PrimET CPtrPT)     = "Ptr ()"
-showExtType' _ (PrimET CFunPtrPT)  = "FunPtr ()"
+-- FIXME: This is where this hold BraceLevel idea fails, the string may have a
+--	  complex type or not, but we can't tell here anymore; so maybe remove
+--	  it again?  This code is not really for human consumption anyway.
+showExtType' _ (DefinedET _ str)   = "(" ++ str ++ ")"
+showExtType' b (PrimET CPtrPT)     = maybeParen b NameBL $ "Ptr ()"
+showExtType' b (PrimET CFunPtrPT)  = maybeParen b NameBL $ "FunPtr ()"
 showExtType' _ (PrimET CCharPT)    = "CChar"
 showExtType' _ (PrimET CUCharPT)   = "CUChar"
 showExtType' _ (PrimET CSCharPT)   = "CSChar"
@@ -922,10 +932,15 @@ extractFunType pos cdecl isPure  =
 extractSimpleType                    :: Bool -> Position -> CDecl -> GB ExtType
 extractSimpleType isResult pos cdecl  =
   do
+    traceEnter
     ct <- extractCompType isResult cdecl
     case ct of
       ExtType et -> return et
       SUType  _  -> illegalStructUnionErr (posOf cdecl) pos
+  where
+    traceEnter = traceGenBind $ 
+      "Entering `extractSimpleType' (" ++ (if isResult then "" else "not ") 
+      ++ "for a result)...\n"
 
 -- compute a Haskell type for a type referenced in a C pointer type
 --
@@ -958,30 +973,30 @@ extractPtrType cdecl  = do
 --
 extractCompType :: Bool -> CDecl -> GB CompType
 extractCompType isResult cdecl@(CDecl specs declrs ats)  = 
-  case declrs of
-    []                                      -> aliasOrSpecType
+  if length declrs > 1 
+  then interr "GenBind.extractCompType: Too many declarators!"
+  else case declrs of
     [(Just declr, _, _)] | isPtrDeclr declr -> ptrType declr
 			 | isFunDeclr declr -> funType
-			 | otherwise	    -> aliasOrSpecTypeDeclr
-    _                                       ->
-      interr "GenBind.extractCompType: Too many declarators!"
+    _					    -> aliasOrSpecType False
   where
     -- handle explicit pointer types
     --
     ptrType declr = do
-      oHsRepr <- case declaredName cdecl of  -- check for pointer hook alias
-		   Nothing  -> return Nothing
+      tracePtrType
+      let declrs' = dropPtrDeclr declr		-- remove indirection
+	  cdecl'  = CDecl specs [(Just declrs', Nothing, Nothing)] ats
+          oalias  = checkForOneAliasName cdecl' -- is only an alias remaining?
+      oHsRepr <- case oalias of
+		   Nothing  -> return $ Nothing
 		   Just ide -> queryPtr (True, ide)
       case oHsRepr of
-	Nothing             -> do
-	  let declrs' = dropPtrDeclr declr
-	      cdecl'  = CDecl specs [(Just declrs', Nothing, Nothing)] ats
+        Just repr  -> ptrAlias repr             -- got an alias
+	Nothing    -> do			-- no alias => recurs
 	  ct <- extractCompType False cdecl'
 	  returnX $ case ct of
 		      ExtType et -> PtrET et
 		      SUType  _  -> PtrET UnitET
-        Just (repr1, repr2) -> 
-	  returnX $ DefinedET cdecl (if isResult then repr2 else repr1)
     --
     -- handle explicit function types
     --
@@ -989,30 +1004,29 @@ extractCompType isResult cdecl@(CDecl specs declrs ats)  =
     --	      functions); is this ever going to be a problem?
     --
     funType = do
+	        traceFunType
 	        et <- extractFunType (posOf cdecl) cdecl False
 		returnX et
     --
-    -- if the declarator is not anonymous, check for a pointer hook without an
-    -- explicit `*' 
-    --
-    aliasOrSpecTypeDeclr =
-      case declaredName cdecl of
-        Nothing  -> aliasOrSpecType
-	Just ide -> do
-		      oHsRepr <- queryPtr (False, ide)
-		      case oHsRepr of
-			Nothing             -> aliasOrSpecType
-		        Just (repr1, repr2) -> 
-			  returnX $ 
-			    DefinedET cdecl (if isResult then repr2 else repr1)
-    --
     -- handle all types, which are not obviously pointers or functions 
     --
-    aliasOrSpecType = do
-		        oalias <- checkForAlias cdecl
-			case oalias of
-			  Nothing    -> specType (posOf cdecl) specs
-			  Just decl' -> extractCompType isResult decl'
+    aliasOrSpecType isPtr = do
+      traceAliasOrSpecType
+      case checkForOneAliasName cdecl of
+        Nothing   -> specType (posOf cdecl) specs
+	Just ide  -> do                    -- this is a typedef alias
+	  oHsRepr <- queryPtr (isPtr, ide) -- check for pointer hook alias     
+	  case oHsRepr of
+	    Nothing   -> do		   -- skip current alias (only one)
+			   cdecl'    <- getDeclOf ide
+			   let sdecl  = ide `simplifyDecl` cdecl'
+			   extractCompType isResult sdecl
+	    Just repr -> ptrAlias repr     -- found a pointer hook alias
+    --
+    -- compute the result for a pointer alias
+    --
+    ptrAlias (repr1, repr2) = 
+      returnX $ DefinedET cdecl (if isResult then repr2 else repr1)
     --
     -- wrap an `ExtType' into a `CompType' and convert parametrised pointers
     -- to `Addr' if needed
@@ -1023,6 +1037,10 @@ extractCompType isResult cdecl@(CDecl specs declrs ats)  =
 				    then return $ ExtType (PrimET CPtrPT)
 				    else return $ ExtType retval
     returnX retval            = return $ ExtType retval
+    --
+    tracePtrType = traceGenBind $ "extractCompType: explicit pointer type\n"
+    traceFunType = traceGenBind $ "extractCompType: explicit function type\n"
+    traceAliasOrSpecType = traceGenBind $ "checking for alias\n"
 
 -- C to Haskell type mapping described in the DOCU section
 --
@@ -1302,6 +1320,11 @@ applyUnary cpos CNegOp     (IntResult   x) =
   in return (IntResult r)
 applyUnary cpos CNegOp     (FloatResult _) = 
   illegalConstExprErr cpos "! applied to a float"
+
+-- print trace message
+--
+traceGenBind :: String -> GB ()
+traceGenBind  = putTraceStr traceGenBindSW
 
 
 -- error messages

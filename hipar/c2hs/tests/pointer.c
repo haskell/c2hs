@@ -10,3 +10,14 @@ Point *make_point (int x, int y)
 
   return pnt;
 }
+
+Point *trans_point (Point *pnt, int x, int y)
+{
+  Point *newPnt;
+
+  newPnt = (Point *) malloc (sizeof (Point));
+  newPnt->x = pnt->x + x;
+  newPnt->y = pnt->y + y;
+
+  return newPnt;
+}

@@ -1,3 +1,9 @@
+2001-05-06  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (extractCompType): rewrote that thing again
+
+	* c/CTrav.hs (checkForOneAliasName): added
+
 2001-05-05  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* c/CTrav.hs (chaseDecl): simplified

@@ -459,7 +459,9 @@ type PointPtr = Ptr Point
 </verb></tscreen>
 <p>
 and establish a type association between <tt/point/ and <tt/PointPtr/.
-
+<p>
+<em/Restriction:/ The name <it/cid/ cannot be a basic C type (such as
+<tt/int/), it must be a defined name.
 
 <sect1>Grammar Rules
 <p>
