@@ -1,0 +1,262 @@
+-- @configure_input@   -*-haskell-*-
+
+-- Make sure we have the correct signatures for the New FFI definition.
+
+module NewStorable (
+  @BEGIN_NEW_FFI@
+  Storable.Storable(..)
+  @END_NEW_FFI@
+  --
+  @BEGIN_LEGACY_FFI@
+  Storable(..)
+  @END_LEGACY_FFI@
+) where
+
+import Monad (liftM)
+
+import qualified Storable (Storable(..))
+
+@BEGIN_LEGACY_FFI@
+
+import Addr
+import Ptr -- we make use of the internal representation of `Ptr' as `Addr'
+import StablePtr
+import Int
+import Word
+import CTypes
+import CTypesISO
+
+class Storable a where
+
+  -- sizeOf/alignment *never* use their first argument
+  sizeOf      :: a -> Int
+  alignment   :: a -> Int
+
+  -- replacement for read-/write???OffAddr
+  peekElemOff :: Ptr a -> Int      -> IO a
+  pokeElemOff :: Ptr a -> Int -> a -> IO ()
+
+  -- the same with *byte* offsets
+  peekByteOff :: Ptr b -> Int      -> IO a
+  pokeByteOff :: Ptr b -> Int -> a -> IO ()
+
+  -- ... and with no offsets at all
+  peek        :: Ptr a      -> IO a
+  poke        :: Ptr a -> a -> IO ()
+
+  -- circular default instances
+  peekElemOff = peekElemOff_ undefined
+     where peekElemOff_ :: a -> Ptr a -> Int -> IO a
+	   peekElemOff_ undef ptr off = peekByteOff ptr (off * sizeOf undef)
+  pokeElemOff ptr off val = pokeByteOff ptr (off * sizeOf val) val
+
+  peekByteOff ptr off = peek (ptr `plusPtr` off)
+  pokeByteOff ptr off = poke (ptr `plusPtr` off)
+
+  peek ptr = peekElemOff ptr 0
+  poke ptr = pokeElemOff ptr 0
+
+-- this is quite ugly, but there is no other way to define `Storable' such
+-- that the fact that it is built on top of `Storable.Storable' doesn't shine
+-- through to instances that user code may want to define
+--
+instance Storable Char where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable Bool where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable Int where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable Float where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable Double where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable Word8 where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable Word16 where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable Word32 where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable Word64 where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable Int8 where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable Int16 where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable Int32 where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable Int64 where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable (Ptr a) where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable (FunPtr a) where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable (StablePtr a) where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+
+instance Storable CChar where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CSChar where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CUChar where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CShort where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CUShort where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CInt where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CUInt where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CLong where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CULong where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CLLong where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CULLong where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CPtrdiff where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CSize where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CWchar where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CSigAtomic where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CClock where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+instance Storable CTime where
+  sizeOf            = Storable.sizeOf
+  alignment         = Storable.alignment
+  peek (Ptr addr)   = Storable.peek addr
+  poke (Ptr addr) v = Storable.poke addr v
+
+instance Storable.Storable (Ptr a) where
+  sizeOf    _ = Storable.sizeOf    (undefined :: Addr)
+  alignment _ = Storable.alignment (undefined :: Addr)
+
+  peekElemOff addr i         = liftM Ptr $ Storable.peekElemOff addr i
+  pokeElemOff addr i (Ptr v) = Storable.pokeElemOff addr i v
+
+  peekByteOff addr i         = liftM Ptr $ Storable.peekByteOff addr i
+  pokeByteOff addr i (Ptr v) = Storable.pokeByteOff addr i v
+
+  peek addr         = liftM Ptr $ Storable.peek addr
+  poke addr (Ptr v) = Storable.poke addr v
+
+instance Storable.Storable (FunPtr a) where
+  sizeOf    _ = Storable.sizeOf    (undefined :: Addr)
+  alignment _ = Storable.alignment (undefined :: Addr)
+
+  peekElemOff addr i            = liftM FunPtr $ Storable.peekElemOff addr i
+  pokeElemOff addr i (FunPtr v) = Storable.pokeElemOff addr i v
+
+  peekByteOff addr i            = liftM FunPtr $ Storable.peekByteOff addr i
+  pokeByteOff addr i (FunPtr v) = Storable.pokeByteOff addr i v
+
+  peek (Ptr addr)            = liftM FunPtr $ Storable.peek addr
+  poke (Ptr addr) (FunPtr v) = Storable.poke addr v
+
+instance Storable.Storable Bool where
+   sizeOf _    = Storable.sizeOf (undefined::CInt)
+   alignment _ = Storable.alignment (undefined::CInt)
+   peek p      = liftM (/= (0::CInt)) $ Storable.peek (castPtr p)
+   poke p x    = Storable.poke (castPtr p) (if x then 1 else 0::CInt)
+
+@END_LEGACY_FFI@

@@ -3,6 +3,8 @@ dnl C->Haskell - Additional macros for `autoconf'
 
 dnl ### Checking compiler characteristics
 
+dnl Currently NOT used anymore.
+dnl
 dnl C2HS_CHECK_SIZEOF(TYPE [, CROSS-SIZE]) - Compute the size of a type
 dnl
 dnl * Adapted from `acgeneral.m4'; AC_PROVIDES the feature and sets the 
@@ -35,6 +37,8 @@ undefine([C2HS_TYPE_NAME])dnl
 undefine([C2HS_CV_NAME])dnl
 ])
 
+dnl Currently NOT used anymore.
+dnl
 dnl C2HS_CHECK_ALIGNOF(TYPE) - Compute the alignment restriction of a type
 dnl
 dnl * Adapted from the corresponding test in the Glasgow Haskell Compiler's
@@ -89,10 +93,10 @@ undefine([C2HS_CV_NAME])dnl
 undefine([AC_CV_SIZEOF_NAME])dnl
 ])
 
-dnl -- Stolen from FPTOOLS/GHC
+dnl -- Pinched from FPTOOLS/GHC
 dnl
 dnl We keep the CTK_ prefix as this test is shared with CTK and we want to get 
-dnl the cach value.
+dnl the cache value.
 dnl
 dnl CTK_GHC_VERSION(version)
 dnl CTK_GHC_VERSION(major, minor [, patchlevel])
@@ -144,3 +148,43 @@ ifelse($#, [1], [dnl
 ], [AC_MSG_ERROR([wrong number of arguments to [$0]])])dnl
 undefine([CTK_CV_GHC_VERSION])dnl
 ])dnl
+
+dnl Obtain the value of a C constant.
+dnl The value will be `(-1)' if the constant is undefined.
+dnl
+dnl This is set up so that the argument can be a shell variable.
+dnl
+AC_DEFUN(C2HS_CHECK_CCONST,
+[
+eval "def_name=CCONST_$1"
+eval "cv_name=ac_cv_cconst_$1"
+AC_MSG_CHECKING(value of $1)
+AC_CACHE_VAL($cv_name,
+[AC_TRY_RUN([#include <stdio.h>
+#include <errno.h>
+main()
+{
+  FILE *f=fopen("conftestval", "w");
+  if (!f) exit(1);
+  fprintf(f, "%d\n", $1);
+  exit(0);
+}], 
+eval "$cv_name=`cat conftestval`",
+eval "$cv_name=-1",
+ifelse([$2], , , eval "$cv_name=$2"))])dnl
+eval "c2hs_check_cconst_result=`echo '$'{$cv_name}`"
+AC_MSG_RESULT($c2hs_check_cconst_result)
+AC_DEFINE_UNQUOTED($def_name, $c2hs_check_cconst_result)
+eval "$def_name=$c2hs_check_cconst_result"
+unset c2hs_check_cconst_result
+])
+
+dnl ** Invoke AC_CHECK_CCONST on each argument (which have to separate with 
+dnl    spaces)
+dnl
+AC_DEFUN(C2HS_CHECK_CCONSTS,
+[for ac_const_name in $1
+do
+C2HS_CHECK_CCONST($ac_const_name)dnl
+done
+])

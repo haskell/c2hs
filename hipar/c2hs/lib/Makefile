@@ -3,9 +3,9 @@
 #  Author : Manuel M. T. Chakravarty
 #  Derived: 19 March 1999
 #
-#  Version $Revision: 1.7 $ from $Date: 2000/04/09 14:29:16 $
+#  Version $Revision: 1.8 $ from $Date: 2001/02/04 12:27:34 $
 #
-#  Copyright (c) [1999..2000] Manuel M. T. Chakravarty
+#  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -34,11 +34,32 @@
 #
 PACKAGE = c2hs
 PART    = lib
-SRCS	= C2HS.hs C2HSBase.hs C2HSConfig.hs C2HSMarsh.hs
+SRCS	= C2HS.hs C2HSBase.hs C2HSDeprecated.hs C2HSMarsh.hs\
+	  NewStorable.hs
 OBJS	= $(patsubst %.hs,%.o,$(filter %.hs,$(SRCS)))
 
-include  ../../mk/common.mk
+# C->Haskell specific configuration
+#
+# This must be before the legacy sources
+#
 -include ../mk/config.mk
+
+# Legacy sources
+#
+# The following additional library sources are used when building C2HS for 
+# Haskell systems using an old version of the Haskell FFI (this includes,
+# for example, the GHC 4.08.x series).
+#
+ifeq ($(LEGACY_FFI),yes)
+SRCS   += CError.hs CForeign.hs CString.hs ForeignPtr.hs MarshalAlloc.hs\
+	  MarshalArray.hs MarshalError.hs MarshalUtils.hs Ptr.hs
+endif
+
+# This must be after legacy sources, as some rules depend on the setting
+# of $(SRCS) and $(OBJS)
+#
+include  ../../mk/common.mk
+-include $(DEPEND)
 
 # The code in this part is independent from the compiler code; so forget about
 # all the other directories
@@ -46,21 +67,19 @@ include  ../../mk/common.mk
 VPATH =
 HIDIRS=.
 
-# for the moment, dependencies are hardcoded here (we do not want to import 
-# .depend as this has only the dependencies for the compiler, but not for the 
-# marhsaling library)
+# We have our own dependcy computations here, as the library modules are 
+# independent from the c2hs compiler modules.
 #
-C2HS.o: C2HS.hs C2HSBase.hi C2HSConfig.hi C2HSMarsh.hi
-C2HSMarsh.o: C2HSMarsh.hs C2HSBase.hi
-C2HSBase.o: C2HSBase.hs C2HSConfig.hi
-C2HSConfig.o: C2HSConfig.hs
+.PHONY: depend
+depend:
+	$(MKDEPENDHS) -optdep-f -optdep$(DEPEND) $(HCFLAGS) $(SRCS)
 
 # Extra flags for the Haskell compiler
 #
 # * The following enables the use of the FFI and sucks in the prototypes needed
 #   by external calls 
 #
-EXTRAHCFLAGS    = -fglasgow-exts '-\#include<malloc.h>' $(LIB_HCFLAGS)
+EXTRAHCFLAGS    = -fglasgow-exts $(LIB_HCFLAGS)
 
 # make all object files
 #
@@ -76,6 +95,7 @@ libc2hs.a: $(OBJS)
 # make all
 #
 all: libc2hs
+default: all
 
 # misc targets
 #

@@ -1,3 +1,24 @@
+2001-02-04  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HSMarsh.hs: Moved almost everything to `C2HSDeprecated'
+
+	* lib/C2HSBase.hs: Much simplified conversion routines and the old
+	`Storable' definition died
+
+2001-02-03  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* configure.in: Removed all the stuff that had to be there for the
+	late `lib/C2HSConfig.hs.in'
+
+	* lib/C2HSConfig.hs.in: RIP - All the relevant information is now
+	available from the Standard FFI
+
+	* C2HSDeprecated.hs: Added old C type names
+
+	* lib/C2HS.hs: Added support for the New FFI Libraries (so that
+	they are also useable with Haskell systems only supporting the old
+	libraries)
+
 2000-08-22  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* lib/C2HSDeprecated.hs: contains a compatibility interface to the

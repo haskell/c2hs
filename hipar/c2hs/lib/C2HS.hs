@@ -1,11 +1,11 @@
---  C->Haskell Compiler: global interface of marshaling library
+--  C->Haskell Compiler: global interface of the marshalling library
 --
 --  Author : Manuel M. T. Chakravarty
 --  Created: 19 August 99
 --
---  Version $Revision: 1.7 $ from $Date: 2000/08/04 13:16:15 $
+--  Version $Revision: 1.8 $ from $Date: 2001/02/04 12:27:31 $
 --
---  Copyright (c) 1999 Manuel M. T. Chakravarty
+--  Copyright (c) [1999...2000] Manuel M. T. Chakravarty
 --
 --  This library is free software; you can redistribute it and/or
 --  modify it under the terms of the GNU Library General Public
@@ -26,26 +26,69 @@
 --
 --  language: Haskell 98
 --
+--  The module exports all of the low-level FFI (language-independent plus the
+--  C-specific parts) together with the C->HS-specific higher-level
+--  marshalling routines.
+--
 --- TODO ----------------------------------------------------------------------
 --
 --  * Get the marshaling stuff from GTK+HS.
 --
 
-module C2HS (Addr, nullAddr, plusAddr,
-	     module C2HSConfig,
-	     module C2HSBase,
-	     module C2HSMarsh)
-where 
+module C2HS (
+  --
+  -- re-export the language-independent component of the FFI 
+  --
+--  module Foreign, -- have to be more precise while supporting old systems
+  module Int,
+  module Word,
+  module Ptr,
+  module ForeignPtr,
+  module StablePtr,
+  module NewStorable,  -- compensates old types in old versions of `Storable'
+  module MarshalAlloc,
+  module MarshalArray,
+  module MarshalError,
+  module MarshalUtils,
+  --
+  -- re-export the C language component of the FFI
+  --
+  module CForeign,
+  --
+  -- re-export from IOExts
+  --
+  unsafePerformIO,
+  --
+  -- C->HS specific marshalling functionality
+  --
+  module C2HSBase,
+  module C2HSMarsh
+) where 
 
-import Addr       (Addr, nullAddr)
-import qualified
-       Addr   (plusAddr)	-- !!!for GHC 4.08
 
-import C2HSConfig hiding (sizeofFloat, sizeofDouble, sizeofAddr)
+import Int          (Int8, Int16, Int32, Int64)
+import Word	    (Word8, Word16, Word32, Word64)
+import Ptr	    (Ptr(..), nullPtr, castPtr, plusPtr, alignPtr, minusPtr)
+import ForeignPtr   (ForeignPtr, newForeignPtr, addForeignPtrFinalizer,
+		     withForeignPtr, foreignPtrToPtr, touchForeignPtr,
+		     castForeignPtr)
+import StablePtr    (StablePtr, makeStablePtr, deRefStablePtr, freeStablePtr,
+		     stablePtrToAddr, addrToStablePtr)
+import NewStorable  (Storable(..))
+import MarshalAlloc (malloc, mallocBytes, alloca, allocaBytes, reallocBytes,
+		     free)
+import MarshalArray (mallocArray, mallocArray0, allocaArray, allocaArray0, 
+		     reallocArray, reallocArray0, peekArray, peekArray0,
+		     pokeArray, pokeArray0, newArray, newArray0, withArray,
+		     withArray0, copyArray, moveArray, advancePtr)
+import MarshalError (throwIf, throwIf_, throwIfNeg, throwIfNeg_, throwIfNull,
+		     void)
+import MarshalUtils (withObject, new, fromBool, toBool,	maybeNew, maybeWith,
+		     maybePeek, withMany, copyBytes, moveBytes)
+
+import CForeign
+
+import IOExts       (unsafePerformIO)
+
 import C2HSBase
 import C2HSMarsh
-
--- !!!bad hack for GHC 4.08
-plusAddr :: Addr -> Int -> Addr
-plusAddr a o = Addr.plusAddr a (fromInteger . toInteger $ o)
-

@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.10 $ from $Date: 2000/08/18 05:41:07 $
+#  Version $Revision: 1.11 $ from $Date: 2001/02/04 12:27:30 $
 #
 #  Copyright (c) 1999 Manuel M. T. Chakravarty
 #
@@ -104,8 +104,9 @@ install:
 #
 .PHONY: depend clean cleanhi distclean
 
-depend : gendepend
-clean  : recclean
+depend: gendepend
+	$(MAKE) -C lib $(MFLAGS) $@
+clean: recclean
 	-rm -f c2hs
 cleanhi: reccleanhi
 distclean:
