@@ -74,6 +74,15 @@ dnl Check system type.
 AC_CANONICAL_SYSTEM
 AC_CYGWIN
 
+dnl Check whether we are running on Mac OS X.
+HostPlatform=`/bin/sh $TOP/config.sub $host` || exit 1
+
+WHOLE_ARCHIVE_FLAG="--whole-archive"
+case $HostPlatform in
+powerpc-apple-darwin*)
+  WHOLE_ARCHIVE_FLAG="-all_load"
+esac;
+
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
@@ -267,6 +276,7 @@ AC_SUBST(PACKAGES)
 AC_SUBST(PACKAGES_STRINGS)
 AC_SUBST(IMPORT_DIRS)
 AC_SUBST(LIBRARY_DIRS)
+AC_SUBST(WHOLE_ARCHIVE_FLAG)
 
 dnl write the results...
 AC_OUTPUT([

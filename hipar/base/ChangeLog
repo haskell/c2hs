@@ -1,5 +1,10 @@
 2003-10-19  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
+	* configure.in: Support for Mac OS X by Sean Seefried
+	<sseefried@cse.unsw.edu.au>
+
+2003-10-19  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
 	* sysdep/Makefile: Posix (and hence, `runPiped') support disabled,
 	as `runPiped' (1) isn't really used at the moment, (2) should be
 	rewritten anyway, and (3) breaks with GHC 6.3 as the signature of
