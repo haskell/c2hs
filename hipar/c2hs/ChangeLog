@@ -1,3 +1,17 @@
+2001-05-03  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): added import hook
+	(mergePtrMap): added
+	(dumpPtrMap): added
+
+	* chs/CHS.hs (loadCHI): added
+	(dumpCHI): added
+	(CHSHook): added `import' hook
+
+	* chs/CHSLexer.hs: Added the keywords `import' and `qualified'
+
+	* toplevel/Version.hs (versnum): 0.9.2
+
 2001-05-02  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenBind.hs (extractCompType): as pointed out by Axel Simon,

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.23 $ from $Date: 2001/05/02 13:14:43 $
+--  Version $Revision: 1.24 $ from $Date: 2001/05/03 13:31:41 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -115,7 +115,7 @@
 --    itself (without also considering the `typedef').  Calls to such
 --    functions are currently rejected, which is a BUG.
 --
---  * context hook must be first
+--  * context hook must preceded all but the import hooks
 --
 --  * Look up in translation tables is naive - this probably doesn't affect
 --    costs much, but at some point a little profiling might be beneficial.
@@ -141,9 +141,10 @@ import Array	  (Array, (!))
 import Common     (Position, Pos(posOf), nopos)
 import Utils	  (lookupBy, mapMaybeM)
 import Errors	  (interr, todo)
-import Idents     (Ident, identToLexeme, onlyPosIdent)
+import Idents     (Ident, identToLexeme, onlyPosIdent, internalIdent)
 import Attributes (newAttrsOnlyPos)
-import FiniteMaps (FiniteMap, zeroFM, addToFM, lookupFM)
+import FiniteMaps (FiniteMap, zeroFM, addToFM, lookupFM, joinFM, toListFM,
+		   listToFM)
 
 import C2HSConfig (dlsuffix)
 import C2HSState  (CST, readCST, transCST, runCST, nop,
@@ -350,6 +351,31 @@ queryPtr pcName  = do
 		     fm <- readCT ptrmap
 		     return $ lookupFM fm pcName
 
+-- merge a pointer map
+--
+-- FIXME: This currently has several shortcomings:
+--	  * It just dies in case of a corrupted .chi file
+--	  * We probably would like to raise an error if there are colliding
+--	    entries during the `joinFM'
+--	  * Do we want position information associated with the read idents?
+--
+mergePtrMap     :: String -> GB ()
+mergePtrMap str  =
+  transCT (\state -> (state { 
+		        ptrmap = joinFM (ptrmap state) readPtrMap
+		      }, ()))
+  where
+    readPtrMap = listToFM [((isStar, internalIdent ide), repr)
+			  | ((isStar, ide), repr) <- read str]
+
+-- convert the whole pointer map into printable form
+--
+dumpPtrMap :: GB String
+dumpPtrMap  = do
+	        fm <- readCT ptrmap
+		return $ show [((isStar, identToLexeme ide), repr)
+			      | ((isStar, ide), repr) <- toListFM fm]
+
 
 -- expansion of the hooks
 -- ----------------------
@@ -357,16 +383,18 @@ queryPtr pcName  = do
 -- given a C header file and a binding file, expand all hooks in the binding
 -- file using the C header information (EXPORTED)
 --
--- * If any error (not warnings) is encountered, a fatal error is raised.
+-- * together with the module, returns the contents of the .chi file
 --
--- * Also returns all warning messages encountered.
+-- * if any error (not warnings) is encountered, a fatal error is raised.
 --
-expandHooks        :: AttrC -> CHSModule -> CST s (CHSModule, String)
+-- * also returns all warning messages encountered (last component of result)
+--
+expandHooks        :: AttrC -> CHSModule -> CST s (CHSModule, String, String)
 expandHooks ac mod  = do
 		        (_, res) <- runCT (expandModule mod) ac initialGBState
 			return res
 
-expandModule		       :: CHSModule -> GB (CHSModule, String)
+expandModule		       :: CHSModule -> GB (CHSModule, String, String)
 expandModule (CHSModule frags)  =
   do
     -- expand hooks
@@ -374,6 +402,10 @@ expandModule (CHSModule frags)  =
     traceInfoExpand
     frags'       <- mapM expandFrag frags
     delayedFrags <- getDelayedCode
+
+    -- get .chi dump
+    --
+    chi <- dumpPtrMap
 
     -- check for errors and finalise
     --
@@ -387,7 +419,7 @@ expandModule (CHSModule frags)  =
       else do
 	traceInfoOK
 	warnmsgs <- showErrors
-	return (CHSModule (frags' ++ delayedFrags), warnmsgs)
+	return (CHSModule (frags' ++ delayedFrags), chi, warnmsgs)
   where
     traceInfoExpand = putTraceStr tracePhasesSW 
 			("...expanding binding hooks...\n")
@@ -402,6 +434,11 @@ expandFrag      (CHSHook h) = liftM CHSVerb (expandHook h)
 			      `ifCTExc` return (CHSVerb "** ERROR **")
 
 expandHook :: CHSHook -> GB String
+expandHook (CHSImport qual ide chi _) =
+  do
+    mergePtrMap chi
+    return $ 
+      "import " ++ (if qual then "qualified " else "") ++ identToLexeme ide
 expandHook (CHSContext _ olib oprefix _) =
   do
     setContext olib oprefix		      -- enter context information

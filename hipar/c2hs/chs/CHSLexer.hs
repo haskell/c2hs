@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 13 August 99
 --
---  Version $Revision: 1.9 $ from $Date: 2001/04/29 13:13:52 $
+--  Version $Revision: 1.10 $ from $Date: 2001/05/03 13:31:41 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -161,10 +161,12 @@ data CHSToken = CHSTokArrow   Position		-- `->'
 	      | CHSTokFun     Position		-- `fun'
 	      | CHSTokGet     Position		-- `get'
 	      | CHSTokHeader  Position		-- `header'
+	      | CHSTokImport  Position		-- `import'
 	      | CHSTokLib     Position		-- `lib'
 	      | CHSTokNewtype Position		-- `newtype'
 	      | CHSTokPointer Position		-- `pointer'
 	      | CHSTokPrefix  Position		-- `prefix'
+	      | CHSTokQualif  Position		-- `qualified'
 	      | CHSTokSet     Position		-- `set'
 	      | CHSTokStable  Position		-- `stable'
 	      | CHSTokType    Position		-- `type'
@@ -195,10 +197,12 @@ instance Pos CHSToken where
   posOf (CHSTokFun     pos  ) = pos
   posOf (CHSTokGet     pos  ) = pos
   posOf (CHSTokHeader  pos  ) = pos
+  posOf (CHSTokImport  pos  ) = pos
   posOf (CHSTokLib     pos  ) = pos
   posOf (CHSTokNewtype pos  ) = pos
   posOf (CHSTokPointer pos  ) = pos
   posOf (CHSTokPrefix  pos  ) = pos
+  posOf (CHSTokQualif  pos  ) = pos
   posOf (CHSTokSet     pos  ) = pos
   posOf (CHSTokStable  pos  ) = pos
   posOf (CHSTokType    pos  ) = pos
@@ -229,10 +233,12 @@ instance Eq CHSToken where
   (CHSTokFun      _  ) == (CHSTokFun      _  ) = True
   (CHSTokGet      _  ) == (CHSTokGet      _  ) = True
   (CHSTokHeader   _  ) == (CHSTokHeader   _  ) = True
+  (CHSTokImport   _  ) == (CHSTokImport   _  ) = True
   (CHSTokLib      _  ) == (CHSTokLib      _  ) = True
   (CHSTokNewtype  _  ) == (CHSTokNewtype  _  ) = True
   (CHSTokPointer  _  ) == (CHSTokPointer  _  ) = True
   (CHSTokPrefix   _  ) == (CHSTokPrefix   _  ) = True
+  (CHSTokQualif   _  ) == (CHSTokQualif   _  ) = True
   (CHSTokSet      _  ) == (CHSTokSet      _  ) = True
   (CHSTokStable   _  ) == (CHSTokStable   _  ) = True
   (CHSTokType     _  ) == (CHSTokType     _  ) = True
@@ -264,10 +270,12 @@ instance Show CHSToken where
   showsPrec _ (CHSTokFun     _  ) = showString "fun"
   showsPrec _ (CHSTokGet     _  ) = showString "get"
   showsPrec _ (CHSTokHeader  _  ) = showString "header"
+  showsPrec _ (CHSTokImport  _  ) = showString "import"
   showsPrec _ (CHSTokLib     _  ) = showString "lib"
   showsPrec _ (CHSTokNewtype _  ) = showString "newtype"
   showsPrec _ (CHSTokPointer _  ) = showString "pointer"
   showsPrec _ (CHSTokPrefix  _  ) = showString "prefix"
+  showsPrec _ (CHSTokQualif  _  ) = showString "qualified"
   showsPrec _ (CHSTokStable  _  ) = showString "stable"
   showsPrec _ (CHSTokType    _  ) = showString "type"
   showsPrec _ (CHSTok_2Case  _  ) = showString "underscoreToCase"
@@ -501,10 +509,12 @@ identOrKW  =
     idkwtok pos "fun"              _    = CHSTokFun     pos
     idkwtok pos "get"              _    = CHSTokGet     pos
     idkwtok pos "header"           _    = CHSTokHeader  pos
+    idkwtok pos "import"           _    = CHSTokImport  pos
     idkwtok pos "lib"              _    = CHSTokLib     pos
     idkwtok pos "newtype"          _    = CHSTokNewtype pos
     idkwtok pos "pointer"          _    = CHSTokPointer pos
     idkwtok pos "prefix"           _    = CHSTokPrefix  pos
+    idkwtok pos "qualified"        _    = CHSTokQualif  pos
     idkwtok pos "set"              _    = CHSTokSet     pos
     idkwtok pos "stable"	   _	= CHSTokStable	pos
     idkwtok pos "type"             _    = CHSTokType    pos

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 August 99
 --
---  Version $Revision: 1.12 $ from $Date: 2001/04/29 13:13:52 $
+--  Version $Revision: 1.13 $ from $Date: 2001/05/03 13:31:40 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -21,6 +21,27 @@
 --
 --  Main file for reading CHS files.
 --
+--  Import hooks & .chi files
+--  -------------------------
+--
+--  Reading of `.chi' files is interleaved with parsing.  More precisely,
+--  whenever the parser comes across an import hook, it immediately reads the
+--  `.chi' file and inserts its contents into the abstract representation of
+--  the hook.  The parser checks the version of the `.chi' file, but does not
+--  otherwise attempt to interpret its contents.  This is only done during
+--  generation of the binding module.  The first line of a .chi file has the
+--  form 
+--
+--    C->Haskell Interface Version <version>
+--
+--  where <version> is the three component version number `Version.version'.
+--  C->Haskell will only accept files whose version number match its own in
+--  the first two components (ie, major and minor version).  In other words,
+--  it must be guaranteed that the format of .chi files is not altered between
+--  versions that differ only in their patchlevel.  All remaining lines of the
+--  file are version dependent and contain a dump of state information that
+--  the binding file generator needs to rescue across modules.
+--
 --- DOCU ----------------------------------------------------------------------
 --
 --  language: Haskell 98
@@ -28,7 +49,8 @@
 --  The following binding hooks are recognised:
 --
 --  hook     -> `{#' inner `#}'
---  inner    -> `context' ctxt
+--  inner    -> `import' ['qualified'] ident
+--	      | `context' ctxt
 --	      | `type' ident
 --	      | `enum' idalias trans [deriving]
 --	      | `call' [`fun'] [`unsafe'] idalias
@@ -61,10 +83,11 @@
 
 module CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 	    CHSAccess(..), CHSAPath(..), CHSPtrType(..),
-	    loadCHS, dumpCHS, hssuffix, chssuffix)
+	    loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI, chisuffix)
 where 
 
 import List	 (intersperse)
+import Monad	 (when)
 
 import Common    (Position, Pos(posOf), nopos)
 import Errors	 (interr)
@@ -90,7 +113,11 @@ data CHSFrag = CHSVerb String
 
 -- a CHS binding hook (EXPORTED)
 --
-data CHSHook = CHSContext (Maybe String)	-- header name
+data CHSHook = CHSImport  Bool			-- qualified?
+			  Ident			-- module name
+			  String		-- content of .chi file
+			  Position
+	     | CHSContext (Maybe String)	-- header name
 			  (Maybe String)	-- library name
 			  (Maybe String)	-- prefix
 			  Position
@@ -118,6 +145,7 @@ data CHSHook = CHSContext (Maybe String)	-- header name
 			  Position
 
 instance Pos CHSHook where
+  posOf (CHSImport  _ _ _       pos) = pos
   posOf (CHSContext _ _ _       pos) = pos
   posOf (CHSType    _           pos) = pos
   posOf (CHSEnum    _ _ _ _     pos) = pos
@@ -129,6 +157,8 @@ instance Pos CHSHook where
 -- same C object 
 --
 instance Eq CHSHook where
+  (CHSImport qual1 ide1 _      _) == (CHSImport qual2 ide2 _      _) =    
+    qual1 == qual2 && ide1 == ide2
   (CHSContext h1 olib1 opref1  _) == (CHSContext h2 olib2 opref2  _) =    
     h1 == h2 && olib1 == olib1 && opref1 == opref2
   (CHSType ide1                _) == (CHSType ide2                _) = 
@@ -269,6 +299,11 @@ showCHSFrag False (CHSHook hook) =   showString "{#"
 				   . showString "#}"
 showCHSFrag True  (CHSHook _   ) = interr "showCHSFrag: Illegal hook!"
 
+showCHSHook :: CHSHook -> ShowS
+showCHSHook (CHSImport isQual ide _ _) =   
+    showString "import "
+  . (if isQual then showString "qualified " else id)
+  . showCHSIdent ide
 showCHSHook (CHSContext oheader olib oprefix _) =   
     showString "context "
   . (case oheader of
@@ -361,6 +396,93 @@ showCHSIdent :: Ident -> ShowS
 showCHSIdent  = showString . identToLexeme
 
 
+-- load and dump a CHI file
+-- ------------------------
+
+chisuffix :: String
+chisuffix  = ".chi"
+
+versionPrefix :: String
+versionPrefix  = "C->Haskell Interface Version "
+
+-- load a CHI file (EXPORTED)
+--
+-- * the file suffix is automagically appended
+--
+-- * any error raises a syntax exception (see below)
+--
+-- * the version of the .chi file is checked against the version of the current
+--   executable; they must match in the major and minor version
+--
+loadCHI       :: FilePath -> CST s String
+loadCHI fname  = do
+		   let fullname = fname ++ chisuffix
+
+		   -- read file
+		   --
+		   traceInfoRead fullname
+-- FIXME: we need a list of .chi directories and search them; if not found
+--	  call `errorCHINotFound'
+		   contents <- readFileCIO fullname
+
+		   -- parse
+		   --
+		   traceInfoVersion
+		   let ls = lines contents
+		   when (null ls) $
+		     errorCHICorrupt fname
+		   let versline:chi = ls
+		       prefixLen    = length versionPrefix
+		   when (length versline < prefixLen
+			 || take prefixLen versline /= versionPrefix) $
+		     errorCHICorrupt fname
+		   let versline' = drop prefixLen versline
+		   (major, minor) <- case majorMinor versline' of
+				       Nothing     -> errorCHICorrupt fname
+				       Just majMin -> return majMin
+		     
+		   (version, _, _) <- getId
+		   let Just (myMajor, myMinor) = majorMinor version
+		   when (major /= myMajor || minor /= myMinor) $
+		     errorCHIVersion fname 
+		       (major ++ "." ++ minor) (myMajor ++ "." ++ myMinor)
+
+		   -- finalize
+		   --
+		   traceInfoOK
+		   return $ concat chi
+		  where
+		    traceInfoRead fname = putTraceStr tracePhasesSW
+					    ("Attempting to read file `"
+					     ++ fname ++ "'...\n")
+		    traceInfoVersion    = putTraceStr tracePhasesSW 
+					    ("...checking version `" 
+					     ++ fname ++ "'...\n")
+		    traceInfoOK         = putTraceStr tracePhasesSW
+					    ("...successfully loaded `"
+					     ++ fname ++ "'.\n")
+
+-- given a file name (no suffix) and a CHI file, the information is printed 
+-- into that file (EXPORTED)
+-- 
+-- * the correct suffix will automagically be appended
+--
+dumpCHI                :: String -> String -> CST s ()
+dumpCHI fname contents  =
+  do
+    (version, _, _) <- getId
+    writeFileCIO (fname ++ chisuffix) $
+      versionPrefix ++ version ++ "\n" ++ contents
+
+-- extract major and minor number from a version string
+--
+majorMinor      :: String -> Maybe (String, String)
+majorMinor vers  = let (major, rest) = break (== '.') vers
+		       (minor, _   ) = break (== '.') . tail $ rest
+		   in
+		   if null rest then Nothing else Just (major, minor)
+
+
 -- parsing a CHS token stream
 -- --------------------------
 
@@ -405,6 +527,7 @@ parseFrags toks  = do
     parseFrags0 (CHSTokCtrl    _ c:toks) = do
 					     frags <- parseFrags toks
 					     return (CHSVerb [c] : frags)
+    parseFrags0 (CHSTokImport  pos:toks) = parseImport  pos        toks
     parseFrags0 (CHSTokContext pos:toks) = parseContext pos        toks
     parseFrags0 (CHSTokType    pos:toks) = parseType    pos        toks
     parseFrags0 (CHSTokEnum    pos:toks) = parseEnum    pos        toks
@@ -420,6 +543,18 @@ parseFrags toks  = do
     contFrags toks@(CHSTokHaskell _ _:_   ) = parseFrags toks
     contFrags toks@(CHSTokCtrl    _ _:_   ) = parseFrags toks
     contFrags      (_                :toks) = contFrags  toks
+
+parseImport :: Position -> [CHSToken] -> CST s [CHSFrag]
+parseImport pos toks = do
+  (qual, modid) <- 
+    case toks of
+      CHSTokIdent _ ide                :toks -> return (False, ide)
+      CHSTokQualif _: CHSTokIdent _ ide:toks -> return (True , ide)
+      _					     -> syntaxError toks
+  chi <- loadCHI . identToLexeme $ modid
+  toks' <- parseEndHook toks
+  frags <- parseFrags toks'
+  return $ CHSHook (CHSImport qual modid chi pos) : frags
 
 parseContext          :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseContext pos toks  = do
@@ -654,3 +789,25 @@ errorEOF  = do
 	        ["Premature end of file!",
 	         "The .chs file ends in the middle of a binding hook."]
 	      raiseSyntaxError
+
+errorCHINotFound     :: String -> CST s a
+errorCHINotFound ide  = do
+  raiseError nopos 
+    ["Unknown .chi file!",
+     "Cannot find the .chi file for `" ++ ide ++ "'."]
+  raiseSyntaxError
+
+errorCHICorrupt      :: String -> CST s a
+errorCHICorrupt ide  = do
+  raiseError nopos 
+    ["Corrupt .chi file!",
+     "The file `" ++  ide ++ ".chi' is corrupt."]
+  raiseSyntaxError
+
+errorCHIVersion :: String -> String -> String -> CST s a
+errorCHIVersion ide chiVersion myVersion  = do
+  raiseError nopos 
+    ["Wrong version of .chi file!",
+     "The file `" ++ ide ++ ".chi' is version " 
+     ++ chiVersion ++ ", but mine is " ++ myVersion ++ "."]
+  raiseSyntaxError

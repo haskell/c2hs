@@ -4,7 +4,13 @@
 
 Next: -= phase re-ordering & parser clean up =-
 
-      - docu for pointer hooks missed
+      - we need a list of .chi directories and search them in `CHS.loadCHI'
+
+      - when we first read the .chs file and pre-process it to generate some
+        more C header code, it might be nice to move the reading of .chi files
+        into the pre-processing phase, too
+
+      - GenBind.mergePtrMap could be improved (see the comment)
 
       - Idea from Alastair: To make life easier for people who want to
         distribute tools including c2hs-generated code, it would be good to

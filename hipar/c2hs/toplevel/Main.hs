@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Derived: 12 August 99
 --
---  Version $Revision: 1.12 $ from $Date: 2001/05/02 13:14:44 $
+--  Version $Revision: 1.13 $ from $Date: 2001/05/03 13:31:41 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -119,7 +119,7 @@ import C2HSState  (CST, nop, runC2HS, fatal, fatalsHandledBy, getId,
 		   SwitchBoard(..), Traces(..), setTraces, traceSet,
 		   setSwitch, getSwitch, putTraceStr)
 import C	  (AttrC, hsuffix, isuffix, loadAttrC)
-import CHS	  (CHSModule, loadCHS, dumpCHS, hssuffix, chssuffix)
+import CHS	  (CHSModule, loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
 import GenBind	  (expandHooks)
 import Version    (version, copyright, disclaimer)
 import C2HSConfig (cpp, cppopts, hpaths)
@@ -438,14 +438,15 @@ process headerFile bndFile  =
     --
     -- expand binding hooks into plain Haskell
     --
-    (hsMod  , warnmsgs) <- expandHooks cheader chsMod
+    (hsMod, chi , warnmsgs) <- expandHooks cheader chsMod
     putStrCIO warnmsgs
     --
     -- output the result
     --
     outFName <- getSwitch outputSB
-    let hsFile = if null outFName then basename bndFile else outFName
+    let hsFile  = if null outFName then basename bndFile else outFName
     dumpCHS hsFile hsMod True
+    dumpCHI hsFile chi		-- different suffix will be appended
   where
     tracePreproc cmd = putTraceStr tracePhasesSW $
 		         "Invoking cpp as `" ++ cmd ++ "'...\n"
