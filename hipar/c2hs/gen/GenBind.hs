@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.20 $ from $Date: 2001/04/29 13:13:52 $
+--  Version $Revision: 1.21 $ from $Date: 2001/04/30 14:06:31 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -435,13 +435,17 @@ expandHook (CHSField access path pos) =
     setGet pos access offsets ty
 expandHook (CHSPointer isStar cName oalias ptrType isNewtype oRefType pos) =
   do
+FIXME: in case of a hook without a *, check that the type really is a pointer
     -- look up the original name in the C syntax tree using shadow entries;
     -- if the user does not supply her own Haskell name we generate one from
     -- the C name
     --
     (_, cNameFull) <- findTypeObj cName True
     let hsName = fromMaybe cName oalias
-    hsType <- case oRefType of
+    keepOld <- getSwitch oldFFI
+    hsType <- if keepOld 
+	      then return AddrET
+	      else case oRefType of
 		Nothing     -> do
 			         cDecl <- chaseDecl cNameFull (not isStar)
 				 et    <- extractPtrType cDecl
@@ -453,10 +457,6 @@ expandHook (CHSPointer isStar cName oalias ptrType isNewtype oRefType pos) =
       if isNewtype 
       then "newtype " ++ hsName ++ " = " ++ hsName ++ "(" ++ repr ++ ")"
       else "type "    ++ hsName ++ " = "                  ++ repr
-FIXME: implement `extractPtrType':
-       - calls extractCompType (mu"s (*void) nach (Ptr a) mappen)
-       - if SUType, then returns Ptr ()
-       - result type is an ExtType
 
 -- produce code for an enumeration
 --
@@ -685,8 +685,16 @@ setGet pos access offsets ty =
 		    ++ " (val::" ++ typeTag ++ ")"
 	  CHSGet -> "peekByteOff ptr " ++ show offset ++ " ::IO " ++ typeTag
       where
-	accessType (FunET      _   _) = return "Addr"
-FIXME: obige Addr durch Ptr ersetzen; argument?
+	accessType (FunET      at rt) = do
+					  keepOld <- getSwitch oldFFI
+					  if keepOld 
+					    then return "Addr"
+					    else do
+					      argt <- accessType at
+					      rest <- accessType rt
+					      return $
+					        "FunPtr (" ++ argt ++ " -> "
+						  ++ rest ++ ")"
 	accessType (IOET       _    ) = interr "GenBind.setGet: Illegal type!"
 	accessType (DefinedET  ide _) = chaseDecl ide False   >>=
 					extractSimpleType pos >>=
@@ -834,18 +842,90 @@ extractSimpleType pos cdecl  =
       ExtType et -> return et
       SUType  _  -> illegalStructUnionErr (posOf cdecl) pos
 
+-- compute a Haskell type for a type referenced in a C pointer type
+--
+-- * the declaration may have at most one declarator
+--
+-- * struct/union types are mapped to `()'
+--
+extractPtrType       :: CDecl -> GB ExtType
+extractPtrType cdecl  = do
+  ct <- extractCompType cdecl
+  case ct of
+    ExtType et -> return et
+    SUType  _  -> return UnitET
+
 -- compute a Haskell type from the given C declaration, where C functions are
 -- represented by function pointers
 --
 -- * the declaration may have at most one declarator
 --
--- * C functions are represented as `PtrFun <typedef>' or `Addr' if in
+-- * all C pointers (including functions) are represented as `Addr' if in
 --   compatibility mode (--old-ffi)
 --
 -- * typedef'ed types are chased
 --
-extractCompType       :: CDecl -> GB CompType
-FIXME: adapt to `pointer' hook
+extractCompType                              :: CDecl -> GB CompType
+extractCompType cdecl@(CDecl specs declrs _)  = do
+  oalias <- extractAlias cdecl True
+  case oalias of
+    --
+    -- anything but a typedef'ed type or a pointer to a typedef'ed type
+    --
+    Nothing             -> if isPtr
+			   then
+			     cdecl' <- stripCPtr cdecl
+			     ct     <- extractCompType cdecl'
+			     case ct of
+			       ExtType fet@(FunET _ _) -> 
+			         returnX $ PtrET CHSFunctionPtr fet
+			       ExtType et              -> 
+			         returnX $ PtrET CHSPtr et
+			       SUType  _               -> 
+			         returnX $ PtrET CHSPtr UnitET
+			   else
+			     specType (posOf cdecl) specs
+FIXME: implement stripCPtr in CTrav
+FIXME: PtrET braucht die CHSForeignPtr und CHSStablePtr Varianten nicht mehr,
+       oder? 
+    --
+    -- this does catch all *named* pointer types, as only "real" pointers and
+    -- not functions nor arrays can be defined with an explicit "*" in a
+    -- pointer hook; thus, functions and arrays must be typedef'ed explicitly
+    --
+    Just (ide, notAPtr) -> do
+			     oHsName <- queryPtr (not notAPtr, ide)
+			     case oHsName of
+			       Nothing     -> do
+				 decl  <- chaseDecl ide' False
+				 ct    <- extractCompType decl
+				 let et = case ct of -- can't represent structs
+					    ExtType et -> et
+					    SUType  _  -> UnitET
+				 returnX $
+				   if notAPtr then et else PtrET et
+			       Just hsName ->             -- alias was defined
+			         returnX $ DefinedET ide (identToLexeme hsName)
+  where
+    -- wrap an `ExtType' into a `CompType' and convert parametrised pointers
+    -- to `Addr' if needed
+    --
+    returnX retval@(CHSPtr _ et) = do
+				     keepOld <- getSwitch oldFFI
+				     if keepOld 
+				       then return $ ExtType (PrimET CAddrPT)
+				       else return $ ExtType retval
+    returnX retval               = return $ ExtType retval
+    ---
+    isPtr = case declrs of
+	      []                   -> False
+	      [(Just declr, _, _)] -> isPtrType declr
+	      _		           -> moreThanOneDeclrErr
+    moreThanOneDeclrErr = interr "GenBind.extractCompType: There was more \
+				 \than one declarator!"
+
+
+
 extractCompType cdecl  = do
   (isPtr, aliases, cdecl'@(CDecl spec _ _)) <- extractAliasNames cdecl
   ctype <- specType (posOf cdecl) spec

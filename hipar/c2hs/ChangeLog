@@ -1,3 +1,12 @@
+2001-05-01  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (extractCompType): revised for pointer hooks
+
+2001-04-30  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (setGet): uses FunPtr for functions
+	(extractPtrType): added
+
 2001-04-28  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenBind.hs (expandHook): rewrote `alias'hook into `pointer' hook

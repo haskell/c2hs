@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 October 99
 --
---  Version $Revision: 1.6 $ from $Date: 2001/04/29 13:13:51 $
+--  Version $Revision: 1.7 $ from $Date: 2001/04/30 14:06:30 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -68,7 +68,7 @@ module CTrav (CT, readCT, transCT, getCHeaderCT, runCT, throwCTExc, ifCTExc,
 	      applyPrefixToNameSpaces, getDefOf, refersToDef, findTypeObj,
 	      findValueObj, findFunObj, 
 	      --
-	      -- auxilliary functions on C structure tree fragments
+	      -- auxiliary functions on C structure tree fragments
 	      --
 	      isTypedef, simplifyDecl, declrFromDecl, declrNamed,
 	      declaredDeclr, declaredName, structMembers, expandDecl,
