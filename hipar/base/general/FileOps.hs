@@ -1,11 +1,11 @@
 --  Compiler Toolkit: operations on file
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 6 November 1999
 --
---  Version $Revision: 1.2 $ from $Date: 1999/11/08 08:17:56 $
+--  Version $Revision: 1.3 $ from $Date: 2003/02/12 09:38:34 $
 --
---  Copyright (c) 19989 Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -28,10 +28,15 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module FileOps (fileFindIn)
+module FileOps (fileFindIn, mktemp)
 where
 
+-- standard libs
+import Char      (chr, ord)
 import Directory (doesFileExist)
+import IO	 (Handle, IOMode(..), openFile)
+import Monad	 (liftM)
+import Random    (newStdGen, randomRs)
 
 import SysDep	 (ioError)
 import FNameOps  (dirname, stripDirname, addPath)
@@ -59,3 +64,47 @@ file `fileFindIn` paths  =
     if null existingFiles
       then ioError $ userError (file ++ ": File does not exist")
       else return $ head existingFiles
+
+-- |Create a temporary file with a unique name.
+--
+-- * A unique sequence of at least six characters and digits is added
+--   inbetween the two given components (the latter of which must include the
+--   file suffix if any is needed)
+--
+-- * Default permissions are used, which might not be optimal, but
+--   unfortunately the Haskell standard libs don't support proper permission
+--   management. 
+--
+-- * We make 100 attempts on getting a unique filename before giving up.
+--
+mktemp :: FilePath -> FilePath -> IO (Handle, FilePath)
+mktemp pre post =
+  do
+    rs <- liftM (randomRs (0, 61)) newStdGen
+			 -- range for lower and upper case letters plus digits
+    createLoop 100 rs
+  where
+    createLoop 0        _  = ioError . userError $ "mktemp: failed 100 times"
+    createLoop attempts rs = let
+			       (rs', fname) = nextName rs
+			     in do
+			       h <- openFile fname ReadWriteMode
+			       return (h, fname)
+			     `catch` \_ -> createLoop (attempts - 1) rs'
+    --
+    sixChars :: [Int] -> ([Int], String)
+    sixChars is = 
+      let
+        (sixInts, is') = splitAt 6 is
+	--
+	toChar i | i < 10    = chr . (ord '0' +)                 $ i
+		 | i < 36    = chr . (ord 'A' +) . (subtract 10) $ i
+		 | otherwise = chr . (ord 'a' +) . (subtract 36) $ i
+	in
+	(is', map toChar sixInts)
+    --
+    nextName :: [Int] -> ([Int], String)
+    nextName is = let
+		    (is', rndChars) = sixChars is
+		  in
+		  (is', pre ++ rndChars ++ post)

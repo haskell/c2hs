@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 3 April 98
 --
---  Version $Revision: 1.6 $ from $Date: 2001/10/08 04:06:27 $
+--  Version $Revision: 1.7 $ from $Date: 2003/02/12 09:38:34 $
 --
 --  Copyright (C) [1998..1999] Manuel M. T. Chakravarty
 --
@@ -81,6 +81,7 @@ instance Ix Name where
 -- The initial supply (EXPORTED)
 --
 rootSupply :: NameSupply
+{-# NOINLINE rootSupply #-}
 rootSupply  = NameSupply (unsafeNewIntRef 1)
 
 -- Split a name supply into a stream of supplies (EXPORTED)

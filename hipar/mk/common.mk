@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.51 $ from $Date: 2002/09/16 13:27:38 $
+#  Version $Revision: 1.52 $ from $Date: 2003/02/12 09:38:35 $
 #
 #  Copyright (c) [1997..2002] Manuel M T Chakravarty
 #
@@ -65,7 +65,8 @@ endif
 
 # local configuration and dependencies if available
 #
-# * there are only dependencies available on package toplevels
+# * there are only dependencies available on package toplevels (we don't check
+#   them in the parts)
 #
 include $(TOP)/mk/config.mk
 -include $(DEPEND)
@@ -152,7 +153,7 @@ HCFLAGS     += $(PROF) $(HIDIRSINCL) $(EXTRAHCFLAGS)
 # compile a Haskell file; if we are in a part, we may compile any Haskell 
 # source that is located in that part
 #
-# * the idea is to always initiate compiles at the package toplevel; the make 
+# * The idea is to always initiate compiles at the package toplevel; the make 
 #   process, however, decends into the corresponding part to get any part local
 #   makefile settings
 #
@@ -161,12 +162,18 @@ HCFLAGS     += $(PROF) $(HIDIRSINCL) $(EXTRAHCFLAGS)
 #   variable is also passed to the compiler.  This is useful for options that 
 #   are specific to a source file (like the heap space needed by the compiler).
 #
+# * It is crucial that the target for the package toplevel removes the target 
+#   object, as there is no dependency information available to the recursive 
+#   make instance that is invoked in the part directory.  Hence, if the object
+#   file exists, the recursive make instance may decide that the target is up 
+#   to date.
+#
 ifeq ($(PART),)
 %.o: %.hs
+	$(RM) $@
 	$(MAKE) -C $(dir $<) $(MFLAGS) `$(BASENAME) $@`
 else
 $(OBJS): %.o: %.hs
-#	$(RM) $@
 	$(HC) -c $(HCFLAGS) $($(join $<,-HCFLAGS)) $<
 endif
 
@@ -190,8 +197,6 @@ endif
 #   because we don't know which of the other modules are used by which 
 #   systems.  The variable MKDEPENDFILES is extended in the base/Makefile
 #   to include all the necessary sysdep files.
-# * Using `sed' all directory prefixes are removed.  This cannot lead to 
-#   ambiguities, because all modules belong to the same program.
 #
 # * KLUDGE: The use of $(GREP) is a kludge to filter out the `base' modules 
 #   from dependencies for `dhc' and `nepal', which is used because the `-X' 
@@ -202,6 +207,7 @@ endif
 MKDEPENDFILES=$(wildcard $(addsuffix /*.hs,$(filter-out sysdep,$(PARTS))))
 ifeq ($(SYS),$(findstring $(SYS),ghc4 ghc5))
 gendepend:
+	$(RM) $(DEPEND)
 	@echo "*** Generating dependencies for $(PACKAGE)..."
 	$(MKDEPENDHS) -optdep-f -optdep$(DEPEND)\
           $(HCFLAGS) $(MKDEPENDOPTS)\
@@ -209,6 +215,7 @@ gendepend:
 endif
 ifeq ($(SYS),$(findstring $(SYS),nhc1))
 gendepend:
+	-$(RM) $(DEPEND)
 	@echo "*** Generating dependencies for $(PACKAGE)..."
 	$(MKDEPENDHS)\
 	  $(addprefix $(HIDIROPT),$(HIDIRS)) $(MKDEPENDOPTS)\

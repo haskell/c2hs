@@ -1,11 +1,11 @@
 --  Compiler Toolkit: Compiler I/O 
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 2 November 95
 --
---  Version $Revision: 1.28 $ from $Date: 2001/05/20 14:14:31 $
+--  Version $Revision: 1.29 $ from $Date: 2003/02/12 09:38:35 $
 --
---  Copyright (c) [1995...2001] Manuel M. T. Chakravarty
+--  Copyright (c) [1995...2003] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -71,14 +71,14 @@ module CIO (-- (verbatim) re-exports
 	    --
 	    -- CTK general stuff
 	    --
-	    fileFindInCIO)
+	    fileFindInCIO, mktempCIO)
 where
 
 import IO
 import Directory
 import System
 
-import FileOps	 (fileFindIn)
+import FileOps	 (fileFindIn, mktemp)
 import StateBase (PreCST, liftIO)
 import SysDep    (ProcessID, runPiped)
 
@@ -191,3 +191,6 @@ runPipedCIO fname args env wd = liftIO (runPiped fname args env wd)
 
 fileFindInCIO            :: FilePath -> [FilePath] -> PreCST e s FilePath
 fileFindInCIO file paths  = liftIO $ file `fileFindIn` paths
+
+mktempCIO :: FilePath -> FilePath -> PreCST e s (Handle, FilePath)
+mktempCIO pre post = liftIO $ mktemp pre post

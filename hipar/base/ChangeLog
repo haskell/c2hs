@@ -1,3 +1,21 @@
+2003-02-05  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* general/FileOps.hs (mktemp): added
+
+2003-02-01  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* ../common.mk: I wasn't careful when removing the ability (for
+	the user) to invoke make in the part directories and hence the
+	ability to check dependencies in these directories.  As a result,
+	recursive invocations of make tried to check dependencies in part
+	directories and erroneously decided that the target is alreasy up
+	to date.  Now the object file are removed before descending into
+	the recursive make.
+
+	* ../common.mk (gendepend): remove $(DEPEND) first
+
+	* admin/BaseVersion.hs (versnum): 0.24.3
+
 2002-09-16  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
 
 	* Makefile (libctk.o): generating library for GHCi
