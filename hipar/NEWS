@@ -3,6 +3,10 @@
 ** This file covers only the Compiler Toolkit, see compiler subdirectories for
 ** NEWS regarding compilers built with the toolkit.
 
+0.22.3
+~~~~~~
+* Adapted to GHC 5.0
+
 0.20.2
 ~~~~~~
 * Changed the associativity of `quest`, `star`, and `plus`.  This change was

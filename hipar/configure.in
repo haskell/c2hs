@@ -1,5 +1,5 @@
 dnl CTK - Compiler Toolkit
-dnl Copyright (c) [1999..2000] Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
+dnl Copyright (c) [1999..2001] Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
 dnl 
 dnl This library is free software; you can redistribute it and/or
 dnl modify it under the terms of the GNU Library General Public
@@ -105,18 +105,17 @@ fi
 dnl Determine basic compiler name.
 case `$BASENAME $HC` in
   ghc*) hc_base=ghc;;
-  nhc98) hc_base=nhc98;;
+  nhc98*) hc_base=nhc98;;
 esac
 
 dnl Check ghc's details.
 if test $hc_base = ghc; then
   dnl set GHC, as this is what the following command inspects
   GHC=$HC
-  CTK_GHC_VERSION(hc_maj_vers,hc_min_vers)
-  if test $hc_maj_vers -lt 3 -o $hc_min_vers -lt 2; then
-   AC_MSG_ERROR([You need version 3.02 or 4.02 upwards of ghc!
-  ** Check \"http://haskell.org/ghc/\". **])
-  fi
+  CTK_GHC_VERSION(hc_vers,hc_maj_vers,hc_min_vers,hc_pl)
+  CTK_PROG_CHECK_VERSION($hc_vers, -lt, 4.02, [
+    AC_MSG_ERROR([We need to have version 4.02 upwards of ghc!
+** Check \"http://haskell.org\". **])])
   dnl Determine compilation system identifier and option for adding .hi 
   dnl directories.
   SYS=ghc$hc_maj_vers
@@ -147,12 +146,15 @@ dnl      out that nothing will changes compared to the last compile - it does
 dnl      so by inspecting the version information in the .hi files.
 if test -z "$HCFLAGS"; then
   HCFLAGS=-O
-  if test $SYS = ghc3 -o $SYS = ghc4; then
+  if test $hc_base = ghc; then
     HCFLAGS="$HCFLAGS -recomp -fno-warn-incomplete-patterns"
   fi
-  if test $SYS = ghc4 -a $ghc_native = yes -a $hc_min_vers -ge 7; then
+  if test $ghc_native = yes; then
+    CTK_PROG_CHECK_VERSION($hc_vers, -lt, 4.06, [
+      AC_MSG_ERROR([For the option --with-ghc-native, you need version 4.07 upwards of ghc!])])
     case "$target" in
       i?86-*-linux-gnu) HCFLAGS="$HCFLAGS -fasm-x86";;
+      *) AC_MSG_ERROR([The option --with-ghc-native is only supported on the x86 architecture.]);;
     esac
   fi
 fi
@@ -175,12 +177,7 @@ else
   SYSPOSIX=""
   POSIX_FEATURE=""
 fi
-if test $SYS = ghc3; then
-dnl ghc 3.x
-  HCSYSFLAGS="-syslib exts $SYSPOSIX"
-  SYSFEATURES="$SYSFEATURES $POSIX_FEATURE"
-fi
-if test $SYS = ghc4; then
+if test $hc_base = ghc; then
   dnl Check in which system library we find the module IOExts.
   CTK_LIB_SYSLIB(IOExts, lang exts)
   HCSYSFLAGS="-syslib $syslib_IOExts $SYSPOSIX"
@@ -192,7 +189,7 @@ fi
 
 dnl Select a dependency computation tool.
 dnl
-if test $SYS = ghc3 -o $SYS = ghc4; then
+if test $hc_base = ghc; then
   MKDEPENDHS="$HC -M"
 fi
 if test $SYS = nhc1; then

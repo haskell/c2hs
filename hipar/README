@@ -5,7 +5,7 @@
 The Compiler Toolkit is a support library for compilers in Haskell.  You may
 have obtained it as part of a compiler using the library.  See also
 
-  http://www.score.is.tsukuba.ac.jp/~chak/ctk/
+  http://www.cse.unsw.edu.au/~chak/ctk/
 
 
 Contents:
@@ -59,13 +59,6 @@ NOTE: The code of the Compiler Toolkit is intentionally _not_ released
       used in compilers that are themselves distributed under the GPL.  
       Keep the code open!  An exception are the modules contained in CTKlight, 
       they are LGPL and may be used in closed source software.
-
-      HOWEVER, all runtime system code - ie, code required by the output of
-      any of the compilers - is LGPL.  This means that any program that you
-      compile with one of the compilers or any binding that you generate with
-      C->HS is _not_ restricted.  In other words, we do not care what you use
-      these compilers for or to whom you are giving them, but if you modify
-      or improve them, you have to contribute your changes back to us.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- CREDITS -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

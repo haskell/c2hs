@@ -1,12 +1,8 @@
 Prerequisites							     -*-text-*-
 ~~~~~~~~~~~~~
 
-You need a Haskell 98 compiler.  Currently, this has to be Glasgow Haskell
-Compilation system (GHC) 3.x or 4.x.  If you are planning to build the
-developer release of the Nepal Compiler, you also need the parser generator
-Happy.  If you are building C->Haskell or Nepal, you need GHC 4.x (more
-details on the exact versions below).  For the Haskell compiler and the
-Haskell parser generator, see
+You need a Haskell 98 compiler.  Currently, this has to be GHC 4.02 upwards or
+NHC98 1.0.  To get a Haskell compiler check
 
   http://haskell.org/
 
@@ -71,12 +67,9 @@ is contained in `doc/base/base.tex'.
 
 Supported Systems and Porting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Glasgow Haskell Compilation System, Version 3.x (only for CTK)
-	   "			  , Version 4.x; x >= 02
+Glasgow Haskell Compilation System, Version 4.x; x >= 02
 
-The Compiler Toolkit should build with Haskell 1.4 and Haskell 98 systems, but
-C->Haskell and the Nepal compiler require Haskell 98.  All
-(compilation) system-dependent code is contained in `base/sysdep/', ie, by
+All (compilation) system-dependent code is contained in `base/sysdep/', ie, by
 porting the `SysDep' module, other systems should also work.  In case of
 problems, contact <chak@cse.unsw.edu.au>.
 
