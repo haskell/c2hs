@@ -1,3 +1,11 @@
+2001-09-26  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* general/UNames.hs: nhc98 1.08 doesn't grok deriving Ix
+
+	* ../configure.in: better support for nhc98 
+
+	* admin/BaseVersion.hs (versnum): 0.22.4
+
 2001-05-20  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* state/CIO.hs (doesFileExistCIO): added by Axel Simon <simona_@web.de>

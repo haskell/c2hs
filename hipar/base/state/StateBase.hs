@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 7 November 97
 --
---  Version $Revision: 1.11 $
+--  Version $Revision: 1.12 $
 --
 --  Copyright (C) [1997..1999] Manuel M. T. Chakravarty
 --
@@ -93,9 +93,7 @@ data BaseState e = BaseState {
 -- the compiler state transformer (EXPORTED)
 -- 
 
--- !!!nhc98 chokes
---newtype PreCST e s a = CST (STB (BaseState e) s a)
-data PreCST e s a = CST (STB (BaseState e) s a)
+newtype PreCST e s a = CST (STB (BaseState e) s a)
 
 instance Monad (PreCST e s) where
   return = yield

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 3 April 98
 --
---  Version $Revision: 1.5 $ from $Date: 2000/02/28 06:28:59 $
+--  Version $Revision: 1.6 $ from $Date: 2001/10/08 04:06:27 $
 --
 --  Copyright (C) [1998..1999] Manuel M. T. Chakravarty
 --
@@ -60,14 +60,18 @@ import SysDep (IORef, unsafeNewIntRef, unsafeReadAndIncIntRef)
 
 -- Name supply definition (EXPORTED ABSTRACTLY)
 --
--- !!!nhc98 chokes on the newtype
---newtype NameSupply = NameSupply (IORef Int)
-data NameSupply = NameSupply (IORef Int)
+newtype NameSupply = NameSupply (IORef Int)
 
 -- Name (EXPORTED ABSTRACTLY)
 --
 newtype Name = Name Int
-             deriving (Show, Eq, Ord, Ix)
+--             deriving (Show, Eq, Ord, Ix)
+-- FIXME: nhc98, v1.08 can't derive Ix
+             deriving (Show, Eq, Ord)
+instance Ix Name where
+  range   (Name from, Name to)            = map Name (range (from, to))
+  index   (Name from, Name to) (Name idx) = index   (from, to) idx
+  inRange (Name from, Name to) (Name idx) = inRange (from, to) idx
 
 
 --	  	      *** DON'T TOUCH THE FOLLOWING *** 

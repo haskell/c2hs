@@ -18,6 +18,8 @@ Next: + improve autoconf (we would like ./configure to generate its stuff in
 
 Short Term:
 ~~~~~~~~~~~
+* See general/UNames.hs for nhc98 induced ugliness; change when nhc98 is fixed
+
 * Lexers: For unicode `Char', we need to explicit support for positive and
   negated ranges such as ['\0'..'\255'] and ['\0'..'\255'] \\ ['a'..'c'],
   where the latter is usually written [^abc] (see the haskell-cafe
