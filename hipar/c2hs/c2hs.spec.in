@@ -2,14 +2,10 @@
 #
 # Copyright [1999..2002] Manuel M T Chakravarty <chak@cse.unsw.edu.au>
 
-%define version    @C2HS_VERSION@
-%define release    SNAP
-%define prefix     /usr
-
 Summary: C->Haskell Interface Generator
 Name: c2hs
-Version: %{version}
-Release: %{release}
+Version: @C2HS_VERSION@
+Release: SNAP
 Copyright: GPL
 Group: Development/Tools
 Source: http://www.cse.unsw.edu.au/~chak/haskell/c2hs/c2hs-%{version}.tar.gz
@@ -48,32 +44,32 @@ More info plus the language definition is at http://www.haskell.org/.
 - original version
 
 %prep
-%setup
+%setup -q
 
 %build
-./configure --prefix=%{prefix}
+%configure
 make
 make doc
 
 %install
-make prefix=$RPM_BUILD_ROOT%{prefix} install
-make prefix=$RPM_BUILD_ROOT%{prefix} install-doc
+%makeinstall install-doc
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %post
-%{prefix}/bin/c2hs-config --package-conf\
+%{_bindir}/c2hs-config --package-conf\
   | ghc-pkg --update-package --auto-ghci-libs
 
 %postun
 ghc-pkg --remove-package=c2hs
 
 %files
+%defattr(-,root,root)
 %doc c2hs/ChangeLog c2hs/TODO c2hs/COPYING c2hs/COPYING.LIB
 %doc c2hs/README c2hs/AUTHORS
 %doc doc/c2hs/*.html doc/c2hs/*.txt doc/c2hs/lib c2hs/tests
-%{prefix}/bin/c2hs
-%{prefix}/bin/c2hs-config
-%{prefix}/lib/c2hs-%{version}/
-%{prefix}/man/
+%{_bindir}/c2hs
+%{_bindir}/c2hs-config
+%{_libdir}/c2hs-%{version}/
+%{_mandir}/man1/*

@@ -1,6 +1,24 @@
+2003-06-10  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.11.5
+
+2003-05-30  Jens Petersen  <petersen@redhat.com>
+
+	* configure.in: Search for compiler named HC too.
+
+2003-05-30  Jens Petersen  <petersen@redhat.com>
+
+	* c2hs.spec.in (Version): Set directly.
+	(Release): Ditto.
+	(%prep): Quieten setup.
+	(%build): Use configure macro.
+	(%install): Use makeinstall macro.
+	(%post): Use _bindir.
+	(%files): Make root own files.  Use _bindir, _libdir and _mandir.
+
 2003-05-22  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
-	* gen/GenBind.hs (Ord): Need instance for `<=' to indirectly
+	* gen/GenBind.hs (Ord): Need instance for `<=' for indirectly
 	defined `compare'; bug reported by Ian Lynagh <igloo@earth.li>
 
 	* toplevel/Version.hs (versnum): 0.11.4

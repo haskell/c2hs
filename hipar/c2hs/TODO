@@ -9,9 +9,22 @@ Next: - Points raised by PeteG:
 	* c2hs' initial comment also seems to confuse haddock (maybe also
 	  other things done by c2hs; check!)
 
+      - We really should integrate c2hs' lib with the generated code and not
+        require that c2hs is installed when using a program that happens to
+        include c2hs generated code.
+
       - Ian requests {#const SYM#} where SYM is a pre-preprocessor symbol to 
         evaluate to the C value of SYM.  Main problem is that the value might
         be of various C types.
+
+      - --enable-prof doesn't work at the moment.  GHC doesn't generate
+        interface files with an .p_hi suffix when -prof is given, but package
+        management seems to expect those, which breaks as soon as compilation
+        of c2hs proper needs an interface file from base/.  Besides, the
+        option as it is now doesn't make much sense anyway.  We need to
+        distinguish between building c2hs for profiling c2hs and building c2hs'
+        marshalling library to profile programs including c2hs generated
+        code.
 
       - move over to Standard FFI, but support the old syntax when --old-ffi
         given (remove the old meaning of --old-ffi); emit <Lib>.h into the

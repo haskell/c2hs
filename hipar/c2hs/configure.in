@@ -26,7 +26,7 @@ AC_INIT(toplevel/Version.hs)
 
 dnl Select a specific Haskell compiler and/or flags.
 AC_ARG_WITH(hc, 
-            [  --with-hc=HC            use Haskell compiler HC (full path required)],
+            [  --with-hc=HC            use Haskell compiler HC],
 	    [HC=$withval])
 AC_ARG_WITH(hcflags, 
             [  --with-hcflags=HCFLAGS  specify flags for Haskell compiler],
@@ -68,8 +68,7 @@ C2HS_VERSION=`$GREP '^versnum' toplevel/Version.hs\
 
 dnl Haskell compiler; currently only GHC 4.08 upwards and nhc98 1.14 have the 
 dnl required FFI and existentially quantified variables correctly working.
-dnl (The next command is not executed, if $HC is already set.)
-AC_PATH_PROGS(HC, ghc nhc98)
+AC_PATH_PROGS(HC, $HC ghc nhc98)
 if test -z "$HC"; then
  AC_MSG_ERROR([Could not find a Haskell compiler!
 Currently supported are ghc 4.08 upwards & nhc98 1.14.
