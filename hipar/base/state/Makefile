@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.13 $ from $Date: 2002/03/12 12:39:14 $
+#  Version $Revision: 1.14 $ from $Date: 2002/05/19 09:10:16 $
 #
 #  Copyright (c) [1997..2002] Manuel M T Chakravarty
 #
@@ -28,6 +28,7 @@
 # before the include due to conditionals etc in `common.mk')
 #
 PACKAGE = base
+PCKNAME = ctk
 PART    = state
 SRCS	= CIO.hs DynArrays.hs State.hs StateBase.hs StateTrans.hs
 OBJS	= $(patsubst %.hs,%.o,$(SRCS))

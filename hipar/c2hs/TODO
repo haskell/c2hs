@@ -5,16 +5,6 @@
 Next: - Ignore gcc's __extension__ keyword (see report by Jay Cox
 	<sqrtofone@yahoo.com>); see also bug report from Andrew & Simon
 
-      - add flag marshalling
-
-        `GdkMarsh.GFlag' should be in the C2HS library (as `Flag') and we
-        might want something like {#enum flag ...#} for marshalling masks like
-	`GdkEventMask'.  The latter would not generate an `Enum' instance, but
-	a `Flag' instance.  (See also `GdkEvents.EventMask'.)
-
-        Pending suggestions from Armin Sander:
-	+ MarshalFlags.hs
-
       - configuration oracle should have an option to print the Haskell
         compiler and version it was compiled for
 
@@ -37,7 +27,6 @@ Next: - Ignore gcc's __extension__ keyword (see report by Jay Cox
 
       - Pending suggestions from Axel Simon:
 	+ succ/pred definitions for enum hooks
-	+ Compilation of multiple files in one c2hs invocation
 
       - marshalling of structs
 

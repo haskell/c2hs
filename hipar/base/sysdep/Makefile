@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 24 October 1997
 #
-#  Version $Revision: 1.14 $ from $Date: 2002/03/12 12:39:15 $
+#  Version $Revision: 1.15 $ from $Date: 2002/05/19 09:10:17 $
 #
 #  Copyright (c) [1997..2002] Manuel M T Chakravarty
 #
@@ -32,6 +32,7 @@ include ../../mk/config.mk
 # before the include due to conditionals etc in `common.mk')
 #
 PACKAGE = base
+PCKNAME = ctk
 PART    = sysdep
 SRCS	= SysDep.hs SysDepPosix.hs
 #

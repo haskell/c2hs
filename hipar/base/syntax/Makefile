@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.8 $ from $Date: 2002/03/12 12:39:14 $
+#  Version $Revision: 1.9 $ from $Date: 2002/05/19 09:10:17 $
 #
 #  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
@@ -33,6 +33,7 @@
 # before the include due to conditionals etc in `common.mk')
 #
 PACKAGE = base
+PCKNAME = ctk
 PART    = syntax
 SRCS   := Lexers.hs ParserMonad.hs Parsers.hs Pretty.hs
 OBJS   := $(patsubst %.hs,%.o,$(SRCS))

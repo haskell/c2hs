@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.14 $ from $Date: 2002/03/12 12:39:13 $
+#  Version $Revision: 1.15 $ from $Date: 2002/05/19 09:10:16 $
 #
 #  Copyright (C) [1997..1999] Manuel M. T. Chakravarty
 #
@@ -28,6 +28,7 @@
 # before the include due to conditionals etc in `common.mk')
 #
 PACKAGE = base
+PCKNAME = ctk
 PART    = general
 SRCS	= DLists.hs FiniteMaps.hs FNameOps.hs FileOps.hs GetOpt.hs Sets.hs\
 	  UNames.hs Utils.hs
