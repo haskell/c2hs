@@ -2,7 +2,9 @@
                                 C2HS TODO
                                 =========
 
-Next: - check building with latest nhc; issues with 1.14 were:
+Next: - Tutorial
+
+      - check building with latest nhc; issues with 1.14 were:
 	- problems in `Parsers'
 	- exports FFI libraries from `FFI' instead of `Foreign' and `CForeign'
 
@@ -11,6 +13,12 @@ Next: - check building with latest nhc; issues with 1.14 were:
       - GenBind.setGet: How is it justified that `bitsPerField' is
         fixed to the size of `CInt'?  Does the C def guarantee
 	that bitfields types are of the same size?
+
+      - move over to Standard FFI, but support the old syntax when --old-ffi
+        given (remove the old meaning of --old-ffi)
+
+      - check profiling; also make sure all .p_hi, .p_o etc files are removed
+        when cleaning
 
       Major features to be added after the release: conditions (incl phase
       re-ordering), structure marshalling.

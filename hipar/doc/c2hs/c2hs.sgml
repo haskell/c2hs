@@ -7,7 +7,7 @@
 
 <title>The Binding Generator C->Haskell
 <author>Manuel M. T. Chakravarty, <tt/chak@cse.unsw.edu.au/
-<date>v0.10, 25 February 2002
+<date>v0.11, 6 September 2002
 <abstract>
 C-&gt;Haskell is an interface generator that simplifies the development of
 <htmlurl url="http://haskell.org" name="Haskell"> bindings to C libraries.  The
@@ -796,7 +796,7 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.10.14 "Altocumulus Stratiformis Perlucidus Undulatus"
+<sect1>Version 0.10.16 "Altocumulus Stratiformis Perlucidus Undulatus"
 <p>
 <itemize>
 <item>Marshalling support for bit masks represented as enumeration types

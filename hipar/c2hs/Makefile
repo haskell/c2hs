@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.17 $ from $Date: 2002/09/06 06:34:13 $
+#  Version $Revision: 1.18 $ from $Date: 2002/09/06 07:56:26 $
 #
 #  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
@@ -98,7 +98,7 @@ install: all
 	done
 ifeq ($(ENABLE_ADD_PACKAGE),yes)
 	$(DESTDIR)$(bindir)/c2hs-config --package-conf\
-	| $(GHCPKG) --update-package
+	| $(GHCPKG) --update-package --auto-ghci-libs
 endif
 
 # auxilliary targets
