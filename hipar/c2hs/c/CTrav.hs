@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 October 99
 --
---  Version $Revision: 1.12 $ from $Date: 2001/05/13 11:10:01 $
+--  Version $Revision: 1.13 $ from $Date: 2001/08/26 08:34:24 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -546,8 +546,11 @@ isPtrDeclr _                                = False
 --	  into an anonymous declarator and also change its attributes
 --
 dropPtrDeclr                                          :: CDeclr -> CDeclr
-dropPtrDeclr (CPtrDeclr _  declr@(CVarDeclr _ _) _  )  = declr
-dropPtrDeclr (CPtrDeclr qs declr                 ats)  = 
+dropPtrDeclr (CPtrDeclr qs declr@(CVarDeclr _ _) ats)  
+  | length qs == 1				       = declr
+  | otherwise					       =
+    CPtrDeclr (init qs) declr ats
+dropPtrDeclr (CPtrDeclr qs  declr                 ats) = 
   let declr' = dropPtrDeclr declr
   in
   CPtrDeclr qs declr' ats

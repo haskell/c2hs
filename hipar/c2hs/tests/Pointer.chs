@@ -38,4 +38,5 @@ type PtrString = {#type stringPtr#}
 checkType :: PtrString -> Ptr (Ptr CChar)
 checkType  = id
 
-main = print 42
+main = putStrLn "This test doesn't compute much; it's all about the generated \
+		\types."

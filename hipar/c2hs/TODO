@@ -4,13 +4,6 @@
 
 Next: -= phase re-ordering & parser clean up =-
 
-      - BUG in generating signatures for functions having "pointer to pointer"
-        arguments; see FIXME in Gdk.chs
-
-	** tests/Pointer.chs illustrates the problem now
-
-   --- release ---
-
       - Pending suggestions from Axel Simon:
 	+ succ/pred definitions for enum hooks
 	+ Compilation of multiple files in one c2hs invocation
@@ -133,6 +126,7 @@ Next: -= phase re-ordering & parser clean up =-
         special library-only compile and installation.
       - maybe compilers based on the CTK should add a README.1ST to the root
 	directory when they are tarified
+      - kill the --old-ffi option when the old FFI disappeared
 
 
 Marshalling templates

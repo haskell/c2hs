@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 12 August 99
 --
---  Version $Revision: 1.7 $ from $Date: 1999/10/19 04:09:22 $
+--  Version $Revision: 1.8 $ from $Date: 2001/08/26 08:34:24 $
 --
 --  Copyright (c) 1999 Manuel M. T. Chakravarty
 --
@@ -55,6 +55,10 @@ module C (-- interface to KL for all non-KL modules
 	  --
 	  module CTrav,
 	  --
+	  -- support for pretty printing C abstract trees
+	  --
+	  module CPretty,
+	  --
 	  loadAttrC,		-- locally defined
 	  --
 	  -- misc. reexported stuff
@@ -78,6 +82,7 @@ import C2HSState  (CST, IOMode(..),
 		   Traces(..), putTraceStr)
 import CAST
 import CParser    (parseC)
+import CPretty
 import CAttrs	  (AttrC, attrC, getCHeader, 
 		   CObj(..), CTag(..), CDef(..), lookupDefObjC, lookupDefTagC,
 		   getDefOfIdentC)

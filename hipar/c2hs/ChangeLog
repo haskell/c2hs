@@ -1,3 +1,9 @@
+2001-08-26  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CTrav.hs (dropPtrDeclr): fixed pointer to pointer case
+
+	* c/CPretty.hs: implemented pretty-printing for part of the C AST
+
 2001-08-25  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenBind.hs (setGet): missed ";" in code generation

@@ -8,7 +8,7 @@ HC     = ghc
 HCFLAGS= -package lang -fglasgow-exts -i../lib -L../lib -lc2hs
 C2HS   = ../c2hs
 
-PRGMS = simple calls enums structs marsh
+PRGMS = simple calls enums pointer structs marsh
 
 default: tests
 

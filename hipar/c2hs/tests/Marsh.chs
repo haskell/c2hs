@@ -8,12 +8,14 @@ import C2HS
 
 main :: IO ()
 main  = do
-	  mem <- stdAddr "Hello World!\n"
-	  str <- addrStdKeep mem
+	  mem <- newCString "Hello World!\n"
+	  str <- peekCString mem
 	  free mem
 	  putStr str
 
-	  (mem, len) <- listToAddrWithLen ([5, 3, 7] :: [CInt])
-	  l <- addrWithLenToList mem len
+	  let l   = [5, 3, 7] :: [CInt]
+	      len = length l
+	  mem <- newArray l
+	  l <- peekArray len mem
 	  free mem
-	  putStr $ show (l :: [CInt]) ++ "\n"
+	  putStr $ show l ++ "\n"

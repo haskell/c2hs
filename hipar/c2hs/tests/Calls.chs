@@ -1,3 +1,5 @@
+-- -*-haskell-*-
+
 module Main
 where
 

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.34 $ from $Date: 2001/08/25 13:16:31 $
+--  Version $Revision: 1.35 $ from $Date: 2001/08/26 08:34:25 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -455,7 +455,7 @@ expandHook (CHSType ide pos) =
   where
     traceInfoType         = traceGenBind "** Type hook:\n"
     traceInfoDump decl ty = traceGenBind $
-      "Declaration\n<need ppr for cdecl>\ntranslates to\n" 
+      "Declaration\n" ++ show decl ++ "\ntranslates to\n" 
       ++ showExtType ty ++ "\n"
 expandHook (CHSSizeof ide pos) =
   do
@@ -467,7 +467,7 @@ expandHook (CHSSizeof ide pos) =
   where
     traceInfoSizeof         = traceGenBind "** Sizeof hook:\n"
     traceInfoDump decl size = traceGenBind $
-      "Size of declaration\n<need ppr for cdecl>\nis" ++ show size ++ "\n"
+      "Size of declaration\n" ++ show decl ++ "\nis" ++ show size ++ "\n"
 expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
   do
     -- get the corresponding C declaration
