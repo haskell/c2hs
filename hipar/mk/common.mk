@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.50 $ from $Date: 2002/05/16 07:49:20 $
+#  Version $Revision: 1.51 $ from $Date: 2002/09/16 13:27:38 $
 #
 #  Copyright (c) [1997..2002] Manuel M T Chakravarty
 #
@@ -245,7 +245,7 @@ rectest:
 
 # auxilliary targets
 #
-.PHONY: recclean reccleanhi cleanall
+.PHONY: recclean reccleanhi cleanall spotless
 
 recclean:
 	@echo "Recursively cleaning $(PACKAGE)..."
@@ -260,3 +260,5 @@ reccleanhi:
 	done
 
 cleanall: clean cleanhi
+
+spotless: cleanall

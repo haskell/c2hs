@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 25 July 1998
 #
-#  Version $Revision: 1.13 $ from $Date: 2002/09/06 06:33:52 $
+#  Version $Revision: 1.14 $ from $Date: 2002/09/16 13:27:38 $
 #
 #  Copyright (c) [1998..2002] Manuel M T Chakravarty
 #
@@ -79,10 +79,14 @@ test   : rectest
 # NB: Don't put the addsuffix expression to the to dependencies, as the 
 #     wildcard won't expand to anything sensible in a clean tree.
 #
-libctk: libctk.a
+libctk: libctk.a libctk.o
 libctk.a: objs
 	-$(RM) $@
 	$(AR) -crs $@ $(addsuffix /*.o,$(PARTS))
+
+libctk.o: libctk.a
+	ld -r -x -o $@ --whole-archive $<
+
 
 # auxilliary targets
 #
