@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.44 $ from $Date: 2001/04/29 13:09:35 $
+#  Version $Revision: 1.45 $ from $Date: 2002/01/06 08:34:44 $
 #
 #  Copyright (c) [1997..1999] Manuel M. T. Chakravarty
 #
@@ -124,10 +124,6 @@ HCFLAGS    += $(PROF) $(HIDIRSINCL) $(EXTRAHCFLAGS)
 
 # Misc
 # ====
-
-# Directory for temporaries
-#
-TMP  = /tmp/hipar
 
 # Name of dependency files
 #

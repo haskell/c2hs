@@ -1,3 +1,10 @@
+2002-01-06  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* common.mk: removed TMP as it causes problems on cygwin as
+	reported by Karl M. Syring <syring@web.de>
+
+	* admin/BaseVersion.hs (versnum): 0.22.5
+
 2001-09-26  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* general/UNames.hs: nhc98 1.08 doesn't grok deriving Ix
