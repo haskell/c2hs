@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 12 October 99
 --
---  Version $Revision: 1.19 $ from $Date: 2002/02/23 10:51:54 $
+--  Version $Revision: 1.20 $ from $Date: 2002/02/23 12:32:54 $
 --
 --  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
@@ -37,7 +37,7 @@ module C2HSMarsh (
   -- composite marshalling functions
   --
   withCStringLenIntConv, peekCStringLenIntConv, withIntConv, withFloatConv,
-  peekIntConv, peekFloatConv, 
+  peekIntConv, peekFloatConv, withBool, peekBool, withEnum, peekEnum,
 
   -- conditional results using `Maybe'
   --
@@ -52,7 +52,7 @@ import Maybe        (isNothing)
 import Ptr          (Ptr, nullPtr, castPtr)
 import MarshalAlloc (free)
 import NewStorable  (Storable(..))
-import MarshalUtils (withObject, new)
+import MarshalUtils (withObject, new, fromBool, toBool)
 import CString      (withCStringLen, peekCStringLen)
 
 -- friends
@@ -85,6 +85,25 @@ peekIntConv    = liftM cIntConv . peek
 peekFloatConv :: (Storable a, RealFloat a, RealFloat b) 
 	      => Ptr a -> IO b
 peekFloatConv  = liftM cFloatConv . peek
+
+-- passing Booleans by reference
+--
+
+withBool :: (Integral a, Storable a) => Bool -> (Ptr a -> IO b) -> IO b
+withBool  = withObject . fromBool
+
+peekBool :: (Integral a, Storable a) => Ptr a -> IO Bool
+peekBool  = liftM toBool . peek
+
+
+-- passing enums by reference
+--
+
+withEnum :: (Enum a, Integral b, Storable b) => a -> (Ptr b -> IO c) -> IO c
+withEnum  = withObject . cIntConv . fromEnum
+
+peekEnum :: (Enum a, Integral b, Storable b) => Ptr b -> IO a
+peekEnum  = liftM (toEnum . cIntConv) . peek
 
 
 -- storing of `Maybe' values

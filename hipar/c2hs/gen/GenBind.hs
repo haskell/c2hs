@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.43 $ from $Date: 2002/02/23 10:51:54 $
+--  Version $Revision: 1.44 $ from $Date: 2002/02/23 12:32:54 $
 --
 --  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
@@ -182,7 +182,15 @@ lookupDftMarshIn "String" [PtrET (PrimET CCharPT), PrimET pt]
   return $ Just (withCStringLenIde, CHSIOArg)
 lookupDftMarshIn hsTy     [PtrET ty]  | showExtType ty == hsTy =
   return $ Just (withIde, CHSIOArg)
--- FIXME: add combination, such as "with" plus "cIntConv" etc
+lookupDftMarshIn hsTy     [PtrET (PrimET pt)]  
+  | isIntegralHsType hsTy && isIntegralCPrimType pt            =
+  return $ Just (withIntConvIde, CHSIOArg)
+lookupDftMarshIn hsTy     [PtrET (PrimET pt)]  
+  | isFloatHsType hsTy && isFloatCPrimType pt                  =
+  return $ Just (withFloatConvIde, CHSIOArg)
+lookupDftMarshIn "Bool"   [PtrET (PrimET pt)]  
+  | isIntegralCPrimType pt                                     =
+  return $ Just (withFromBoolIde, CHSIOArg)
 -- FIXME: handle array-list conversion
 lookupDftMarshIn _        _                                    = 
   return Nothing
@@ -255,6 +263,9 @@ cFloatConvIde     = noPosIdent "cFloatConv"
 withIde           = noPosIdent "withObject"   -- FIXME: should be "with"
 withCStringIde    = noPosIdent "withCString"
 withCStringLenIde = noPosIdent "withCStringLenIntConv"
+withIntConvIde    = noPosIdent "withIntConv"
+withFloatConvIde  = noPosIdent "withFloatConv"
+withFromBoolIde   = noPosIdent "withFromBoolConv"
 peekIde           = noPosIdent "peek"
 peekCStringIde    = noPosIdent "peekCString"
 peekCStringLenIde = noPosIdent "peekCStringLenIntConv"
