@@ -577,9 +577,10 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.9.4 "Blue Ginger"
+<sect1>Version 0.9.5 "Blue Ginger"
 <p>
 <itemize>
+<item>Bug fixes
 <item>Added <tt/import/ hooks
 <item>The documentation includes a description of binding hooks
 <item>Added <tt/pointer/ hooks, which were derived from code for a similar

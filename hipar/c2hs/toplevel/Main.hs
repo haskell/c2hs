@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Derived: 12 August 99
 --
---  Version $Revision: 1.14 $ from $Date: 2001/05/05 08:48:44 $
+--  Version $Revision: 1.15 $ from $Date: 2001/05/20 14:14:33 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -74,6 +74,10 @@
 --  -h, -?
 --  --help
 --        Dump brief usage information to stderr.
+--
+--  -i DIRS
+--        Search the colon separated list of directories DIRS when searching
+--	  for .chi files.
 --
 --  -k
 --  --keep
@@ -160,6 +164,7 @@ data Flag = CPPOpts String      -- additional options for C preprocessor
 	  | Dump    DumpType    -- dump internal information
 	  | Help	        -- print brief usage information
 	  | Keep	        -- keep the .i file
+	  | Include String	-- list of directories to search .chi files
 	  | Output  String      -- file where the generated file should go
 	  | Version	        -- print version information on stderr
 	  | OldFFI  Bool	-- use the pre-standard FFI (pre-GHC 4.11)
@@ -192,6 +197,10 @@ options  = [
 	 ["help"] 
 	 (NoArg Help) 
 	 "brief help (the present message)",
+  Option ['i']
+	 ["include"]
+	 (ReqArg Include "INCLUDE")
+	 "include paths for .chi files",
   Option ['k'] 
 	 ["keep"] 
 	 (NoArg Keep) 
@@ -331,6 +340,7 @@ processOpt (CPPOpts cppopts)  = addCPPOpts cppopts
 processOpt (CPP     cpp    )  = setCPP     cpp
 processOpt (Dump    dt     )  = setDump    dt
 processOpt (Keep           )  = setKeep
+processOpt (Include dirs   )  = setInclude dirs
 processOpt (Output  fname  )  = setOutput  fname
 processOpt Version            = do
 			          (version, _, _) <- getId 
@@ -387,6 +397,27 @@ setDump CHS      = setTraces $ \ts -> ts {dumpCHSSW	 = True}
 --
 setKeep :: CST s ()
 setKeep  = setSwitch $ \sb -> sb {keepSB = True}
+
+-- set the search directories for .chi files
+--
+-- * Several -i flags are accumulated. Later paths have higher priority.
+--
+-- * The current directory is always searched last because it is the
+--   standard value in the compiler state.
+--
+setInclude :: String -> CST s ()
+setInclude str = do
+  let fp = makePath str ""
+  setSwitch $ \sb -> sb { chiPathSB = fp++(chiPathSB sb) }
+  where
+    makePath ('\\':r:em)   path = makePath em (path++['\\',r])
+    makePath (' ':rem)	   path = makePath rem path
+    makePath (':':rem)     ""   = makePath rem ""
+    makePath (':':rem)	   path = path:makePath rem ""
+    makePath ('/':':':rem) path = path:makePath rem ""
+    makePath (r:emain)	   path = makePath emain (path++[r])
+    makePath ""		   ""   = []
+    makePath ""		   path = [path]
 
 -- set the output file name
 --

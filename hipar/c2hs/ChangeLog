@@ -1,4 +1,20 @@
+2001-05-20  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (enumInst): Fix for avoiding warnings when
+	generated bindings are compiled with -Wall contributed by Armin
+	Sander <armin@mindwalker.org>
+
+2001-05-14  Axel Simon <simona@i2.informatik.rwth-aachen.de>
+
+ 	* toplevel/Main.hs, state/Switchboard.hs, chs/CHS.hs: add
+ 	-i flag which takes a colon separated list of search paths for 
+ 	.chi files.
+ 
+ 	* fixed some bugs in parsing import hooks
+ 	
 2001-05-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.9.5
 
 	* gen/GenBind.hs (expandHook): revised to properly handle struct,
 	union, and enum tags as C identifiers in pointer hooks; also

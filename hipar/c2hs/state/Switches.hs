@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 6 March 99
 --
---  Version $Revision: 1.9 $ from $Date: 2001/05/05 08:48:43 $
+--  Version $Revision: 1.10 $ from $Date: 2001/05/20 14:14:33 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -71,7 +71,8 @@ data SwitchBoard = SwitchBoard {
 		     keepSB    :: Bool,		-- keep intermediate file
 		     tracesSB  :: Traces,	-- trace flags
 		     outputSB  :: FilePath,	-- output file
-		     oldFFI    :: Bool		-- GHC 4.XX compatible code
+		     oldFFI    :: Bool,		-- GHC 4.XX compatible code
+		     chiPathSB :: [FilePath]	-- .chi file directories
 		   }
 
 -- switch states on startup (EXPORTED)
@@ -84,7 +85,8 @@ initialSwitchBoard  = SwitchBoard {
 			keepSB	  = False,
 		        tracesSB  = initialTraces,
 			outputSB  = "",
-			oldFFI	  = False
+			oldFFI	  = False,
+			chiPathSB = ["."]
 		      }
 
 

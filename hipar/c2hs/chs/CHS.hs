@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 August 99
 --
---  Version $Revision: 1.13 $ from $Date: 2001/05/03 13:31:40 $
+--  Version $Revision: 1.14 $ from $Date: 2001/05/20 14:14:32 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -93,9 +93,9 @@ import Common    (Position, Pos(posOf), nopos)
 import Errors	 (interr)
 import Idents    (Ident, identToLexeme)
 
-import C2HSState (CST, readFileCIO, writeFileCIO, getId, catchExc, throwExc,
-		  raiseError, fatal, errorsPresent, showErrors,
-		  Traces(..), putTraceStr) 
+import C2HSState (CST, doesFileExistCIO, readFileCIO, writeFileCIO, getId, 
+		  getSwitch, chiPathSB, catchExc, throwExc, raiseError, 
+		  fatal, errorsPresent, showErrors, Traces(..), putTraceStr) 
 import CHSLexer  (CHSToken(..), lexCHS)
 
 
@@ -416,13 +416,17 @@ versionPrefix  = "C->Haskell Interface Version "
 --
 loadCHI       :: FilePath -> CST s String
 loadCHI fname  = do
-		   let fullname = fname ++ chisuffix
-
+		   -- search for .chi files
+		   --
+		   paths <- getSwitch chiPathSB
+		   let fullnames = [path ++ '/':fname ++ chisuffix | 
+				    path <- paths]
+		   fullname <- findFirst fullnames
+		     (fatal $ fname++chisuffix++" not found in:\n"++
+			      unlines paths)
 		   -- read file
 		   --
 		   traceInfoRead fullname
--- FIXME: we need a list of .chi directories and search them; if not found
---	  call `errorCHINotFound'
 		   contents <- readFileCIO fullname
 
 		   -- parse
@@ -461,6 +465,11 @@ loadCHI fname  = do
 		    traceInfoOK         = putTraceStr tracePhasesSW
 					    ("...successfully loaded `"
 					     ++ fname ++ "'.\n")
+		    findFirst []        err =  err
+		    findFirst (p:aths)  err =  do
+		      e <- doesFileExistCIO p
+		      if e then return p else findFirst aths err
+		 
 
 -- given a file name (no suffix) and a CHI file, the information is printed 
 -- into that file (EXPORTED)
@@ -546,14 +555,14 @@ parseFrags toks  = do
 
 parseImport :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseImport pos toks = do
-  (qual, modid) <- 
+  (qual, modid, toks') <- 
     case toks of
-      CHSTokIdent _ ide                :toks -> return (False, ide)
-      CHSTokQualif _: CHSTokIdent _ ide:toks -> return (True , ide)
+      CHSTokIdent _ ide                :toks -> return (False, ide, toks)
+      CHSTokQualif _: CHSTokIdent _ ide:toks -> return (True , ide, toks)
       _					     -> syntaxError toks
   chi <- loadCHI . identToLexeme $ modid
-  toks' <- parseEndHook toks
-  frags <- parseFrags toks'
+  toks'' <- parseEndHook toks'
+  frags <- parseFrags toks''
   return $ CHSHook (CHSImport qual modid chi pos) : frags
 
 parseContext          :: Position -> [CHSToken] -> CST s [CHSFrag]

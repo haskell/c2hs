@@ -3,9 +3,9 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 2 November 95
 --
---  Version $Revision: 1.27 $ from $Date: 1999/11/06 14:54:16 $
+--  Version $Revision: 1.28 $ from $Date: 2001/05/20 14:14:31 $
 --
---  Copyright (c) [1995...1999] Manuel M. T. Chakravarty
+--  Copyright (c) [1995...2001] Manuel M. T. Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ module CIO (-- (verbatim) re-exports
 	    --
 	    -- `Directory'
 	    --
-	    removeFileCIO,
+	    doesFileExistCIO, removeFileCIO, 
 	    --
 	    -- `System'
 	    --
@@ -140,6 +140,9 @@ newlineCIO  = putCharCIO '\n'
 
 -- `Directory'
 -- -----------
+
+doesFileExistCIO :: FilePath -> PreCST e s Bool
+doesFileExistCIO  = liftIO . doesFileExist
 
 removeFileCIO :: FilePath -> PreCST e s ()
 removeFileCIO  = liftIO . removeFile

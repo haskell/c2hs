@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.27 $ from $Date: 2001/05/13 11:10:01 $
+--  Version $Revision: 1.28 $ from $Date: 2001/05/20 14:14:33 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -633,7 +633,9 @@ enumInst ident list =
 	--
         show' x = if x < 0 then "(" ++ show x ++ ")" else show x
     --
-    toDef []                _ = ""
+    toDef []                _ = 
+      "  toEnum unmatched = error (\"" ++ ident 
+      ++ ".toEnum: Cannot match \" ++ show unmatched)\n"
     toDef ((ide, exp):list) n = 
       "  toEnum " ++ show' val ++ " = " ++ ide ++ "\n" 
       ++ toDef list (val + 1)
