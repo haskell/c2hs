@@ -4,7 +4,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 18 August 1999
 --
---  Version $Revision: 1.2 $ from $Date: 2001/02/12 12:21:00 $
+--  Version $Revision: 1.3 $ from $Date: 2001/02/22 00:35:07 $
 --
 --  Copyright (c) [2000..2001] Manuel M. T. Chakravarty
 --
@@ -452,7 +452,7 @@ instance ToAddr CLLong
 instance ToAddr CULLong
 
 instance ToAddr String where
-  stdAddr = listToAddrWithMarker '\NUL'
+  stdAddr = listToAddrWithMarker (toEnum 0 :: CChar) . map castCharToCChar
 
 -- deserialisation of Haskell structures from C land memory (EXPORTED)
 --
@@ -484,7 +484,8 @@ instance FromAddr CLLong
 instance FromAddr CULLong
 
 instance FromAddr String where
-  addrStdKeep = addrWithMarkerToList '\NUL'
+  addrStdKeep = liftM (map castCCharToChar) .
+		  addrWithMarkerToList (toEnum 0 :: CChar)
 
 -- deserialisation freeing the C land structure (EXPORTED)
 --

@@ -1,3 +1,8 @@
+2001-02-22  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HSDeprecated.hs: Corrected String marshalling for 4.11;
+	suggested by Marcin 'Qrczak' Kowalczyk <qrczak@knm.org.pl>
+
 2001-02-19  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* c2hs-config.in: generated code needs -package lang for
