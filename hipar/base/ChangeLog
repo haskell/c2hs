@@ -1,3 +1,10 @@
+2001-04-21  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* ../configure.in: Adapted to support ghc 5.x and removed support
+	for ghc 3.x
+
+	* admin/BaseVersion.hs (versnum): 0.22.3
+
 2000-10-05  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* ../configure.in: uses the fptools macro for determining ghc's
