@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 23 March 95
 --
---  Version $Revision: 1.11 $ from $Date: 2000/04/15 13:33:00 $
+--  Version $Revision: 1.12 $ from $Date: 2003/04/16 11:11:46 $
 --
 --  Copyright (c) [1995..2000] Manuel M. T. Chakravarty
 --
@@ -48,7 +48,7 @@
 module FiniteMaps (FiniteMap, zeroFM, unitFM, listToFM, listToCombFM, joinFM, 
 		   joinCombFM, sizeFM, addToFM, addToCombFM, delFromFM, diffFM,
 		   intersectFM, intersectCombFM, mapFM, foldFM, filterFM, 
-		   lookupFM, lookupDftFM, toListFM)
+		   lookupFM, lookupDftFM, toListFM, domFM, imageFM)
 where
 
 -- finite maps are represented as ordered binary trees; each node represents
@@ -429,6 +429,16 @@ lookupDftFM map e k = case lookupFM map k
 --
 toListFM :: Ord k => FiniteMap k e -> [(k, e)]
 toListFM  = foldFM (\k e kes -> (k, e):kes) []
+
+-- |Yield the domain of a finite map as a list
+--
+domFM :: Ord k => FiniteMap k e -> [k]
+domFM = map fst . toListFM
+
+-- |Yield the image of a finite map as a list
+--
+imageFM :: Ord k => FiniteMap k e -> [e]
+imageFM = map snd . toListFM
 
 -- pretty print routine (used as a method in FiniteMap's instance of `Show')
 --

@@ -1,11 +1,11 @@
---  Compiler Toolkit: Sets
+--  Compiler Toolkit: Sets derived from finite maps
 --
 --  Author : Manuel M T Chakravarty
 --  Created: 2 February 99
 --
---  Version $Revision: 1.5 $ from $Date: 2002/03/06 06:53:06 $
+--  Version $Revision: 1.6 $ from $Date: 2003/04/16 11:11:46 $
 --
---  Copyright (c) [1999..2002] Manuel M T Chakravarty
+--  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -19,26 +19,30 @@
 --
 --- DESCRIPTION ---------------------------------------------------------------
 --
---  This module provides sets as an abstract data type.
+--  This module provides sets as an abstract data type implemented on top of
+--  finite maps. 
 --
 --- DOCU ----------------------------------------------------------------------
 --
 --  language: Haskell 98
 --
---  * This implementation currently just instantiates `FiniteMaps'.
---
 --- TODO ----------------------------------------------------------------------
 --
 
-module Sets (Set, zeroSet, unitSet, listToSet, joinSet, sizeSet, addToSet,
-	     delFromSet, diffSet, isSubSet, isSuperSet, intersectSet, mapSet,
-	     foldSet, filterSet, elemSet, toListSet, powerSet) 
-where
+module Sets (
+  Set, zeroSet, unitSet, listToSet, joinSet, sizeSet, addToSet,
+  delFromSet, diffSet, isSubSet, isSuperSet, intersectSet, mapSet,
+  foldSet, filterSet, elemSet, toListSet, powerSet,
+
+  -- operations related to the underlying finite maps
+  --
+  domSetFM
+) where
 
 import FiniteMaps (FiniteMap, zeroFM, unitFM, listToFM, joinFM, 
 		   joinCombFM, sizeFM, addToFM, delFromFM, diffFM,
 		   intersectFM, foldFM, filterFM, lookupFM, lookupDftFM,
-		   toListFM)
+		   mapFM, toListFM)
 
 -- a set is a finite map with a trivial image (EXPORTED ABSTRACT)
 --
@@ -119,3 +123,12 @@ toShowS _ (Set s)  =   showString "{"
 		       format []     = showString ""
 		       format [x]    = shows x
 		       format (x:xs) = shows x . showString ", " . format xs
+
+
+-- Operations relating to the underlying finite maps
+-- -------------------------------------------------
+
+-- |Yield the domain of a finite map as a set
+--
+domSetFM :: Ord k => FiniteMap k e -> Set k
+domSetFM = Set . mapFM (\_ _ -> ())

@@ -1,11 +1,11 @@
 --  The HiPar Toolkit: generates unique names
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 3 April 98
 --
---  Version $Revision: 1.7 $ from $Date: 2003/02/12 09:38:34 $
+--  Version $Revision: 1.8 $ from $Date: 2003/04/16 11:11:46 $
 --
---  Copyright (C) [1998..1999] Manuel M. T. Chakravarty
+--  Copyright (C) [1998..2003] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -67,11 +67,17 @@ newtype NameSupply = NameSupply (IORef Int)
 newtype Name = Name Int
 --             deriving (Show, Eq, Ord, Ix)
 -- FIXME: nhc98, v1.08 can't derive Ix
-             deriving (Show, Eq, Ord)
+             deriving (Eq, Ord)
 instance Ix Name where
   range   (Name from, Name to)            = map Name (range (from, to))
   index   (Name from, Name to) (Name idx) = index   (from, to) idx
   inRange (Name from, Name to) (Name idx) = inRange (from, to) idx
+
+-- we want to show the number only, to be useful for generating unqiue
+-- printable names
+--
+instance Show Name where
+  show (Name i) = show i
 
 
 --	  	      *** DON'T TOUCH THE FOLLOWING *** 

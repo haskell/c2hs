@@ -177,6 +177,12 @@ dnl
 PACKAGES=""
 SYSFEATURES=""
 if test $hc_base = ghc; then
+  dnl Check in which system library we find the basic Haskell 98 stuff.
+  CTK_LIB_SYSLIB(List, haskell98)
+  if test $syslib_List = not-found; then
+    AC_MSG_ERROR([Could not find Haskell 98 moduled (tried "List").])
+  fi
+  PACKAGES="$PACKAGES $syslib_List"
   CTK_LIB_SYSLIB(Posix, posix)
   if test $syslib_Posix != not-found; then
     PACKAGES="$PACKAGES posix"

@@ -1,3 +1,17 @@
+2003-03-13  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* general/Sets.hs (domSetFM): added
+
+	* general/FiniteMaps.hs (domFM): added
+	(imageFM): added
+
+	* admin/BaseVersion.hs (versnum): 0.25.0
+
+2003-02-12  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* general/UNames.hs: we derive `Show Name' explicitly to print the
+	number only
+
 2003-02-05  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* general/FileOps.hs (mktemp): added

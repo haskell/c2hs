@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Derived: 18 August 2000 (taken posix stuff from SysDepGHC4.hs)
 --
---  Version $Revision: 1.1 $ from $Date: 2000/08/18 05:41:06 $
+--  Version $Revision: 1.2 $ from $Date: 2003/04/16 11:11:47 $
 --
 --  Copyright (c) [1996..2000] Manuel M. T. Chakravarty
 --
@@ -55,8 +55,7 @@ import IO	  (Handle, BufferMode(..), hSetBuffering)
 
 import Posix	 (forkProcess, executeFile,
 		  Fd, createPipe, dupTo, fdClose,
-		  intToFd, fdToHandle)
-import PosixUtil (ProcessID)
+		  intToFd, fdToHandle, ProcessID)
 
 
 -- Process management
