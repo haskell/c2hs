@@ -4,11 +4,6 @@
 
 Next: - Tutorial
 
-      - Printing of error message seems to be broken in 0.10.16.  Seems as if
-        they are `print'ed instead of `putStr'ed.  Might be a problem with
-        catching exceptions.  This seemed to happen only since compiling with
-        GHC 5.04.
-
       - check building with latest nhc; issues with 1.14 were:
 	- problems in `Parsers' (Malcolm suggests that it might be an
 	  interaction of type classes with existential types)
@@ -28,6 +23,8 @@ Next: - Tutorial
 
       Major features to be added after the release: conditions (incl phase
       re-ordering), structure marshalling.
+
+      - Separate CTK from C->Haskell and use new CVS repository.
 
       - Some headers (eg, `/usr/include/sys/stat.h' in Linux) include inline
         functions, which have a body (ie, aren't just a prototype).  So far

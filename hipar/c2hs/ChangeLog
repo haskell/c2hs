@@ -1,6 +1,11 @@
+2002-09-17  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
+
+	* gen/GBMonad.hs (HsObject): working around a problem with
+	deriving Read in GHC 5.04.1
+
 2002-09-16  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
 
-	* Makefile (ghci): target to lead all of c2hs into GHCi
+	* Makefile (ghci): target to load all of c2hs into GHCi
 
 2002-09-13  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
 

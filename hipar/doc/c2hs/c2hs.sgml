@@ -763,7 +763,7 @@ possible a concise example illustrating your problem would be appreciated.
 
 <sect>Copyright
 <p>
-C-&gt;Haskell is Copyright (C) [1999..2001] Manuel M. T. Chakravarty
+C-&gt;Haskell is Copyright (C) [1999..2002] Manuel M. T. Chakravarty
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -796,9 +796,11 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.10.16 "Altocumulus Stratiformis Perlucidus Undulatus"
+<sect1>Version 0.10.17 "Altocumulus Stratiformis Perlucidus Undulatus"
 <p>
 <itemize>
+<item>Worked around a bug in GHC 5.04.1
+<item>Solaris-related fix
 <item>Marshalling support for bit masks represented as enumeration types
 <item>Added <tt/fun/ hooks
 <item><tt/as/ aliases can use <tt/^/ convert the orignal identifier with
