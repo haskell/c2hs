@@ -379,12 +379,12 @@ implemented yet.
 <sect1>Call Hooks
 <p>
 <tscreen>
-{#call [fun] [unsafe] <it/cid/ [as <it/hsid/]#}
+{#call [pure] [unsafe] <it/cid/ [as <it/hsid/]#}
 </tscreen>
 <p>
 A call hook rewrites to a call to the C function <it/cid/ and also ensures
 that the appropriate foreign import declaration is generated.  The tags
-<tt/fun/ and <tt/unsafe/ specify that the external function is purely
+<tt/pure/ and <tt/unsafe/ specify that the external function is purely
 functional and cannot re-enter the Haskell runtime, respectively.  If
 <it/hsid/ is present, it is used as the identifier for the foreign
 declaration, which otherwise defaults to the <it/cid/.
@@ -393,7 +393,7 @@ As an example, consider
 <p>
 <tscreen><verb>
 sin :: Float -> Float
-sin  = {#call fun sin as "_sin"#}
+sin  = {#call pure sin as "_sin"#}
 </verb></tscreen>
 
 <sect1>Get Hooks
@@ -585,7 +585,7 @@ inner    -> `import' ['qualified'] ident
           | `type' ident
           | `sizeof' ident
           | `enum' idalias trans [`with' prefix] [deriving]
-          | `call' [`fun'] [`unsafe'] idalias
+          | `call' [`pure'] [`unsafe'] idalias
           | `get' apath
           | `set' apath
           | `pointer' ['*'] idalias ptrkind
@@ -688,9 +688,12 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.10.7 "Altocumulus Stratiformis Perlucidus Undulatus"
+<sect1>Version 0.10.8 "Altocumulus Stratiformis Perlucidus Undulatus"
 <p>
 <itemize>
+<item>In call hooks, the attributes `fun' was replaced by `pure' (`fun' is
+will still be recognised for a while to ensure backwards compatibility, but
+it's use is deprecated)
 <item>GHC's package system is now supported
 <item>If two import hooks add a type mapping for a pointer hook with the same
 name, the textual later one dominates.

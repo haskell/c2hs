@@ -1,11 +1,11 @@
 --  C->Haskell Compiler: CHS file abstraction
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 16 August 99
 --
---  Version $Revision: 1.18 $ from $Date: 2001/10/08 11:23:03 $
+--  Version $Revision: 1.19 $ from $Date: 2002/02/23 10:51:54 $
 --
---  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -54,7 +54,8 @@
 --	      | `type' ident
 --	      | `sizeof' ident
 --	      | `enum' idalias trans [`with' prefix] [deriving]
---	      | `call' [`fun'] [`unsafe'] idalias
+--	      | `call' [`pure'] [`unsafe'] idalias
+--	      | `fun' [`pure'] [`unsafe'] idalias parms
 --	      | `get' apath
 --	      | `set' apath
 --	      | `pointer' ['*'] idalias ptrkind
@@ -63,6 +64,8 @@
 --  idalias  -> ident [`as' ident]
 --  prefix   -> `prefix' `=' string
 --  deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
+--  parms    -> [verbhs `=>'] `{' parm_1 `,' ... `,' parm_n `}' `->' parm
+--  parm     -> [ident_1 [`*' | `-']] verbhs [`&'] [ident_2 [`*' | `-']]
 --  apath    -> ident
 --	      | `*' apath
 --	      | apath `.' ident
@@ -78,14 +81,15 @@
 --  Remark: Optional Haskell names are normalised during structure tree
 --	    construction, ie, associations that associated a name with itself
 --	    are removed.  (They don't carry semantic content, and make some
---	    test more complicated.)
+--	    tests more complicated.)
 --
 --- TODO ----------------------------------------------------------------------
 --
 
-module CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
-	    CHSAccess(..), CHSAPath(..), CHSPtrType(..),
-	    loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI, chisuffix)
+module CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..), CHSParm(..),
+	    CHSArg(..), CHSAccess(..), CHSAPath(..), CHSPtrType(..),
+	    loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI,
+	    chisuffix, showCHSParm)
 where 
 
 import Char	 (isSpace)
@@ -139,6 +143,14 @@ data CHSHook = CHSImport  Bool			-- qualified?
 			  Ident			-- C function
 			  (Maybe Ident)		-- Haskell name
 			  Position
+	     | CHSFun     Bool			-- is a pure function?
+			  Bool			-- is unsafe?
+			  Ident			-- C function
+			  (Maybe Ident)		-- Haskell name
+			  (Maybe String)	-- type context
+			  [CHSParm]		-- argument marshalling
+			  CHSParm		-- result marshalling
+			  Position
 	     | CHSField   CHSAccess		-- access type
 			  CHSAPath		-- access path
 			  Position 
@@ -155,15 +167,16 @@ data CHSHook = CHSImport  Bool			-- qualified?
 			  Position
 
 instance Pos CHSHook where
-  posOf (CHSImport  _ _ _       pos) = pos
-  posOf (CHSContext _ _ _       pos) = pos
-  posOf (CHSType    _           pos) = pos
-  posOf (CHSSizeof  _           pos) = pos
-  posOf (CHSEnum    _ _ _ _ _   pos) = pos
-  posOf (CHSCall    _ _ _ _     pos) = pos
-  posOf (CHSField   _ _         pos) = pos
-  posOf (CHSPointer _ _ _ _ _ _ pos) = pos
-  posOf (CHSClass   _ _ _	pos) = pos
+  posOf (CHSImport  _ _ _         pos) = pos
+  posOf (CHSContext _ _ _         pos) = pos
+  posOf (CHSType    _             pos) = pos
+  posOf (CHSSizeof  _             pos) = pos
+  posOf (CHSEnum    _ _ _ _ _     pos) = pos
+  posOf (CHSCall    _ _ _ _       pos) = pos
+  posOf (CHSFun     _ _ _ _ _ _ _ pos) = pos
+  posOf (CHSField   _ _           pos) = pos
+  posOf (CHSPointer _ _ _ _ _ _   pos) = pos
+  posOf (CHSClass   _ _ _	  pos) = pos
 
 -- two hooks are equal if they have the same Haskell name and reference the
 -- same C object 
@@ -181,6 +194,9 @@ instance Eq CHSHook where
     oalias1 == oalias2 && ide1 == ide2
   (CHSCall _ _ ide1 oalias1    _) == (CHSCall _ _ ide2 oalias2    _) = 
     oalias1 == oalias2 && ide1 == ide2
+  (CHSFun  _ _ ide1 oalias1 _ _ _ _) 
+			          == (CHSFun _ _ ide2 oalias2 _ _ _ _) = 
+    oalias1 == oalias2 && ide1 == ide2
   (CHSField acc1 path1         _) == (CHSField acc2 path2         _) =    
     acc1 == acc2 && path1 == path2
   (CHSPointer _ ide1 oalias1 _ _ _ _) 
@@ -194,6 +210,24 @@ instance Eq CHSHook where
 --
 data CHSTrans = CHSTrans Bool			-- underscore to case?
 			 [(Ident, Ident)]	-- alias list
+
+-- marshalling descriptor for function hooks (EXPORTED)
+--
+-- * a marshaller consists of a function name and flag indicating whether it
+--   has to be executed in the IO monad
+--
+data CHSParm = CHSParm (Maybe (Ident, CHSArg))	-- "in" marshaller
+		       String			-- Haskell type
+		       Bool			-- C repr: two values?
+		       (Maybe (Ident, CHSArg))	-- "out" marshaller
+		       Position
+
+-- kinds of arguments in function hooks (EXPORTED)
+--
+data CHSArg = CHSValArg				-- plain value argument
+	    | CHSIOArg				-- reference argument
+	    | CHSVoidArg			-- no argument
+	    deriving (Eq)
 
 -- structure member access types (EXPORTED)
 --
@@ -357,11 +391,23 @@ showCHSHook (CHSEnum ide oalias trans oprefix derive _) =
       "deriving (" 
       ++ concat (intersperse ", " (map identToLexeme derive))
       ++ ") "
-showCHSHook (CHSCall isFun isUns ide oalias _) =   
+showCHSHook (CHSCall isPure isUns ide oalias _) =   
     showString "call "
-  . (if isFun then showString "fun " else id)
+  . (if isPure then showString "pure " else id)
   . (if isUns then showString "unsafe " else id)
   . showIdAlias ide oalias
+showCHSHook (CHSFun isPure isUns ide oalias octxt parms parm _) =   
+    showString "fun "
+  . (if isPure then showString "pure " else id)
+  . (if isUns then showString "unsafe " else id)
+  . showIdAlias ide oalias
+  . (case octxt of
+       Nothing      -> showChar ' '
+       Just ctxtStr -> showString ctxtStr . showString " => ")
+  . showString "{"
+  . foldr (.) id (intersperse (showString ", ") (map showCHSParm parms))
+  . showString "} -> "
+  . showCHSParm parm
 showCHSHook (CHSField acc path _) =   
     (case acc of
        CHSGet -> showString "get "
@@ -401,23 +447,36 @@ showIdAlias            :: Ident -> Maybe Ident -> ShowS
 showIdAlias ide oalias  =
     showCHSIdent ide
   . (case oalias of
-       Nothing  -> showString ""
+       Nothing  -> id
        Just ide -> showString " as " . showCHSIdent ide)
 
-showCHSTrans :: CHSTrans -> ShowS
-showCHSTrans (CHSTrans _2Case assocs) =   
+showCHSParm                                                :: CHSParm -> ShowS
+showCHSParm (CHSParm oimMarsh hsTyStr twoCVals oomMarsh _)  =
+    showOMarsh oimMarsh
+  . showChar ' '
+  . showHsVerb hsTyStr
+  . (if twoCVals then showChar '&' else id)
+  . showChar ' '
+  . showOMarsh oomMarsh
+  where
+    showOMarsh Nothing               = id
+    showOMarsh (Just (ide, argKind)) =   showCHSIdent ide
+				       . (case argKind of
+					   CHSValArg  -> id
+					   CHSIOArg   -> showString "*"
+					   CHSVoidArg -> showString "-")
+    --
+    showHsVerb str = showChar '`' . showString str . showChar '\''
+
+showCHSTrans                          :: CHSTrans -> ShowS
+showCHSTrans (CHSTrans _2Case assocs)  =   
     showString "{"
   . (if _2Case then showString ("underscoreToCase" ++ maybeComma) else id)
-  . showAssocs assocs _2Case
+  . foldr (.) id (intersperse (showString ", ") (map showAssoc assocs))
   . showString "}"
   where
     maybeComma = if null assocs then "" else ", "
     --
-    showAssocs []             _      = id
-    showAssocs (assoc:assocs) notFst =
-	(if notFst then showString ", " else id)
-      . showAssoc assoc
-      . showAssocs assocs True
     showAssoc (ide1, ide2) =
 	showCHSIdent ide1
       . showString " as "
@@ -588,6 +647,7 @@ parseFrags toks  = do
     parseFrags0 (CHSTokSizeof  pos:toks) = parseSizeof  pos        toks
     parseFrags0 (CHSTokEnum    pos:toks) = parseEnum    pos        toks
     parseFrags0 (CHSTokCall    pos:toks) = parseCall    pos        toks
+    parseFrags0 (CHSTokFun     pos:toks) = parseFun     pos        toks
     parseFrags0 (CHSTokGet     pos:toks) = parseField   pos CHSGet toks
     parseFrags0 (CHSTokSet     pos:toks) = parseField   pos CHSSet toks
     parseFrags0 (CHSTokClass   pos:toks) = parseClass   pos        toks
@@ -658,23 +718,89 @@ parseEnum _ toks = syntaxError toks
 parseCall          :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseCall pos toks  = 
   do
-    (isFun   , toks'   ) <- parseIsFun    toks
+    (isPure  , toks'   ) <- parseIsPure   toks
     (isUnsafe, toks''  ) <- parseIsUnsafe toks'
     (ide     , toks''' ) <- parseIdent    toks''
     (oalias  , toks'''') <- parseOptAs    toks'''
     toks'''''		 <- parseEndHook  toks''''
     frags                <- parseFrags    toks'''''
-    return $ CHSHook (CHSCall isFun isUnsafe ide (norm ide oalias) pos) : frags
+    return $ 
+      CHSHook (CHSCall isPure isUnsafe ide (norm ide oalias) pos) : frags
+
+parseFun          :: Position -> [CHSToken] -> CST s [CHSFrag]
+parseFun pos toks  = 
+  do
+    (isPure  , toks' ) <- parseIsPure     toks
+    (isUnsafe, toks'2) <- parseIsUnsafe   toks'
+    (ide     , toks'3) <- parseIdent      toks'2
+    (oalias  , toks'4) <- parseOptAs      toks'3
+    (octxt   , toks'5) <- parseOptContext toks'4
+    (parms   , toks'6) <- parseParms      toks'5
+    (parm    , toks'7) <- parseParm       toks'6
+    toks'8	       <- parseEndHook    toks'7
+    frags              <- parseFrags      toks'8
+    return $ 
+      CHSHook 
+        (CHSFun isPure isUnsafe ide (norm ide oalias) octxt parms parm pos) :
+      frags
   where
-    parseIsFun (CHSTokFun _:toks) = return (True, toks)
-    parseIsFun toks		  = return (False, toks)
+    parseOptContext (CHSTokHSVerb _ ctxt:CHSTokDArrow _:toks) =
+      return (Just ctxt, toks)
+    parseOptContext toks				      =
+      return (Nothing  , toks)
+    --
+    parseParms (CHSTokLBrace _:CHSTokRBrace _:CHSTokArrow _:toks) = 
+      return ([], toks)
+    parseParms (CHSTokLBrace _                             :toks) = 
+      parseParms' (CHSTokComma nopos:toks)
+    parseParms						    toks  = 
+      syntaxError toks
+    --
+    parseParms' (CHSTokRBrace _:CHSTokArrow _:toks) = return ([], toks)
+    parseParms' (CHSTokComma _               :toks) = do
+      (parm , toks' ) <- parseParm   toks
+      (parms, toks'') <- parseParms' toks'
+      return (parm:parms, toks'')
+    parseParms' toks		                    = syntaxError toks
 
-    parseIsUnsafe (CHSTokUnsafe _:toks) = return (True, toks)
-    parseIsUnsafe toks		        = return (False, toks)
+parseIsPure :: [CHSToken] -> CST s (Bool, [CHSToken])
+parseIsPure (CHSTokPure _:toks) = return (True , toks)
+parseIsPure (CHSTokFun  _:toks) = return (True , toks)  -- backwards compat.
+parseIsPure toks		= return (False, toks)
+-- FIXME: eventually, remove `fun'; it's currently deprecated
 
-    norm ide Nothing                   = Nothing
-    norm ide (Just ide') | ide == ide' = Nothing
-			 | otherwise   = Just ide'
+parseIsUnsafe :: [CHSToken] -> CST s (Bool, [CHSToken])
+parseIsUnsafe (CHSTokUnsafe _:toks) = return (True , toks)
+parseIsUnsafe toks		    = return (False, toks)
+
+norm :: Ident -> Maybe Ident -> Maybe Ident
+norm ide Nothing                   = Nothing
+norm ide (Just ide') | ide == ide' = Nothing
+		     | otherwise   = Just ide'
+
+parseParm :: [CHSToken] -> CST s (CHSParm, [CHSToken])
+parseParm toks =
+  do
+    (oimMarsh, toks' ) <- parseOptMarsh toks
+    (hsTyStr, twoCVals, pos, toks'2) <- 
+      case toks' of
+	(CHSTokHSVerb pos hsTyStr:CHSTokAmp _:toks'2) -> 
+	  return (hsTyStr, True , pos, toks'2)
+	(CHSTokHSVerb pos hsTyStr	     :toks'2) -> 
+	  return (hsTyStr, False, pos, toks'2)
+	toks				              -> syntaxError toks
+    (oomMarsh, toks'3) <- parseOptMarsh toks'2
+    return (CHSParm oimMarsh hsTyStr twoCVals oomMarsh pos, toks'3)
+  where
+    parseOptMarsh :: [CHSToken] -> CST s (Maybe (Ident, CHSArg), [CHSToken])
+    parseOptMarsh (CHSTokIdent _ ide:CHSTokStar _ :toks) = 
+      return (Just (ide, CHSIOArg) , toks)
+    parseOptMarsh (CHSTokIdent _ ide:CHSTokMinus _:toks) = 
+      return (Just (ide, CHSVoidArg), toks)
+    parseOptMarsh (CHSTokIdent _ ide              :toks) = 
+      return (Just (ide, CHSValArg) , toks)
+    parseOptMarsh toks					 =
+      return (Nothing, toks)
 
 parseField :: Position -> CHSAccess -> [CHSToken] -> CST s [CHSFrag]
 parseField pos access toks =

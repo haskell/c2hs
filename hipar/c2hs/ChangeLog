@@ -1,3 +1,34 @@
+2002-02-21  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs: Completed processing of function hooks
+
+2002-02-18  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHSLexer.hs: Added `CHSTokMinus'
+
+	* chs/CHS.hs: Revised the syntax of fun hooks
+
+	* chs/CHSLexer.hs: Added `CHSTokAmp' (representing `&')
+
+	* gen/GenBind.hs (foreignImport): factorised the code for call
+	hook generation to make those portions that are also useful for
+	fun hooks reusable
+	(expandHook): implemented fun hooks
+
+	* gen/GBMonad.hs: extracted monad-related code from `GenBind.hs'
+
+	* gen/GenBind.hs: split off the monad definition and operations
+	into `GBMonad.hs'
+
+2002-02-17  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHSLexer.hs: introduced `hsverb' tokens
+
+	* chs/CHS.hs: `pure' instead of `fun' to indicate calls to pure
+	C functions (`fun' retained for backwards compatibility)
+
+	* chs/CHSLexer.hs: introduced the keyword `pure'
+
 2002-02-13  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* Makefile: adapted to using GHC package management

@@ -7,6 +7,9 @@ Next: -= phase re-ordering & parser clean up =-
       - configuration oracle should have an option to print the Haskell
         compiler and version it was compiled for
 
+      - the `hsverb' should be normalised with respect to white space and
+        parenthesis 
+
       - have an option to compute .chi dependencies; do this on a
         module-by-module basis generating many small depend files rather than
         one big one
@@ -116,9 +119,6 @@ Next: -= phase re-ordering & parser clean up =-
       - In `GdkGL.chs', the prefix is not properly removed from the
         constructors of `GdkGL.Configs'; same problem with
         `GdkEvents.EventType'
-      - maybe we should replace the keyword `fun' by `pure' (but retain
-        `fun' as a deprecated keyword for a while to avoid breaking code;
-	maybe emit a warning)
       - install the executable (c2hs and c2hs-config) with a version number
         suffix and make a symbolic link for the name without version number
         (makes installing multiple versions easier)
@@ -183,6 +183,49 @@ Next: -= phase re-ordering & parser clean up =-
 
 Marshalling templates
 ~~~~~~~~~~~~~~~~~~~~~
+
+{#fun foo {`Int', with* `Int', with* `Int' peek*} -> `Char'#}
+
+{#fun foo `GtkWidget a' => {widget `a'} -> `a'#}
+
+Purely functional conversion:
+
+  {#fun foo {cIntConv `Int'} -> `()'#}
+
+A side-effecting conversion:
+
+  {#fun foo {with* `Int'} -> `()'#}
+
+A string inout parameter:
+
+  {#fun foo {`String' peekCString*} -> `()'#}
+
+A string with explicit length:
+
+  {#fun foo {withCStringLen* `String'& peekCStringLen*} -> `()'#}
+
+An out parameter:
+
+  {#fun foo {new- `Bar' peek*} -> `()'#}
+
+Defaults:
+- Args: in-function defaults:
+    * C is Ptr CChar => "withCString"
+    * C is Ptr CChar with an integral type => "withCStringLen"
+    * C is Ptr t, Haskell is t => "with"
+    * C is Ptr t, Haskell is [t] => "withArray"
+    * C is integral, Haskell is integral => "cIntConv"
+    * C is integral, Haskell is Bool => "fromBool"
+- Args: out-function default is "void"
+- Result: in-function default is "void" (must be "void", anything else is an
+  error) 
+- Result: out-function defaults:
+    * C is Ptr CChar => peekCString
+    * C is Ptr => peek
+    * C is integral, Haskell is integral => "cIntConv"
+    * C is integral, Haskell is Bool => "toBool"
+
+
 * the generic version for arguments is
 
       {#call bar {inExpr >>> outExpr}#}

@@ -3,6 +3,7 @@
 module Main
 where
 
+import Monad
 import C2HS
 
 {#context lib="calls"#}
@@ -17,3 +18,18 @@ main  = do
 	  {#call printString#} {#call fun MyString as myString#}
 	  -- test typedef'ed args without argument variable in prototype
 	  {#call printString2#} {#call fun MyString as myString#}
+
+{#fun foo as fooFun {} -> `Int'#}
+
+{#fun pure bar as barFun {`Int'} -> `Float'#}
+
+{#fun baz as bazFun {`Int', `Float'} -> `()'#}
+
+{#fun MyString as myStringFun {} -> `String'#}
+
+{#fun printString as printStringFun {`String'} -> `()'#}
+
+{#fun foobar {        `String'&             , 
+	      alloca- `Int'     peekIntConv*, 
+		      `Float'
+	     } ->     `Int'#}

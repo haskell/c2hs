@@ -1,11 +1,11 @@
 --  C->Haskell Compiler: binding generator
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.42 $ from $Date: 2002/01/15 07:56:39 $
+--  Version $Revision: 1.43 $ from $Date: 2002/02/23 10:51:54 $
 --
---  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -91,37 +91,6 @@
 --  another identifier casts a shadow that matches.  If so, that identifier is
 --  taken instead of the original one.
 --
---  Translation table handling for enumerators:
---  -------------------------------------------
---
---  First a translation table lookup on the original identifier of the
---  enumerator is done.  If that doesn't match and the prefix can be removed
---  from the identifier, a second lookup on the identifier without the prefix
---  is performed.  If this also doesn't match, the identifier without prefix
---  (possible after underscoreToCase translation is returned).  If there is a
---  match, the translation (without any further stripping of prefix) is
---  returned.  
---
---  Pointer map
---  -----------
---
---  Pointer hooks allow the use to customise the Haskell types to which C
---  pointer types are mapped.  The globally maintained map essentially maps C
---  pointer types to Haskell pointer types.  The representation of the Haskell
---  types is defined by the `type' or `newtype' declaration emitted by the
---  corresponding pointer hook.  However, the map stores a flag that tells
---  whether the C type is itself the pointer type in question or whether it is
---  pointers to this C type that should be mapped as specified.  The pointer
---  map is dumped into and read from `.chi' files.
---
---  Haskell object map
---  ------------------
---
---  Some features require information about Haskell objects defined by c2hs.
---  Therefore, the Haskell object map maintains the necessary information
---  about these Haskell objects.  The Haskell object map is dumped into and
---  read from `.chi' files.
---
 --- TODO ----------------------------------------------------------------------
 --
 --  * A function prototype that uses a defined type on its left hand side may
@@ -130,9 +99,6 @@
 --    functions are currently rejected, which is a BUG.
 --
 --  * context hook must preceded all but the import hooks
---
---  * Look up in translation tables is naive - this probably doesn't affect
---    costs much, but at some point a little profiling might be beneficial.
 --
 --  * The use of `++' in the recursive definition of the routines generating
 --    `Enum' instances is not particularly efficient.
@@ -145,26 +111,23 @@
 module GenBind (expandHooks) 
 where 
 
+-- standard libraries
 import Char	  (toUpper, toLower, isSpace)
-import List       (find, deleteBy, intersperse)
-import Maybe	  (catMaybes, isNothing, isJust, fromJust, fromMaybe, 
-		   listToMaybe, mapMaybe)
+import List       (deleteBy, intersperse, isPrefixOf)
+import Maybe	  (isNothing, isJust, fromJust, fromMaybe)
 import Monad	  (when, unless, liftM, mapAndUnzipM)
-import Array	  (Array, (!))
 
+-- Compiler Tooolkit
 import Common     (Position, Pos(posOf), nopos)
 import Utils	  (lookupBy, mapMaybeM)
 import Errors	  (interr, todo)
 import Idents     (Ident, identToLexeme, onlyPosIdent)
 import Attributes (newAttrsOnlyPos)
-import FiniteMaps (FiniteMap, zeroFM, addToFM, lookupFM, joinFM, toListFM,
-		   listToFM)
 
+-- C->Haskell
 import C2HSConfig (dlsuffix)
-import C2HSState  (CST, readCST, transCST, runCST, nop,
-		   raiseError, errorsPresent, showErrors, fatal,
-		   SwitchBoard(..), Traces(..), putTraceStr,
-		   putStrCIO, getSwitch)
+import C2HSState  (CST, nop, errorsPresent, showErrors, fatal,
+		   SwitchBoard(..), Traces(..), putTraceStr, getSwitch)
 import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 		   CHeader(..), CExtDecl, CDecl(..), CDeclSpec(..),
 		   CStorageSpec(..), CTypeSpec(..), CTypeQual(..),
@@ -180,306 +143,125 @@ import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 		   checkForOneAliasName, lookupEnum,  lookupStructUnion,
 		   lookupDeclOrTag, isPtrDeclr, dropPtrDeclr, isPtrDecl,
 		   getDeclOf, isFunDeclr, refersToNewDef, CDef(..))
+
+-- friends
 import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
-		   CHSAccess(..), CHSAPath(..),CHSPtrType(..))
+		   CHSParm(..), CHSArg(..), CHSAccess(..), CHSAPath(..),
+		   CHSPtrType(..), showCHSParm) 
 import CInfo      (CPrimType(..), size, alignment, bitfieldIntSigned,
 		   bitfieldAlignment)
+import GBMonad    (TransFun, transTabToTransFun, HsObject(..), GB,
+		   initialGBState, setContext, getLibrary, getPrefix, 
+		   delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
+		   queryObj, queryClass, queryPointer, mergeMaps, dumpMaps)
 
 
--- translation tables
--- ------------------
+-- default marshallers
+-- -------------------
 
--- takes an identifier to a lexeme including a potential mapping by a
--- translation table
---
-type TransFun = Ident -> String
+-- FIXME: 
+-- - we might have a dynamically extended table in the monad if needed (we
+--   could marshall enums this way)
+-- - the checks for the Haskell types are quite kludgy
 
--- translation function for the `underscoreToCase' flag
+-- determine the default "in" marshaller for the given Haskell and C types
 --
-underscoreToCase     :: TransFun
-underscoreToCase ide  = let lexeme = identToLexeme ide
-			    ps	   = filter (not . null) . parts $ lexeme
-			in
-			concat . map adjustCase $ ps
-			where
-			  parts s = let (l, s') = break (== '_') s
-				    in  
-				    l : case s' of
-					  []      -> []
-					  (_:s'') -> parts s''
-			  
-			  adjustCase (c:cs) = toUpper c : map toLower cs
+lookupDftMarshIn :: String -> [ExtType] -> GB (Maybe (Ident, CHSArg))
+lookupDftMarshIn "Bool"   [PrimET pt] | isIntegralCPrimType pt = 
+  return $ Just (cFromBoolIde, CHSValArg)
+lookupDftMarshIn hsTy     [PrimET pt] | isIntegralHsType hsTy 
+				      &&isIntegralCPrimType pt = 
+  return $ Just (cIntConvIde, CHSValArg)
+lookupDftMarshIn hsTy     [PrimET pt] | isFloatHsType hsTy 
+				      &&isFloatCPrimType pt    = 
+  return $ Just (cFloatConvIde, CHSValArg)
+lookupDftMarshIn "String" [PtrET (PrimET CCharPT)]             =
+  return $ Just (withCStringIde, CHSIOArg)
+lookupDftMarshIn "String" [PtrET (PrimET CCharPT), PrimET pt]  
+  | isIntegralCPrimType pt				       =
+  return $ Just (withCStringLenIde, CHSIOArg)
+lookupDftMarshIn hsTy     [PtrET ty]  | showExtType ty == hsTy =
+  return $ Just (withIde, CHSIOArg)
+-- FIXME: add combination, such as "with" plus "cIntConv" etc
+-- FIXME: handle array-list conversion
+lookupDftMarshIn _        _                                    = 
+  return Nothing
 
--- takes an identifier association table to a translation function
+-- determine the default "out" marshaller for the given Haskell and C types
 --
--- * if first argument is `True', identifiers that are not found in the
---   translation table are subjected to `underscoreToCase'
---
--- * the details of handling the prefix are given in the DOCU section at the
---   beginning of this file
---
-transTabToTransFun :: String -> CHSTrans -> TransFun
-transTabToTransFun prefix (CHSTrans _2Case table) =
-  \ide -> let 
-	    lexeme = identToLexeme ide
-	    dft    = if _2Case			-- default uses maybe the...
-		     then underscoreToCase ide  -- ..._2case transformed...
-		     else lexeme		-- ...lexeme
-	  in
-	  case lookup ide table of		    -- lookup original ident
-	    Just ide' -> identToLexeme ide'	    -- original ident matches
-	    Nothing   -> 
-	      case eat prefix lexeme of
-	        Nothing          -> dft		    -- no match & no prefix
-	        Just eatenLexeme -> 
-		  let 
-		    eatenIde = onlyPosIdent (posOf ide) eatenLexeme
-		    eatenDft = if _2Case 
-			       then underscoreToCase eatenIde 
-			       else eatenLexeme
-		  in
-		  case lookup eatenIde table of     -- lookup without prefix
-		    Nothing   -> eatenDft	    -- orig ide without prefix
-		    Just ide' -> identToLexeme ide' -- without prefix matched
-  where
-    -- try to eat prefix and return `Just partialLexeme' if successful
-    --
-    eat []         ('_':cs)                        = eat [] cs
-    eat []         cs                              = Just cs
-    eat (p:prefix) (c:cs) | toUpper p == toUpper c = eat prefix cs
-			  | otherwise		   = Nothing
-    eat _          _				   = Nothing
+lookupDftMarshOut :: String -> [ExtType] -> GB (Maybe (Ident, CHSArg))
+lookupDftMarshOut "()"     _                                    =
+  return $ Just (voidIde, CHSVoidArg)
+lookupDftMarshOut "Bool"   [PrimET pt] | isIntegralCPrimType pt = 
+  return $ Just (cToBoolIde, CHSValArg)
+lookupDftMarshOut hsTy     [PrimET pt] | isIntegralHsType hsTy 
+				       &&isIntegralCPrimType pt = 
+  return $ Just (cIntConvIde, CHSValArg)
+lookupDftMarshOut hsTy     [PrimET pt] | isFloatHsType hsTy 
+				       &&isFloatCPrimType pt    = 
+  return $ Just (cFloatConvIde, CHSValArg)
+lookupDftMarshOut "String" [PtrET (PrimET CCharPT)]             =
+  return $ Just (peekCStringIde, CHSIOArg)
+lookupDftMarshOut "String" [PtrET (PrimET CCharPT), PrimET pt]  
+  | isIntegralCPrimType pt				        =
+  return $ Just (peekCStringLenIde, CHSIOArg)
+lookupDftMarshOut hsTy     [PtrET ty]  | showExtType ty == hsTy =
+  return $ Just (peekIde, CHSIOArg)
+-- FIXME: add combination, such as "peek" plus "cIntConv" etc
+-- FIXME: handle array-list conversion
+lookupDftMarshOut _        _                                    = 
+  return Nothing
 
 
--- the local monad
--- ---------------
+-- check for integral Haskell types
+--
+isIntegralHsType :: String -> Bool
+isIntegralHsType "Int"    = True
+isIntegralHsType "Int8"   = True
+isIntegralHsType "Int16"  = True
+isIntegralHsType "Int32"  = True
+isIntegralHsType "Int64"  = True
+isIntegralHsType "Word8"  = True
+isIntegralHsType "Word16" = True
+isIntegralHsType "Word32" = True
+isIntegralHsType "Word64" = True
+isIntegralHsType _	  = False
 
--- map that for maps C pointer types to Haskell types for pointer that have
--- been registered using a pointer hook
+-- check for floating Haskell types
 --
--- * the `Bool' indicates whether for a C type "ctype", we map "ctype" itself
---   or "*ctype"
---
--- * in the co-domain, the first string is the type for function arguments and
---   the second string is for function results; this distinction is necessary
---   as `ForeignPtr's cannot be returned by a foreign function; the
---   restriction on function result types is only for the actual result, not
---   for type arguments to parametrised pointer types, ie, it holds for `res'
---   in `Int -> IO res', but not in `Int -> Ptr res'
---
-type PointerMap = FiniteMap (Bool, Ident) (String, String)
+isFloatHsType :: String -> Bool
+isFloatHsType "Float"  = True
+isFloatHsType "Double" = True
+isFloatHsType _	       = False
 
--- map that maintains key information about some of the Haskell objects
--- generated by c2hs
+-- check for integral C types
 --
-data HsObject    = Pointer CHSPtrType		   -- kind of pointer
-			   Bool			   -- newtype?
-		 | Class   (Maybe Ident)	   -- superclass
-			   Ident		   -- pointer
-                 deriving (Show, Read)
-type HsObjectMap = FiniteMap Ident HsObject
+isIntegralCPrimType :: CPrimType -> Bool
+isIntegralCPrimType  = (`elem` [CIntPT, CShortPT, CLongPT, CLLongPT, CUIntPT, 
+			        CUShortPT, CULongPT, CULLongPT])
 
-{- FIXME: What a mess...
-instance Show HsObject where
-  show (Pointer ptrType isNewtype) = 
-    "Pointer " ++ show ptrType ++ show isNewtype
-  show (Class   osuper  pointer  ) = 
-    "Class " ++ show ptrType ++ show isNewtype
--}
--- super kludgy (depends on Show instance of Ident)
-instance Read Ident where
-  readsPrec _ ('`':lexeme) = let (ideChars, rest) = span (/= '\'') lexeme
-			     in
-			     if null ideChars 
-			     then []
-			     else [(onlyPosIdent nopos ideChars, tail rest)]
-  readsPrec p (c:cs)
-    | isSpace c						     = readsPrec p cs
-  readsPrec _ _						     = []
+-- check for floating C types
+--
+isFloatCPrimType :: CPrimType -> Bool
+isFloatCPrimType  = (`elem` [CFloatPT, CDoublePT, CLDoublePT])
 
--- the local state consists of
+-- standard conversions
 --
--- (1) the dynamic library specified by the context hook,
--- (2) the prefix specified by the context hook,
--- (3) the set of delayed code fragaments, ie, pieces of Haskell code that,
---     finally, have to be appended at the CHS module together with the hook
---     that created them (the latter allows avoid duplication of foreign
---     export declarations), and
--- (4) a map associating C pointer types with their Haskell representation
---     
--- access to the attributes of the C structure tree is via the `CT' monad of
--- which we use an instance here
---
-data GBState  = GBState {
-		  lib     :: String,		   -- dynamic library
-		  prefix  :: String,		   -- prefix
-	          frags   :: [(CHSHook, CHSFrag)], -- delayed code (with hooks)
-		  ptrmap  :: PointerMap,	   -- pointer representation
-		  objmap  :: HsObjectMap	   -- generated Haskell objects
-	       }
-
-type GB a = CT GBState a
-
-initialGBState :: GBState
-initialGBState  = GBState {
-		    lib    = "",
-		    prefix = "",
-		    frags  = [],
-		    ptrmap = zeroFM,
-		    objmap = zeroFM
-		  }
-
--- set the dynamic library and library prefix
---
-setContext            :: (Maybe String) -> (Maybe String) -> GB ()
-setContext lib prefix  = 
-  transCT $ \state -> (state {lib    = fromMaybe "" lib,
-			      prefix = fromMaybe "" prefix},
-		       ())
-
--- get the dynamic library
---
-getLibrary :: GB String
-getLibrary  = readCT lib
-
--- get the prefix string
---
-getPrefix :: GB String
-getPrefix  = readCT prefix
-
--- add code to the delayed fragments (the code is made to start at a new line)
---
--- * currently only code belonging to call hooks can be delayed
---
--- * if code for the same call hook (ie, same C function) is delayed
---   repeatedly only the first entry is stored; it is checked that the hooks
---   specify the same flags (ie, produce the same delayed code)
---
-delayCode          :: CHSHook -> String -> GB ()
-delayCode hook str  = 
-  do
-    frags <- readCT frags
-    frags' <- delay hook frags
-    transCT (\state -> (state {frags = frags'}, ()))
-    where
-      newEntry = (hook, (CHSVerb ("\n" ++ str)))
-      --
-      delay hook@(CHSCall isFun isUns ide oalias _) frags =
-	case find (\(hook', _) -> hook' == hook) frags of
-	  Just (CHSCall isFun' isUns' ide' _ _, _) 
-	    |    isFun == isFun' 
-	      && isUns == isUns' 
-	      && ide   == ide'   -> return frags
-	    | otherwise		 -> err (posOf ide) (posOf ide')
-	  Nothing                -> return $ frags ++ [newEntry]
-      delay _ _                                  =
-	interr "GenBind.delayCode: Illegal delay!"
-      --
-      err = incompatibleCallHooksErr
-
--- get the complete list of delayed fragments
---
-getDelayedCode :: GB [CHSFrag]
-getDelayedCode  = readCT (map snd . frags)
-
--- add an entry to the pointer map
---
-ptrMapsTo :: (Bool, Ident) -> (String, String) -> GB ()
-(isStar, cName) `ptrMapsTo` hsRepr =
-  transCT (\state -> (state { 
-		        ptrmap = addToFM (isStar, cName) hsRepr (ptrmap state)
-		      }, ()))
-
--- query the pointer map
---
-queryPtr        :: (Bool, Ident) -> GB (Maybe (String, String))
-queryPtr pcName  = do
-		     fm <- readCT ptrmap
-		     return $ lookupFM fm pcName
-
--- add an entry to the Haskell object map
---
-objIs :: Ident -> HsObject -> GB ()
-hsName `objIs` obj =
-  transCT (\state -> (state { 
-		        objmap = addToFM hsName obj (objmap state)
-		      }, ()))
-
--- query the Haskell object map
---
-queryObj        :: Ident -> GB (Maybe HsObject)
-queryObj hsName  = do
-		     fm <- readCT objmap
-		     return $ lookupFM fm hsName
-
--- query the Haskell object map for a class
---
--- * raise an error if the class cannot be found
---
-queryClass        :: Ident -> GB HsObject
-queryClass hsName  = do
-		       let pos = posOf hsName
-		       oobj <- queryObj hsName
-		       case oobj of
-		         Just obj@(Class _ _) -> return obj
-			 Just _		      -> classExpectedErr hsName
-			 Nothing	      -> hsObjExpectedErr hsName
-
--- query the Haskell object map for a pointer
---
--- * raise an error if the pointer cannot be found
---
-queryPointer        :: Ident -> GB HsObject
-queryPointer hsName  = do
-		       let pos = posOf hsName
-		       oobj <- queryObj hsName
-		       case oobj of
-		         Just obj@(Pointer _ _) -> return obj
-			 Just _		        -> pointerExpectedErr hsName
-			 Nothing	        -> hsObjExpectedErr hsName
-
--- merge the pointer and Haskell object maps
---
--- * currently, the read map overrides any entires for shared keys in the map
---   that is already in the monad; this is so that, if multiple import hooks
---   add entries for shared keys, the textually latest prevails; any local
---   entries are entered after all import hooks anyway
---
--- FIXME: This currently has several shortcomings:
---	  * It just dies in case of a corrupted .chi file
---	  * We should at least have the option to raise a warning if two
---	    entries collide in the `objmap'.  But it would be better to
---	    implement qualified names.
---	  * Do we want position information associated with the read idents?
---
-mergeMaps     :: String -> GB ()
-mergeMaps str  =
-  transCT (\state -> (state { 
-		        ptrmap = joinFM readPtrMap (ptrmap state),
-		        objmap = joinFM readObjMap (objmap state)
-		      }, ()))
-  where
-    (ptrAssoc, objAssoc) = read str
-    readPtrMap           = listToFM [((isStar, onlyPosIdent nopos ide), repr)
-			            | ((isStar, ide), repr) <- ptrAssoc]
-    readObjMap           = listToFM [(onlyPosIdent nopos ide, obj)
-			            | (ide, obj)            <- objAssoc]
-
--- convert the whole pointer and Haskell object maps into printable form
---
-dumpMaps :: GB String
-dumpMaps  = do
-	      ptrFM <- readCT ptrmap
-	      objFM <- readCT objmap
-	      let dumpable = ([((isStar, identToLexeme ide), repr)
-			      | ((isStar, ide), repr) <- toListFM ptrFM],
-			      [(identToLexeme ide, obj)
-			      | (ide, obj)            <- toListFM objFM])
-	      return $ show dumpable
+voidIde           = noPosIdent "void"	      -- never appears in the output
+cFromBoolIde      = noPosIdent "cFromBool"
+cToBoolIde        = noPosIdent "cToBool"
+cIntConvIde       = noPosIdent "cIntConv"
+cFloatConvIde     = noPosIdent "cFloatConv"
+withIde           = noPosIdent "withObject"   -- FIXME: should be "with"
+withCStringIde    = noPosIdent "withCString"
+withCStringLenIde = noPosIdent "withCStringLenIntConv"
+peekIde           = noPosIdent "peek"
+peekCStringIde    = noPosIdent "peekCString"
+peekCStringLenIde = noPosIdent "peekCStringLenIntConv"
 
 
--- expansion of the hooks
--- ----------------------
+-- expansion of binding hooks
+-- --------------------------
 
 -- given a C header file and a binding file, expand all hooks in the binding
 -- file using the C header information (EXPORTED)
@@ -585,7 +367,7 @@ expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
     let trans = transTabToTransFun prefix chsTrans
 	hide  = identToLexeme . fromMaybe cide $ oalias
     enumDef enum hide trans (map identToLexeme derive)
-expandHook hook@(CHSCall isFun isUns ide oalias pos) =
+expandHook hook@(CHSCall isPure isUns ide oalias pos) =
   do
     traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
@@ -596,20 +378,30 @@ expandHook hook@(CHSCall isFun isUns ide oalias pos) =
     let ideLexeme = identToLexeme ide  -- orignal name might have been a shadow
 	hsLexeme  = ideLexeme `maybe` identToLexeme $ oalias
         cdecl'    = ide `simplifyDecl` cdecl
-    --
-    -- compute the external type from the declaration, get the library, and
-    -- delay the foreign export declaration
-    --
-    extType <- extractFunType pos cdecl' isFun
-    lib     <- getLibrary
-    delayCode hook (foreignImport lib ideLexeme hsLexeme isUns extType)
-    traceFunType extType
+    callImport hook isPure isUns ideLexeme hsLexeme cdecl' pos
     return hsLexeme
   where
     traceEnter = traceGenBind $ 
       "** Call hook for `" ++ identToLexeme ide ++ "':\n"
-    traceFunType et = traceGenBind $ 
-      "Function type: " ++ showExtType et ++ "\n"
+expandHook hook@(CHSFun isPure isUns ide oalias ctxt parms parm pos) =
+  do
+    traceEnter
+    -- get the corresponding C declaration; raises error if not found or not a
+    -- function; we use shadow identifiers, so the returned identifier is used 
+    -- afterwards instead of the original one
+    --
+    (ObjCO cdecl, ide) <- findFunObj ide True
+    let ideLexeme = identToLexeme ide  -- orignal name might have been a shadow
+	hsLexeme  = ideLexeme `maybe` identToLexeme $ oalias
+	fiLexeme  = hsLexeme ++ "'_"   -- *Urgh* - probably unqiue...
+	fiIde     = onlyPosIdent nopos fiLexeme
+        cdecl'    = ide `simplifyDecl` cdecl
+	callHook  = CHSCall isPure isUns ide (Just fiIde) pos
+    callImport callHook isPure isUns ideLexeme fiLexeme cdecl' pos
+    funDef isPure hsLexeme fiLexeme cdecl' ctxt parms parm pos
+  where
+    traceEnter = traceGenBind $ 
+      "** Fun hook for `" ++ identToLexeme ide ++ "':\n"
 expandHook (CHSField access path pos) =
   do
     traceInfoField
@@ -807,6 +599,26 @@ enumInst ident list =
 	--
         show' x = if x < 0 then "(" ++ show x ++ ")" else show x
 
+-- generate a foreign import declaration that is put into the delayed code
+--
+-- * the C declaration is a simplified declaration of the function that we
+--   want to import into Haskell land
+--
+callImport :: CHSHook -> Bool -> Bool -> String -> String -> CDecl -> Position
+	   -> GB ()
+callImport hook isPure isUns ideLexeme hsLexeme cdecl pos =
+  do
+    -- compute the external type from the declaration, get the library, and
+    -- delay the foreign export declaration
+    --
+    extType <- extractFunType pos cdecl isPure
+    lib     <- getLibrary
+    delayCode hook (foreignImport lib ideLexeme hsLexeme isUns extType)
+    traceFunType extType
+  where
+    traceFunType et = traceGenBind $ 
+      "Imported function type: " ++ showExtType et ++ "\n"
+
 -- Haskell code for the foreign import declaration needed by a call hook
 --
 -- * appends a configuration dependent library suffix `dlsuffix'
@@ -821,7 +633,199 @@ foreignImport lib ident hsIdent isUnsafe ty  =
 -- FIXME: libName removed until the new FFI conventions for libs are impl.
     maybeUnsafe = if isUnsafe then " unsafe" else ""
 
--- compute from an access path, the declerator finally accessed and the index
+-- produce a Haskell function definition for a fun hook
+--
+funDef :: Bool		     -- pure function?
+       -> String	     -- name of the new Haskell function
+       -> String	     -- Haskell name of the foreign imported C function
+       -> CDecl		     -- simplified declaration of the C function
+       -> Maybe String	     -- type context of the new Haskell function
+       -> [CHSParm]	     -- parameter marhsalling description
+       -> CHSParm	     -- result marshalling description 
+       -> Position	     -- source location of the hook
+       -> GB String	     -- Haskell code in text form
+funDef isPure hsLexeme fiLexeme cdecl octxt parms parm pos =
+  do
+    (parms', parm', isImpure) <- addDftMarshaller pos parms parm cdecl
+    traceMarsh parms' parm' isImpure
+    let 
+      sig       = hsLexeme ++ " :: " ++ funTy parms' parm' ++ "\n"
+      marshs    = [marshArg i parm | (i, parm) <- zip [1..] parms']
+      funArgs   = [funArg   | (funArg, _, _, _, _)   <- marshs, funArg   /= ""]
+      marshIns  = [marshIn  | (_, marshIn, _, _, _)  <- marshs]
+      callArgs  = [callArg  | (_, _, callArg, _, _)  <- marshs]
+      marshOuts = [marshOut | (_, _, _, marshOut, _) <- marshs, marshOut /= ""]
+      retArgs   = [retArg   | (_, _, _, _, retArg)   <- marshs, retArg   /= ""]
+      funHead   = hsLexeme ++ join funArgs ++ " =\n" ++
+	          if isPure && isImpure then "  unsafePerformIO $\n" else ""
+      call      = if isPure 
+		  then "  let {res = " ++ fiLexeme ++ join callArgs ++ "} in\n"
+		  else "  " ++ fiLexeme ++ join callArgs ++ " >>= \\res ->\n"
+      marshRes  = case parm' of
+	            CHSParm _ _ twoCVal (Just (_    , CHSVoidArg)) _ -> ""
+	            CHSParm _ _ twoCVal (Just (omIde, CHSIOArg  )) _ -> 
+	              "  " ++ identToLexeme omIde ++ " res >>= \\res' ->\n"
+	            CHSParm _ _ twoCVal (Just (omIde, CHSValArg )) _ -> 
+	              "  let {res' = " ++ identToLexeme omIde ++ " res} in\n"
+		    CHSParm _ _ _       Nothing		           _ ->
+		      interr "GenBind.funDef: marshRes: no default?"
+      retArgs'  = case parm' of
+	            CHSParm _ _ _ (Just (_, CHSVoidArg)) _ ->        retArgs
+	            _					   -> "res'":retArgs
+      ret       = "(" ++ concat (intersperse ", " retArgs') ++ ")"
+      funBody   = joinLines marshIns  ++ 
+	          call                ++
+	          joinLines marshOuts ++ 
+		  marshRes            ++ 
+		  "  " ++ 
+		  (if isImpure || not isPure then "return " else "") ++ ret
+    return $ sig ++ funHead ++ funBody
+  where
+    join      = concatMap (' ':)
+    joinLines = concatMap (\s -> "  " ++ s ++ "\n")
+    --
+    -- construct the function type
+    --
+    -- * specified types appear in the argument and result only if their "in"
+    --   and "out" marshaller, respectively, is not the `void' marshaller
+    --
+    funTy parms parm =
+      let
+        ctxt   = case octxt of
+	           Nothing      -> ""
+		   Just ctxtStr -> ctxtStr ++ "=> "
+	argTys = [ty | CHSParm im ty _ _  _ <- parms     , notVoid im]
+        resTys = [ty | CHSParm _  ty _ om _ <- parm:parms, notVoid om]
+        resTup = (if isPure then "" else "IO ") ++
+	         (if length resTys == 1 
+		  then head resTys 
+		  else "(" ++ concat (intersperse ", " resTys) ++ ")")
+      in
+      ctxt ++ concat (intersperse " -> " (argTys ++ [resTup]))
+      where
+        notVoid Nothing          = interr "GenBind.funDef: \
+					  \No default marshaller?"
+	notVoid (Just (_, kind)) = kind /= CHSVoidArg
+    --
+    -- for an argument marshaller, generate all "in" and "out" marshalling
+    -- code fragments
+    --
+    marshArg i (CHSParm (Just (imIde, imArgKind)) _ twoCVal 
+		        (Just (omIde, omArgKind)) _        ) =
+      let
+	a	 = "a" ++ show i
+	imStr	 = identToLexeme imIde
+	imApp	 = imStr ++ " " ++ a
+	funArg   = if imArgKind == CHSVoidArg then "" else a
+	inBndr   = if twoCVal 
+		     then "(" ++ a ++ "'1, " ++ a ++ "'2)"
+		     else a ++ "'"
+	marshIn  = case imArgKind of
+		     CHSVoidArg -> imStr ++ " $ \\" ++ inBndr ++ " -> "
+		     CHSIOArg   -> imApp ++ " $ \\" ++ inBndr ++ " -> "
+		     CHSValArg  -> "let {" ++ inBndr ++ " = " ++ 
+				   imApp ++ "} in "
+	callArg  = if twoCVal 
+		     then "" ++ a ++ "'1 " ++ a ++ "'2"
+		     else a ++ "'"
+	omApp	 = identToLexeme omIde ++ " " ++ callArg
+	outBndr  = a ++ "''"
+        marshOut = case omArgKind of
+		     CHSVoidArg -> ""
+		     CHSIOArg   -> omApp ++ ">>= \\" ++ outBndr ++ " -> "
+		     CHSValArg  -> "let {" ++ outBndr ++ " = " ++ 
+				   omApp ++ "} in "
+	retArg   = if omArgKind == CHSVoidArg then "" else outBndr
+      in
+      (funArg, marshIn, callArg, marshOut, retArg)
+    marshArg _ _ = interr "GenBind.funDef: Missing default?"
+    --
+    traceMarsh parms parm isImpure = traceGenBind $ 
+      "Marshalling specification including defaults: \n" ++
+      showParms (parms ++ [parm]) "" ++
+      "  The marshalling is " ++ if isImpure then "impure.\n" else "pure.\n"
+      where
+        showParms []           = id
+	showParms (parm:parms) =   showString "  "
+				 . showCHSParm parm 
+				 . showChar '\n' 
+				 . showParms parms
+
+-- add default marshallers for "in" and "out" marshalling
+--
+addDftMarshaller :: Position -> [CHSParm] -> CHSParm -> CDecl 
+		 -> GB ([CHSParm], CHSParm, Bool)
+addDftMarshaller pos parms parm cdecl = do
+  (resTy, argTys)     <- splitFunTy `liftM` extractFunType pos cdecl True
+  (parm' , isImpure1) <- checkResMarsh parm resTy
+  (parms', isImpure2) <- addDft parms argTys
+  return (parms', parm', isImpure1 || isImpure2)
+  where
+    -- the result marshalling may not use an "in" marshaller and can only have
+    -- one C value
+    --
+    -- * a default marshaller maybe used for "out" marshalling
+    --
+    checkResMarsh (CHSParm (Just _) _  _    _       pos) _   = 
+      resMarshIllegalInErr      pos
+    checkResMarsh (CHSParm _        _  True _       pos) _   = 
+      resMarshIllegalTwoCValErr pos
+    checkResMarsh (CHSParm _	    ty _    omMarsh pos) cTy = do
+      (imMarsh', _       ) <- addDftVoid Nothing
+      (omMarsh', isImpure) <- addDftOut pos omMarsh ty [cTy]
+      return (CHSParm imMarsh' ty False omMarsh' pos, isImpure)
+    --
+    splitFunTy (FunET UnitET ty ) = splitFunTy ty
+    splitFunTy (FunET ty1    ty2) = let 
+				      (resTy, argTys) = splitFunTy ty2
+				    in
+				    (resTy, ty1:argTys)
+    splitFunTy resTy	          = (resTy, [])
+    --
+    -- match Haskell with C arguments (and results)
+    --
+    addDft ((CHSParm imMarsh hsTy False omMarsh p):parms) (cTy      :cTys) = do
+      (imMarsh', isImpureIn ) <- addDftIn   p imMarsh hsTy [cTy]
+      (omMarsh', isImpureOut) <- addDftVoid    omMarsh
+      (parms'  , isImpure   ) <- addDft parms cTys
+      return (CHSParm imMarsh' hsTy False omMarsh' p : parms',
+	      isImpure || isImpureIn || isImpureOut)
+    addDft ((CHSParm imMarsh hsTy True  omMarsh p):parms) (cTy1:cTy2:cTys) = do
+      (imMarsh', isImpureIn ) <- addDftIn   p imMarsh hsTy [cTy1, cTy2]
+      (omMarsh', isImpureOut) <- addDftVoid   omMarsh
+      (parms'  , isImpure   ) <- addDft parms cTys
+      return (CHSParm imMarsh' hsTy True omMarsh' p : parms',
+	      isImpure || isImpureIn || isImpureOut)
+    addDft []                                             []               = 
+      return ([], False)
+    addDft ((CHSParm _       _    _     _     pos):parms) []               = 
+      marshArgMismatchErr pos "This parameter is in excess of the C arguments."
+    addDft []                                             (_:_)            = 
+      marshArgMismatchErr pos "Parameter marshallers are missing."
+    --
+    addDftIn _   imMarsh@(Just (_, kind)) _    _    = return (imMarsh,
+							      kind == CHSIOArg)
+    addDftIn pos imMarsh@Nothing          hsTy cTys = do
+      marsh <- lookupDftMarshIn hsTy cTys
+      when (isNothing marsh) $
+        noDftMarshErr pos "\"in\""
+      return (marsh, case marsh of {Just (_, kind) -> kind == CHSIOArg})
+    --
+    addDftOut _   omMarsh@(Just (_, kind)) _    _    = return (omMarsh,
+							      kind == CHSIOArg)
+    addDftOut pos omMarsh@Nothing          hsTy cTys = do
+      marsh <- lookupDftMarshOut hsTy cTys
+      when (isNothing marsh) $
+        noDftMarshErr pos "\"out\""
+      return (marsh, case marsh of {Just (_, kind) -> kind == CHSIOArg})
+    --
+    -- add void marshaller if no explict one is given
+    --
+    addDftVoid marsh@(Just (_, kind)) = return (marsh, kind == CHSIOArg)
+    addDftVoid        Nothing         = do
+      return (Just (noPosIdent "void", CHSVoidArg), False)
+
+-- compute from an access path, the declarator finally accessed and the index
 -- path required for the access
 --
 -- * each element in the index path specifies dereferencing an address and the 
@@ -1131,6 +1135,14 @@ data ExtType = FunET     ExtType ExtType	-- function
 	     | DefinedET CDecl String		-- aliased type
 	     | PrimET    CPrimType		-- basic C type
 	     | UnitET				-- void
+
+instance Eq ExtType where
+  (FunET     t1 t2) == (FunET     t1' t2') = t1 == t1' && t2 == t2'
+  (IOET      t    ) == (IOET      t'     ) = t == t'
+  (PtrET     t    ) == (PtrET     t'     ) = t == t'
+  (DefinedET _  s ) == (DefinedET _   s' ) = s == s'
+  (PrimET    t    ) == (PrimET    t'     ) = t == t'
+  UnitET	    == UnitET		   = True
 
 -- composite C type
 --
@@ -1758,6 +1770,11 @@ applyUnary cpos CNegOp     (FloatResult _) =
 -- auxilliary functions
 -- --------------------
 
+-- create an identifier without position information
+--
+noPosIdent :: String -> Ident
+noPosIdent  = onlyPosIdent nopos
+
 -- print trace message
 --
 traceGenBind :: String -> GB ()
@@ -1806,14 +1823,6 @@ variadicErr pos cpos  =
      "Calling variadic functions is not supported by the FFI; the function",
      "is defined at " ++ show cpos ++ "."]
 
-incompatibleCallHooksErr            :: Position -> Position -> GB a
-incompatibleCallHooksErr here there  =
-  raiseErrorCTExc here 
-    ["Incompatible call hooks!",
-     "There is a another call hook for the same C function at " ++ show there,
-     "The flags and C function name of the two hooks should be identical,",
-     "but they are not."]
-
 illegalConstExprErr           :: Position -> String -> GB a
 illegalConstExprErr cpos hint  =
   raiseErrorCTExc cpos ["Illegal constant expression!",
@@ -1838,27 +1847,6 @@ ptrExpectedErr pos  =
     ["Expected a pointer object!",
      "Attempt to dereference a non-pointer object or to use it in a `pointer' \
      \hook."]
-
-hsObjExpectedErr     :: Ident -> GB a
-hsObjExpectedErr ide  =
-  raiseErrorCTExc (posOf ide)
-    ["Unknown name!",
-     "`" ++ identToLexeme ide ++ "' is unknown; it has *not* been defined by",
-     "a previous hook."]
-
-classExpectedErr     :: Ident -> GB a
-classExpectedErr ide  =
-  raiseErrorCTExc (posOf ide)
-    ["Expected a class name!",
-     "Expected `" ++ identToLexeme ide ++ "' to refer to a class introduced",
-     "by a class hook."]
-
-pointerExpectedErr     :: Ident -> GB a
-pointerExpectedErr ide  =
-  raiseErrorCTExc (posOf ide)
-    ["Expected a pointer name!",
-     "Expected `" ++ identToLexeme ide ++ "' to be a type name introduced by",
-     "a pointer hook."]
 
 illegalStablePtrErr     :: Position -> GB a
 illegalStablePtrErr pos  =
@@ -1886,3 +1874,28 @@ derefBitfieldErr pos  =
   raiseErrorCTExc pos 
     ["Illegal dereferencing of a bit field!",
      "Bit fields cannot be dereferenced."]
+
+resMarshIllegalInErr     :: Position -> GB a
+resMarshIllegalInErr pos  =
+  raiseErrorCTExc pos 
+    ["Malformed result marshalling!",
+     "There may not be an \"in\" marshaller for the result."]
+
+resMarshIllegalTwoCValErr     :: Position -> GB a
+resMarshIllegalTwoCValErr pos  =
+  raiseErrorCTExc pos 
+    ["Malformed result marshalling!",
+     "Two C values (i.e., the `&' symbol) are not allowed for the result."]
+
+marshArgMismatchErr            :: Position -> String -> GB a
+marshArgMismatchErr pos reason  =
+  raiseErrorCTExc pos
+    ["Function arity mismatch!",
+     reason]
+
+noDftMarshErr           :: Position -> String -> GB a
+noDftMarshErr pos inOut  =
+  raiseErrorCTExc pos
+    ["Missing " ++ inOut ++ " marshaller!",
+     "There is no default marshaller for this combination of Haskell and \
+     \C type available."]

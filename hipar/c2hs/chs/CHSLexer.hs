@@ -1,11 +1,11 @@
 --  C->Haskell Compiler: Lexer for CHS Files
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 13 August 99
 --
---  Version $Revision: 1.13 $ from $Date: 2001/10/08 04:07:16 $
+--  Version $Revision: 1.14 $ from $Date: 2002/02/23 10:51:54 $
 --
---  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@
 --    Within the base lexer control codes appear as separate tokens in the
 --    token list.
 --
---    NOTE: It is important that `(' is an extra lexeme and not added as an
+--    NOTE: It is important that `{' is an extra lexeme and not added as an
 --	    optional component at the end of the first alternative for
 --	    `haskell'.  Otherwise, the principle of the longest match will
 --	    divide `foo {#' into the tokens `foo {' and `#' instead of `foo '
@@ -77,12 +77,13 @@
 --      ident       -> letter (letter | digit | ')*
 --      reservedid  -> `as' | `call' | `class' | `context' | `deriving' 
 --		     | `enum' | `foreign' | `fun' | `get' | `header' | `lib' 
---		     | `newtype' | `pointer' | `prefix' | `set' | `sizeof'
---		     | `stable' | `type' | `underscoreToCase' | `unsafe' 
---		     | `with'
+--		     | `newtype' | `pointer' | `prefix' | `pure' | `set'
+--		     | `sizeof' | `stable' | `type' | `underscoreToCase' 
+--		     | `unsafe' | `with'
 --      reservedsym -> `{#' | `#}' | `{' | `}' | `,' | `.' | `->' | `=' 
---		     | `=>' | `*'
+--		     | `=>' | '-' | `*' | `&'
 --      string      -> `"' instr* `"'
+--      verbhs      -> `\`' instr* `\''
 --      instr       -> ` '..`\127' \\ `"'
 --      comment	    -> `--' (any \\ `\n')* `\n'
 --
@@ -118,7 +119,7 @@
 --    necessary, but for some strange reason, the lexer otherwise hangs when a 
 --    single `"' appears in the input.
 --
---  * Comments in the "gap" of a string a not yet supported.
+--  * Comments in the "gap" of a string are not yet supported.
 --
 
 module CHSLexer (CHSToken(..), lexCHS) 
@@ -149,7 +150,9 @@ data CHSToken = CHSTokArrow   Position		-- `->'
 	      | CHSTokDot     Position		-- `.'
 	      | CHSTokComma   Position		-- `,'
 	      | CHSTokEqual   Position		-- `='
+	      | CHSTokMinus   Position		-- `-'
 	      | CHSTokStar    Position		-- `*'
+	      | CHSTokAmp     Position		-- `&'
 	      | CHSTokLBrace  Position		-- `{'
 	      | CHSTokRBrace  Position		-- `}'
 	      | CHSTokLParen  Position		-- `('
@@ -170,6 +173,7 @@ data CHSToken = CHSTokArrow   Position		-- `->'
 	      | CHSTokNewtype Position		-- `newtype'
 	      | CHSTokPointer Position		-- `pointer'
 	      | CHSTokPrefix  Position		-- `prefix'
+	      | CHSTokPure    Position		-- `pure'
 	      | CHSTokQualif  Position		-- `qualified'
 	      | CHSTokSet     Position		-- `set'
 	      | CHSTokSizeof  Position		-- `sizeof'
@@ -179,6 +183,7 @@ data CHSToken = CHSTokArrow   Position		-- `->'
 	      | CHSTokUnsafe  Position		-- `unsafe'
 	      | CHSTokWith    Position		-- `with'
 	      | CHSTokString  Position String	-- string 
+	      | CHSTokHSVerb  Position String	-- verbatim Haskell
 	      | CHSTokIdent   Position Ident	-- identifier
 	      | CHSTokHaskell Position String	-- verbatim Haskell code
 	      | CHSTokCtrl    Position Char	-- control code
@@ -189,7 +194,9 @@ instance Pos CHSToken where
   posOf (CHSTokDot     pos  ) = pos
   posOf (CHSTokComma   pos  ) = pos
   posOf (CHSTokEqual   pos  ) = pos
+  posOf (CHSTokMinus   pos  ) = pos
   posOf (CHSTokStar    pos  ) = pos
+  posOf (CHSTokAmp     pos  ) = pos
   posOf (CHSTokLBrace  pos  ) = pos
   posOf (CHSTokRBrace  pos  ) = pos
   posOf (CHSTokLParen  pos  ) = pos
@@ -210,6 +217,7 @@ instance Pos CHSToken where
   posOf (CHSTokNewtype pos  ) = pos
   posOf (CHSTokPointer pos  ) = pos
   posOf (CHSTokPrefix  pos  ) = pos
+  posOf (CHSTokPure    pos  ) = pos
   posOf (CHSTokQualif  pos  ) = pos
   posOf (CHSTokSet     pos  ) = pos
   posOf (CHSTokSizeof  pos  ) = pos
@@ -219,6 +227,7 @@ instance Pos CHSToken where
   posOf (CHSTokUnsafe  pos  ) = pos
   posOf (CHSTokWith    pos  ) = pos
   posOf (CHSTokString  pos _) = pos
+  posOf (CHSTokHSVerb  pos _) = pos
   posOf (CHSTokIdent   pos _) = pos
   posOf (CHSTokHaskell pos _) = pos
   posOf (CHSTokCtrl    pos _) = pos
@@ -229,7 +238,9 @@ instance Eq CHSToken where
   (CHSTokDot      _  ) == (CHSTokDot      _  ) = True
   (CHSTokComma    _  ) == (CHSTokComma    _  ) = True
   (CHSTokEqual    _  ) == (CHSTokEqual    _  ) = True
+  (CHSTokMinus    _  ) == (CHSTokMinus    _  ) = True
   (CHSTokStar     _  ) == (CHSTokStar     _  ) = True
+  (CHSTokAmp      _  ) == (CHSTokAmp      _  ) = True
   (CHSTokLBrace   _  ) == (CHSTokLBrace   _  ) = True
   (CHSTokRBrace   _  ) == (CHSTokRBrace   _  ) = True
   (CHSTokLParen   _  ) == (CHSTokLParen   _  ) = True
@@ -250,6 +261,7 @@ instance Eq CHSToken where
   (CHSTokNewtype  _  ) == (CHSTokNewtype  _  ) = True
   (CHSTokPointer  _  ) == (CHSTokPointer  _  ) = True
   (CHSTokPrefix   _  ) == (CHSTokPrefix   _  ) = True
+  (CHSTokPure     _  ) == (CHSTokPure     _  ) = True
   (CHSTokQualif   _  ) == (CHSTokQualif   _  ) = True
   (CHSTokSet      _  ) == (CHSTokSet      _  ) = True
   (CHSTokSizeof   _  ) == (CHSTokSizeof   _  ) = True
@@ -259,6 +271,7 @@ instance Eq CHSToken where
   (CHSTokUnsafe   _  ) == (CHSTokUnsafe   _  ) = True
   (CHSTokWith     _  ) == (CHSTokWith     _  ) = True
   (CHSTokString   _ _) == (CHSTokString   _ _) = True
+  (CHSTokHSVerb   _ _) == (CHSTokHSVerb   _ _) = True
   (CHSTokIdent    _ _) == (CHSTokIdent    _ _) = True
   (CHSTokHaskell  _ _) == (CHSTokHaskell  _ _) = True
   (CHSTokCtrl	  _ _) == (CHSTokCtrl	  _ _) = True
@@ -270,7 +283,9 @@ instance Show CHSToken where
   showsPrec _ (CHSTokDot     _  ) = showString "."
   showsPrec _ (CHSTokComma   _  ) = showString ","
   showsPrec _ (CHSTokEqual   _  ) = showString "="
+  showsPrec _ (CHSTokMinus   _  ) = showString "-"
   showsPrec _ (CHSTokStar    _  ) = showString "*"
+  showsPrec _ (CHSTokAmp     _  ) = showString "&"
   showsPrec _ (CHSTokLBrace  _  ) = showString "{"
   showsPrec _ (CHSTokRBrace  _  ) = showString "}"
   showsPrec _ (CHSTokLParen  _  ) = showString "("
@@ -291,6 +306,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokNewtype _  ) = showString "newtype"
   showsPrec _ (CHSTokPointer _  ) = showString "pointer"
   showsPrec _ (CHSTokPrefix  _  ) = showString "prefix"
+  showsPrec _ (CHSTokPure    _  ) = showString "pure"
   showsPrec _ (CHSTokQualif  _  ) = showString "qualified"
   showsPrec _ (CHSTokSet     _  ) = showString "set"
   showsPrec _ (CHSTokSizeof  _  ) = showString "sizeof"
@@ -300,6 +316,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokUnsafe  _  ) = showString "unsafe"
   showsPrec _ (CHSTokWith    _  ) = showString "with"
   showsPrec _ (CHSTokString  _ s) = showString ("\"" ++ s ++ "\"")
+  showsPrec _ (CHSTokHSVerb  _ s) = showString ("`" ++ s ++ "'")
   showsPrec _ (CHSTokIdent   _ i) = (showString . identToLexeme) i
   showsPrec _ (CHSTokHaskell _ s) = showString s
   showsPrec _ (CHSTokCtrl    _ c) = showChar c
@@ -489,6 +506,7 @@ bhLexer :: CHSLexer
 bhLexer  =      identOrKW
 	   >||< symbol
 	   >||< strlit
+	   >||< hsverb
 	   >||< whitespace
 	   >||< endOfHook
 	   >||< string "--" +> anyButNL`star` char '\n'	  -- comment
@@ -534,6 +552,7 @@ identOrKW  =
     idkwtok pos "newtype"          _    = CHSTokNewtype pos
     idkwtok pos "pointer"          _    = CHSTokPointer pos
     idkwtok pos "prefix"           _    = CHSTokPrefix  pos
+    idkwtok pos "pure"             _    = CHSTokPure    pos
     idkwtok pos "qualified"        _    = CHSTokQualif  pos
     idkwtok pos "set"              _    = CHSTokSet     pos
     idkwtok pos "sizeof"           _    = CHSTokSizeof  pos
@@ -553,7 +572,9 @@ symbol  =      sym "->" CHSTokArrow
 	  >||< sym "."  CHSTokDot
 	  >||< sym ","  CHSTokComma
 	  >||< sym "="  CHSTokEqual
+	  >||< sym "-"  CHSTokMinus
 	  >||< sym "*"  CHSTokStar
+	  >||< sym "&"  CHSTokAmp
 	  >||< sym "{"  CHSTokLBrace
 	  >||< sym "}"  CHSTokRBrace
 	  >||< sym "("  CHSTokLParen
@@ -567,13 +588,20 @@ strlit :: CHSLexer
 strlit  = char '"' +> instr`star` char '"'
 	  `lexaction` \cs pos -> Just (CHSTokString pos (init . tail $ cs))
 
+-- verbatim code
+--
+hsverb :: CHSLexer
+hsverb  = char '`' +> inhsverb`star` char '\''
+	  `lexaction` \cs pos -> Just (CHSTokHSVerb pos (init . tail $ cs))
+
 
 -- regular expressions
 --
 letter, digit, instr :: Regexp s t
-letter = alt ['a'..'z'] >|< alt ['A'..'Z'] >|< char '_'
-digit  = alt ['0'..'9']
-instr  = alt ([' '..'\127'] \\ ['\"'])
+letter   = alt ['a'..'z'] >|< alt ['A'..'Z'] >|< char '_'
+digit    = alt ['0'..'9']
+instr    = alt ([' '..'\127'] \\ ['\"'])
+inhsverb = alt ([' '..'\127'] \\ ['\''])
 
 -- character sets
 --

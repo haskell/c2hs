@@ -8,6 +8,7 @@ char *MyString (void);
 typedef char *tString;
 void printString (tString str);
 void printString2 (tString);
+int foobar (tString chars, int nchars, int *items, float x);
 
 /* type of function `MyString'
  */

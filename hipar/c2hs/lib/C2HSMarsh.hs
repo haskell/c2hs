@@ -1,11 +1,11 @@
 --  C->Haskell Compiler: extra marshaling routines
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 12 October 99
 --
---  Version $Revision: 1.18 $ from $Date: 2001/02/04 14:59:02 $
+--  Version $Revision: 1.19 $ from $Date: 2002/02/23 10:51:54 $
 --
---  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
 --  This library is free software; you can redistribute it and/or
 --  modify it under the terms of the GNU Library General Public
@@ -33,41 +33,58 @@
 --
 
 module C2HSMarsh (
+
+  -- composite marshalling functions
+  --
+  withCStringLenIntConv, peekCStringLenIntConv, withIntConv, withFloatConv,
+  peekIntConv, peekFloatConv, 
+
   -- conditional results using `Maybe'
   --
   nothingIf, nothingIfNull
 ) where
 
+-- standard libraries
 import Monad	    (liftM)
 import Maybe        (isNothing)
+
+-- FFI libraries
 import Ptr          (Ptr, nullPtr, castPtr)
+import MarshalAlloc (free)
 import NewStorable  (Storable(..))
-import MarshalUtils (new)
+import MarshalUtils (withObject, new)
+import CString      (withCStringLen, peekCStringLen)
+
+-- friends
+import C2HSBase     (cIntConv, cFloatConv)
 
 
-{-
--- Is the following useful at all?
-type FromHaskell hsType cType = hsType -> IO (Ptr cType)
-type ToHaskell   hsType cType = Ptr cTyp  -> IO hsType
+-- composite marshalling functions
+-- -------------------------------
 
-fromInt :: Integral i => FromHaskell Int i
-fromInt  = new . cIntConv
+-- strings with explicit length
+--
+withCStringLenIntConv s f    = withCStringLen s $ \(p, n) -> f (p, cIntConv n)
+peekCStringLenIntConv (s, n) = peekCStringLen (s, cIntConv n)
 
-toInt   :: Integral i => ToHaskell Int i
-toInt p  = do {r <- peek p; free p; return $ cIntConv}
+-- marshalling of numerals
+--
 
-fromFloat :: RealFloat i => FromHaskell Float i
-fromFloat  = new . cFloatConv
+withIntConv   :: (Storable b, Integral a, Integral b) 
+	      => a -> (Ptr b -> IO c) -> IO c
+withIntConv    = withObject . cIntConv
 
-toFloat   :: RealFloat i => ToHaskell Float i
-toFloat p  = do {r <- peek p; free p; return r$ cFloatConv}
+withFloatConv :: (Storable b, RealFloat a, RealFloat b) 
+	      => a -> (Ptr b -> IO c) -> IO c
+withFloatConv  = withObject . cFloatConv
 
-fromString :: FromHaskell String CChar
-fromString  = newCString
+peekIntConv   :: (Storable a, Integral a, Integral b) 
+	      => Ptr a -> IO b
+peekIntConv    = liftM cIntConv . peek
 
-toString   :: ToHaskell String CChar
-toString p  = do {res <- peekCString p; free p; return res}
--}
+peekFloatConv :: (Storable a, RealFloat a, RealFloat b) 
+	      => Ptr a -> IO b
+peekFloatConv  = liftM cFloatConv . peek
 
 
 -- storing of `Maybe' values
