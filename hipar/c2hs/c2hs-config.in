@@ -66,13 +66,17 @@ libdir=@libdir@/c2hs-@C2HS_VERSION@
 bindir=@bindir@
 has_pkg=@HASPKG@
 pkg_conf=$libdir/$sys/c2hs.conf
+pkg_added=@ENABLE_ADD_PACKAGE@
 
 if test "$echo_prefix" = "yes"; then
   echo $prefix
 fi
 if test x$has_pkg = xyes; then
   if test "$echo_cflags" = "yes" -o "$echo_libs" = "yes"; then
-    echo "-package-conf $pkg_conf -package c2hs"
+    if test "$pkg_added" != "yes"; then
+      echo -n "-package-conf $pkg_conf "
+    fi
+    echo "-package c2hs"
   fi
 else
   if test "$echo_cflags" = "yes"; then

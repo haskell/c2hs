@@ -270,8 +270,10 @@ dnl Info needed for the package configuration.
 dnl
 dnl The `exec_prefix=$prefix' line shouldn't be necessary, but for some reason 
 dnl `exec_prefix' is otherwise defined to be `NONE' here.
-exec_prefix=$prefix
-LIBDIR=`eval "echo $libdir"`
+test "x$prefix" = xNONE && prefix=$ac_default_prefix
+# Let make expand exec_prefix.
+test "x$exec_prefix" = xNONE && exec_prefix='${prefix}'
+LIBDIR=`eval echo \`eval echo $libdir\``
 
 dnl Needed substitutions.
 AC_SUBST(DLSUFFIX)

@@ -205,7 +205,7 @@ if test $SYS = nhc1; then
 fi
 AC_MSG_RESULT([selecting mkdependHS... $MKDEPENDHS])
 
-if test x$ENABLE_ADD_PACKAGE = xyes -a $HASPKG = no; then
+if test "$ENABLE_ADD_PACKAGE" = "yes" -a "$HASPKG" = "no"; then
  AC_MSG_ERROR([System $SYS doesn't support package management; can't use
 "--add-package".])
 fi
@@ -232,7 +232,7 @@ for pkg_name in $PACKAGES; do
 done
 IMPORT_DIRS=""
 for dir in base/*; do
-  if test -d $dir; then
+  if test -d $dir && test `basename $dir` != CVS ; then
     if test -z "$IMPORT_DIRS"; then
       IMPORT_DIRS="\"$TOP/build/$SYS/$dir\""
     else

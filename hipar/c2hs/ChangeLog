@@ -1,3 +1,9 @@
+2002-03-03  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* configure.in: Package handling fix by Jens Petersen
+
+	* toplevel/Version.hs (versnum): 0.10.9
+
 2002-02-25  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenBind.hs: debugging
