@@ -4,6 +4,13 @@
 
 Next: -= phase re-ordering & parser clean up =-
 
+      - Pending suggestions from Axel Simon:
+	+ succ/pred definitions for enum hooks
+	+ Compilation of multiple files in one c2hs invocation
+
+      - Pending suggestions from Armin Sander:
+	+ MarshalFlags.hs
+
       - the idea of the hipar/mk/*.mk file to identify which projects are
         present doesn't really cut it as `cvs update' will always check these
         files out; fix this!

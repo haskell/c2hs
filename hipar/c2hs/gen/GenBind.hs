@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.30 $ from $Date: 2001/06/16 09:33:05 $
+--  Version $Revision: 1.31 $ from $Date: 2001/06/16 12:36:07 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -227,7 +227,7 @@ transTabToTransFun prefix (CHSTrans _2Case table) =
 		    Nothing   -> eatenDft	    -- orig ide without prefix
 		    Just ide' -> identToLexeme ide' -- without prefix matched
   where
-    -- try to eat prefix and return `Just str' if successful
+    -- try to eat prefix and return `Just partialLexeme' if successful
     --
     eat []         ('_':cs)                        = eat [] cs
     eat []         cs                              = Just cs
@@ -457,7 +457,7 @@ expandHook (CHSType ide pos) =
     traceInfoDump decl ty = traceGenBind $
       "Declaration\n<need ppr for cdecl>\ntranslates to\n" 
       ++ showExtType ty ++ "\n"
-expandHook (CHSEnum cide oalias chsTrans derive _) =
+expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
   do
     -- get the corresponding C declaration
     --
@@ -465,7 +465,11 @@ expandHook (CHSEnum cide oalias chsTrans derive _) =
     --
     -- convert the translation table and generate data type definition code
     --
-    prefix <- getPrefix
+    gprefix <- getPrefix
+    let prefix = case oprefix of
+		   Nothing -> gprefix
+		   Just pref -> pref
+
     let trans = transTabToTransFun prefix chsTrans
 	hide  = identToLexeme . fromMaybe cide $ oalias
     enumDef cide enum hide trans (map identToLexeme derive)

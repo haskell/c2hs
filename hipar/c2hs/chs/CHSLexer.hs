@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 13 August 99
 --
---  Version $Revision: 1.10 $ from $Date: 2001/05/03 13:31:41 $
+--  Version $Revision: 1.11 $ from $Date: 2001/06/16 12:36:06 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -78,7 +78,7 @@
 --      reservedid  -> `as' | `call' | `context' | `deriving' | `enum' 
 --		     | `foreign' | `fun' | `get' | `header' | `lib' 
 --		     | `newtype' | `pointer' | `prefix' | `set' | `stable' 
---		     | `type' | `underscoreToCase' | `unsafe'
+--		     | `type' | `underscoreToCase' | `unsafe' | `with'
 --      reservedsym -> `{#' | `#}' | `{' | `}' | `,' | `.' | `->' | `=' | `*'
 --      string      -> `"' instr* `"'
 --      instr       -> ` '..`\127' \\ `"'
@@ -172,6 +172,7 @@ data CHSToken = CHSTokArrow   Position		-- `->'
 	      | CHSTokType    Position		-- `type'
 	      | CHSTok_2Case  Position		-- `underscoreToCase'
 	      | CHSTokUnsafe  Position		-- `unsafe'
+	      | CHSTokWith    Position		-- `with'
 	      | CHSTokString  Position String	-- string 
 	      | CHSTokIdent   Position Ident	-- identifier
 	      | CHSTokHaskell Position String	-- verbatim Haskell code
@@ -208,6 +209,7 @@ instance Pos CHSToken where
   posOf (CHSTokType    pos  ) = pos
   posOf (CHSTok_2Case  pos  ) = pos
   posOf (CHSTokUnsafe  pos  ) = pos
+  posOf (CHSTokWith    pos  ) = pos
   posOf (CHSTokString  pos _) = pos
   posOf (CHSTokIdent   pos _) = pos
   posOf (CHSTokHaskell pos _) = pos
@@ -244,6 +246,7 @@ instance Eq CHSToken where
   (CHSTokType     _  ) == (CHSTokType     _  ) = True
   (CHSTok_2Case   _  ) == (CHSTok_2Case   _  ) = True
   (CHSTokUnsafe   _  ) == (CHSTokUnsafe   _  ) = True
+  (CHSTokWith     _  ) == (CHSTokWith     _  ) = True
   (CHSTokString   _ _) == (CHSTokString   _ _) = True
   (CHSTokIdent    _ _) == (CHSTokIdent    _ _) = True
   (CHSTokHaskell  _ _) == (CHSTokHaskell  _ _) = True
@@ -280,6 +283,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokType    _  ) = showString "type"
   showsPrec _ (CHSTok_2Case  _  ) = showString "underscoreToCase"
   showsPrec _ (CHSTokUnsafe  _  ) = showString "unsafe"
+  showsPrec _ (CHSTokWith    _  ) = showString "with"
   showsPrec _ (CHSTokString  _ s) = showString ("\"" ++ s ++ "\"")
   showsPrec _ (CHSTokIdent   _ i) = (showString . identToLexeme) i
   showsPrec _ (CHSTokHaskell _ s) = showString s
@@ -520,6 +524,7 @@ identOrKW  =
     idkwtok pos "type"             _    = CHSTokType    pos
     idkwtok pos "underscoreToCase" _    = CHSTok_2Case  pos
     idkwtok pos "unsafe"           _    = CHSTokUnsafe  pos
+    idkwtok pos "with"             _    = CHSTokWith    pos
     idkwtok pos cs                 name = CHSTokIdent   
 					    pos (lexemeToIdent pos cs name)
 

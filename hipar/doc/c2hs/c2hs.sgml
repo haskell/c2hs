@@ -303,7 +303,7 @@ type GInt = {#type g_int#}
 <p>
 <tscreen>
 {#enum <it/cid/ [as <it/hsid/] {<it/alias1/ , ... , <it/aliasn/}
-  [deriving (<it/clid1/ , ... , <it/clidn/)]#}
+  [with prefix = <it/pref/] [deriving (<it/clid1/ , ... , <it/clidn/)]#}
 </tscreen>
 <p>
 Rewrite the C enumeration called <it/cid/ into a Haskell data type
@@ -317,7 +317,9 @@ By default, the names of the C enumeration are used for the constructors in
 Haskell.  If <it/alias1/ is <tt/underscoreToCase/, the original C names are
 capitalised and the use of underscores is rewritten to caps.  Moreover,
 <it/alias1/ to <it/aliasn/ may be aliases of the form <it/cid/ <tt/as/
-<it/hsid/, which map individual C names to Haskell names.
+<it/hsid/, which map individual C names to Haskell names.  Instead of the
+global prefix introduced by a context hook, a local prefix <it/pref/ can
+optionally be specified.
 <p>
 As an example, consider
 <p>
@@ -489,14 +491,15 @@ hook     -> `{#' inner `#}'
 inner    -> `import' ['qualified'] ident
 	  | `context' ctxt
           | `type' ident
-          | `enum' idalias trans [deriving]
+          | `enum' idalias trans [`with' prefix] [deriving]
           | `call' [`fun'] [`unsafe'] idalias
           | `get' apath
           | `set' apath
           | `pointer' ['*'] idalias ptrkind
 
-ctxt     -> [`header' `=' string] [`lib' `=' string] [`prefix' `=' string]
+ctxt     -> [`header' `=' string] [`lib' `=' string] [prefix]
 idalias  -> ident [`as' ident]
+prefix   -> `prefix' `=' string
 deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
 apath    -> ident
           | `*' apath
@@ -595,6 +598,7 @@ documented in the following.
 <p>
 <itemize>
 <item>Bug fixes
+<item>Local prefix for <tt/enum/ hooks; courtesy of Armin Sander
 <item>Added <tt/import/ hooks
 <item>The documentation includes a description of binding hooks
 <item>Added <tt/pointer/ hooks, which were derived from code for a similar

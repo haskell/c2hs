@@ -1,9 +1,14 @@
 2001-06-16  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
+	* chs/CHS.hs: local prefix for enum hooks; courtesy of Armin
+	Sander <armin@mindwalker.org>
+
 	* gen/GenBind.hs (expandHook): correctly uses a `FunPtr' for
 	pointers to functional types
 	(setGet): no deep check required as set/get do not perform a deep
 	copy; bug reported by Armin Sander <armin@mindwalker.org>
+	(expandHook): local prefix for enum hooks; courtesy of Armin
+	Sander <armin@mindwalker.org>
 
 	* toplevel/Version.hs (versnum): 0.9.6
 
