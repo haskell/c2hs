@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.32 $ from $Date: 2001/06/20 09:25:14 $
+--  Version $Revision: 1.33 $ from $Date: 2001/08/24 14:42:05 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -451,7 +451,7 @@ expandHook (CHSType ide pos) =
     decl <- findAndChaseDecl ide False True	-- no indirection, but shadows
     ty <- extractSimpleType False pos decl
     traceInfoDump decl ty
-    return $ showExtType ty
+    return $ "(" ++ showExtType ty ++ ")"
   where
     traceInfoType         = traceGenBind "** Type hook:\n"
     traceInfoDump decl ty = traceGenBind $

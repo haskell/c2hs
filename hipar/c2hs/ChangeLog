@@ -1,3 +1,17 @@
+2001-08-25  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CParser.hs (cidOrTN): after struct or union tag we may have a
+	normal idenifier or a type name; spotted by Simon Bowden
+	<simonb@cse.unsw.edu.au> and Michael Zinn <michaelz@cse.unsw.edu.au>
+
+2001-08-23  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): adding parenthesis around the
+	generated type; problem pointed out by Matthew Tarnawsky
+	<matthewt@ics.mq.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.9.9
+
 2001-06-20  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenBind.hs (expandHook): added sizeof hook

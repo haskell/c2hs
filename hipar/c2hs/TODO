@@ -5,7 +5,13 @@
 Next: -= phase re-ordering & parser clean up =-
 
       - BUG in generating signatures for functions having "pointer to pointer"
-        arguments; see Gdk.chs
+        arguments; see FIXME in Gdk.chs
+
+	** tests/Pointer.chs illustrates the problem now
+
+      - Bug in generation of expression for `val4' in Structs.chs
+
+   --- release ---
 
       - Pending suggestions from Axel Simon:
 	+ succ/pred definitions for enum hooks
@@ -47,16 +53,6 @@ Next: -= phase re-ordering & parser clean up =-
         expression computing these values from Storable rather than constants
         computed by c2hs.
 
-      - Bug?  Can't c2hs handle having the same name for a struct and a
-        typedef'd name?  Eg, like here
-
-	  typedef struct CORBA_sequence_TaggedComponent {
-		  CORBA_unsigned_long _maximum;
-		  CORBA_unsigned_long _length;
-		  IOP_TaggedComponent *_buffer;
-	  } CORBA_sequence_TaggedComponent;
-
-	  typedef struct CORBA_sequence_TaggedComponent IOP_MultipleComponentProfile;
       - {#enum ...#} should create an instance of Storable as follows:
 	  instance Storable MyEnum where
 	    sizeOf    _ = sizeOf    (undefined :: CInt)

@@ -3,9 +3,9 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 6 March 99
 --
---  Version $Revision: 1.15 $ from $Date: 2001/05/13 11:10:01 $
+--  Version $Revision: 1.16 $ from $Date: 2001/08/24 14:42:04 $
 --
---  Copyright (c) [1999..2000] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -158,8 +158,9 @@ data CToken = CTokLParen   Position		-- `('
 	    | CTokFLit	   Position String	-- float constant
 	    | CTokSLit	   Position String	-- string constant (no escapes)
 	    | CTokIdent	   Position Ident	-- identifier
-	    | CTokTypeName Position Ident	-- `typedef-name' identifier
 	    | CTokGnuC     GnuCTok Position	-- special GNU C tokens
+	      -- not generated here, but in `CParser.parseCHeader'
+	    | CTokTypeName Position Ident	-- `typedef-name' identifier
 
 -- special tokens used in GNU C extensions to ANSI C
 --

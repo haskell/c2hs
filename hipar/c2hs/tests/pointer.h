@@ -19,4 +19,6 @@ Point *trans_point (Point *pnt, int x, int y);
 
 typedef void (*FunPtrFun) (void *data);
 
+typedef char **stringPtr;
+
 #endif /* !_POINTER_H */

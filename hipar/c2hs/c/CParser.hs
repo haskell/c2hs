@@ -3,9 +3,9 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.14 $ from $Date: 2001/06/18 07:27:05 $
+--  Version $Revision: 1.15 $ from $Date: 2001/08/24 14:42:04 $
 --
---  Copyright (c) [1999.2001] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -204,6 +204,15 @@ typedefName :: CParser Ident
 typedefName  = token (CTokTypeName nopos undefined) 
 	       `action` \(CTokTypeName _ ide) -> ide
 
+-- accept an identifier that may or may not be a typedef-name
+--
+-- * `morphTypeNames' in `parseCHeader' converts all matching identifier that
+--   it sees; however, identifiers just as struct (or union) tags must remain
+--   unaffected by the identifier morphing
+--
+cidOrTN :: CParser Ident
+cidOrTN  = cid <|> typedefName
+
 -- accept an integer
 --
 cint :: CParser (Integer, Position)
@@ -399,13 +408,16 @@ parseCTypeQual  =     CTokConst    `tokenToAttrs` CConstQual
 
 -- parse C structure of union declaration (K&R A8.3)
 --
+-- * Note: an identifier after a struct tag *may* be a type name; thus, we need
+--	   to use `cidOrTN' rather than just `cid'
+--
 parseCStructUnion :: CParser CStructUnion
 parseCStructUnion  = 
-      (parseCStructTag *> optMaybe cid *> parseCStructDeclList
+      (parseCStructTag *> optMaybe cidOrTN *> parseCStructDeclList
        `actionAttrs`
 	 (\((tag, _), _) -> snd tag) $
 	 \((tag, ide), decls) -> CStruct (fst tag) ide decls)
-  <|> (parseCStructTag *> cid
+  <|> (parseCStructTag *> cidOrTN
        `actionAttrs`
 	 (\(tag, _) -> snd tag) $
 	 \(tag, ide) -> CStruct (fst tag) (Just ide) [])

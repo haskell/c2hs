@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 2 March 99
 --
---  Version $Revision: 1.18 $ from $Date: 2000/10/05 07:51:29 $
+--  Version $Revision: 1.19 $ from $Date: 2001/08/24 14:42:02 $
 --
 --  Copyright (c) 1999 Manuel M. T. Chakravarty
 --
@@ -114,6 +114,19 @@
 --    following state on accepting that character is, we need not consult the
 --    predicates again if we memorise the successor state the first time
 --    around.
+--
+--  * Ken Shan <ken@digitas.harvard.edu> writes ``Section 4.3 of your paper
+--    computes the definition 
+--
+--      re1 `star` re2 = \l' -> let self = re1 self >||< re2 l' in self
+--
+--    If we let re2 = epsilon, we get
+--
+--      many :: Regexp s t -> Regexp s t
+--      many re = \l' -> let self = re1 self >||< l' in self
+--
+--    since epsilon = id.''  This should actually be as good as the current
+--    definiton and it might be worthwhile to offer it as a variant.
 --
 
 module Lexers (Regexp, Lexer, Action, epsilon, char, (+>), lexaction,

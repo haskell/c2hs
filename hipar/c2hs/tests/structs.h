@@ -23,6 +23,11 @@ typedef struct {
   } nested;
 } *weird;
 
+typedef struct ambiguousName {
+  int x;
+} ambiguousName;  /* same name for struct tag and type */
+typedef struct ambiguousName someOtherName;
+
 point make_point (int x, int y);
 
 weird make_weird (void);

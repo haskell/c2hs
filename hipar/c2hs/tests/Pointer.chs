@@ -33,4 +33,9 @@ transCPoint pnt x y = do
 -- test function pointers
 {#pointer FunPtrFun#}
 
+-- test pointer to pointer
+type PtrString = {#type stringPtr#}
+checkType :: PtrString -> Ptr (Ptr CChar)
+checkType  = id
+
 main = print 42
