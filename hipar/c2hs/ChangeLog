@@ -1,4 +1,13 @@
+2002-03-20  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHSLexer.hs (haskell): Debug the handling of character literals
+
+	* toplevel/Version.hs (versnum): 0.10.11
+
 2002-03-12  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs.spec.in: we now require the Haskell compiler to be the one
+	for which the package was build
 
 	* Makefile: adapted to revised build system
 

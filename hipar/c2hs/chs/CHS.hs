@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 16 August 99
 --
---  Version $Revision: 1.20 $ from $Date: 2002/02/25 06:19:56 $
+--  Version $Revision: 1.21 $ from $Date: 2002/03/20 03:50:07 $
 --
 --  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
@@ -919,10 +919,10 @@ underscoreToCase ide upper pos  =
   onlyPosIdent pos . adjustHead . concat . map adjustCase $ ps
   where
     parts s = let (l, s') = break (== '_') s
-  	    in  
-  	    l : case s' of
-  		  []      -> []
-  		  (_:s'') -> parts s''
+	      in  
+	      l : case s' of
+		    []      -> []
+		    (_:s'') -> parts s''
     --    
     adjustCase (c:cs) = toUpper c : map toLower cs
     --

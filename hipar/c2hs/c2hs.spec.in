@@ -1,6 +1,6 @@
-# RPM spec file for C->Haskell
+# RPM spec file for C->Haskell                                   -*-rpm-spec-*-
 #
-# Copyright [1999..2001] Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
+# Copyright [1999..2002] Manuel M T Chakravarty <chak@cse.unsw.edu.au>
 
 %define version    @C2HS_VERSION@
 %define release    SNAP
@@ -15,8 +15,8 @@ Group: Development/Tools
 Source: http://www.cse.unsw.edu.au/~chak/haskell/c2hs/c2hs-%{version}.tar.gz
 URL: http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
 BuildRoot: /var/tmp/c2hs-%{version}-%{release}-root
-Packager: Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
-Requires: haskell
+Packager: Manuel M T Chakravarty <chak@cse.unsw.edu.au>
+Requires: @REQUIRES_HASKELL@
 Provides: c2hs
 
 %description
@@ -34,6 +34,10 @@ More info plus the language definition is at http://www.haskell.org/.
 
 
 %changelog
+
+* Tue Mar 12 2002 Manuel Chakravarty
+- require a specific Haskell compiler (namely, the one for which the packages 
+  was compiled)
 
 * Sun Oct 31 1999 Manuel Chakravarty
 - original version

@@ -95,6 +95,7 @@ if test $hc_base = ghc; then
   dnl Determine compilation system identifier.
   SYS=ghc$hc_maj_vers
   HIDIROPT=-i
+  REQUIRES_HASKELL=ghc-$hc_vers
 fi
 
 dnl Check nhc98's details.
@@ -111,6 +112,9 @@ if test $hc_base = nhc98; then
   dnl Determine compilation system identifier.
   SYS=nhc$hc_maj_vers
   HIDIROPT=-I
+  dnl FIXME: In the case of nhc98, do we have to require a specific version, 
+  dnl        too? 
+  REQUIRES_HASKELL=nhc
 fi
 
 dnl Determine whether the Haskell system supports packages.
@@ -293,6 +297,7 @@ AC_SUBST(END_NOT_NHC)
 AC_SUBST(ENABLE_ADD_PACKAGE)
 AC_SUBST(LIBDIR)
 AC_SUBST(HASPKG)
+AC_SUBST(REQUIRES_HASKELL)
 
 dnl Write the results...
 AC_OUTPUT([

@@ -2,18 +2,15 @@
                                 C2HS TODO
                                 =========
 
-Next: - CURRENTLY: throwing out the `build' directory
-
-      - add flag marshalling
-
-      - rpm .spec file should have a dependency for exactly the Haskell
-        compiler version that the package was built for
+Next: - add flag marshalling
 
       - configuration oracle should have an option to print the Haskell
         compiler and version it was compiled for
 
       - check building with latest nhc (still problems in `Parsers' with nhc98
         1.10) 
+
+      - Bug exposed in Glade.chs where the `init' function gets the wrong name
 
       *** Next Release ***
 
