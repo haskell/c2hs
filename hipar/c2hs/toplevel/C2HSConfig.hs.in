@@ -6,7 +6,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 27 September 99
 --
---  Version $Revision: 1.12 $ from $Date: 2001/11/14 09:08:13 $
+--  Version $Revision: 1.13 $ from $Date: 2002/09/06 06:34:13 $
 --
 --  Copyright (c) [1999..2001] Manuel M T Chakravarty
 --
@@ -47,8 +47,17 @@ import Ix    (Ix)
 import Array (Array, array)
 
 @BEGIN_NEW_FFI@
+
+@BEGIN_NOT_NHC@
 import 
- Ptr  (Ptr, FunPtr)  -- on an extra line to trick the stupid `mkdependHS'
+ Foreign (Ptr, FunPtr)  -- on an extra line to trick the stupid `mkdependHS'
+@END_NOT_NHC@
+
+@BEGIN_NHC@
+import 
+ FFI (Ptr, FunPtr)  -- on an extra line to trick the stupid `mkdependHS'
+@END_NHC@
+
 @END_NEW_FFI@
 
 @BEGIN_LEGACY_FFI@
@@ -57,16 +66,16 @@ import
 @END_LEGACY_FFI@
 
 @BEGIN_NOT_NHC@
-import Storable (Storable(sizeOf, alignment))
+import Foreign  (Storable(sizeOf, alignment), toBool)
+import CForeign (CInt)
 @END_NOT_NHC@
 
 @BEGIN_NHC@
 import 
- FFI (Storable(sizeOf, alignment))  -- on an extra line to trick the stupid `mkdependHS'
+ FFI (Storable(sizeOf, alignment), toBool)  -- on an extra line to trick the stupid `mkdependHS'
+import 
+ FFI (CInt)  -- on an extra line to trick the stupid `mkdependHS'
 @END_NHC@
-
-import CTypes       (CInt)
-import MarshalUtils (toBool)
 
 
 -- program settings
@@ -79,10 +88,14 @@ cpp  = "@CPP@"
 
 -- C preprocessor options (EXPORTED)
 --
+-- * `-x c' forces CPP to regard the input as C code; this option seems to be
+--   understood at least on Linux, FreeBSD, and Solaris and seems to make a
+--   difference over the default language setting on FreeBSD
+--
 -- * `-P' would suppress `#line' directives
 --
 cppopts :: String
-cppopts  = ""
+cppopts  = "-x c"
 
 -- standard system search paths for header files (EXPORTED)
 --

@@ -2,10 +2,15 @@
                                 C2HS TODO
                                 =========
 
-Next: - check building with latest nhc (still problems in `Parsers' with nhc98
-        1.10) 
+Next: - check building with latest nhc; issues with 1.14 were:
+	- problems in `Parsers'
+	- exports FFI libraries from `FFI' instead of `Foreign' and `CForeign'
 
       - Bug exposed in Glade.chs where the `init' function gets the wrong name
+
+      - GenBind.setGet: How is it justified that `bitsPerField' is
+        fixed to the size of `CInt'?  Does the C def guarantee
+	that bitfields types are of the same size?
 
       Major features to be added after the release: conditions (incl phase
       re-ordering), structure marshalling.

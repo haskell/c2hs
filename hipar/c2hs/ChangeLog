@@ -1,3 +1,14 @@
+2002-09-06  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
+
+	* toplevel/C2HSConfig.hs.in (cppopts): Added "-x c" on suggestion
+	by Axel Simon
+
+	* Makefile (install): using --update-package instead of --add-package
+
+	* configure.in: Fixed some nhc98 related issues
+
+	* toplevel/Version.hs (versnum): 0.10.16
+
 2002-07-12  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
 
 	* c2hs-config.in: added the system for which the package was

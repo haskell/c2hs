@@ -64,13 +64,13 @@ dnl This is far from elegant, but works for extracting the plain version number
 C2HS_VERSION=`$GREP '^versnum' toplevel/Version.hs\
 	      | $SED '-e s/versnum.* "//' '-e s/"//'`
 
-dnl Haskell compiler; currently only GHC 4.08 upwards and nhc98 1.0 have the 
+dnl Haskell compiler; currently only GHC 4.08 upwards and nhc98 1.14 have the 
 dnl required FFI and existentially quantified variables correctly working.
 dnl (The next command is not executed, if $HC is already set.)
 AC_PATH_PROGS(HC, ghc nhc98)
 if test -z "$HC"; then
  AC_MSG_ERROR([Could not find a Haskell compiler!
-Currently supported are ghc 4.08 upwards & nhc98 1.0.
+Currently supported are ghc 4.08 upwards & nhc98 1.14.
 ** Check \"http://haskell.org\". **])
 fi
 dnl The following can happen if a wrong --with-hc=HC option is given.
@@ -105,9 +105,9 @@ if test $hc_base = nhc98; then
     ctk_cv_prog_nhc98_version=`$HC --version 2>&1 | $HEAD -n 1 | $SED -e 's/.*v\([[0-9]]\)\.\([[0-9]]*\).*/\1.\2/'`
   ])
   hc_maj_vers=`echo $ctk_cv_prog_nhc98_version | $SED -e 's/\([[0-9]]\)\.[[0-9]]*/\1/'`
-  hc_min_vers=`echo $ctk_cv_prog_nhc98_version | $SED -e 's/[[0-9]]\.\([[0-9]]\)*/\1/'`
-  if test $hc_maj_vers -lt 1 -o $hc_min_vers -lt 0; then
-   AC_MSG_ERROR([You need version 1.0 upwards of nhc98!
+  hc_min_vers=`echo $ctk_cv_prog_nhc98_version | $SED -e 's/[[0-9]]\.\([[0-9]]*\)/\1/'`
+  if test $hc_maj_vers -lt 1 -o $hc_min_vers -lt 14; then
+   AC_MSG_ERROR([You need version 1.14 upwards of nhc98!
   ** Check \"http://haskell.org/\". **])
   fi
   dnl Determine compilation system identifier.
@@ -139,7 +139,7 @@ if test $hc_base = ghc; then
     LEGACY_FFI=yes
   fi
 elif test $hc_base = nhc98; then
-  LEGACY_FFI=yes
+  LEGACY_FFI=no
 fi
 dnl
 if test $LEGACY_FFI = yes; then
