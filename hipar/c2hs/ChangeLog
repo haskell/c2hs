@@ -1,3 +1,10 @@
+2001-12-20  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): fixed a sizeof bug pointed out by Jens
+	Petersen <petersen@redhat.com>
+
+	* toplevel/Version.hs (versnum): 0.10.4
+
 2001-12-11  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* toplevel/c2hs_config.c: now conforms to ISO C

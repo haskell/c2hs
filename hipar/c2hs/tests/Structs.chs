@@ -15,6 +15,9 @@ unPoint (Point p) = p
 makePoint     :: Int -> Int -> Point
 makePoint x y  = Point ({#call fun make_point#} (cIntConv x) (cIntConv y))
 
+pointSize :: Int
+pointSize  = {#sizeof point#}
+
 main :: IO () 
 main  = do
           val   <- liftM cIntConv $ {#get _point.y#} $! unPoint pnt

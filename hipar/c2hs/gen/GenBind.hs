@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.40 $ from $Date: 2001/11/14 09:08:12 $
+--  Version $Revision: 1.41 $ from $Date: 2001/12/20 14:14:13 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -557,11 +557,12 @@ expandHook (CHSSizeof ide pos) =
     decl <- findAndChaseDecl ide False True	-- no indirection, but shadows
     (size, _) <- sizeAlignOf decl
     traceInfoDump decl size
-    return $ show size
+    return $ show (fromIntegral . padBits $ size)
   where
     traceInfoSizeof         = traceGenBind "** Sizeof hook:\n"
     traceInfoDump decl size = traceGenBind $
-      "Size of declaration\n" ++ show decl ++ "\nis" ++ show size ++ "\n"
+      "Size of declaration\n" ++ show decl ++ "\nis" 
+      ++ show (fromIntegral . padBits $ size) ++ "\n"
 expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
   do
     -- get the corresponding C declaration
