@@ -10,8 +10,14 @@ Contents:
   Common.hs	  -- Basic definitions, such as representation of positions
   DLists.hs	  -- Difference lists - provide O(1) append
   Errors.hs	  -- Types and functions for error handling
+  FNameOps.hs	  -- Common operations on file names
+  FiniteMaps.hs	  -- Finite maps based on 2-3 trees
+  GetOpt.hs	  -- Sven Panne's Haskell version of the GNU getopt library
   Lexers.hs	  -- Self-optimising lexer combinators
   Parsers.hs	  -- Self-optimising parser combinators
+  Pretty.hs	  -- Pretty printing combinators (the interface is essentially
+		     a superset of SimonPJ's pretty printing library)
+  Sets.hs	  -- Sets as an instance of the above mentioned finite maps
   Utils.hs	  -- Utility routines
 
 The Compiler Toolkit Light (CTKlight) is a subset of the Compiler Toolkit
@@ -37,7 +43,7 @@ The modules are tested with
 * GHC 4.02 and upwards (use `-fglasgow-exts' to compile `Parsers.hs') and
 * Hugs98 (use `-98' when using `Parsers.hs').
 
-If you want autoconf, a ready-made makefile structure, and many more
+If you want autoconf, a ready-made makefile structure, and much more
 additional library functionality, then use full CTK.
 
 

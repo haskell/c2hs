@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Derived: 19 March 1999
 #
-#  Version $Revision: 1.8 $ from $Date: 2001/02/04 12:27:34 $
+#  Version $Revision: 1.9 $ from $Date: 2001/02/06 13:30:01 $
 #
 #  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 #
@@ -72,7 +72,18 @@ HIDIRS=.
 #
 .PHONY: depend
 depend:
-	$(MKDEPENDHS) -optdep-f -optdep$(DEPEND) $(HCFLAGS) $(SRCS)
+	$(MKDEPENDHS) -optdep-f -optdep$(DEPEND) $(HCFLAGS)\
+	  $(EXTRAMKDEPENDOPTS) $(SRCS)
+ifneq ($(LEGACY_FFI),yes)
+	grep -v -e CError -e CForeign -e CString\
+		-e ForeignPtr -e MarshalAlloc -e MarshalArray\
+		-e MarshalError -e MarshalUtils -e Ptr .depend\
+		>.depend.new
+	mv .depend.new .depend
+# mkdependHS is a bit stupid here and does include files if present even if
+# are part of a syslib; moreover, the -x option never works for me anyway, so 
+# let's do it the hard way
+endif
 
 # Extra flags for the Haskell compiler
 #

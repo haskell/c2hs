@@ -110,6 +110,8 @@ esac
 
 dnl Check ghc's details.
 if test $hc_base = ghc; then
+  dnl set GHC, as this is what the following command inspects
+  GHC=$HC
   CTK_GHC_VERSION(hc_maj_vers,hc_min_vers)
   if test $hc_maj_vers -lt 3 -o $hc_min_vers -lt 2; then
    AC_MSG_ERROR([You need version 3.02 or 4.02 upwards of ghc!

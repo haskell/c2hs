@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 24 July 1998 (derived from HiPar root makefile)
 #
-#  Version $Revision: 1.60 $ from $Date: 2000/08/24 08:32:43 $
+#  Version $Revision: 1.61 $ from $Date: 2001/02/06 13:29:59 $
 #
 #  Copyright (c) [1995..2000] Manuel M. T. Chakravarty
 #
@@ -72,11 +72,16 @@ CTKLFILES =AUTHORS COPYING.LIB README.CTKlight\
 	   base/admin/BaseVersion.hs\
 	   base/admin/Config.hs\
 	   base/admin/Common.hs\
-	   base/general/DLists.hs\
 	   base/errors/Errors.hs\
+	   base/general/DLists.hs\
+	   base/general/FNameOps.hs\
+	   base/general/FiniteMaps.hs\
+	   base/general/GetOpt.hs\
+	   base/general/Sets.hs\
+	   base/general/Utils.hs\
 	   base/syntax/Lexers.hs\
 	   base/syntax/Parsers.hs\
-	   base/general/Utils.hs
+	   base/syntax/Pretty.hs
 
 # file that contain a `versnum = "x.y.z"' line
 #

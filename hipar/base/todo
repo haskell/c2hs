@@ -8,6 +8,8 @@ Next: + improve autoconf (we would like ./configure to generate its stuff in
 	  Define __HASKELL__=98 and __HASKELL98__ as preprocessor macros for
 	  all Haskell 98 compilers.
 
+      + The configure patched file should arguably be generated in the build/
+        tree and not in the source tree.
       + Export `DList.DList' without (..)
       + if the CTK is compiled _without_ any packages (such as c2hs or nepal), 
         there are problems in the makefile because the variable $(PCKS) is

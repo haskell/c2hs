@@ -21,6 +21,9 @@ Simple install procedure
   [ Become root if necessary ]
   % make install			   # install all compilers
 
+If there are problems, see the known problems section at the end.  If you are
+installing from CVS, please read the corresponding section at the end of this
+file first.
 
 The Nitty-Gritty
 ~~~~~~~~~~~~~~~~
@@ -84,3 +87,19 @@ a version 3.x system is selected, the make process automatically avoids
 compiling this module. 
 
 IMPORTANT NOTE: C->Haskell requires the `Parsers.hs' module!
+
+Known Problems
+~~~~~~~~~~~~~~
+gmake 3.77 (at least on Solaris) - 
+  The Makefiles are known not to be working with this version.  Upgrade to a
+  later release (eg, 3.78.1 works fine).
+
+Additional Instructions for Building from CVS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If you are building from CVS, you have to execute
+
+  % autoreconf
+
+in the toplevel hipar/ directory before continuing with the instructions
+above.
+

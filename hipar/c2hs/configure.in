@@ -79,6 +79,8 @@ esac
 
 dnl Check ghc's details.
 if test $hc_base = ghc; then
+  dnl set GHC, as this is what the following command inspects
+  GHC=$HC
   CTK_GHC_VERSION(hc_maj_vers,hc_min_vers)
   if test $hc_maj_vers -eq 4; then
     if test $hc_min_vers -lt 8; then
@@ -127,7 +129,7 @@ dnl the OS (needed by `CError').
 dnl
 LEGACY_FFI=no
 if test $hc_base = ghc; then
-  if test $hc_maj_vers -eq 4 -o $hc_min_vers -eq 8; then
+  if test $hc_maj_vers -eq 4 -a $hc_min_vers -eq 8; then
     LEGACY_FFI=yes
   fi
 elif test $hc_base = nhc98; then
