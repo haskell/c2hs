@@ -8,6 +8,7 @@
 	(setGet): `DefinedET' now takes a declaration rather than an
 	identifier as its first argument; this is necessary for anonymous
 	declerators
+	(extractCompType): functions are now extracted correctly
 
 	* c/CTrav.hs (isPtrDecl): works on identifiers now and chases
 	declarations

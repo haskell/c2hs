@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Derived: 12 August 99
 --
---  Version $Revision: 1.11 $ from $Date: 2001/04/29 13:13:53 $
+--  Version $Revision: 1.12 $ from $Date: 2001/05/02 13:14:44 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -66,6 +66,7 @@
 --        Dump intermediate representation:
 --
 --	  + if TYPE is `trace', trace the compiler phases (to stderr)
+--	  + if TYPE is `genbind', trace binding generation (to stderr)
 --	  + if TYPE is `chs', dump the binding file (insert `.dump' into the
 --	    file name to avoid overwriting the original file)
 --
@@ -165,6 +166,7 @@ data Flag = CPPOpts String      -- additional options for C preprocessor
 	  deriving Eq
 
 data DumpType = Trace	      -- compiler trace
+	      | GenBind	      -- trace `GenBind'
 	      | CHS	      -- dump binding file
 	      deriving Eq
 
@@ -209,6 +211,7 @@ options  = [
 --
 dumpArg           :: String -> Flag
 dumpArg "trace"    = Dump Trace
+dumpArg "genbind"  = Dump GenBind
 dumpArg "chs"      = Dump CHS
 dumpArg _          = Error "Illegal dump type."
 
@@ -372,8 +375,9 @@ addHPaths paths  = setSwitch $ \sb -> sb {hpathsSB = paths ++ hpathsSB sb}
 -- set the given dump option
 --
 setDump         :: DumpType -> CST s ()
-setDump Trace    = setTraces $ \ts -> ts {tracePhasesSW = True}
-setDump CHS      = setTraces $ \ts -> ts {dumpCHSSW = True}
+setDump Trace    = setTraces $ \ts -> ts {tracePhasesSW  = True}
+setDump GenBind  = setTraces $ \ts -> ts {traceGenBindSW = True}
+setDump CHS      = setTraces $ \ts -> ts {dumpCHSSW	 = True}
 
 -- set flag to keep the pre-processed header file
 --
@@ -443,8 +447,8 @@ process headerFile bndFile  =
     let hsFile = if null outFName then basename bndFile else outFName
     dumpCHS hsFile hsMod True
   where
-    tracePreproc cmd = putTraceStr tracePhasesSW
-		         ("Invoking cpp as `" ++ cmd ++ "'...\n")
+    tracePreproc cmd = putTraceStr tracePhasesSW $
+		         "Invoking cpp as `" ++ cmd ++ "'...\n"
     traceCHSDump mod = do
 			 flag <- traceSet dumpCHSSW
 			 when flag $

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.22 $ from $Date: 2001/05/02 09:28:15 $
+--  Version $Revision: 1.23 $ from $Date: 2001/05/02 13:14:43 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -409,9 +409,16 @@ expandHook (CHSContext _ olib oprefix _) =
     return ""
 expandHook (CHSType ide pos) =
   do
+    traceInfoType
     decl <- findAndChaseDecl ide False True	-- no indirection, but shadows
     ty <- extractSimpleType False pos decl
+    traceInfoDump decl ty
     return $ showExtType ty
+  where
+    traceInfoType         = putTraceStr traceGenBindSW "** Type hook:\n"
+    traceInfoDump decl ty = putTraceStr traceGenBindSW $
+      "Declaration\n<need ppr for cdecl>\ntranslates to\n" 
+      ++ showExtType ty ++ "\n"
 expandHook (CHSEnum cide oalias chsTrans derive _) =
   do
     -- get the corresponding C declaration
@@ -738,6 +745,12 @@ data ConstResult = IntResult   Integer
 
 -- types that may occur in foreign declarations, ie, Haskell land types
 --
+-- * we reprsent C functions with no arguments (ie, the ANSI C `void'
+--   argument) by `FunET UnitET res' rather than just `res' internally,
+--   although the latter representation is finally emitted into the binding
+--   file; this is because we need to know which types are functions (in
+--   particular, to distinguish between `Ptr a' and `FunPtr a')
+--
 -- * aliased types (`DefinedET') are represented by a string plus their C
 --   declaration; the latter is for functions interpreting the following
 --   structure 
@@ -783,6 +796,7 @@ maybeParen currBL minBL str | currBL >= minBL = "(" ++ str ++ ")"
 -- pretty print an external type with a minimum of braces
 --
 showExtType' :: BraceLevel -> ExtType -> String
+showExtType' b (FunET UnitET res)  = showExtType' b res
 showExtType' b (FunET arg res)	   = maybeParen b FunBL $ 
 				       showExtType' FunBL arg ++ " -> " 
 				       ++ showExtType' NoBL res
@@ -847,9 +861,7 @@ extractFunType pos cdecl isPure  =
     -- function) 
     --
     argTypes <- mapM (extractSimpleType False pos) args
-    case argTypes of
-      [UnitET] -> return resultType
-      _	       -> return (foldr FunET resultType argTypes)
+    return $ foldr FunET resultType argTypes
   where
     cpos = posOf cdecl
 
@@ -857,7 +869,7 @@ extractFunType pos cdecl isPure  =
 --
 -- * the declaration may have at most one declarator
 --
--- * C functions are represented as `PtrFun <typedef>' or `Addr' if in
+-- * C functions are represented as `Ptr (FunEt ...)' or `Addr' if in
 --   compatibility mode (ie, `--old-ffi=yes')
 --
 extractSimpleType                    :: Bool -> Position -> CDecl -> GB ExtType

@@ -1,7 +1,14 @@
+ifeq ($(strip $(shell pwd | grep build)),)
+  *** If you get an error here, 
+  *** you did not execute make in the *build* tree (but somewhere else)!
+endif
+
 
 HC     = ghc
 HCFLAGS= -fglasgow-exts -i../lib -L../lib -lc2hs
 C2HS   = ../c2hs
+
+PRGMS = simple calls enums structs marsh
 
 default: tests
 
@@ -61,3 +68,8 @@ marsh.run: marsh
 	@echo "---=== Output for \`marsh'":
 	@marsh
 	@echo "---=== End of Output"
+
+# misc
+
+clean:
+	-rm -f *.o *.hi *.hs $(PRGMS)

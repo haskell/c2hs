@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 October 99
 --
---  Version $Revision: 1.8 $ from $Date: 2001/05/02 09:28:15 $
+--  Version $Revision: 1.9 $ from $Date: 2001/05/02 13:14:43 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -502,13 +502,22 @@ isPtrDeclr _                                = False
 --	  unchanged; as the declarator is changed, we should maybe make this
 --	  into an anonymous declarator and also change its attributes
 --
-dropPtrDeclr                                       :: CDeclr -> CDeclr
-dropPtrDeclr (CPtrDeclr _ declr@(CVarDeclr _ _) _)  = declr
-dropPtrDeclr (CPtrDeclr _ declr                 _)  = dropPtrDeclr declr
-dropPtrDeclr (CArrDeclr declr@(CVarDeclr _ _) _ _)  = declr
-dropPtrDeclr (CArrDeclr declr                 _ _)  = dropPtrDeclr declr
-dropPtrDeclr (CFunDeclr declr _ _               _)  = dropPtrDeclr declr
-dropPtrDeclr _                                      = 
+dropPtrDeclr                                          :: CDeclr -> CDeclr
+dropPtrDeclr (CPtrDeclr _  declr@(CVarDeclr _ _) _  )  = declr
+dropPtrDeclr (CPtrDeclr qs declr                 ats)  = 
+  let declr' = dropPtrDeclr declr
+  in
+  CPtrDeclr qs declr' ats
+dropPtrDeclr (CArrDeclr declr@(CVarDeclr _ _) _ _)     = declr
+dropPtrDeclr (CArrDeclr declr                 e ats)   = 
+  let declr' = dropPtrDeclr declr
+  in
+  CArrDeclr declr' e ats
+dropPtrDeclr (CFunDeclr declr args vari         ats)   =
+  let declr' = dropPtrDeclr declr
+  in
+  CFunDeclr declr' args vari ats
+dropPtrDeclr _                                         =
   interr "CTrav.dropPtrDeclr: No pointer!"
 
 -- checks whether the declaration of the given identifier defines a pointer

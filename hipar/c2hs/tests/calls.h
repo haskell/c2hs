@@ -11,6 +11,6 @@ void printString2 (tString);
 
 /* type of function `MyString'
  */
-typedef char *(*MyStringType) (void);
+typedef char *(*MyStringType) (int);
 
 #endif /* !_CALLS_H */
