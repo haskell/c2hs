@@ -51,7 +51,7 @@ tests: simple.run calls.build enums.run structs.run marsh.run
 
 simple.run: simple
 	@echo "---=== Output of \`simple'":
-	@simple
+	@./simple
 	@echo "---=== End of Output"
 
 calls.build: calls
@@ -61,17 +61,17 @@ calls.build: calls
 
 enums.run: enums
 	@echo "---=== Output for \`enums'":
-	@enums
+	@./enums
 	@echo "---=== End of Output"
 
 structs.run: structs
 	@echo "---=== Output for \`structs'":
-	@structs
+	@./structs
 	@echo "---=== End of Output"
 
 marsh.run: marsh
 	@echo "---=== Output for \`marsh'":
-	@marsh
+	@./marsh
 	@echo "---=== End of Output"
 
 # misc
