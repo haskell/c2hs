@@ -1,3 +1,11 @@
+2002-03-06  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHSLexer.hs (haskell): Escape characters in Haskell strings
+	haven't been handled correctly in all cases as reported by Volker
+	Wysk <post@volker-wysk.de>; we also have to handle character
+	constants specially, because '"' is a legal Haskell character
+	constant
+
 2002-03-03  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* configure.in: Package handling fix by Jens Petersen

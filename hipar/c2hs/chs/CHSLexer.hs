@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 13 August 99
 --
---  Version $Revision: 1.15 $ from $Date: 2002/02/25 06:19:56 $
+--  Version $Revision: 1.16 $ from $Date: 2002/03/06 06:53:07 $
 --
 --  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
@@ -397,7 +397,8 @@ chslexer  =      haskell	-- Haskell code
 haskell :: CHSLexer
 haskell  = (    anyButSpecial`star` epsilon
 	    >|< specialButQuotes
-	    >|< char '"' +> inhstr`star` char '"'
+	    >|< char '"'  +> inhstr`star` char '"'
+	    >|< char '\'' +> inchar`star` char '\''   -- quite generous
 	   )
 	   `lexaction` copyVerbatim
 	   >||< string "--" +> anyButNL`star` char '\n'	          -- comment
@@ -410,10 +411,10 @@ haskell  = (    anyButSpecial`star` epsilon
 					      "Unclosed string."])
 	   where
 	     anyButSpecial    = alt (inlineSet \\ specialSet)
-	     specialButQuotes = alt (specialSet \\ ['"'])
+	     specialButQuotes = alt (specialSet \\ "\"'")
 	     anyButNL	      = alt (anySet \\ ['\n'])
-	     inhstr	      = instr >|< string "\\\"" >|< gap
-	     gap	      = char '\\' +> alt (' ':ctrlSet)`star` char '\\'
+	     inhstr	      = instr >|< char '\\' >|< string "\\\"" >|< gap
+	     gap	      = char '\\' +> alt (' ':ctrlSet)`plus` char '\\'
 
 -- action copying the input verbatim to `CHSTokHaskell' tokens
 --
@@ -590,7 +591,7 @@ symbol  =      sym "->" CHSTokArrow
 -- string
 --
 strlit :: CHSLexer
-strlit  = char '"' +> instr`star` char '"'
+strlit  = char '"' +> (instr >|< char '\\')`star` char '"'
 	  `lexaction` \cs pos -> Just (CHSTokString pos (init . tail $ cs))
 
 -- verbatim code
@@ -602,18 +603,19 @@ hsverb  = char '`' +> inhsverb`star` char '\''
 
 -- regular expressions
 --
-letter, digit, instr :: Regexp s t
+letter, digit, instr, inchar, inhsverb :: Regexp s t
 letter   = alt ['a'..'z'] >|< alt ['A'..'Z'] >|< char '_'
 digit    = alt ['0'..'9']
-instr    = alt ([' '..'\127'] \\ ['\"'])
-inhsverb = alt ([' '..'\127'] \\ ['\''])
+instr    = alt ([' '..'\127'] \\ "\"\\")
+inchar   = alt ([' '..'\127'] \\ "\'")
+inhsverb = alt ([' '..'\127'] \\ "\'")
 
 -- character sets
 --
 anySet, inlineSet, specialSet, commentSpecialSet, ctrlSet :: [Char]
 anySet            = ['\0'..'\255']
 inlineSet         = anySet \\ ctrlSet
-specialSet        = ['{', '-', '"']
+specialSet        = ['{', '-', '"', '\'']
 commentSpecialSet = ['{', '-']
 ctrlSet           = ['\n', '\f', '\r', '\t', '\v']
 

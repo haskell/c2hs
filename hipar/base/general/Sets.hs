@@ -1,11 +1,11 @@
 --  Compiler Toolkit: Sets
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 2 February 99
 --
---  Version $Revision: 1.4 $ from $Date: 2000/04/06 03:12:11 $
+--  Version $Revision: 1.5 $ from $Date: 2002/03/06 06:53:06 $
 --
---  Copyright (c) [1999..2000] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -80,7 +80,7 @@ isSubSet       :: Ord a => Set a -> Set a -> Bool
 isSubSet s1 s2  = s1 `diffSet` s2 == zeroSet
 
 isSuperSet       :: Ord a => Set a -> Set a -> Bool
-isSuperSet s1 s2  = s2 `isSuperSet` s1
+isSuperSet s1 s2  = s2 `isSubSet` s1
 
 intersectSet                 :: Ord a => Set a -> Set a -> Set a
 intersectSet (Set s) (Set t)  = Set $ intersectFM s t

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 6 March 99
 --
---  Version $Revision: 1.17 $ from $Date: 2001/10/16 14:16:32 $
+--  Version $Revision: 1.18 $ from $Date: 2002/03/06 06:53:07 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -475,7 +475,7 @@ linedir  = char '#' +> ppwhite +> int +> ppwhite +> (fname +> ppwhite)`quest`
 		 --
 		 dropWhite = dropWhile (\c -> c == ' ' || c == '\t')
 
--- #pragma directive (K&R A12.?)
+-- #pragma directive (K&R A12.8)
 --
 -- * we simply ignore any #pragma (but take care to update the position
 --   information)

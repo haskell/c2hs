@@ -224,7 +224,7 @@ dnl Misc
 dnl Settings for the build time package configuration of the `base' package
 PACKAGES_STRINGS=""
 for pkg_name in $PACKAGES; do
-  if test -z $PACKAGES_STRINGS; then
+  if test -z "$PACKAGES_STRINGS"; then
     PACKAGES_STRINGS="\"$pkg_name\""
   else
     PACKAGES_STRINGS="$PACKAGES_STRINGS, \"$pkg_name\""
