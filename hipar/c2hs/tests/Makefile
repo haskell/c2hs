@@ -10,13 +10,13 @@ default: tests
 
 simple: Simple.chs simple.h simple.c
 	$(C2HS) simple.h Simple.chs
-	$(HC) -c Simple.hs $(HCFLAGS)
+	$(HC) -c -o Simple.o Simple.hs $(HCFLAGS)
 	$(CC) -c simple.c
 	$(HC) -o simple simple.o Simple.o
 
 calls: Calls.chs calls.h
 	$(C2HS) calls.h Calls.chs
-	$(HC) -c Calls.hs -#include\"calls.h\" $(HCFLAGS)
+	$(HC) -c -o Calls.o Calls.hs -#include\"calls.h\" $(HCFLAGS)
 
 enums: Enums.chs enums.h
 	$(C2HS) enums.h Enums.chs
@@ -29,7 +29,7 @@ pointer: Pointer.chs pointer.h pointer.c
 
 structs: Structs.chs structs.h structs.c
 	$(C2HS) structs.h Structs.chs
-	$(HC) -c Structs.hs -#include\"structs.h\" $(HCFLAGS)
+	$(HC) -c -o Structs.o Structs.hs -#include\"structs.h\" $(HCFLAGS)
 	$(CC) -c structs.c
 	$(HC) -o structs structs.o Structs.o $(HCFLAGS)
 
@@ -39,7 +39,7 @@ marsh: Marsh.chs marsh.h
 
 cpp: Cpp.chs cpp.h
 	$(C2HS) Cpp.chs
-	$(HC) -c Cpp.hs -#include\"Cpp.h\" $(HCFLAGS)
+	$(HC) -c -o Cpp.o Cpp.hs -#include\"Cpp.h\" $(HCFLAGS)
 
 # runs
 

@@ -859,6 +859,13 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
+<sect1>Version 0.12.0 "Springtime"
+<p>
+<itemize>
+<item>Improved line pragma generation
+<item>Works with GHC 6.3
+</itemize>
+
 <sect1>Version 0.11.5 "Powder Snow"
 <p>
 <itemize>

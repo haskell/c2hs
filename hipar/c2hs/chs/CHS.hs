@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 16 August 99
 --
---  Version $Revision: 1.23 $ from $Date: 2003/04/16 11:13:10 $
+--  Version $Revision: 1.24 $ from $Date: 2003/10/19 10:46:10 $
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
@@ -408,7 +408,7 @@ showCHSModule (CHSModule frags) pureHaskell  =
 	nextState	 = if generated then Wait else NoLine
       in
 	(if emitNow then
-	   showString ("{-# LINE " ++ show line ++ " " ++ show fname 
+	   showString ("{-# LINE " ++ show (line `max` 0) ++ " " ++ show fname 
 		       ++ " #-}\n")
 	 else id)
       . showString s

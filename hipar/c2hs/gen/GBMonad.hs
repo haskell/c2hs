@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Derived: 18 February 2 (extracted from GenBind.hs)
 --
---  Version $Revision: 1.3 $ from $Date: 2003/02/12 09:41:03 $
+--  Version $Revision: 1.4 $ from $Date: 2003/10/19 10:46:10 $
 --
 --  Copyright (c) [2002..2003] Manuel M T Chakravarty
 --
@@ -274,7 +274,7 @@ delayCode hook str  =
     frags' <- delay hook frags
     transCT (\state -> (state {frags = frags'}, ()))
     where
-      newEntry = (hook, (CHSVerb ("\n" ++ str) builtinPos))
+      newEntry = (hook, (CHSVerb ("\n" ++ str) (posOf hook)))
       --
       delay hook@(CHSCall isFun isUns ide oalias _) frags =
 	case find (\(hook', _) -> hook' == hook) frags of

@@ -1,3 +1,17 @@
+2003-10-19  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CLexer.hs (linedir): allow an arbitrary number of ints after
+	the filename in a #line directive; problem was first reported by Sean
+	Seefried <sseefried@cse.unsw.edu.au>
+
+	* gen/GBMonad.hs (delayCode): Generate appropriate line numbers
+	for delayed code; problem reported by Sean Seefried
+	<sseefried@cse.unsw.edu.au>
+
+	* chs/CHS.hs (showCHSModule): Never generate negative line numbers
+
+	* toplevel/Version.hs (versnum): 0.12.0 "Springtime"
+
 2003-06-10  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* toplevel/Version.hs (versnum): 0.11.5

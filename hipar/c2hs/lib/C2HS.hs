@@ -1,11 +1,11 @@
 --  C->Haskell Compiler: global interface of the marshalling library
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 19 August 99
 --
---  Version $Revision: 1.10 $ from $Date: 2001/11/14 09:08:12 $
+--  Version $Revision: 1.11 $ from $Date: 2003/10/19 10:46:10 $
 --
---  Copyright (c) [1999...2000] Manuel M. T. Chakravarty
+--  Copyright (c) [1999...2003] Manuel M T Chakravarty
 --
 --  This library is free software; you can redistribute it and/or
 --  modify it under the terms of the GNU Library General Public
@@ -32,33 +32,16 @@
 --
 --- TODO ----------------------------------------------------------------------
 --
---  * Get the marshaling stuff from GTK+HS.
---
 
 module C2HS (
   --
   -- re-export the language-independent component of the FFI 
   --
---  module Foreign, -- have to be more precise while supporting old systems
-  module Bits,
-  module Int,
-  module Word,
-  module Ptr,
-  module ForeignPtr,
-  module NewStablePtr, -- compensates old types in old versions of `StablePtr'
-  module NewStorable,  -- compensates old types in old versions of `Storable'
-  module MarshalAlloc,
-  module MarshalArray,
-  module MarshalError,
-  module MarshalUtils,
+  module Foreign,
   --
   -- re-export the C language component of the FFI
   --
   module CForeign,
-  --
-  -- re-export from IOExts
-  --
-  unsafePerformIO,
   --
   -- C->HS specific marshalling functionality
   --
@@ -67,32 +50,11 @@ module C2HS (
 ) where 
 
 
-import Bits	    (Bits(..), shiftL, shiftR, rotateL, rotateR)
-import Int          (Int8, Int16, Int32, Int64)
-import Word	    (Word8, Word16, Word32, Word64)
-import Ptr	    (Ptr, nullPtr, castPtr, plusPtr, alignPtr, minusPtr,
-		     FunPtr, nullFunPtr, castFunPtr, castFunPtrToPtr,
-		     castPtrToFunPtr, freeHaskellFunPtr)
-import ForeignPtr   (ForeignPtr, newForeignPtr, addForeignPtrFinalizer,
-		     withForeignPtr, foreignPtrToPtr, touchForeignPtr,
-		     castForeignPtr)
-import NewStablePtr (StablePtr, newStablePtr, deRefStablePtr, freeStablePtr, 
-		     castStablePtrToPtr, castPtrToStablePtr)
-import NewStorable  (Storable(..))
-import MarshalAlloc (malloc, mallocBytes, alloca, allocaBytes, reallocBytes,
-		     free)
-import MarshalArray (mallocArray, mallocArray0, allocaArray, allocaArray0, 
-		     reallocArray, reallocArray0, peekArray, peekArray0,
-		     pokeArray, pokeArray0, newArray, newArray0, withArray,
-		     withArray0, copyArray, moveArray, advancePtr)
-import MarshalError (throwIf, throwIf_, throwIfNeg, throwIfNeg_, throwIfNull,
-		     void)
-import MarshalUtils (withObject, new, fromBool, toBool,	maybeNew, maybeWith,
-		     maybePeek, withMany, copyBytes, moveBytes)
-
+import Foreign
+       hiding       (Word)
+		    -- Should also hide the Foreign.Marshal.Pool exports in
+		    -- compilers that export them
 import CForeign
-
-import IOExts       (unsafePerformIO)
 
 import C2HSBase
 import C2HSMarsh

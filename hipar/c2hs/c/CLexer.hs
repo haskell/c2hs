@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 6 March 99
 --
---  Version $Revision: 1.19 $ from $Date: 2002/07/12 06:29:39 $
+--  Version $Revision: 1.20 $ from $Date: 2003/10/19 10:46:09 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -457,11 +457,12 @@ whitespace  =      (char ' ' `lexaction` \_ _ -> Nothing)
 
 -- #line directive (K&R A12.6)
 --
--- * allows further numbers to follow the file name a la GCC
+-- * allows further ints after the file name a la GCC; as the GCC CPP docu
+--   doesn't say how many ints there can be, we allow an unbound number
 --
 linedir :: CLexer
 linedir  = char '#' +> ppwhite +> int +> ppwhite +> (fname +> ppwhite)`quest`
-	   ((int +> ppwhite +> (int +> ppwhite)`quest`epsilon)`quest` 
+	   ((int +> ppwhite)`star` 
 	    char '\n')
 	   `lexmeta` \str pos ns -> (Nothing, adjustPos str pos, ns, Nothing)
 	   where
