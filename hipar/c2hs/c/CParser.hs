@@ -1,11 +1,11 @@
 --  C -> Haskell Compiler: Parser for C Header Files
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.18 $ from $Date: 2002/01/15 07:56:39 $
+--  Version $Revision: 1.19 $ from $Date: 2002/07/12 06:29:39 $
 --
---  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@
 --  The parser recognizes all of ANCI C except function bodies.  The parser
 --  combinators follow K&R Appendix A, but we make use of the richer grammar
 --  constructs provided by `Parsers'.  It supports the C99 `restrict'
---  extension.
+--  extension and `inline'.
 --
 --  Comments:
 --
@@ -340,8 +340,9 @@ parseCExtDecl  = parseCDecl
 
 -- parse C declaration (K&R A8)
 --
--- * We allow GNU C attribute annotations after declaration specifiers, 
---   but they are not entered into the structure tree.
+-- * We allow the GNU C extension keyword before a declaration and GNU C
+--   attribute annotations after declaration specifiers, but they are not
+--   entered into the structure tree.
 --
 parseCDecl :: CParser CDecl
 parseCDecl  = 
@@ -426,12 +427,13 @@ parseCTypeSpec  =     CTokVoid     `tokenToAttrs` CVoidType
 
 -- parse C type qualifier (K&R A8.2)
 --
--- * plus `restrict' from C99
+-- * plus `restrict' from C99 and `inline'
 --
 parseCTypeQual :: CParser CTypeQual
 parseCTypeQual  =     CTokConst    `tokenToAttrs` CConstQual
 		  <|> CTokVolatile `tokenToAttrs` CVolatQual
 		  <|> CTokRestrict `tokenToAttrs` CRestrQual
+		  <|> CTokInline   `tokenToAttrs` CInlinQual
 
 -- parse C structure of union declaration (K&R A8.3)
 --
@@ -458,9 +460,13 @@ parseCStructUnion  =
 
 -- parse C structure declaration (K&R A8.3)
 --
+-- * We allow the GNU C extension keyword before a declaration, but it is
+--   not entered into the structure tree.
+--
 parseCStructDecl :: CParser CDecl
 parseCStructDecl  =
-  list parseCSpecQual *> seplist comma_ parseCStructDeclr *-> semic_
+      ctoken_ (CTokGnuC GnuCExtTok) `opt` ()      -- ignore GCC's __extension__
+  -*> list parseCSpecQual *> seplist comma_ parseCStructDeclr *-> semic_
   `actionAttrs`
     (\(specs, declrs) -> 
       head (map posOf specs ++ map declrsPos declrs ++ [nopos])) $

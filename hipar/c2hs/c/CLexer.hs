@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 6 March 99
 --
---  Version $Revision: 1.18 $ from $Date: 2002/03/06 06:53:07 $
+--  Version $Revision: 1.19 $ from $Date: 2002/07/12 06:29:39 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -28,7 +28,8 @@
 --  We assume that the input already went through cpp.  Thus, we do not handle 
 --  comments and preprocessor directives here.  The lexer recognizes all tokens
 --  of ANCI C except those occuring only in function bodies.  It supports the
---  C99 `restrict' extension: <http://www.lysator.liu.se/c/restrict.html>.
+--  C99 `restrict' extension: <http://www.lysator.liu.se/c/restrict.html> as
+--  well as inline functions.
 --
 --  Comments:
 --
@@ -42,7 +43,7 @@
 --    identifiers). 
 --
 --  * We also recognize GNU C `__attribute__', `__extension__', `__const', 
---    `__const__', `__restrict', and `__restrict__'.
+--    `__const__', `__inline', `__inline__', `__restrict', and `__restrict__'.
 --
 --  * Any line starting with `#pragma' is ignored.
 --
@@ -141,6 +142,9 @@ data CToken = CTokLParen   Position		-- `('
 	    | CTokEnum     Position		-- `enum'
 	    | CTokExtern   Position		-- `extern'
 	    | CTokFloat    Position		-- `float'
+	    | CTokInline   Position		-- `inline'
+						-- (or `__inline', 
+						-- `__inline__')
 	    | CTokInt      Position		-- `int'
 	    | CTokLong     Position		-- `long'
 	    | CTokRestrict Position		-- `restrict'
@@ -300,6 +304,7 @@ instance Show CToken where
   showsPrec _ (CTokEnum     _  ) = showString "enum"
   showsPrec _ (CTokExtern   _  ) = showString "extern"
   showsPrec _ (CTokFloat    _  ) = showString "float"
+  showsPrec _ (CTokInline   _  ) = showString "inline"
   showsPrec _ (CTokInt      _  ) = showString "int"
   showsPrec _ (CTokLong     _  ) = showString "long"
   showsPrec _ (CTokRestrict _  ) = showString "restrict"
@@ -377,6 +382,7 @@ instance Tag CToken where
   tag (CTokEnum     _  ) = 50
   tag (CTokExtern   _  ) = 51
   tag (CTokFloat    _  ) = 52
+  tag (CTokInline   _  ) = 75
   tag (CTokInt      _  ) = 53
   tag (CTokLong     _  ) = 54
   tag (CTokRestrict _  ) = 55
@@ -398,7 +404,8 @@ instance Tag CToken where
   tag (CTokTypeName _ _) = 71
   tag (CTokGnuC GnuCAttrTok _) = 72
   tag (CTokGnuC GnuCExtTok  _) = 73
-  -- max 74 (see `alignof')
+  -- current max is 75 (see `CTokInline')
+
 
 -- local state instantiation
 -- -------------------------
@@ -511,6 +518,9 @@ identOrKW  =
     idkwtok pos "enum"		_    = CTokEnum     pos
     idkwtok pos "extern"	_    = CTokExtern   pos
     idkwtok pos "float"		_    = CTokFloat    pos
+    idkwtok pos "inline"	_    = CTokInline   pos
+    idkwtok pos "__inline"	_    = CTokInline   pos
+    idkwtok pos "__inline__"	_    = CTokInline   pos
     idkwtok pos "int"		_    = CTokInt      pos
     idkwtok pos "long"		_    = CTokLong     pos
     idkwtok pos "restrict"	_    = CTokRestrict pos

@@ -94,6 +94,7 @@ if test $hc_base = ghc; then
 ** Check \"http://haskell.org\". **])])
   dnl Determine compilation system identifier.
   SYS=ghc$hc_maj_vers
+  HCID="GHC $hc_vers"
   HIDIROPT=-i
   REQUIRES_HASKELL=ghc-$hc_vers
 fi
@@ -111,6 +112,7 @@ if test $hc_base = nhc98; then
   fi
   dnl Determine compilation system identifier.
   SYS=nhc$hc_maj_vers
+  HCID="nhc98 $hc_maj_vers.$hc_min_vers"
   HIDIROPT=-I
   dnl FIXME: In the case of nhc98, do we have to require a specific version, 
   dnl        too? 
@@ -285,6 +287,7 @@ AC_SUBST(C2HS_VERSION)
 AC_SUBST(HCFLAGS)
 AC_SUBST(LIB_HCFLAGS)
 AC_SUBST(SYS)
+AC_SUBST(HCID)
 AC_SUBST(LEGACY_FFI)
 AC_SUBST(BEGIN_LEGACY_FFI)
 AC_SUBST(END_LEGACY_FFI)

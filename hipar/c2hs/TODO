@@ -2,11 +2,10 @@
                                 C2HS TODO
                                 =========
 
-Next: - Ignore gcc's __extension__ keyword (see report by Jay Cox
-	<sqrtofone@yahoo.com>); see also bug report from Andrew & Simon
-
-      - configuration oracle should have an option to print the Haskell
+Next: - configuration oracle should have an option to print the Haskell
         compiler and version it was compiled for
+
+      - Test with GHC 5.04
 
       - check building with latest nhc (still problems in `Parsers' with nhc98
         1.10) 
@@ -17,6 +16,15 @@ Next: - Ignore gcc's __extension__ keyword (see report by Jay Cox
 
       Major features to be added after the release: conditions (incl phase
       re-ordering), structure marshalling.
+
+      - Some headers (eg, `/usr/include/sys/stat.h' in Linux) include inline
+        functions, which have a body (ie, aren't just a prototype).  So far
+        the parser chokes on function bodies.  It wouldn't be too difficult to
+        parse, but otherwise ignore them.
+
+	Workaround for the moment: Often there is a preprocessor symbol that
+	  allows to diable inlined functions (eg, not setting __GNUC__ when
+	  processing Linux headers, but passing ``-C "-D__GNUC__"'' to c2hs).
 
       - the `hsverb' should be normalised with respect to white space and
         parenthesis 

@@ -40,7 +40,7 @@ while test $# -gt 0; do
       echo_prefix=yes
       ;;
     --version)
-      echo @C2HS_VERSION@
+      echo @C2HS_VERSION@ [compiled for @HCID@]
       exit 0
       ;;
     --cflags)

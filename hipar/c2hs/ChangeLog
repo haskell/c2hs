@@ -1,3 +1,15 @@
+2002-07-12  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
+
+	* c2hs-config.in: added the system for which the package was
+	compiled to the output of the --version option
+
+	* c/CParser.hs (parseCStructUnion): Allow __extension__ in
+	structure declarations and added `inline'.
+
+	* c/CAST.hs: Added `inline'
+
+	* c/CLexer.hs: Added support for `inline' keyword
+
 2002-07-06  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* toplevel/Version.hs (versnum): 0.10.15

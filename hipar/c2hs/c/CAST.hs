@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.8 $ from $Date: 2001/10/16 14:16:32 $
+--  Version $Revision: 1.9 $ from $Date: 2002/07/12 06:29:39 $
 --
 --  Copyright (c) [1999..2001] Manuel M T Chakravarty
 --
@@ -42,9 +42,9 @@
 --
 --  With K&R we refer to ``The C Programming Language'', second edition, Brain
 --  W. Kernighan and Dennis M. Ritchie, Prentice Hall, 1988.  This module
---  supports the C99 `restrict' extension: 
---  <http://www.lysator.liu.se/c/restrict.html> and also the GNU C `alignof'
---  extension.
+--  supports the C99 `restrict' extension
+--  <http://www.lysator.liu.se/c/restrict.html>, `inline' functions, and also
+--  the GNU C `alignof' extension.
 --
 --- TODO ----------------------------------------------------------------------
 --
@@ -211,21 +211,24 @@ instance Eq CTypeSpec where
 
 -- C type qualifier (K&R A8.2) (EXPORTED)
 --
--- * plus `restrict' from C99
+-- * plus `restrict' from C99 and `inline'
 --
 data CTypeQual = CConstQual Attrs
 	       | CVolatQual Attrs
 	       | CRestrQual Attrs
+	       | CInlinQual Attrs
 
 instance Pos CTypeQual where
  posOf (CConstQual at) = posOf at
  posOf (CVolatQual at) = posOf at
  posOf (CRestrQual at) = posOf at
+ posOf (CInlinQual at) = posOf at
 
 instance Eq CTypeQual where
   (CConstQual at1) == (CConstQual at2) = at1 == at2
   (CVolatQual at1) == (CVolatQual at2) = at1 == at2
   (CRestrQual at1) == (CRestrQual at2) = at1 == at2
+  (CInlinQual at1) == (CInlinQual at2) = at1 == at2
 
 -- C structure of union declaration (K&R A8.3) (EXPORTED)
 --
