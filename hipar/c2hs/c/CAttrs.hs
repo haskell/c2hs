@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 12 August 99
 --
---  Version $Revision: 1.6 $ from $Date: 2001/02/12 06:34:38 $
+--  Version $Revision: 1.7 $ from $Date: 2004/05/15 08:34:50 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -144,7 +144,7 @@ leaveRangeC ac  = ac {
 --
 leaveObjRangeC    :: AttrC -> AttrC
 leaveObjRangeC ac  = ac {
-		       defObjsAC = fst . leaveRange . defObjsAC $ ac,
+		       defObjsAC = fst . leaveRange . defObjsAC $ ac
 		     }
 
 -- add another definitions to the object name space (EXPORTED)

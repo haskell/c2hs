@@ -1,9 +1,11 @@
+{-# OPTIONS -fglasgow-exts #-}
+
 --  C->Haskell Compiler: basic marshaling routines
 --
 --  Author : Manuel M. T. Chakravarty
 --  Created: 27 September 99
 --
---  Version $Revision: 1.9 $ from $Date: 2001/02/04 12:27:32 $
+--  Version $Revision: 1.10 $ from $Date: 2004/05/15 08:34:50 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --

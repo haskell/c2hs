@@ -20,7 +20,8 @@ calls: Calls.chs calls.h
 
 enums: Enums.chs enums.h
 	$(C2HS) enums.h Enums.chs
-	$(HC) -o enums Enums.hs -#include\"enums.h\" $(HCFLAGS)
+	$(CC) -c enums.c
+	$(HC) -o enums enums.o Enums.hs -#include\"enums.h\" $(HCFLAGS)
 
 pointer: Pointer.chs pointer.h pointer.c
 	$(C2HS) pointer.h Pointer.chs

@@ -3,9 +3,9 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.20 $ from $Date: 2003/02/12 09:41:02 $
+--  Version $Revision: 1.21 $ from $Date: 2004/05/15 08:34:50 $
 --
---  Copyright (c) [1999..2002] Manuel M T Chakravarty
+--  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -82,6 +82,7 @@ where
 import Maybe      (catMaybes)
 
 import Common	  (Position, Pos(..), nopos)
+import Sets	  (Set, listToSet, joinSet, elemSet)
 import Utils      (Tag(tag))
 import UNames     (Name, NameSupply, names)
 import Idents     (Ident)
@@ -277,32 +278,31 @@ parseCHeader pos tokens  =
     nameSupply <- getNameSupply
     let name          = (head . names) nameSupply
 	at            = newAttrs pos name
-	predefTypeIds = map fst builtinTypeNames
-    decls <- parseCExtDeclList (morphTypeNames predefTypeIds tokens)
+	predefTypeIds = listToSet . map fst $ builtinTypeNames
+    decls <- parseCExtDeclList [] predefTypeIds tokens
     return (CHeader decls at)
   where
     -- the set contains all identifiers that were turned into a
     -- typedef-name by a `typedef' declaration
     --
-    parseCExtDeclList      :: [CToken] -> CST s [CExtDecl]
-    parseCExtDeclList []    = return []
-    parseCExtDeclList toks  = 
+    parseCExtDeclList :: [CExtDecl]	   -- accumulator (reverse order!)
+		      -> Set Ident	   -- typedef'd identifiers
+		      -> [CToken]	   -- token stream
+		      -> CST s [CExtDecl]
+    parseCExtDeclList decls _         []   = return (reverse decls)
+    parseCExtDeclList decls tdefNames toks = 
       do
 	nameSupply <- getNameSupply
 	let ns                  = names nameSupply
-	    (decl, errs, toks') = execParser parseCExtDecl ns toks
-	mapM raise errs
+	    tokMorpher	        = morphTypeNames tdefNames
+				  -- changes token type of typedef'd idents
+	    (decl, errs, toks') = execParser parseCExtDecl ns tokMorpher toks
 	--
 	-- raise the errors first, in case any of them is fatal
 	--
-	let tdefNames   = getTDefNames decl
-	    morphedToks = if null tdefNames then toks'	-- as `toks'' is *long*
-			  else morphTypeNames tdefNames toks'
-	if null morphedToks
-	  then return [decl]
-	  else do
-	    decls <- parseCExtDeclList morphedToks
-	    return (decl:decls)
+	mapM raise errs
+	let tdefNames' = tdefNames `joinSet` (listToSet $ getTDefNames decl)
+	parseCExtDeclList (decl:decls) tdefNames' toks'
 
     -- extract all identifiers turned into `typedef-name's
     --
@@ -320,16 +320,13 @@ parseCHeader pos tokens  =
 	declrToOptIdent (CArrDeclr declr _   _) = declrToOptIdent declr
 	declrToOptIdent (CFunDeclr declr _ _ _) = declrToOptIdent declr
 
-    -- convert all identifier tokens mentioned in the first arguments into
-    -- typedef-name tokens
+    -- token converter that changes any identifier tokens whose identifier is
+    -- contained in the first set into a typedef-name token
     --
-    morphTypeNames :: [Ident] -> [CToken] -> [CToken]
-    morphTypeNames _     [] = []
-    morphTypeNames tides (tok@(CTokIdent pos ide):toks) 
-      | ide `elem` tides    = CTokTypeName pos ide : morphTypeNames tides toks
-      | otherwise           = tok : morphTypeNames tides toks
-    morphTypeNames tides (tok                    :toks) 
-			    = tok : morphTypeNames tides toks
+    morphTypeNames :: Set Ident -> CToken -> CToken
+    morphTypeNames tides (CTokIdent pos ide)
+      | ide `elemSet` tides  = CTokTypeName pos ide
+    morphTypeNames tides tok = tok
 
 -- parse external C declaration (K&R A10)
 --

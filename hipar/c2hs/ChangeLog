@@ -1,3 +1,14 @@
+2004-05-15  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CParser.hs (parseCHeader): Duncan Coutts
+	<duncan.coutts@worcester.oxford.ac.uk> identified a space (and
+	time) leak in the old typedef-name morphing setup; this has been
+	rewritten now
+
+2004-05-14  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.13.0 "Pressing Forward"
+
 2003-10-20  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenBind.hs (foreignImport): brought generated foreign import

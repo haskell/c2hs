@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Derived: 19 March 1999
 #
-#  Version $Revision: 1.17 $ from $Date: 2003/10/20 08:00:44 $
+#  Version $Revision: 1.18 $ from $Date: 2004/05/15 08:34:50 $
 #
 #  Copyright (c) [1999..2003] Manuel M. T. Chakravarty
 #
@@ -34,7 +34,7 @@
 #
 PACKAGE = c2hs
 PART    = lib
-SRCS	= C2HS.hs C2HSBase.hs
+SRCS	= C2HS.hs C2HSBase.hs C2HSMarsh.hs
 OBJS	= $(patsubst %.hs,%.o,$(filter %.hs,$(SRCS)))
 
 # C->Haskell specific configuration

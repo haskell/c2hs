@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 12 October 99
 --
---  Version $Revision: 1.23 $ from $Date: 2002/05/16 13:58:34 $
+--  Version $Revision: 1.24 $ from $Date: 2004/05/15 08:34:50 $
 --
 --  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
@@ -55,7 +55,7 @@ import Maybe        (isNothing)
 -- FFI libraries
 import Ptr          (Ptr, nullPtr, castPtr)
 import MarshalAlloc (free)
-import NewStorable  (Storable(..))
+import Storable     (Storable(..))
 import MarshalUtils (withObject, new, fromBool, toBool)
 import CString      (withCStringLen, peekCStringLen)
 import Bits	    (Bits(..))
