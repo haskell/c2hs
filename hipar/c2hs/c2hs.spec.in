@@ -2,6 +2,8 @@
 #
 # Copyright [1999..2002] Manuel M T Chakravarty <chak@cse.unsw.edu.au>
 
+%define ghc_version 6.0.1
+
 Summary: C->Haskell Interface Generator
 Name: c2hs
 Version: @C2HS_VERSION@
@@ -13,7 +15,6 @@ URL: http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
 BuildRoot: /var/tmp/c2hs-%{version}-%{release}-root
 Packager: Manuel M T Chakravarty <chak@cse.unsw.edu.au>
 Requires: @REQUIRES_HASKELL@
-Provides: c2hs
 
 %description
 C->Haskell is an interface generator that simplifies the development
@@ -28,8 +29,56 @@ corresponding C header file.
 Haskell 98 is "the" standard lazy functional programming language.
 More info plus the language definition is at http://www.haskell.org/.
 
+%package ghc%{ghc_version}
+Summary: C->Haskell Interface Generator Libraries
+Group: Development/Languages
+BuildRequires: ghc = %{ghc_version}
+Requires: ghc = %{ghc_version}, c2hs = %{version}
+Requires(post,preun): %{_bindir}/ghc-pkg-%{ghc_version}
+
+%description ghc%{ghc_version}
+C->Haskell is an interface generator that simplifies the development
+of Haskell bindings to C libraries.  The tool processes existing C
+header files that determine data layout and function signatures on the
+C side in conjunction with Haskell modules that specify Haskell-side
+type signatures and marshaling details.  Hooks embedded in the Haskell
+code signal access to C structures and functions -- they are expanded
+by the interfacing tool in dependence on information from the
+corresponding C header file.
+
+Haskell 98 is "the" standard lazy functional programming language.
+More info plus the language definition is at http://www.haskell.org/.
+
+This package contains the libraries compiled for ghc-%{ghc_version}.
+
+%package doc
+Summary: C->Haskell Interface Generator Documentation
+Group: Development/Languages/Haskell
+
+%description doc
+C->Haskell is an interface generator that simplifies the development
+of Haskell bindings to C libraries.  The tool processes existing C
+header files that determine data layout and function signatures on the
+C side in conjunction with Haskell modules that specify Haskell-side
+type signatures and marshaling details.  Hooks embedded in the Haskell
+code signal access to C structures and functions -- they are expanded
+by the interfacing tool in dependence on information from the
+corresponding C header file.
+
+Haskell 98 is "the" standard lazy functional programming language.
+More info plus the language definition is at http://www.haskell.org/.
+
+This package contains the c2hs documentation.
 
 %changelog
+* Wed Oct 15 2003 Jens Petersen <petersen@haskell.org>
+- specify ghc version to build with
+- don't redundantly provide c2hs
+- separate library out into separate ghc version specific subpackage
+- put docs into separate subpackage
+- disable empty debuginfo subpackage generation
+- remove buildroot before installing
+- remove installed doc files, since they're explicitly listed
 
 * Sat Sep 7 2002 Manuel Chakravarty
 - add post install and uninstall scripts to register and deregister the 
@@ -43,33 +92,45 @@ More info plus the language definition is at http://www.haskell.org/.
 * Sun Oct 31 1999 Manuel Chakravarty
 - original version
 
+# the debuginfo subpackage is currently empty anyway, so don't generate it
+%define debug_package %{nil}
+%define __spec_install_post /usr/lib/rpm/brp-compress
+
 %prep
 %setup -q
 
 %build
-%configure
+%configure --with-hc=ghc-%{ghc_version}
 make
 make doc
 
 %install
+rm -rf %{buildroot}
 %makeinstall install-doc
+rm -r %{buildroot}%{_datadir}/doc/c2hs-%{version}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%post
+%post ghc%{ghc_version}
 %{_bindir}/c2hs-config --package-conf\
-  | ghc-pkg --update-package --auto-ghci-libs
+  | ghc-pkg-%{ghc_version} --update-package --auto-ghci-libs
 
-%postun
-ghc-pkg --remove-package=c2hs
+%postun ghc%{ghc_version}
+ghc-pkg-%{ghc_version} --remove-package=c2hs
 
 %files
+%defattr(-,root,root)
+%{_bindir}/c2hs
+%{_mandir}/man1/c2hs.1*
+
+%files ghc%{ghc_version}
+%{_bindir}/c2hs-config
+%{_libdir}/c2hs-%{version}/
+%{_mandir}/man1/c2hs-config.1*
+
+%files doc
 %defattr(-,root,root)
 %doc c2hs/ChangeLog c2hs/TODO c2hs/COPYING c2hs/COPYING.LIB
 %doc c2hs/README c2hs/AUTHORS
 %doc doc/c2hs/*.html doc/c2hs/*.txt doc/c2hs/lib c2hs/tests
-%{_bindir}/c2hs
-%{_bindir}/c2hs-config
-%{_libdir}/c2hs-%{version}/
-%{_mandir}/man1/*

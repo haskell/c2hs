@@ -1,5 +1,13 @@
 2003-10-19  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
+	* c2hs.spec.in: Contributions by Jens Petersen
+	<petersen@haskell.org>: specify ghc version to build with;
+	don't redundantly provide c2hs; separate library out into
+	separate ghc version specific subpackage; put docs into separate
+	subpackage; disable empty debuginfo subpackage generation -
+	remove buildroot before installing; remove installed doc files,
+	since they're explicitly listed
+
 	* c/CLexer.hs (linedir): allow an arbitrary number of ints after
 	the filename in a #line directive; problem was first reported by Sean
 	Seefried <sseefried@cse.unsw.edu.au>

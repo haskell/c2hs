@@ -864,6 +864,7 @@ documented in the following.
 <itemize>
 <item>Improved line pragma generation
 <item>Works with GHC 6.3
+<item>Builds on Mac OS X thanks to a patch by Sean Seefried
 </itemize>
 
 <sect1>Version 0.11.5 "Powder Snow"
