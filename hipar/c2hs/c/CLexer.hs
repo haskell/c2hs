@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 6 March 99
 --
---  Version $Revision: 1.16 $ from $Date: 2001/08/24 14:42:04 $
+--  Version $Revision: 1.17 $ from $Date: 2001/10/16 14:16:32 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -131,6 +131,9 @@ data CToken = CTokLParen   Position		-- `('
 	    | CTokLBrace   Position		-- `{'
 	    | CTokRBrace   Position		-- `}'
 	    | CTokEllipsis Position		-- `...'
+	    | CTokAlignof  Position		-- `alignof' 
+						-- (or `__alignof', 
+						-- `__alignof__')
 	    | CTokChar     Position		-- `char'
 	    | CTokConst    Position		-- `const' 
 						-- (or `__const', `__const__')
@@ -215,6 +218,7 @@ instance Pos CToken where
   posOf (CTokLBrace   pos  ) = pos
   posOf (CTokRBrace   pos  ) = pos
   posOf (CTokEllipsis pos  ) = pos
+  posOf (CTokAlignof  pos  ) = pos
   posOf (CTokChar     pos  ) = pos
   posOf (CTokConst    pos  ) = pos
   posOf (CTokDouble   pos  ) = pos
@@ -289,6 +293,7 @@ instance Show CToken where
   showsPrec _ (CTokLBrace   _  ) = showString "{"
   showsPrec _ (CTokRBrace   _  ) = showString "}"
   showsPrec _ (CTokEllipsis _  ) = showString "..."
+  showsPrec _ (CTokAlignof  _  ) = showString "alignof"
   showsPrec _ (CTokChar     _  ) = showString "char"
   showsPrec _ (CTokConst    _  ) = showString "const"
   showsPrec _ (CTokDouble   _  ) = showString "double"
@@ -365,6 +370,7 @@ instance Tag CToken where
   tag (CTokLBrace   _  ) = 44
   tag (CTokRBrace   _  ) = 45
   tag (CTokEllipsis _  ) = 46
+  tag (CTokAlignof  _  ) = 74
   tag (CTokChar     _  ) = 47
   tag (CTokConst    _  ) = 48
   tag (CTokDouble   _  ) = 49
@@ -392,6 +398,7 @@ instance Tag CToken where
   tag (CTokTypeName _ _) = 71
   tag (CTokGnuC GnuCAttrTok _) = 72
   tag (CTokGnuC GnuCExtTok  _) = 73
+  -- max 74 (see `alignof')
 
 -- local state instantiation
 -- -------------------------
@@ -493,6 +500,9 @@ identOrKW  =
   letter +> (letter >|< digit)`star` epsilon
   `lexactionName` \cs pos name -> (idkwtok $!pos) cs name
   where
+    idkwtok pos "alignof"       _    = CTokAlignof  pos
+    idkwtok pos "__alignof"     _    = CTokAlignof  pos
+    idkwtok pos "__alignof__"   _    = CTokAlignof  pos
     idkwtok pos "char"          _    = CTokChar     pos
     idkwtok pos "const"		_    = CTokConst    pos
     idkwtok pos "__const"	_    = CTokConst    pos

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.15 $ from $Date: 2001/08/24 14:42:04 $
+--  Version $Revision: 1.16 $ from $Date: 2001/10/16 14:16:32 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -48,12 +48,15 @@
 --  * We also recognize GNU C `__attribute__' annotations (however, they are
 --    not entered into the structure tree, but ignored).  More specifically, 
 --
---      __attribute__ (( <attr> ))
+--      '__attribute__' '(' '(' attr ')' ')'
 --
---    may occur as a prefix and/or suffix of a `declarator', where <attr>
+--    may occur as a prefix and/or suffix of a `declarator', where `attr'
 --    is either just an identifier or an identifier followed by a
---    comma-separated list of arguments, which may be numbers, strings, and
---    identifiers. 
+--    comma-separated list of constant expressions as follows: 
+--
+--      attr  -> id ['(' const_1 ',' ... ',' const_n ')']
+--	       | 'const'
+--	const -> <constant expression>
 --
 --  * We also recognize GNU C `__extension__' annotations (however, they are
 --    not entered into the structure tree, but ignored).  More specifically, 
@@ -560,9 +563,7 @@ parseGnuCAttr  =
 					*> ctoken_ CTokRParen)
 			`action` const ()
                     <|> ctoken_ CTokConst `action` const ()
-    parseAttrArg =      cid  `action` const ()
-		    <|> cint `action` const ()
-		    <|> cstr `action` const ()
+    parseAttrArg =  parseCConstExpr `action` const ()
 
 -- parse C parameter type list (K&R A8.6.3)
 --
@@ -725,6 +726,8 @@ parseCPostfixExpr  =
 
 -- parse C unary expression (K&R A7.4)
 --
+-- * GNU extension: `alignof'
+--
 parseCUnaryExpr :: CParser CExpr
 parseCUnaryExpr  = 
       parseCPostfixExpr
@@ -749,6 +752,15 @@ parseCUnaryExpr  =
       *-> ctoken_ CTokLParen *> parseCTypeName *-> ctoken_ CTokRParen
       `action`
         (\(at, tname) -> CSizeofType tname at)
+  <|>
+      ctokenAttrs CTokAlignof *> parseCUnaryExpr
+      `action`
+        (\(at, expr) -> CAlignofExpr expr at)
+  <|>
+         ctokenAttrs CTokAlignof 
+      *-> ctoken_ CTokLParen *> parseCTypeName *-> ctoken_ CTokRParen
+      `action`
+        (\(at, tname) -> CAlignofType tname at)
   where
     parseCUnaryOp =     ctoken CTokAmper  `opAction` CAdrOp
 		    <|> ctoken CTokStar   `opAction` CIndOp

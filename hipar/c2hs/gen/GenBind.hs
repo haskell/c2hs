@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.38 $ from $Date: 2001/10/08 11:23:03 $
+--  Version $Revision: 1.39 $ from $Date: 2001/10/16 14:16:33 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -1503,6 +1503,12 @@ evalConstCExpr (CSizeofType decl _) =
   do
     (size, _) <- sizeAlignOf decl
     return $ IntResult (fromIntegral size)
+evalConstCExpr (CAlignofExpr _ _) =
+  todo "GenBind.evalConstCExpr: alignof (GNU C extension) not implemented yet."
+evalConstCExpr (CAlignofType decl _) =
+  do
+    (_, align) <- sizeAlignOf decl
+    return $ IntResult (fromIntegral align)
 evalConstCExpr (CIndex _ _ at) =
   illegalConstExprErr (posOf at) "array indexing"
 evalConstCExpr (CCall _ _ at) =

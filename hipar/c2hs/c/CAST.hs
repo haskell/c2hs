@@ -1,11 +1,11 @@
 --  C -> Haskell Compiler: Abstract Syntax for Header Files
 --
---  Author : Manuel M. T. Chakravarty
+--  Author : Manuel M T Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.7 $ from $Date: 2001/06/18 07:27:05 $
+--  Version $Revision: 1.8 $ from $Date: 2001/10/16 14:16:32 $
 --
---  Copyright (c) 1999 Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2001] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -43,7 +43,8 @@
 --  With K&R we refer to ``The C Programming Language'', second edition, Brain
 --  W. Kernighan and Dennis M. Ritchie, Prentice Hall, 1988.  This module
 --  supports the C99 `restrict' extension: 
---  <http://www.lysator.liu.se/c/restrict.html>.
+--  <http://www.lysator.liu.se/c/restrict.html> and also the GNU C `alignof'
+--  extension.
 --
 --- TODO ----------------------------------------------------------------------
 --
@@ -332,74 +333,84 @@ instance Eq CInit where
 -- * these can be arbitrary expression, as the argument of `sizeof' can be
 --   arbitrary, even if appearing in a constant expression
 --
-data CExpr = CComma      [CExpr]	-- comma expression list, n >= 2
-		         Attrs
-	   | CAssign     CAssignOp	-- assignment operator
-		         CExpr		-- l-value
-		         CExpr		-- r-value
-		         Attrs
-	   | CCond       CExpr		-- conditional
-		         CExpr		-- true-expression
-		         CExpr		-- false-expression
-		         Attrs
-	   | CBinary     CBinaryOp	-- binary operator
-		         CExpr		-- lhs
-		         CExpr		-- rhs
-		         Attrs
-	   | CCast       CDecl		-- type name
-		         CExpr
-		         Attrs
-           | CUnary      CUnaryOp	-- unary operator
-		         CExpr
-		         Attrs
-	   | CSizeofExpr CExpr
-			 Attrs
-	   | CSizeofType CDecl		-- type name
-			 Attrs
-	   | CIndex      CExpr		-- array
-			 CExpr		-- index
-			 Attrs
-	   | CCall	 CExpr		-- function
-			 [CExpr]	-- arguments
-			 Attrs
-	   | CMember	 CExpr		-- structure
-			 Ident		-- member name
-			 Bool		-- deref structure? (True for `->')
-			 Attrs
-	   | CVar	 Ident		-- identifier (incl. enumeration const)
-			 Attrs
-           | CConst      CConst		-- includes strings
-			 Attrs
+-- * GNU C extension: `alignof'
+--
+data CExpr = CComma       [CExpr]	-- comma expression list, n >= 2
+		          Attrs
+	   | CAssign      CAssignOp	-- assignment operator
+		          CExpr		-- l-value
+		          CExpr		-- r-value
+		          Attrs
+	   | CCond        CExpr		-- conditional
+		          CExpr		-- true-expression
+		          CExpr		-- false-expression
+		          Attrs
+	   | CBinary      CBinaryOp	-- binary operator
+		          CExpr		-- lhs
+		          CExpr		-- rhs
+		          Attrs
+	   | CCast        CDecl		-- type name
+		          CExpr
+		          Attrs
+           | CUnary       CUnaryOp	-- unary operator
+		          CExpr
+		          Attrs
+	   | CSizeofExpr  CExpr
+			  Attrs
+	   | CSizeofType  CDecl		-- type name
+			  Attrs
+	   | CAlignofExpr CExpr
+			  Attrs
+	   | CAlignofType CDecl		-- type name
+			  Attrs
+	   | CIndex       CExpr		-- array
+			  CExpr		-- index
+			  Attrs
+	   | CCall	  CExpr		-- function
+			  [CExpr]	-- arguments
+			  Attrs
+	   | CMember	  CExpr		-- structure
+			  Ident		-- member name
+			  Bool		-- deref structure? (True for `->')
+			  Attrs
+	   | CVar	  Ident		-- identifier (incl. enumeration const)
+			  Attrs
+           | CConst       CConst		-- includes strings
+			  Attrs
 
 instance Pos CExpr where
-  posOf (CComma      _     at) = posOf at
-  posOf (CAssign     _ _ _ at) = posOf at
-  posOf (CCond       _ _ _ at) = posOf at
-  posOf (CBinary     _ _ _ at) = posOf at
-  posOf (CCast       _ _   at) = posOf at
-  posOf (CUnary      _ _   at) = posOf at
-  posOf (CSizeofExpr _     at) = posOf at
-  posOf (CSizeofType _     at) = posOf at
-  posOf (CIndex      _ _   at) = posOf at
-  posOf (CCall       _ _   at) = posOf at
-  posOf (CMember     _ _ _ at) = posOf at
-  posOf (CVar        _     at) = posOf at
-  posOf (CConst      _     at) = posOf at
+  posOf (CComma       _     at) = posOf at
+  posOf (CAssign      _ _ _ at) = posOf at
+  posOf (CCond        _ _ _ at) = posOf at
+  posOf (CBinary      _ _ _ at) = posOf at
+  posOf (CCast        _ _   at) = posOf at
+  posOf (CUnary       _ _   at) = posOf at
+  posOf (CSizeofExpr  _     at) = posOf at
+  posOf (CSizeofType  _     at) = posOf at
+  posOf (CAlignofExpr _     at) = posOf at
+  posOf (CAlignofType _     at) = posOf at
+  posOf (CIndex       _ _   at) = posOf at
+  posOf (CCall        _ _   at) = posOf at
+  posOf (CMember      _ _ _ at) = posOf at
+  posOf (CVar         _     at) = posOf at
+  posOf (CConst       _     at) = posOf at
 
 instance Eq CExpr where
-  (CComma      _     at1) == (CComma      _     at2) = at1 == at2
-  (CAssign     _ _ _ at1) == (CAssign     _ _ _ at2) = at1 == at2
-  (CCond       _ _ _ at1) == (CCond       _ _ _ at2) = at1 == at2
-  (CBinary     _ _ _ at1) == (CBinary     _ _ _ at2) = at1 == at2
-  (CCast       _ _   at1) == (CCast       _ _   at2) = at1 == at2
-  (CUnary      _ _   at1) == (CUnary      _ _   at2) = at1 == at2
-  (CSizeofExpr _     at1) == (CSizeofExpr _     at2) = at1 == at2
-  (CSizeofType _     at1) == (CSizeofType _     at2) = at1 == at2
-  (CIndex      _ _   at1) == (CIndex      _ _   at2) = at1 == at2
-  (CCall       _ _   at1) == (CCall	  _ _   at2) = at1 == at2
-  (CMember     _ _ _ at1) == (CMember	  _ _ _ at2) = at1 == at2
-  (CVar        _     at1) == (CVar	  _     at2) = at1 == at2
-  (CConst      _     at1) == (CConst	  _	at2) = at1 == at2
+  (CComma      	_     at1) == (CComma       _     at2) = at1 == at2
+  (CAssign     	_ _ _ at1) == (CAssign      _ _ _ at2) = at1 == at2
+  (CCond       	_ _ _ at1) == (CCond        _ _ _ at2) = at1 == at2
+  (CBinary     	_ _ _ at1) == (CBinary      _ _ _ at2) = at1 == at2
+  (CCast       	_ _   at1) == (CCast        _ _   at2) = at1 == at2
+  (CUnary      	_ _   at1) == (CUnary       _ _   at2) = at1 == at2
+  (CSizeofExpr 	_     at1) == (CSizeofExpr  _     at2) = at1 == at2
+  (CSizeofType 	_     at1) == (CSizeofType  _     at2) = at1 == at2
+  (CAlignofExpr _     at1) == (CAlignofExpr _     at2) = at1 == at2
+  (CAlignofType _     at1) == (CAlignofType _     at2) = at1 == at2
+  (CIndex      	_ _   at1) == (CIndex       _ _   at2) = at1 == at2
+  (CCall       	_ _   at1) == (CCall	    _ _   at2) = at1 == at2
+  (CMember     	_ _ _ at1) == (CMember	    _ _ _ at2) = at1 == at2
+  (CVar        	_     at1) == (CVar	    _     at2) = at1 == at2
+  (CConst      	_     at1) == (CConst	    _	  at2) = at1 == at2
 
 -- C assignment operators (K&R A7.17) (EXPORTED)
 --

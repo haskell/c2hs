@@ -28,7 +28,14 @@ Next: -= phase re-ordering & parser clean up =-
         to omit everything that has been imported.  The conceptually correct
         solution would be to dump an entry for a type into a .chi file if the
         corresponding Haskell type is exported by the binding module.  To
-        achieve this, we would also need an export hook.
+        achieve this, we would also need an export hook.  Moreover, we may
+        import the same object from different modules, due to an implicit
+        reexport at the moment.  Either eliminate those reexports, or we have
+        the same problems as in Haskell to determine object identity.
+
+      - c2hs has to properly process GNU C "aligned" attributes.  Otherwise,
+        it's routine to calculate structure layout may deviate from that of
+        the C compiler, which may lead to nasty bugs in bindings.
 
       - the idea of the hipar/mk/*.mk file to identify which projects are
         present doesn't really cut it as `cvs update' will always check these
@@ -37,6 +44,9 @@ Next: -= phase re-ordering & parser clean up =-
       - when we first read the .chs file and pre-process it to generate some
         more C header code, it might be nice to move the reading of .chi files
         into the pre-processing phase, too
+
+      - class methods should be able to get user-defined names (needed for
+        GtkData.chs)
 
       - GenBind.mergePtrMap could be improved (see the comment)
 

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 October 99
 --
---  Version $Revision: 1.6 $ from $Date: 2001/02/12 06:34:39 $
+--  Version $Revision: 1.7 $ from $Date: 2001/10/16 14:16:32 $
 --
 --  Copyright (c) 1999 Manuel M. T. Chakravarty
 --
@@ -158,13 +158,15 @@ naCExpr (CCast       decl expr	       _) = naCDecl decl >> naCExpr expr
 naCExpr (CUnary      _ expr	       _) = naCExpr expr
 naCExpr (CSizeofExpr expr              _) = naCExpr expr
 naCExpr (CSizeofType decl	       _) = naCDecl decl
-naCExpr (CIndex	     expr1 expr2       _) = naCExpr expr1 >> naCExpr expr2
-naCExpr (CCall	     expr exprs	       _) = naCExpr expr >> mapM_ naCExpr exprs
-naCExpr (CMember     expr ide _	       _) = naCExpr expr
-naCExpr (CVar	     ide	       _) = do
+naCExpr (CAlignofExpr expr             _) = naCExpr expr
+naCExpr (CAlignofType decl	       _) = naCDecl decl
+naCExpr (CIndex	      expr1 expr2      _) = naCExpr expr1 >> naCExpr expr2
+naCExpr (CCall	      expr exprs       _) = naCExpr expr >> mapM_ naCExpr exprs
+naCExpr (CMember      expr ide _       _) = naCExpr expr
+naCExpr (CVar	      ide	       _) = do
 					     (obj, _) <- findValueObj ide False
 					     ide `refersToDef` ObjCD obj
-naCExpr (CConst	     _		       _) = nop
+naCExpr (CConst	      _		       _) = nop
 
 
 -- auxilliary functions
