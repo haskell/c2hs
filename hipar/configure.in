@@ -175,11 +175,11 @@ dnl - We can't use `posix' in a CygWin environment.
 dnl
 PACKAGES=""
 SYSFEATURES=""
-if test -z "$CYGWIN"; then
-  PACKAGES="$PACKAGES posix"
-  SYSFEATURES="$SYSFEATURES posix"
-fi
 if test $hc_base = ghc; then
+  if test -z "$CYGWIN"; then
+    PACKAGES="$PACKAGES posix"
+    SYSFEATURES="$SYSFEATURES posix"
+  fi
   dnl Check in which system library we find the module IOExts.
   CTK_LIB_SYSLIB(IOExts, lang exts)
   PACKAGES="$PACKAGES $syslib_IOExts"

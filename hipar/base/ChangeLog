@@ -1,3 +1,10 @@
+2002-03-05  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* ../configure.in: make sure to include the posix package only for
+	GHC (and not for nhc98)
+
+	* admin/BaseVersion.hs (versnum): 0.23.1
+
 2002-02-11  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* Makefile: we are now creating a library archive to use packages
