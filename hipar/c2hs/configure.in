@@ -42,11 +42,13 @@ AC_ARG_WITH(efence,
 	    [  --with-efence           link with efence malloc debugger],
 	    [efence=$withval])
 
-dnl Check for OS and set dynamic library suffix.
+dnl Check for OS and set dynamic library suffix and temporary directory.
 DLSUFFIX=".so"
+TMPDIR="/tmp"
 AC_CYGWIN
-if test -n "$CYGWIN"; then
+if test "$CYGWIN" = "yes"; then
   DLSUFFIX=".dll"
+  TMPDIR="C:\TMP"
 fi
 
 dnl Checks for programs.
@@ -283,6 +285,7 @@ LIBDIR=`eval echo \`eval echo $libdir\``
 
 dnl Needed substitutions.
 AC_SUBST(DLSUFFIX)
+AC_SUBST(TMPDIR)
 AC_SUBST(C2HS_VERSION)
 AC_SUBST(HCFLAGS)
 AC_SUBST(LIB_HCFLAGS)

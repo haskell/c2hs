@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 12 August 99
 --
---  Version $Revision: 1.8 $ from $Date: 2001/08/26 08:34:24 $
+--  Version $Revision: 1.9 $ from $Date: 2003/02/12 09:41:02 $
 --
 --  Copyright (c) 1999 Manuel M. T. Chakravarty
 --
@@ -70,7 +70,7 @@ module C (-- interface to KL for all non-KL modules
 	  csuffix, hsuffix, isuffix)
 where
 
-import Common     (Position, Pos(posOf), nopos)
+import Common     (Position, Pos(posOf))
 import FiniteMaps (FiniteMap)
 import Idents	  (Ident, lexemeToIdent)
 import Attributes (Attrs, Attr(..))

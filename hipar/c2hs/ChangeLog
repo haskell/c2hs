@@ -1,3 +1,31 @@
+2003-02-05  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenHeader.hs: New module extracting CPP directives and
+	inline-C from a .chs file
+
+	* toplevel/Main.hs (process): Integrated generation of custom C header
+
+	* c/CParser.hs (parseCHeader): Header file may be empty
+
+2003-02-01  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs (showCHSModule): emitting GHC line pragmas
+	(CHSFrag): added representations for cpp directives and inline-C
+	code, and adapted the functions processind the representations
+
+	* chs/CHSLexer.hs: Added support for pre-processor directives and
+	inline-C code
+
+2003-01-31  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Main.hs (process): Now reading the binding module
+	before the C header
+
+2003-01-30  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CParser.hs: Allow more GNU attributes contributed by Axel
+	Simon <A.Simon@ukc.ac.uk>
+
 2002-09-17  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
 
 	* gen/GBMonad.hs (HsObject): working around a problem with

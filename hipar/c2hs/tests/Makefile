@@ -2,7 +2,7 @@ HC     = ghc
 HCFLAGS= -package lang -fglasgow-exts -i../lib -L../lib -lc2hs
 C2HS   = ../c2hs
 
-PRGMS = simple calls enums pointer structs marsh
+PRGMS = simple calls enums pointer structs marsh cpp
 
 default: tests
 
@@ -37,12 +37,17 @@ marsh: Marsh.chs marsh.h
 	$(C2HS) marsh.h Marsh.chs
 	$(HC) -o marsh Marsh.hs -#include\"marsh.h\" $(HCFLAGS)
 
+cpp: Cpp.chs cpp.h
+	$(C2HS) Cpp.chs
+	$(HC) -o cpp Cpp.hs -#include\"cpp.h\" $(HCFLAGS)
+
 # runs
 
 .PHONY: tests simple.run calls.build enums.run pointer.run structs.run\
-	marsh.run
+	marsh.run cpp.build
 
-tests: simple.run calls.build enums.run pointer.run structs.run marsh.run
+tests: simple.run calls.build enums.run pointer.run structs.run marsh.run\
+       cpp.build
 
 simple.run: simple
 	@echo "---=== Output of \`simple'":
@@ -68,6 +73,11 @@ marsh.run: marsh
 	@echo "---=== Output for \`marsh'":
 	@./marsh
 	@echo "---=== End of Output"
+
+cpp.build: cpp
+	@echo "---=== Binding for \`cpp'":
+	@cat Cpp.hs
+	@echo "---=== End of Binding"
 
 # misc
 

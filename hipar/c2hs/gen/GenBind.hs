@@ -3,9 +3,9 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.46 $ from $Date: 2002/05/14 05:48:48 $
+--  Version $Revision: 1.47 $ from $Date: 2003/02/12 09:41:03 $
 --
---  Copyright (c) [1999..2002] Manuel M T Chakravarty
+--  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -117,8 +117,8 @@ import List       (deleteBy, intersperse, isPrefixOf)
 import Maybe	  (isNothing, isJust, fromJust, fromMaybe)
 import Monad	  (when, unless, liftM, mapAndUnzipM)
 
--- Compiler Tooolkit
-import Common     (Position, Pos(posOf), nopos)
+-- Compiler Toolkit
+import Common     (Position, Pos(posOf), nopos, builtinPos)
 import Utils	  (lookupBy, mapMaybeM)
 import Errors	  (interr, todo)
 import Idents     (Ident, identToLexeme, onlyPosIdent)
@@ -323,9 +323,12 @@ expandModule (CHSModule frags)  =
 			("...successfully completed.\n")
 
 expandFrag :: CHSFrag -> GB CHSFrag
-expandFrag verb@(CHSVerb _) = return verb
-expandFrag      (CHSHook h) = liftM CHSVerb (expandHook h)
-			      `ifCTExc` return (CHSVerb "** ERROR **")
+expandFrag verb@(CHSVerb _ _) = return verb
+expandFrag      (CHSHook h  ) = 
+  do
+    code <- expandHook h
+    return $ CHSVerb code builtinPos
+  `ifCTExc` return (CHSVerb "** ERROR **" builtinPos)
 
 expandHook :: CHSHook -> GB String
 expandHook (CHSImport qual ide chi _) =

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 6 March 99
 --
---  Version $Revision: 1.10 $ from $Date: 2001/05/20 14:14:33 $
+--  Version $Revision: 1.11 $ from $Date: 2003/02/12 09:41:03 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -68,6 +68,8 @@ data SwitchBoard = SwitchBoard {
 		     cppOptsSB :: String,	-- cpp options
 		     cppSB     :: FilePath,	-- cpp executable
 		     hpathsSB  :: [FilePath],	-- header file directories
+		       -- since 0.11.1 `hpathsSB' isn't really needed anymore..
+		       -- ..remove from 0.12 series
 		     keepSB    :: Bool,		-- keep intermediate file
 		     tracesSB  :: Traces,	-- trace flags
 		     outputSB  :: FilePath,	-- output file

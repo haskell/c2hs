@@ -3,9 +3,9 @@
 #  Author : Manuel M T Chakravarty
 #  Derived: 17 March 1999
 #
-#  Version $Revision: 1.4 $ from $Date: 2002/03/12 12:39:16 $
+#  Version $Revision: 1.5 $ from $Date: 2003/02/12 09:41:03 $
 #
-#  Copyright (c) [1999..2002] Manuel M T Chakravarty
+#  Copyright (c) [1999..2003] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@
 #
 PACKAGE = c2hs
 PART    = gen
-SRCS	= CInfo.hs GBMonad.hs GenBind.hs
+SRCS	= CInfo.hs GBMonad.hs GenBind.hs GenHeader.hs
 OBJS	= $(patsubst %.hs,%.o,$(filter %.hs,$(SRCS)))
 
 include ../../mk/common.mk

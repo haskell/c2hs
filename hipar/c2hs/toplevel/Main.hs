@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Derived: 12 August 99
 --
---  Version $Revision: 1.16 $ from $Date: 2001/06/16 08:48:23 $
+--  Version $Revision: 1.17 $ from $Date: 2003/02/12 09:41:04 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -31,7 +31,7 @@
 --  Usage:
 --  ------
 --
---    c2hs [ option... ] header-file binding-file
+--    c2hs [ option... ] [header-file] binding-file
 --
 --  The compiler is supposed to emit a Haskell program that expands all hooks
 --  in the given binding file.
@@ -110,26 +110,30 @@
 module Main (main)
 where
 
+-- standard libraries
 import List	  (isPrefixOf)
-import Monad      (when, unless)
+import IO	  ()
+import Monad      (when, unless, mapM)
 
 import Common     (errorCodeFatal)
 import GetOpt     (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo,
 		   getOpt)
-import FNameOps   (suffix, basename, stripSuffix)
+import FNameOps   (suffix, basename, stripSuffix, addPath)
 import Errors	  (interr)
 
 import C2HSState  (CST, nop, runC2HS, fatal, fatalsHandledBy, getId,
-		   ExitCode(..), stderr, putStrCIO, hPutStrCIO, hPutStrLnCIO,
-		   exitWithCIO, getArgsCIO, getProgNameCIO, ioeGetErrorString,
-		   ioeGetFileName, removeFileCIO, systemCIO, fileFindInCIO,
-		   SwitchBoard(..), Traces(..), setTraces, traceSet,
-		   setSwitch, getSwitch, putTraceStr)
+		   ExitCode(..), stderr, IOMode(..), putStrCIO, hPutStrCIO,
+		   hPutStrLnCIO, exitWithCIO, getArgsCIO, getProgNameCIO,
+		   ioeGetErrorString, ioeGetFileName, removeFileCIO,
+		   systemCIO, fileFindInCIO, mktempCIO, openFileCIO, hCloseCIO,
+		   SwitchBoard(..), Traces(..), setTraces,
+		   traceSet, setSwitch, getSwitch, putTraceStr)
 import C	  (AttrC, hsuffix, isuffix, loadAttrC)
 import CHS	  (CHSModule, loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
+import GenHeader  (genHeader)
 import GenBind	  (expandHooks)
 import Version    (version, copyright, disclaimer)
-import C2HSConfig (cpp, cppopts, hpaths)
+import C2HSConfig (cpp, cppopts, hpaths, tmpdir)
 
 
 -- wrapper running the compiler
@@ -148,7 +152,7 @@ main  = runC2HS (version, copyright, disclaimer) compile
 header :: String -> String -> String -> String
 header version copyright disclaimer  = 
   version ++ "\n" ++ copyright ++ "\n" ++ disclaimer
-  ++ "\n\nUsage: c2hs [ option... ] header-file binding-file\n"
+  ++ "\n\nUsage: c2hs [ option... ] [header-file] binding-file\n"
 
 trailer, errTrailer :: String
 trailer    = "\n\
@@ -258,6 +262,7 @@ compile  =
         | otherwise       -> raiseErrs [wrongNoOfArgsErr]
       (_   , _   , errs)  -> raiseErrs errs
   where
+    properArgs [bnd]         = suffix bnd == chssuffix 
     properArgs [header, bnd] = suffix header == hsuffix 
 			       && suffix bnd == chssuffix 
     properArgs _             = False
@@ -267,8 +272,9 @@ compile  =
 			      `fatalsHandledBy` failureHandler
 			    exitWithCIO ExitSuccess
     --
-    wrongNoOfArgsErr = "There must be exactly one header file (suffix .h)\n\
-		       \followed by exactly one binding file (suffix .chs).\n"
+    wrongNoOfArgsErr = 
+      "There must be exactly one binding file (suffix .chs), possibly\n\
+      \preceded by one header file (suffix .h).\n"
     --
     -- exception handler
     --
@@ -304,7 +310,7 @@ raiseErrs errs = do
 --
 -- * if `Help' is present, emit the help message and ignore the rest
 -- * if `Version' is present, do it first (and only once)
--- * actual compilation is only envoked if we have two extra arguments
+-- * actual compilation is only invoked if we have one or two extra arguments
 --   (otherwise, it is just skipped)
 --
 execute :: [Flag] -> [FilePath] -> CST s ()
@@ -314,8 +320,10 @@ execute opts args | Help `elem` opts = help
     let vs      = filter (== Version) opts
 	opts'   = filter (/= Version) opts
     mapM_ processOpt (atMostOne vs ++ opts')
-    when (length args == 2) $
-      let [headerFile, bndFile] = args
+    when (length args `elem` [1, 2]) $
+      let (headerFile, bndFile) = case args of
+				    [       bfile] -> (""   , bfile)
+				    [hfile, bfile] -> (hfile, bfile)
       in
       process headerFile (stripSuffix bndFile)
 	`fatalsHandledBy` 
@@ -372,7 +380,7 @@ abort msg  = do
 addCPPOpts      :: String -> CST s ()
 addCPPOpts opts  = 
   do
-    let iopts = [opt |opt <- words opts, "-I" `isPrefixOf` opt, "-I-" /= opt]
+    let iopts = [opt | opt <- words opts, "-I" `isPrefixOf` opt, "-I-" /= opt]
     addHPaths . map (drop 2) $ iopts
     addOpts opts
   where
@@ -440,22 +448,51 @@ setOldFFI flag  = setSwitch $ \sb -> sb {oldFFI = flag}
 -- compilation process
 -- -------------------
 
+-- read the binding module, construct a header, run it through CPP, read it,
+-- and finally generate the Haskell target
+--
+-- * the header file name (first argument) may be empty; otherwise, it already
+--   contains the right suffix
+--
+-- * the binding file name has been stripped of the .chs suffix
+--
 process                    :: FilePath -> FilePath -> CST s ()
 process headerFile bndFile  =
   do
-    let preprocFile  = basename headerFile ++ isuffix
-    hpaths          <- getSwitch hpathsSB
-    realHeaderFile  <- headerFile `fileFindInCIO` hpaths
+    -- load the Haskell binding module
+    --
+    (chsMod , warnmsgs) <- loadCHS bndFile
+    putStrCIO warnmsgs
+    traceCHSDump chsMod
+    --
+    -- extract CPP and inline-C embedded in the .chs file (all CPP and
+    -- inline-C fragments are removed from the .chs tree and conditionals are
+    -- replaced by structured conditionals)
+    --
+    (header, strippedCHSMod, warnmsgs) <- genHeader chsMod
+    mapM putStrCIO header
+    putStrCIO warnmsgs
+    --
+    -- create temporary header file, make it #include `headerFile', and emit
+    -- CPP and inline-C of .chs file into the temporary header
+    --
+    (tmpHeader, tmpHeaderFile) <- mktempCIO (tmpdir `addPath` bndFile) ".h"
+    let preprocFile = basename tmpHeaderFile ++ isuffix
+    openFileCIO preprocFile WriteMode >>= hCloseCIO-- create 2nd temporary file
+    unless (null headerFile) $
+      hPutStrLnCIO tmpHeader $ "#include \"" ++ headerFile ++ "\""
+    mapM (hPutStrCIO tmpHeader) header
+    hCloseCIO tmpHeader
     --
     -- run C preprocessor over the header
     --
     cpp     <- getSwitch cppSB
     cppOpts <- getSwitch cppOptsSB
-    let cmd  = unwords [cpp, cppOpts, realHeaderFile, ">" ++ preprocFile]
+    let cmd  = unwords [cpp, cppOpts, tmpHeaderFile, ">" ++ preprocFile]
     tracePreproc cmd
     exitCode <- systemCIO cmd
     case exitCode of 
-      ExitFailure _ -> fatal "Error during preprocessing"
+      ExitFailure _ -> fatal "Error during preprocessing custom header file"
       _		    -> nop
     --
     -- load and analyse the C header file
@@ -463,21 +500,17 @@ process headerFile bndFile  =
     (cheader, warnmsgs) <- loadAttrC preprocFile
     putStrCIO warnmsgs
     --
-    -- remove the pre-processed header
+    -- remove the custom header and the pre-processed header
     --
     keep <- getSwitch keepSB
-    unless keep $
+    unless keep $ do
+      removeFileCIO tmpHeaderFile
       removeFileCIO preprocFile
-    --
-    -- load the Haskell binding module
-    --
-    (chsMod , warnmsgs) <- loadCHS bndFile
-    putStrCIO warnmsgs
-    traceCHSDump chsMod
     --
     -- expand binding hooks into plain Haskell
     --
-    (hsMod, chi , warnmsgs) <- expandHooks cheader chsMod
+-- !!!this must be adapted to handle the conditionals
+    (hsMod, chi, warnmsgs) <- expandHooks cheader strippedCHSMod
     putStrCIO warnmsgs
     --
     -- output the result

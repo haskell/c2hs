@@ -3,9 +3,9 @@
 --  Author : Manuel M T Chakravarty
 --  Derived: 18 February 2 (extracted from GenBind.hs)
 --
---  Version $Revision: 1.2 $ from $Date: 2002/09/18 14:15:42 $
+--  Version $Revision: 1.3 $ from $Date: 2003/02/12 09:41:03 $
 --
---  Copyright (c) 2002 Manuel M T Chakravarty
+--  Copyright (c) [2002..2003] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -77,7 +77,7 @@ import List       (find)
 import Maybe	  (fromMaybe)
 
 -- Compiler Toolkit
-import Common     (Position, Pos(posOf), nopos)
+import Common     (Position, Pos(posOf), nopos, builtinPos)
 import Errors	  (interr)
 import Idents     (Ident, identToLexeme, onlyPosIdent)
 import FiniteMaps (FiniteMap, zeroFM, addToFM, lookupFM, joinFM, toListFM,
@@ -274,7 +274,7 @@ delayCode hook str  =
     frags' <- delay hook frags
     transCT (\state -> (state {frags = frags'}, ()))
     where
-      newEntry = (hook, (CHSVerb ("\n" ++ str)))
+      newEntry = (hook, (CHSVerb ("\n" ++ str) builtinPos))
       --
       delay hook@(CHSCall isFun isUns ide oalias _) frags =
 	case find (\(hook', _) -> hook' == hook) frags of

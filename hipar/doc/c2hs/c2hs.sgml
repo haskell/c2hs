@@ -796,6 +796,14 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
+<sect1>Version 0.11.1 "Powder Snow"
+<p>
+<itemize>
+<item>GHC line pragmas are emitted into generated Haskell code
+<item>Swap the order of reading the binding module and the C header (i.e., we
+now read the binding module first)
+</itemize>
+
 <sect1>Version 0.10.17 "Altocumulus Stratiformis Perlucidus Undulatus"
 <p>
 <itemize>

@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.19 $ from $Date: 2002/07/12 06:29:39 $
+--  Version $Revision: 1.20 $ from $Date: 2003/02/12 09:41:02 $
 --
 --  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
@@ -285,6 +285,7 @@ parseCHeader pos tokens  =
     -- typedef-name by a `typedef' declaration
     --
     parseCExtDeclList      :: [CToken] -> CST s [CExtDecl]
+    parseCExtDeclList []    = return []
     parseCExtDeclList toks  = 
       do
 	nameSupply <- getNameSupply
@@ -346,10 +347,11 @@ parseCExtDecl  = parseCDecl
 --
 parseCDecl :: CParser CDecl
 parseCDecl  = 
+  list (
       ctoken_ (CTokGnuC GnuCExtTok) `opt` ()      -- ignore GCC's __extension__
-  -*> list parseCDeclSpec 
+  -*> parseCDeclSpec 
   *-> optMaybe parseGnuCAttr			  -- ignore GCC's __attribute__
-   *> seplist comma_ parseCInitDecl *-> semic_
+  )*> seplist comma_ parseCInitDecl *-> semic_
   `actionAttrs`
     (\(specs, declrs) -> 
       head (map posOf specs ++ map (posOf . fst) declrs ++ [nopos])) $
