@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 24 October 1997
 #
-#  Version $Revision: 1.15 $ from $Date: 2002/05/19 09:10:17 $
+#  Version $Revision: 1.16 $ from $Date: 2002/09/06 06:33:53 $
 #
 #  Copyright (c) [1997..2002] Manuel M T Chakravarty
 #
@@ -134,5 +134,7 @@ testconfig:
 
 clean:
 	-$(RM) *.o
+	-$(RM) SysDepGHC5.hs SysDep.hs SysDepPosix.hs
+
 cleanhi:
 	-$(RM) *.hi

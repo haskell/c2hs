@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.14 $ from $Date: 2002/05/19 09:10:16 $
+#  Version $Revision: 1.15 $ from $Date: 2002/09/06 06:33:52 $
 #
 #  Copyright (c) [1997..2002] Manuel M T Chakravarty
 #
@@ -27,10 +27,17 @@
 # info for this part: its package, name, sources and objects files (must be 
 # before the include due to conditionals etc in `common.mk')
 #
+# NB: nhc98 seems to have problems with the import of boundsMA into DynArrays.
+#     So, exclude it for the meantime.
+#
 PACKAGE = base
 PCKNAME = ctk
 PART    = state
+ifeq ($(SYS),nhc1)
+SRCS	= CIO.hs State.hs StateBase.hs StateTrans.hs
+else
 SRCS	= CIO.hs DynArrays.hs State.hs StateBase.hs StateTrans.hs
+endif
 OBJS	= $(patsubst %.hs,%.o,$(SRCS))
 
 include ../../mk/common.mk

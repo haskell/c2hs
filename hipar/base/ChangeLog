@@ -1,3 +1,8 @@
+2002-09-06  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
+
+	* Makefile (OBJS): excluded state/DynArrays.o from the target
+	objects for nhc98 (as it chokes on that module)
+
 2002-05-16  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* changed name if base package to `ctk' to not clash with GHC's

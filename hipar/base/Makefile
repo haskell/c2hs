@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 25 July 1998
 #
-#  Version $Revision: 1.12 $ from $Date: 2002/05/16 07:49:19 $
+#  Version $Revision: 1.13 $ from $Date: 2002/09/06 06:33:52 $
 #
 #  Copyright (c) [1998..2002] Manuel M T Chakravarty
 #
@@ -43,8 +43,15 @@ include ../mk/common.mk
 # * don't include the files from sysdep/ as some are not used and those used 
 #   will be demanded anyway
 #
-OBJS=$(patsubst %.hs,%.o,\
-       $(wildcard $(addsuffix /*.hs,$(filter-out sysdep,$(BASEPARTS)))))
+OBJS:=$(patsubst %.hs,%.o,\
+        $(wildcard $(addsuffix /*.hs,$(filter-out sysdep,$(BASEPARTS)))))
+
+# NB: nhc98 seems to have problems with the import of boundsMA into DynArrays.
+#     So, exclude it for the meantime.
+#
+ifeq ($(SYS),nhc1)
+  OBJS:=$(shell echo $(filter-out state/DynArrays.o,$(OBJS)))
+endif
 
 # directories containing interface files that might be used here
 #
@@ -83,4 +90,5 @@ libctk.a: objs
 
 depend : gendepend
 clean  : recclean
+	-$(RM) libctk.a
 cleanhi: reccleanhi
