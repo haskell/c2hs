@@ -1,3 +1,10 @@
+2001-06-16  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): correctly uses a `FunPtr' for
+	pointers to functional types
+
+	* toplevel/Version.hs (versnum): 0.9.6
+
 2001-05-20  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenBind.hs (enumInst): Fix for avoiding warnings when

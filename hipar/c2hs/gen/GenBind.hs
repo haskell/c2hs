@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.28 $ from $Date: 2001/05/20 14:14:33 $
+--  Version $Revision: 1.29 $ from $Date: 2001/06/16 08:48:22 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -518,14 +518,20 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType pos) =
 	traceInfoCName "declaration" cNameFull
 	unless (isStar || isPtrDecl cdecl) $ 
 	  ptrExpectedErr (posOf cName)
-	hsType <- case oRefType of
-		    Nothing     -> do
-				     cDecl <- chaseDecl cNameFull (not isStar)
-				     et    <- extractPtrType cDecl
-				     return $ showExtType (adjustPtr isStar et)
-		    Just hsType -> return (identToLexeme hsType)
+	(hsType, isFun) <- 
+	  case oRefType of
+	    Nothing     -> do
+			     cDecl <- chaseDecl cNameFull (not isStar)
+			     et    <- extractPtrType cDecl
+			     let et' = adjustPtr isStar et
+			     return (showExtType et', isFunExtType et')
+	    Just hsType -> return (identToLexeme hsType, False)
+	    -- FIXME: it is not possible to determine whether `hsType'
+	    --   is a function; we would need to extend the syntax to
+	    --   allow `... -> fun HSTYPE' to explicitly mark function
+	    --   types if this ever becomes important
 	traceInfoHsType hsName hsType
-	pointerDef isStar cNameFull hsName ptrKind isNewtype hsType
+	pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun
       Right tag -> do			        -- found a tag definition
         let cNameFull = tagName tag
 	traceInfoCName "tag definition" cNameFull
@@ -535,7 +541,7 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType pos) =
 		       Nothing     -> "()"
 		       Just hsType -> identToLexeme hsType
 	traceInfoHsType hsName hsType
-	pointerDef isStar cNameFull hsName ptrKind isNewtype hsType
+	pointerDef isStar cNameFull hsName ptrKind isNewtype hsType False
   where
     -- remove a pointer level if the first argument is `False'
     --
@@ -803,9 +809,10 @@ pointerDef :: Bool		-- explicit `*' in pointer hook
 	   -> String		-- Haskell name
 	   -> CHSPtrType	-- kind of the pointer
 	   -> Bool		-- explicit newtype tag
-	   -> String		-- Haskell type expression of ptr argument
+	   -> String		-- Haskell type expression of pointer argument
+	   -> Bool		-- do we have a pointer to a function?
 	   -> GB String
-pointerDef isStar cNameFull hsName ptrKind isNewtype hsType =
+pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun =
   do
     keepOld <- getSwitch oldFFI
     let ptrArg  = if keepOld 
@@ -813,7 +820,10 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType =
 		  else if isNewtype 
 		  then hsName		-- abstract type
 		  else hsType		-- concrete type
-	ptrType = show ptrKind ++ " (" ++ ptrArg ++ ")"
+        ptrCon  = case ptrKind of
+		    CHSPtr | isFun -> "FunPtr"
+		    _              -> show ptrKind
+	ptrType = ptrCon ++ " (" ++ ptrArg ++ ")"
 	thePtr  = (isStar, cNameFull)
     case ptrKind of
       CHSForeignPtr -> thePtr `ptrMapsTo` (hsName, "Ptr (" ++ ptrArg ++ ")")
@@ -861,6 +871,12 @@ data ExtType = FunET     ExtType ExtType	-- function
 data CompType = ExtType  ExtType		-- external type
 	      | SUType	 CStructUnion		-- structure or union
 
+-- check whether an external type denotes a function type
+--
+isFunExtType             :: ExtType -> Bool
+isFunExtType (FunET _ _)  = True
+isFunExtType _            = False
+
 -- pretty print an external type
 --
 showExtType :: ExtType -> String
@@ -891,9 +907,8 @@ showExtType' b (FunET arg res)	   = maybeParen b FunBL $
 				       ++ showExtType' NoBL res
 showExtType' b (IOET t)		   = maybeParen b NameBL $ 
 				       "IO " ++ showExtType' NameBL t
-showExtType' b (PtrET t)	   = let ptrCon = case t of
-						    FunET _ _ -> "FunPtr"
-						    _	      -> "Ptr"
+showExtType' b (PtrET t)	   = let ptrCon = if isFunExtType t 
+						  then "FunPtr" else "Ptr"
 				     in
 				     maybeParen b NameBL $ 
 				       ptrCon ++ " " ++ showExtType' NameBL t
@@ -1209,9 +1224,10 @@ sizeAlignOf cdecl  =
       ExtType (FunET _ _        ) -> return (sizes!CFunPtrPT, 
 					     alignments!CFunPtrPT)
       ExtType (IOET  _          ) -> interr "GenBind.sizeof: Illegal IO type!"
-      ExtType (PtrET (FunET _ _)) -> return (sizes!CFunPtrPT, 
+      ExtType (PtrET t          ) 
+        | isFunExtType t          -> return (sizes!CFunPtrPT, 
 					     alignments!CFunPtrPT)
-      ExtType (PtrET _          ) -> return (sizes!CPtrPT, alignments!CPtrPT)
+        | otherwise		  -> return (sizes!CPtrPT, alignments!CPtrPT)
       ExtType (DefinedET decl _ ) -> sizeAlignOf decl
       ExtType (PrimET pt        ) -> return (sizes!pt, alignments!pt)
       ExtType UnitET              -> voidFieldErr (posOf cdecl)

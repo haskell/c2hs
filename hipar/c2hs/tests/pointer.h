@@ -17,5 +17,6 @@ Point *make_point (int x, int y);
 
 Point *trans_point (Point *pnt, int x, int y);
 
+typedef void (*FunPtrFun) (void *data);
 
 #endif /* !_POINTER_H */

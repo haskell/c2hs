@@ -30,4 +30,7 @@ transCPoint pnt x y = do
   ptr <- {#call unsafe trans_point#} pnt (cIntConv x) (cIntConv y)
   newForeignPtr ptr (free ptr)
 
+-- test function pointers
+{#pointer FunPtrFun#}
+
 main = print 42

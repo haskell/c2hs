@@ -4,11 +4,11 @@ where
 -- version number is major.minor.patchlvl; don't change the format of the
 -- `versnum' line as it is `grep'ed for by a Makefile
 --
-idstr      = "$Id: Version.hs,v 1.42 2001/05/20 14:14:34 chak Exp $"
+idstr      = "$Id: Version.hs,v 1.43 2001/06/16 08:48:23 chak Exp $"
 name       = "C->Haskell Compiler"
-versnum    = "0.9.5"
+versnum    = "0.9.6"
 versnick   = "\"Blue Ginger\""
-date	   = "14 May 2001"
+date	   = "16 Jun 2001"
 version    = name ++ ", version " ++ versnum ++ " " ++ versnick ++ ", " ++ date
 copyright  = "Copyright (c) [1999..2001] Manuel M. T. Chakravarty"
 disclaimer = "This software is distributed under the \

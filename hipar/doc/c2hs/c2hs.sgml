@@ -7,7 +7,7 @@
 
 <title>The Binding Generator C->Haskell
 <author>Manuel M. T. Chakravarty, <tt/chak@cse.unsw.edu.au/
-<date>v0.5, 3 May 2001
+<date>v0.6, 16 June 2001
 <abstract>
 C-&gt;Haskell is an interface generator that simplifies the development of
 <htmlurl url="http://haskell.org" name="Haskell"> bindings to C libraries.  The
@@ -19,10 +19,7 @@ by the interfacing tool in dependence on information from the corresponding C
 header file.  Another noteworthy property is the lightweight nature of the
 approach.
 
-This first version of the tutorial merely describes the installation and use
-of the tool, but it does not detail the structure of Haskell binding modules.
-However, a discussion of binding modules, the principles behind the tool, and
-a discussion of related work can be found in a research paper discussing
+More background information is available in a research paper discussing
 C-&gt;Haskell, which is at
 <url url="http://www.cse.unsw.edu.au/~chak/papers/papers.html#c2hs">.
 </abstract>
@@ -121,17 +118,21 @@ The executable <tt/c2hs/ has a couple more options:
 <tscreen><verb>
 Usage: c2hs [ option... ] header-file binding-file
 
-  -C CPPOPTS  --cppopts=CPPOPTS  pass CPPOPTS to the C preprocessor         
-  -c CPP      --cpp=CPP          use executable CPP to invoke C preprocessor
-  -d TYPE     --dump=TYPE        dump internal information (for debugging)  
-  -h, -?      --help             brief help (the present message)           
-  -k          --keep             keep pre-processed C header                
-  -o FILE     --output=FILE      output result to FILE (should end in .hs)  
-  -v          --version          show version information                   
+  -C CPPOPTS  --cppopts=CPPOPTS   pass CPPOPTS to the C preprocessor         
+  -c CPP      --cpp=CPP           use executable CPP to invoke C preprocessor
+  -d TYPE     --dump=TYPE         dump internal information (for debugging)  
+  -h, -?      --help              brief help (the present message)           
+  -i INCLUDE  --include=INCLUDE   include paths for .chi files               
+  -k          --keep              keep pre-processed C header                
+  -o FILE     --output=FILE       output result to FILE (should end in .hs)  
+  -v          --version           show version information                   
+              --old-ffi[=OLDFFI]  use the FFI without `Ptr a'                
 
 The header file must be a C header file matching the given binding file.
 The dump TYPE can be
   trace   -- trace compiler phases
+  genbind -- trace binding generation
+  ctrav   -- trace C declaration traversal
   chs     -- dump the binding file (adds `.dump' to the name)
 </verb></tscreen>
 <p>
@@ -145,8 +146,8 @@ this:
 </quote>
 <p>
 Do not forget the quotes if you have more than one option that you want to
-give to the pre-processor.
-
+pass to the pre-processor.
+<p>
 Often, <em/lib/<tt/.h/ will not be in the current directory, but in one of the
 header file directories.  Apart from the current directory, C-&gt;Haskell
 looks in two places for the header: first, in the standard include directory
@@ -154,18 +155,26 @@ of the used system, this is usually <tt>/usr/include</tt> and
 <tt>/usr/local/include</tt>; and second, it will look in every directory that
 is mentioned in a <tt/-IDIR/ option passed to the pre-processor via
 <tt/--cppopts/. 
+<p>
+If the compiled binding module contains import hooks, C-&gt;Haskell needs to
+find the <tt/.chi/ (C-&gt;Haskell interface files) produced while compiling
+the corresponding binding modules.  By default, they will be searched for in
+the current working directory.  If they are located elsewhere, the
+<tt/--include=INCLUDE/ option has to be used to indicate the location, where
+<tt/INCLUDE/ is a colon-separated list of directories.  Multiple such options
+are admissible.  Later paths are searched first.
 
 <sect1>Compilation of a Generated Haskell API
 <p>
-C-&gt;Haskell comes with a powerful marshalling library, called <tt/C2HS/,
-which is imported by virtually all library bindings.  Consequently, you will
-have to tell the Haskell compiler where to find the interface files when you
-compile a generated interface and you have to tell the linker where to find
-the library archive of <tt/C2HS/.  To simplify this usually operating and
-compilation system-dependent process, C-&gt;Haskell comes with a simple
-configuration manager, in the form of the executable <tt/c2hs-conf/.  It can
-be used to inquire information for compilation and linking and pass that
-information on to the Haskell compiler.  The call
+C-&gt;Haskell comes with a marshalling library, called <tt/C2HS/, which is
+imported by virtually all library bindings.  Consequently, you will have to
+tell the Haskell compiler where to find the interface files when you compile a
+generated interface and you have to tell the linker where to find the library
+archive of <tt/C2HS/.  To simplify this usually operating and compilation
+system-dependent process, C-&gt;Haskell comes with a simple configuration
+manager, in the form of the executable <tt/c2hs-conf/.  It can be used to
+inquire information for compilation and linking and pass that information on
+to the Haskell compiler.  The call
 <p>
 <tscreen>
 c2hs-config --cflags
@@ -241,6 +250,11 @@ tool to read the file <it/modid/<tt/.chi/.
 If an explicit output file name is given (<tt/--output/ option), this name
 determines the basename for the <tt/.chi/ file of the currently translated
 module. 
+<p>
+Currently, only pointer hooks generate information that is stored in a
+<tt/.chi/ file and needs to be incorporated into any client module that makes
+use of these pointer types.  It is, however, regarded as good style to use
+import hooks for any module generated by C-&gt;Haskell.
 
 <sect1>Context Hooks
 <p>

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Derived: 12 August 99
 --
---  Version $Revision: 1.15 $ from $Date: 2001/05/20 14:14:33 $
+--  Version $Revision: 1.16 $ from $Date: 2001/06/16 08:48:23 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -44,7 +44,8 @@
 --  .h   C header file
 --  .i   pre-processeed C header file
 --  .hs	 Haskell file
---  .chs Haskell file with Haskell->C hooks (binding file)
+--  .chs Haskell file with C->Haskell hooks (binding file)
+--  .chi C->Haskell interface file
 --
 --  Options:
 --  --------
@@ -76,13 +77,14 @@
 --        Dump brief usage information to stderr.
 --
 --  -i DIRS
+--  --include=DIRS
 --        Search the colon separated list of directories DIRS when searching
 --	  for .chi files.
 --
 --  -k
 --  --keep
 --        Keep the intermediate file that contains the pre-processed C header
---        (it end with `.i').
+--        (it carries the suffix `.i').
 --
 --  -o FILE
 --  --output=FILE
@@ -154,6 +156,8 @@ trailer    = "\n\
 	     \binding file.\n\
 	     \The dump TYPE can be\n\
 	     \  trace   -- trace compiler phases\n\
+	     \  genbind -- trace binding generation\n\
+	     \  ctrav   -- trace C declaration traversal\n\
 	     \  chs     -- dump the binding file (adds `.dump' to the name)\n"
 errTrailer = "Try the option `--help' on its own for more information.\n"
 
@@ -408,14 +412,14 @@ setKeep  = setSwitch $ \sb -> sb {keepSB = True}
 setInclude :: String -> CST s ()
 setInclude str = do
   let fp = makePath str ""
-  setSwitch $ \sb -> sb { chiPathSB = fp++(chiPathSB sb) }
+  setSwitch $ \sb -> sb {chiPathSB = fp ++ (chiPathSB sb)}
   where
-    makePath ('\\':r:em)   path = makePath em (path++['\\',r])
+    makePath ('\\':r:em)   path = makePath em (path ++ ['\\',r])
     makePath (' ':rem)	   path = makePath rem path
     makePath (':':rem)     ""   = makePath rem ""
-    makePath (':':rem)	   path = path:makePath rem ""
-    makePath ('/':':':rem) path = path:makePath rem ""
-    makePath (r:emain)	   path = makePath emain (path++[r])
+    makePath (':':rem)	   path = path : makePath rem ""
+    makePath ('/':':':rem) path = path : makePath rem ""
+    makePath (r:emain)	   path = makePath emain (path ++ [r])
     makePath ""		   ""   = []
     makePath ""		   path = [path]
 
