@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.44 $ from $Date: 2002/02/23 12:32:54 $
+--  Version $Revision: 1.45 $ from $Date: 2002/02/25 06:19:56 $
 --
 --  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
@@ -704,13 +704,17 @@ funDef isPure hsLexeme fiLexeme cdecl octxt parms parm pos =
       let
         ctxt   = case octxt of
 	           Nothing      -> ""
-		   Just ctxtStr -> ctxtStr ++ "=> "
+		   Just ctxtStr -> ctxtStr ++ " => "
 	argTys = [ty | CHSParm im ty _ _  _ <- parms     , notVoid im]
         resTys = [ty | CHSParm _  ty _ om _ <- parm:parms, notVoid om]
-        resTup = (if isPure then "" else "IO ") ++
-	         (if length resTys == 1 
-		  then head resTys 
-		  else "(" ++ concat (intersperse ", " resTys) ++ ")")
+        resTup = let
+		   (lp, rp) = if isPure && length resTys == 1 
+			      then ("", "") 
+			      else ("(", ")") 
+		   io       = if isPure then "" else "IO "
+		 in
+		 io ++ lp ++ concat (intersperse ", " resTys) ++ rp
+		 
       in
       ctxt ++ concat (intersperse " -> " (argTys ++ [resTup]))
       where

@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.14 $ from $Date: 2002/02/13 10:17:43 $
+#  Version $Revision: 1.15 $ from $Date: 2002/02/25 06:19:55 $
 #
 #  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
@@ -87,8 +87,8 @@ install: all
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(bindir)
 	$(INSTALL) -s c2hs $(DESTDIR)$(bindir)/c2hs
 	$(INSTALL_PROGRAM) c2hs-config $(DESTDIR)$(bindir)/c2hs-config
-	$(INSTALL_DATA) c2hs.conf $(DESTDIR)$(pkglibdir)/c2hs.conf
 	$(INSTALL) -d $(DESTDIR)$(pkglibdir)
+	$(INSTALL_DATA) c2hs.conf $(DESTDIR)$(pkglibdir)/c2hs.conf
 	$(INSTALL_DATA) lib/libc2hs.a $(DESTDIR)$(pkglibdir)/libc2hs.a
 	$(INSTALL) -d $(DESTDIR)$(pkgimportdir)
 	@for hi in lib/*.hi; do\

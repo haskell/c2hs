@@ -1,3 +1,14 @@
+2002-02-25  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs: debugging
+
+2002-02-24  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs (parseOptAs): `^' as synonym for previous identifier,
+	but with underscores rewritten to caps
+
+	* chs/CHSLexer.hs: added `CHSTokHat'
+
 2002-02-23  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* lib/C2HSMarsh.hs: added some more convenience functions

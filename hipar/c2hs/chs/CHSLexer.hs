@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 13 August 99
 --
---  Version $Revision: 1.14 $ from $Date: 2002/02/23 10:51:54 $
+--  Version $Revision: 1.15 $ from $Date: 2002/02/25 06:19:56 $
 --
 --  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
@@ -81,7 +81,7 @@
 --		     | `sizeof' | `stable' | `type' | `underscoreToCase' 
 --		     | `unsafe' | `with'
 --      reservedsym -> `{#' | `#}' | `{' | `}' | `,' | `.' | `->' | `=' 
---		     | `=>' | '-' | `*' | `&'
+--		     | `=>' | '-' | `*' | `&' | `^'
 --      string      -> `"' instr* `"'
 --      verbhs      -> `\`' instr* `\''
 --      instr       -> ` '..`\127' \\ `"'
@@ -153,6 +153,7 @@ data CHSToken = CHSTokArrow   Position		-- `->'
 	      | CHSTokMinus   Position		-- `-'
 	      | CHSTokStar    Position		-- `*'
 	      | CHSTokAmp     Position		-- `&'
+	      | CHSTokHat     Position		-- `^'
 	      | CHSTokLBrace  Position		-- `{'
 	      | CHSTokRBrace  Position		-- `}'
 	      | CHSTokLParen  Position		-- `('
@@ -197,6 +198,7 @@ instance Pos CHSToken where
   posOf (CHSTokMinus   pos  ) = pos
   posOf (CHSTokStar    pos  ) = pos
   posOf (CHSTokAmp     pos  ) = pos
+  posOf (CHSTokHat     pos  ) = pos
   posOf (CHSTokLBrace  pos  ) = pos
   posOf (CHSTokRBrace  pos  ) = pos
   posOf (CHSTokLParen  pos  ) = pos
@@ -241,6 +243,7 @@ instance Eq CHSToken where
   (CHSTokMinus    _  ) == (CHSTokMinus    _  ) = True
   (CHSTokStar     _  ) == (CHSTokStar     _  ) = True
   (CHSTokAmp      _  ) == (CHSTokAmp      _  ) = True
+  (CHSTokHat      _  ) == (CHSTokHat      _  ) = True
   (CHSTokLBrace   _  ) == (CHSTokLBrace   _  ) = True
   (CHSTokRBrace   _  ) == (CHSTokRBrace   _  ) = True
   (CHSTokLParen   _  ) == (CHSTokLParen   _  ) = True
@@ -286,6 +289,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokMinus   _  ) = showString "-"
   showsPrec _ (CHSTokStar    _  ) = showString "*"
   showsPrec _ (CHSTokAmp     _  ) = showString "&"
+  showsPrec _ (CHSTokHat     _  ) = showString "^"
   showsPrec _ (CHSTokLBrace  _  ) = showString "{"
   showsPrec _ (CHSTokRBrace  _  ) = showString "}"
   showsPrec _ (CHSTokLParen  _  ) = showString "("
@@ -575,6 +579,7 @@ symbol  =      sym "->" CHSTokArrow
 	  >||< sym "-"  CHSTokMinus
 	  >||< sym "*"  CHSTokStar
 	  >||< sym "&"  CHSTokAmp
+	  >||< sym "^"  CHSTokHat
 	  >||< sym "{"  CHSTokLBrace
 	  >||< sym "}"  CHSTokRBrace
 	  >||< sym "("  CHSTokLParen

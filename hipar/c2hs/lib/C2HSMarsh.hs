@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 12 October 99
 --
---  Version $Revision: 1.20 $ from $Date: 2002/02/23 12:32:54 $
+--  Version $Revision: 1.21 $ from $Date: 2002/02/25 06:19:56 $
 --
 --  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
@@ -56,7 +56,7 @@ import MarshalUtils (withObject, new, fromBool, toBool)
 import CString      (withCStringLen, peekCStringLen)
 
 -- friends
-import C2HSBase     (cIntConv, cFloatConv)
+import C2HSBase     (cIntConv, cFloatConv, cFromEnum, cToEnum)
 
 
 -- composite marshalling functions
@@ -100,10 +100,10 @@ peekBool  = liftM toBool . peek
 --
 
 withEnum :: (Enum a, Integral b, Storable b) => a -> (Ptr b -> IO c) -> IO c
-withEnum  = withObject . cIntConv . fromEnum
+withEnum  = withObject . cFromEnum
 
 peekEnum :: (Enum a, Integral b, Storable b) => Ptr b -> IO a
-peekEnum  = liftM (toEnum . cIntConv) . peek
+peekEnum  = liftM cToEnum . peek
 
 
 -- storing of `Maybe' values

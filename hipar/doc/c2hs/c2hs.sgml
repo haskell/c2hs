@@ -7,7 +7,7 @@
 
 <title>The Binding Generator C->Haskell
 <author>Manuel M. T. Chakravarty, <tt/chak@cse.unsw.edu.au/
-<date>v0.9, 15 January 2002
+<date>v0.10, 25 February 2002
 <abstract>
 C-&gt;Haskell is an interface generator that simplifies the development of
 <htmlurl url="http://haskell.org" name="Haskell"> bindings to C libraries.  The
@@ -29,7 +29,7 @@ C-&gt;Haskell, which is at
 <p>
 <bf>Copyright &amp; Distribution</bf>
 <p>
-Copyright (c) [1999..2001] by <htmlurl
+Copyright (c) [1999..2002] by <htmlurl
 url="http://www.cse.unsw.edu.au/~chak/" name="Manuel M. T. Chakravarty">.  
 The manual is distributed under the terms GNU Free Documentation License
 available from
@@ -107,7 +107,7 @@ installation by invoking
 <p>
 <tscreen><verb>
 c2hs-conf --package-conf | ghc-pkg --add-package
-</verb/</tscreen>
+</verb></tscreen>
 
 <sect>Usage of C-&gt;Haskell
 <p>
@@ -379,7 +379,7 @@ implemented yet.
 <sect1>Call Hooks
 <p>
 <tscreen>
-{#call [pure] [unsafe] <it/cid/ [as <it/hsid/]#}
+{#call [pure] [unsafe] <it/cid/ [as (<it/hsid/ | ^)]#}
 </tscreen>
 <p>
 A call hook rewrites to a call to the C function <it/cid/ and also ensures
@@ -387,13 +387,118 @@ that the appropriate foreign import declaration is generated.  The tags
 <tt/pure/ and <tt/unsafe/ specify that the external function is purely
 functional and cannot re-enter the Haskell runtime, respectively.  If
 <it/hsid/ is present, it is used as the identifier for the foreign
-declaration, which otherwise defaults to the <it/cid/.
+declaration, which otherwise defaults to the <it/cid/.  When instead of
+<it/hsid/, the symbol <tt/^/ is given, the <it/cid/ after conversion from C's
+underscore notation to a capitalised identifier is used.
 <p>
 As an example, consider
 <p>
 <tscreen><verb>
 sin :: Float -> Float
 sin  = {#call pure sin as "_sin"#}
+</verb></tscreen>
+
+<sect1>Function Hooks
+<p>
+<tscreen>
+{#fun  [pure] [unsafe] <it/cid/ [as (<it/hsid/ | ^)]
+[<it/ctxt/ =>] { <it/parm1/ , ... , <it/parmn/ } -> <it/parm/
+</tscreen>
+<p>
+Function hooks are call hooks including parameter marshalling.  Thus, the
+components of a function hook up to and including the <tt/as/ alias are the
+same as for call hooks.  The remaining components use literals enclosed in
+backwards and foward single quotes (<tt/`/ and <tt/'/) to denote Haskell code
+fragments (or more precisely, parts of the Haskell type signature for the
+bound function).  The first one is the phrase <it/ctxt/ preceding <tt/=>/,
+which denotes the type context.  This is followed by zero or more type and
+marshalling specifications <it/parm1/ to <it/parmn/ for the function arguments
+and one <it/parm/ for the function result.  Each such specification <it/parm/
+has the form
+<p>
+<tscreen>
+[<it/inmarsh/ [* | -]] <it/hsty/ [&] [<it/outmarsh/ [* | -]]
+</tscreen>
+<p>
+where <it/hsty/ is a Haskell code fragment denoting a Haskell type.  The
+optional information to the left and right of this type determines the
+marshalliung of the corresponding Haskell value to and from C; they are called
+the <em/in/ and <em/out/ marshaller, respectively.
+<p>
+Each marshalling specification <it/parm/ corresponds to one or two arguments
+of the C function, in the order in which they are given.  A marshalling
+specification in which the symbol <tt/&/ follows the Haskell type corresponds
+to two C function arguments; otherwise, it corresponds only to one argument.
+The <it/parm/ following the left arrow <tt/->/ determines the marshalling of
+the result of the C function and may not contain the symbol <tt/&/.
+<p>
+Both <it/inmarsh/ and <it/outmarsh/ are identifiers of Haskell marshalling
+functions.  By default they are assumed to be pure functions; if they have to
+be executed in the <tt/IO/ monad, the function name needs to be followed by a
+star symbol <tt/*/.  Alternatively, the identifier may be followed by a minux
+sign <tt/-/, in which case the Haskell type does <em/not/ appear as an
+argument (in marshaller) or result (out marshaller) of the generated Haskell
+function.  In other words, the argument types of the Haskell function is
+determined by the set of all marshalling specifications where the in
+marshaller is not followed by a minus sign.  Conversely, the result tuple of
+the Haskell function is determined by the set of all marshalling
+specifications where the out marshaller is not followed by a minus sign.  The
+order of function arguments and components in the result tuple is the same as
+the order in which the marshalling specifications are given, with the exception
+that the value of the result marshaller is always the first component in the
+result tuple if it is included at all.
+<p>
+For a set of commonly occuring Haskell and C type combinations, <em/default
+marshallers/ are provided by C-&gt;Haskell if no explicit marshaller is
+given.   The out marshaller for function arguments is by default <tt/void-/.
+The defaults for the in marshallers for function arguments are as follows:
+<itemize>
+<item><tt/Bool/ and integral C type: <tt/cFromBool/
+<item>Integral Haskell and integral C type: <tt/cIntConv/
+<item>Floating Haskell and floating C type: <tt/cFloatConv/
+<item><tt/String/ and <tt/char*/: <tt/withCString*/
+<item><tt/String/ and <tt/char*/ with explicit length: <tt/withCStringLen*/
+<item><it/T/ and <it/T/<tt/*/: <tt/with*/
+<item><it/T/ and <it/T/<tt/*/ where <it/T/ is an integral type:
+<tt/withIntConv*/ 
+<item><it/T/ and <it/T/<tt/*/ where <it/T/ is a floating type:
+<tt/withFloatConv*/
+<item><tt/Bool/ and <it/T/<tt/*/ where <it/T/ is an integral type:
+<tt/withFromBool*/
+</itemize>
+<p>
+The defaults for the out marshaller of the result are the converse of the
+above; i.e., instead of the <tt/with/ functions, the corresponding <tt/peek/
+functions are used.  Moreover, when the Haskell type is <tt/()/, the default
+marshaller is <tt/void-/.
+<p>
+As an example, consider
+<p>
+<tscreen><verb>
+{#fun notebook_query_tab_label_packing as ^
+  `(NotebookClass nb, WidgetClass cld)' => 
+  {notebook `nb'                , 
+   widget   `cld'               , 
+   alloca-  `Bool'     peekBool*, 
+   alloca-  `Bool'     peekBool*,
+   alloca-  `PackType' peekEnum*} -> `()'#}
+</verb></tscreen>
+<p>
+which results in the Haskell type signature
+<p>
+<tscreen><verb>
+notebookQueryTabLabelPacking :: (NotebookClass nb, WidgetClass cld)
+			     => nb -> cld -> IO (Bool, Bool, PackType)
+</verb></tscreen>
+<p>
+which binds the following C function:
+<p>
+<tscreen><verb>
+void gtk_notebook_query_tab_label_packing (GtkNotebook *notebook,
+					   GtkWidget   *child,
+					   gboolean    *expand,
+					   gboolean    *fill,
+					   GtkPackType *pack_type);
 </verb></tscreen>
 
 <sect1>Get Hooks
@@ -586,15 +691,18 @@ inner    -> `import' ['qualified'] ident
           | `sizeof' ident
           | `enum' idalias trans [`with' prefix] [deriving]
           | `call' [`pure'] [`unsafe'] idalias
+	  | `fun' [`pure'] [`unsafe'] idalias parms
           | `get' apath
           | `set' apath
           | `pointer' ['*'] idalias ptrkind
           | `class' [ident `=>'] ident ident
 
 ctxt     -> [`header' `=' string] [`lib' `=' string] [prefix]
-idalias  -> ident [`as' ident]
+idalias  -> ident [(`as' ident | `^')]
 prefix   -> `prefix' `=' string
 deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
+parms    -> [verbhs `=>'] `{' parm_1 `,' ... `,' parm_n `}' `->' parm
+parm     -> [ident_1 [`*' | `-']] verbhs [`&'] [ident_2 [`*' | `-']]
 apath    -> ident
           | `*' apath
           | apath `.' ident
@@ -691,6 +799,9 @@ documented in the following.
 <sect1>Version 0.10.8 "Altocumulus Stratiformis Perlucidus Undulatus"
 <p>
 <itemize>
+<item>Added <tt/fun/ hooks
+<item><tt/as/ aliases can use <tt/^/ convert the orignal identifier with
+underscore2case
 <item>In call hooks, the attributes `fun' was replaced by `pure' (`fun' is
 will still be recognised for a while to ensure backwards compatibility, but
 it's use is deprecated)

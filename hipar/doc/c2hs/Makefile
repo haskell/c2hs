@@ -1,11 +1,11 @@
 #  C->Haskell Compiler: documentation makefile
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Created: 30 October 1999
 #
-#  Version $Revision: 1.6 $ from $Date: 2002/01/15 07:56:39 $
+#  Version $Revision: 1.7 $ from $Date: 2002/02/25 06:19:56 $
 #
-#  Copyright (c) 1999 Manuel M. T. Chakravarty
+#  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -28,9 +28,9 @@ default: all
 
 # slurp in the common definitions (the TOP definition is not nice yet)
 #
-TOP=../..
+TOP=../../..
 
-include $(TOP)/mk/config.mk $(TOP)/mk/c2hs.mk
+include $(TOP)/mk/config.mk $(TOP)/c2hs/mk/c2hs.pck.mk
 
 # man pages in `man1' subdirectory
 #

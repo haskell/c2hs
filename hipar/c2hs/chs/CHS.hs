@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 16 August 99
 --
---  Version $Revision: 1.19 $ from $Date: 2002/02/23 10:51:54 $
+--  Version $Revision: 1.20 $ from $Date: 2002/02/25 06:19:56 $
 --
 --  Copyright (c) [1999..2002] Manuel M T Chakravarty
 --
@@ -61,7 +61,7 @@
 --	      | `pointer' ['*'] idalias ptrkind
 --	      | `class' [ident `=>'] ident ident
 --  ctxt     -> [`header' `=' string] [`lib' `=' string] [prefix]
---  idalias  -> ident [`as' ident]
+--  idalias  -> ident [`as' (ident | `^')]
 --  prefix   -> `prefix' `=' string
 --  deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
 --  parms    -> [verbhs `=>'] `{' parm_1 `,' ... `,' parm_n `}' `->' parm
@@ -92,17 +92,22 @@ module CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..), CHSParm(..),
 	    chisuffix, showCHSParm)
 where 
 
-import Char	 (isSpace)
+-- standard libraries
+import Char	 (isSpace, toUpper, toLower)
 import List	 (intersperse)
 import Monad	 (when)
 
+-- Compiler Toolkit
 import Common    (Position, Pos(posOf), nopos)
 import Errors	 (interr)
-import Idents    (Ident, identToLexeme)
+import Idents    (Ident, identToLexeme, onlyPosIdent)
 
+-- C->Haskell
 import C2HSState (CST, doesFileExistCIO, readFileCIO, writeFileCIO, getId, 
 		  getSwitch, chiPathSB, catchExc, throwExc, raiseError, 
 		  fatal, errorsPresent, showErrors, Traces(..), putTraceStr) 
+
+-- friends
 import CHSLexer  (CHSToken(..), lexCHS)
 
 
@@ -702,7 +707,7 @@ parseSizeof _ toks = syntaxError toks
 parseEnum :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseEnum pos (CHSTokIdent _ ide:toks) =
   do
-    (oalias, toks' )   <- parseOptAs          toks
+    (oalias, toks' )   <- parseOptAs ide True toks
     (trans , toks'')   <- parseTrans          toks'
     (oprefix, toks''') <- parseOptPrefix True toks''
     (derive, toks'''') <- parseDerive	      toks'''
@@ -718,27 +723,27 @@ parseEnum _ toks = syntaxError toks
 parseCall          :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseCall pos toks  = 
   do
-    (isPure  , toks'   ) <- parseIsPure   toks
-    (isUnsafe, toks''  ) <- parseIsUnsafe toks'
-    (ide     , toks''' ) <- parseIdent    toks''
-    (oalias  , toks'''') <- parseOptAs    toks'''
-    toks'''''		 <- parseEndHook  toks''''
-    frags                <- parseFrags    toks'''''
+    (isPure  , toks'   ) <- parseIsPure          toks
+    (isUnsafe, toks''  ) <- parseIsUnsafe        toks'
+    (ide     , toks''' ) <- parseIdent           toks''
+    (oalias  , toks'''') <- parseOptAs ide False toks'''
+    toks'''''		 <- parseEndHook	 toks''''
+    frags                <- parseFrags		 toks'''''
     return $ 
       CHSHook (CHSCall isPure isUnsafe ide (norm ide oalias) pos) : frags
 
 parseFun          :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseFun pos toks  = 
   do
-    (isPure  , toks' ) <- parseIsPure     toks
-    (isUnsafe, toks'2) <- parseIsUnsafe   toks'
-    (ide     , toks'3) <- parseIdent      toks'2
-    (oalias  , toks'4) <- parseOptAs      toks'3
-    (octxt   , toks'5) <- parseOptContext toks'4
-    (parms   , toks'6) <- parseParms      toks'5
-    (parm    , toks'7) <- parseParm       toks'6
-    toks'8	       <- parseEndHook    toks'7
-    frags              <- parseFrags      toks'8
+    (isPure  , toks' ) <- parseIsPure          toks
+    (isUnsafe, toks'2) <- parseIsUnsafe        toks'
+    (ide     , toks'3) <- parseIdent           toks'2
+    (oalias  , toks'4) <- parseOptAs ide False toks'3
+    (octxt   , toks'5) <- parseOptContext      toks'4
+    (parms   , toks'6) <- parseParms	       toks'5
+    (parm    , toks'7) <- parseParm	       toks'6
+    toks'8	       <- parseEndHook	       toks'7
+    frags              <- parseFrags	       toks'8
     return $ 
       CHSHook 
         (CHSFun isPure isUnsafe ide (norm ide oalias) octxt parms parm pos) :
@@ -761,7 +766,9 @@ parseFun pos toks  =
       (parm , toks' ) <- parseParm   toks
       (parms, toks'') <- parseParms' toks'
       return (parm:parms, toks'')
-    parseParms' toks		                    = syntaxError toks
+    parseParms' (CHSTokRBrace _              :toks) = syntaxError toks
+      -- gives better error messages
+    parseParms'				      toks  = syntaxError toks
 
 parseIsPure :: [CHSToken] -> CST s (Bool, [CHSToken])
 parseIsPure (CHSTokPure _:toks) = return (True , toks)
@@ -817,8 +824,8 @@ parsePointer pos toks =
 	CHSTokStar _:CHSTokIdent _ ide:toks' -> return (True , ide, toks')
 	CHSTokIdent _ ide             :toks' -> return (False, ide, toks')
 	_				     -> syntaxError toks
-    (oalias , toks'2)             <- parseOptAs   toks'
-    (ptrType, toks'3)             <- parsePtrType toks'2
+    (oalias , toks'2)             <- parseOptAs ide True toks'
+    (ptrType, toks'3)             <- parsePtrType        toks'2
     let 
      (isNewtype, oRefType, toks'4) =
       case toks'3 of
@@ -890,11 +897,37 @@ parseOptPrefix _     (CHSTokWith   _:toks) = syntaxError toks
 parseOptPrefix _     (CHSTokPrefix _:toks) = syntaxError toks
 parseOptPrefix _     toks		   = return (Nothing, toks)
 
-parseOptAs :: [CHSToken] -> CST s (Maybe Ident, [CHSToken])
-parseOptAs (CHSTokAs _:CHSTokIdent _ ide:toks) = return (Just ide, toks)
-parseOptAs (CHSTokAs _:toks		     ) = syntaxError toks
-parseOptAs  toks			       = return (Nothing, toks)
+-- first argument is the identifier that is to be used when `^' is given and
+-- the second indicates whether the first characters has to be upper case
+--
+parseOptAs :: Ident -> Bool -> [CHSToken] -> CST s (Maybe Ident, [CHSToken])
+parseOptAs _   _     (CHSTokAs _:CHSTokIdent _ ide:toks) = 
+  return (Just ide, toks)
+parseOptAs ide upper (CHSTokAs _:CHSTokHat pos    :toks) = 
+  return (Just $ underscoreToCase ide upper pos, toks)
+parseOptAs _   _     (CHSTokAs _                  :toks) = syntaxError toks
+parseOptAs _   _				   toks	 = 
+  return (Nothing, toks)
 
+-- convert C style identifier to Haskell style identifier
+--
+underscoreToCase               :: Ident -> Bool -> Position -> Ident
+underscoreToCase ide upper pos  = 
+  let lexeme = identToLexeme ide
+      ps     = filter (not . null) . parts $ lexeme
+  in
+  onlyPosIdent pos . adjustHead . concat . map adjustCase $ ps
+  where
+    parts s = let (l, s') = break (== '_') s
+  	    in  
+  	    l : case s' of
+  		  []      -> []
+  		  (_:s'') -> parts s''
+    --    
+    adjustCase (c:cs) = toUpper c : map toLower cs
+    --
+    adjustHead ""     = ""
+    adjustHead (c:cs) = if upper then toUpper c : cs else toLower c:cs
 
 -- this is disambiguated and left factored
 --
