@@ -4,6 +4,16 @@
 
 Next: -= phase re-ordering & parser clean up =-
 
+      - Bug?  Can't c2hs handle having the same name for a struct and a
+        typedef'd name?  Eg, like here
+
+	  typedef struct CORBA_sequence_TaggedComponent {
+		  CORBA_unsigned_long _maximum;
+		  CORBA_unsigned_long _length;
+		  IOP_TaggedComponent *_buffer;
+	  } CORBA_sequence_TaggedComponent;
+
+	  typedef struct CORBA_sequence_TaggedComponent IOP_MultipleComponentProfile;
       - Check with glib.h (see michaelz's bug report)
       - {#enum ...#} should create an instance of Storable as follows:
 	  instance Storable MyEnum where

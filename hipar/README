@@ -1,6 +1,6 @@
 			       Compiler Toolkit                      -*-text-*-
 			       ~~~~~~~~~~~~~~~~
-                       (maybe PART of a full compiler)
+                       (maybe as PART of a full compiler)
 
 The Compiler Toolkit is a support library for compilers in Haskell.  You may
 have obtained it as part of a compiler using the library.  See also

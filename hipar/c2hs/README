@@ -74,6 +74,7 @@ NOTE: HOWEVER, all runtime system code - ie, code required by the output
 Author & maintainer: Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
 
 With comments and suggestions from Sven Panne
-<Sven.Panne@informatik.uni-muenchen.de>, and contributions from
-Michael Weber <michael.weber@Post.RWTH-Aachen.DE> and Axel Simon
+<Sven.Panne@informatik.uni-muenchen.de> and Simon Marlow
+<simonmar@microsoft.com>, and contributions from Michael Weber
+<michael.weber@Post.RWTH-Aachen.DE> and Axel Simon
 <simona@pool.Informatik.rwth-aachen.de>.  Thanks guys!

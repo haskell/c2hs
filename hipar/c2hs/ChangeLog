@@ -1,3 +1,9 @@
+2001-02-11  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* releasing version 0.8.1 "Gentle Moon"
+	* ../doc/c2hs/: Documentation updated & added the Haskell FFI
+	Marshalling Library specification
+
 2001-02-09  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* lib/Makefile: Debugging for 4.11

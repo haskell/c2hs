@@ -1,7 +1,4 @@
--- This code was taken from `MarshalAlloc.lhs' and `PrelMarshalAlloc.lhs' of
--- the fptools repository.
---
--- (c) The FFI task force, 2000
+-- (c) The FFI task force, [2000..2001]
 --
 -- Marshalling support: basic routines for memory allocation
 
@@ -17,13 +14,11 @@ module MarshalAlloc (
   free          -- :: Ptr a -> IO ()
 ) where
 
-import IO           (bracket)
+import IO        (bracket)
 
-import Ptr	    (Ptr, nullPtr)
-import NewStorable  (Storable(sizeOf))
-import CTypesISO    (CSize)
-
---import PrelIOBase hiding (malloc, _malloc)
+import Ptr	 (Ptr, nullPtr)
+import Storable  (Storable(sizeOf))
+import CTypesISO (CSize)
 
 
 -- exported functions
@@ -85,9 +80,7 @@ failWhenNULL :: String -> IO (Ptr a) -> IO (Ptr a)
 failWhenNULL name f = do
    addr <- f
    if addr == nullPtr
---      then ioException (IOError Nothing ResourceExhausted name 
---					"out of memory" Nothing)
-      then ioError (userError (name++": out of memory"))
+      then ioError (userError (name ++ ": out of memory"))
       else return addr
 
 -- basic C routines needed for memory allocation

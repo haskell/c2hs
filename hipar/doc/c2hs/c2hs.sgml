@@ -6,8 +6,8 @@
 <article>
 
 <title>The C->Haskell Tutorial
-<author>Manuel M. T. Chakravarty, <tt/chak@is.tsukuba.ac.jp/
-<date>v0.2, 2 March 2000
+<author>Manuel M. T. Chakravarty, <tt/chak@cse.unsw.edu.au/
+<date>v0.3, 11 February 2001
 <abstract>
 C-&gt;Haskell is an interface generator that simplifies the development of
 <htmlurl url="http://haskell.org" name="Haskell"> bindings to C libraries.  The
@@ -24,7 +24,7 @@ of the tool, but it does not detail the structure of Haskell binding modules.
 However, a discussion of binding modules, the principles behind the tool, and
 a discussion of related work can be found in a research paper discussing
 C-&gt;Haskell, which is at
-<url url="http://www.score.is.tsukuba.ac.jp/~chak/papers/papers.html#c2hs">.
+<url url="http://www.cse.unsw.edu.au/~chak/papers/papers.html#c2hs">.
 </abstract>
 
 <toc>
@@ -47,7 +47,7 @@ HTML and Postscript.
 <bf>Contributions</bf>
 <p>
 If you have any comments, suggestions, or contributions, please send them to
-<htmlurl url="mailto:chak@is.tsukuba.ac.jp" name="chak@is.tsukuba.ac.jp">.
+<htmlurl url="mailto:chak@cse.unsw.edu.au" name="chak@cse.unsw.edu.au">.
 
 
 <sect>Installation
@@ -59,7 +59,7 @@ frequently updated and should be consulted in any case.
 <sect1>Where is the Source?
 <p>
 The master site of C-&gt;Haskell is at <url
-url="http://www.score.is.tsukuba.ac.jp/~chak/haskell/c2hs/">.  It has all the
+url="http://www.cse.unsw.edu.au/~chak/haskell/c2hs/">.  It has all the
 latest information and sources.  Furthermore, it explains how to get anonymous 
 CVS access to C-&gt;Haskell's repository and may have pre-compiled binaries
 for easier installation.
@@ -206,7 +206,7 @@ This first version of the tutorial does not detail the structure of Haskell
 binding modules.  However, a discussion of binding modules, the principles
 behind the tool, and a discussion of related work can be found in a research
 paper discussing C-&gt;Haskell, which is at <url
-url="http://www.score.is.tsukuba.ac.jp/~chak/papers/papers.html#c2hs">.
+url="http://www.cse.unsw.edu.au/~chak/papers/papers.html#c2hs">.
 
 Furthermore, the distribution contains examples that illustrate the use of
 C-&gt;Haskell.  In the source distribution, these examples are located below
@@ -216,11 +216,55 @@ for the <url url="http://www.gnome.org" name="Gnome"> HTTP 1.1 library
 directory <tt/lib/ and contain a fair amount of comments, which should help
 getting you started.
 
+Since version 0.8.1 the interface of the marshalling library <tt/C2HS/
+changed.  The new interface essentially consists of the new Haskell FFI
+Marshalling Library.  More details about this library are provided in the next
+section.  For backward compatibilitym the old interface (i.e., the pre-0.8.1
+interface) can still be used by importing <tt/C2HSDeprecated/ instead of
+<tt/C2HS/.
+
+
+<sect>The Haskell FFI Marshalling Library
+<p>
+The Haskell FFI Marshalling Library is a proposed standard library for foreign
+function interoperability.  The interface of the <tt/C2HS/ marshalling library
+as of version 0.8.1 of the tool is a slight extension of the Haskell FFI
+Marshalling Library, which is documented in the following.
+<p>
+The library is partitioned into a language independent and a C specific
+component.  All features of the former are available from the module
+<tt/Foreign/ and all features of the later from <tt/CForeign/.  Nevertheless,
+the following module hierarchy is part of the interface definition:
+<itemize>
+  <item><htmlurl url="lib/Foreign.hs" name="Foreign">
+    <itemize>
+      <item><htmlurl url="lib/Int.hs" name="Int">
+      <item><htmlurl url="lib/Word.hs" name="Word">
+      <item><htmlurl url="lib/Ptr.hs" name="Ptr">
+      <item><htmlurl url="lib/ForeignPtr.hs" name="ForeignPtr">
+      <item><htmlurl url="lib/StablePtr.hs" name="StablePtr">
+      <item><htmlurl url="lib/Storable.hs" name="Storable">
+      <item><htmlurl url="lib/MarshalAlloc.hs" name="MarshalAlloc">
+      <item><htmlurl url="lib/MarshalArray.hs" name="MarshalArray">
+      <item><htmlurl url="lib/MarshalError.hs" name="MarshalError">
+      <item><htmlurl url="lib/MarshalUtils.hs" name="MarshalUtils">
+    </itemize>
+  <item><htmlurl url="lib/CForeign.hs" name="CForeign">
+    <itemize>
+      <item><htmlurl url="lib/CTypes.hs" name="CTypes">
+      <item><htmlurl url="lib/CTypesISO.hs" name="CTypesISO">
+      <item><htmlurl url="lib/CError.hs" name="CError">
+      <item><htmlurl url="lib/CString.hs" name="CString">
+    </itemize>
+</itemize>
+It is recommended to access this functionality in C-&gt;Haskell binding
+modules by merely importing <tt/C2HS/.
+
 
 <sect>Bug Reports and Suggestions
 <p>
 Please address any bug reports and suggestions to <htmlurl
-url="mailto:chak@is.tsukuba.ac.jp" name="chak@is.tsukuba.ac.jp">.  A good bug
+url="mailto:chak@cse.unsw.edu.au" name="chak@cse.unsw.edu.au">.  A good bug
 report contains information on the used operating system and Haskell compiler
 as well as the version of C-&gt;Haskell that you have been using.  You can
 obtain the version information by running <tt/c2hs-config --version/.  If
@@ -265,7 +309,9 @@ documented in the following.
 <sect1>Version 0.8.1 "Gentle Moon"
 <p>
 <itemize>
-<item>Library adapted to New FFI
+<item>Library adapted to New FFI; the old interface can still be used by
+importing <tt/C2HSDeprecated/
+<item>FFI Library specification added to the documentation
 </itemize>
 
 <sect1>Version 0.7.10 "Afterthought"
