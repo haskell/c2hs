@@ -91,7 +91,7 @@ AC_PATH_PROG(BASENAME,basename)
 AC_PATH_PROG(CP,cp)
 AC_PATH_PROG(DIRNAME,dirname)
 AC_PATH_PROG(FIND,find)
-AC_PATH_PROG(GREP,grep)
+AC_PATH_PROGS(GREP,egrep grep)
 AC_PATH_PROG(HEAD,head)
 AC_PATH_PROG(HAPPY,happy)
 AC_PATH_PROG(HSTAGS,hstags,no-hstags-available)
@@ -106,7 +106,7 @@ AC_PATH_PROG(UNAME,uname)
 
 dnl if lndir understands -silent, use it
 dnl (greps through the usage info - not very nice...)
-$LNDIR 2>&1 | grep silent >/dev/null && LNDIR="$LNDIR -silent"
+$LNDIR 2>&1 | $GREP silent >/dev/null && LNDIR="$LNDIR -silent"
 
 dnl Haskell compiler; currently ghc 4.08 upwards & nhc98 1.14
 AC_PATH_PROGS(HC, $HC ghc nhc98)

@@ -1,5 +1,9 @@
 2004-05-15  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
+	* configure.in: Using `egrep' is available (as grep on SunOS
+	doesn't handle regular expressions) noticed by Matthias Neubauer
+	<neubauer@informatik.uni-freiburg.de>
+
 	* syntax/Parsers.hs (execParser): Added a token mapping as an
 	extra argument
 
