@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 7 March 99
 --
---  Version $Revision: 1.16 $ from $Date: 2001/10/16 14:16:32 $
+--  Version $Revision: 1.17 $ from $Date: 2001/10/17 12:09:50 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -50,9 +50,10 @@
 --
 --      '__attribute__' '(' '(' attr ')' ')'
 --
---    may occur as a prefix and/or suffix of a `declarator', where `attr'
---    is either just an identifier or an identifier followed by a
---    comma-separated list of constant expressions as follows: 
+--    may occur after declarator specifiers or after a declarator itself (only
+--    meaningful if it is a typedef), where `attr' is either just an 
+--    identifier or an identifier followed by a comma-separated list of
+--    constant expressions as follows:
 --
 --      attr  -> id ['(' const_1 ',' ... ',' const_n ')']
 --	       | 'const'
@@ -339,10 +340,15 @@ parseCExtDecl  = parseCDecl
 
 -- parse C declaration (K&R A8)
 --
+-- * We allow GNU C attribute annotations after declaration specifiers, 
+--   but they are not entered into the structure tree.
+--
 parseCDecl :: CParser CDecl
 parseCDecl  = 
-  ctoken_ (CTokGnuC GnuCExtTok) `opt` ()        -- ignore GCC's __extension__
-  -*> list parseCDeclSpec *> seplist comma_ parseCInitDecl *-> semic_
+      ctoken_ (CTokGnuC GnuCExtTok) `opt` ()      -- ignore GCC's __extension__
+  -*> list parseCDeclSpec 
+  *-> optMaybe parseGnuCAttr			  -- ignore GCC's __attribute__
+   *> seplist comma_ parseCInitDecl *-> semic_
   `actionAttrs`
     (\(specs, declrs) -> 
       head (map posOf specs ++ map (posOf . fst) declrs ++ [nopos])) $
@@ -350,6 +356,24 @@ parseCDecl  =
 				         | (declr, init) <- declrs]
 			   in
 			   CDecl specs declrs' at
+
+-- parse GNU C attribute annotation (junking the result)
+--
+parseGnuCAttr :: CParser ()
+parseGnuCAttr  = 
+     ctoken_ (CTokGnuC GnuCAttrTok) 
+  *> ctoken_ CTokLParen *> ctoken_ CTokLParen
+  *> parseAttr
+  *> ctoken_ CTokRParen *> ctoken_ CTokRParen
+  `action`
+    const ()
+  where
+    parseAttr    =     cid *> optMaybe (   ctoken_ CTokLParen 
+					*> seplist comma_ parseAttrArg
+					*> ctoken_ CTokRParen)
+			`action` const ()
+                    <|> ctoken_ CTokConst `action` const ()
+    parseAttrArg =  parseCConstExpr `action` const ()
 
 -- parse C declaration specifier (K&R A8)
 --
@@ -496,16 +520,15 @@ parseCEnum  =
 -- * the parser for `optPointer' also returns a function; it is applied last,
 --   because indirection has the least precedence
 --
--- * We allow GNU C attribute annotations as prefix and suffix of declarators, 
+-- * We allow GNU C attribute annotations at the end of a declerator,
 --   but they are not entered into the structure tree.
 --
 parseCDeclr :: CParser CDeclr
 parseCDeclr  =
-      optMaybe parseGnuCAttr
-  -*> (pointer `opt` id)
+      (pointer `opt` id)
   *>  base
   *>  many (flip (.)) id (arrayType <|> newStyleFun <|> oldStyleFun)
-  *-> optMaybe parseGnuCAttr
+  *-> optMaybe parseGnuCAttr			  -- ignore GCC's __attribute__
   `action`
     \((ptr, base), declrTrans) -> ptr . declrTrans $ base 
   where
@@ -546,24 +569,6 @@ parseCDeclr  =
 		`actionAttrs`
 		  id $
 		  \_ at -> (\declr -> CFunDeclr declr [] False at)
-
--- parse GNU C attribute annotation (junking the result)
---
-parseGnuCAttr :: CParser ()
-parseGnuCAttr  = 
-     ctoken_ (CTokGnuC GnuCAttrTok) 
-  *> ctoken_ CTokLParen *> ctoken_ CTokLParen
-  *> parseAttr
-  *> ctoken_ CTokRParen *> ctoken_ CTokRParen
-  `action`
-    const ()
-  where
-    parseAttr    =     cid *> optMaybe (   ctoken_ CTokLParen 
-					*> seplist comma_ parseAttrArg
-					*> ctoken_ CTokRParen)
-			`action` const ()
-                    <|> ctoken_ CTokConst `action` const ()
-    parseAttrArg =  parseCConstExpr `action` const ()
 
 -- parse C parameter type list (K&R A8.6.3)
 --

@@ -1,3 +1,8 @@
+2001-10-17  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CParser.hs (parseCDecl): corrected the precise locatio where
+	an __attribute__ annotation may occur.
+
 2001-10-16  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenBind.hs (evalConstCExpr): added `alignof'

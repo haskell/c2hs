@@ -34,4 +34,17 @@ weird make_weird (void);
 
 mychar *getSpacePtr (void);
 
+#ifdef __GNUC__
+/* this is to check c2hs's resistance to GNU extensions
+ */
+struct _MyStructAlign {long int x;};
+struct _MyStruct
+{
+  int bar;
+}
+__attribute__ ((aligned (__alignof (struct _MyStructAlign))))
+;
+
+#endif /* __GNUC__ */
+
 #endif /* __STRUCTS_H__ */
