@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.46 $ from $Date: 2002/02/10 13:34:28 $
+#  Version $Revision: 1.47 $ from $Date: 2002/02/13 10:17:44 $
 #
 #  Copyright (c) [1997..2002] Manuel M T Chakravarty
 #
@@ -119,9 +119,19 @@ endif
 #
 # * $(EXTRAHCFLAGS) may be instantiated in the specialised makefiles
 #
+# * If we have package support, we need to make sure that all packages declare
+#   their package name and that all packages except `base' request the 
+#   inclusion of `base'.
+#
 #HIDIRSCOL  = $(subst $(space),:,$(strip $(HIDIRS)))
 HIDIRSINCL  = $(addprefix $(HIDIROPT),$(HIDIRS))
-HCFLAGS    += -package-name $(PACKAGE) $(PROF) $(HIDIRSINCL) $(EXTRAHCFLAGS)
+ifeq ($(HASPKG),yes)
+  ifneq ($(strip $(PACKAGE)),base)
+    HCFLAGS += -package-conf $(TOP)/base/base.build.conf -package base
+  endif
+  HCFLAGS   += -package-name $(PACKAGE)
+endif
+HCFLAGS     += $(PROF) $(HIDIRSINCL) $(EXTRAHCFLAGS)
 
 # Misc
 # ====

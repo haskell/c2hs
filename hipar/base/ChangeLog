@@ -1,3 +1,7 @@
+2002-02-11  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* Makefile: we are now creating a library archive to use packages
+
 2002-02-10  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* ../mk/common.mk: added package support

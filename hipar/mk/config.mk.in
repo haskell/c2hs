@@ -5,7 +5,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 5 April 1999 (from parts of common.mk)
 #
-#  Version $Revision: 1.14 $ from $Date: 2002/02/10 13:34:28 $
+#  Version $Revision: 1.15 $ from $Date: 2002/02/13 10:17:44 $
 #
 #  Copyright (c) [1997..1999] Manuel M. T. Chakravarty
 #
@@ -87,7 +87,8 @@ pkgimportdir  = $(pkglibdir)/import
 #
 HC          = @HC@
 SYS	    = @SYS@
-HCFLAGS     = @HCSYSFLAGS@ @HCFLAGS@
+HCFLAGS     = $(addprefix -package , @PACKAGES@) @HCFLAGS@
+GHCPKG	    = $(dir $(HC))ghc-pkg
 
 # option for specifying additional .hi directories
 #
@@ -107,6 +108,7 @@ HSTAGS      = @HSTAGS@
 # System features
 #
 SYSFEATURES = @SYSFEATURES@
+HASPKG	    = @HASPKG@
 
 # Installation options
 #

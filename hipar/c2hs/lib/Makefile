@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Derived: 19 March 1999
 #
-#  Version $Revision: 1.14 $ from $Date: 2002/02/10 13:34:27 $
+#  Version $Revision: 1.15 $ from $Date: 2002/02/13 10:17:43 $
 #
 #  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 #
@@ -77,7 +77,7 @@ depend:
 ifeq ($(LEGACY_FFI),no)
 	$(GREP) -v -e CError -e CForeign -e CString\
 		   -e ForeignPtr -e MarshalAlloc -e MarshalArray\
-		   -e MarshalError -e MarshalUtils -e "\bPtr" .depend\
+		   -e MarshalError -e MarshalUtils -e "\<Ptr" .depend\
 		   >.depend.new
 	$(MV) .depend.new .depend
 # mkdependHS is a bit stupid here and does include files if present even if
@@ -95,10 +95,7 @@ endif
 # * The following enables the use of the FFI; if we are building a package, 
 #   one more extra option is needed.
 #
-EXTRAHCFLAGS    = -fglasgow-exts $(LIB_HCFLAGS)
-ifeq ($(ENABLE_ADD_PACKAGE),yes)
-EXTRAHCFLAGS   += -package-name $(PACKAGE)
-endif
+EXTRAHCFLAGS = -fglasgow-exts $(LIB_HCFLAGS)
 
 # make all object files
 #

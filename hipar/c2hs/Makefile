@@ -1,11 +1,11 @@
 #  C -> Haskell Compiler: root makefile 
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.13 $ from $Date: 2001/10/08 04:07:15 $
+#  Version $Revision: 1.14 $ from $Date: 2002/02/13 10:17:43 $
 #
-#  Copyright (c) 1999 Manuel M. T. Chakravarty
+#  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -39,13 +39,9 @@ PCKVERSION=$(C2HSVERSION)
 include ../mk/common.mk
 -include .depend
 
-# directories containing interface files that might be used here
-#
-HIDIRS=$(addprefix ../base/,$(BASEPARTS)) $(C2HSPARTS)
-
 # Options for $(MKDEPENDHS)
 #
-MKDEPENDOPTS=-optdep-X$(subst $(space),:,$(addprefix ../base/,$(BASEPARTS)))
+MKDEPENDOPTS=
 
 # prep targets
 #
@@ -68,7 +64,7 @@ test   : rectest
 # * `Main.o' indirectly has dependencies on all required objects
 #
 c2hs: Main.o
-	$(HC) -o $@ $(HCFLAGS) ../base/*/*.o $(addsuffix /*.o,$(PARTS))
+	$(HC) -o $@ $(HCFLAGS) $(addsuffix /*.o,$(PARTS))
 
 # the support library
 #
@@ -91,6 +87,7 @@ install: all
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(bindir)
 	$(INSTALL) -s c2hs $(DESTDIR)$(bindir)/c2hs
 	$(INSTALL_PROGRAM) c2hs-config $(DESTDIR)$(bindir)/c2hs-config
+	$(INSTALL_DATA) c2hs.conf $(DESTDIR)$(pkglibdir)/c2hs.conf
 	$(INSTALL) -d $(DESTDIR)$(pkglibdir)
 	$(INSTALL_DATA) lib/libc2hs.a $(DESTDIR)$(pkglibdir)/libc2hs.a
 	$(INSTALL) -d $(DESTDIR)$(pkgimportdir)
@@ -99,6 +96,10 @@ install: all
 	       $(DESTDIR)$(pkgimportdir)/`$(BASENAME) $$hi`;\
 	  $(INSTALL_DATA) $$hi $(DESTDIR)$(pkgimportdir)/`$(BASENAME) $$hi`;\
 	done
+ifeq ($(ENABLE_ADD_PACKAGE),yes)
+	$(DESTDIR)$(bindir)/c2hs-config --package-conf\
+	| $(GHCPKG) --add-package
+endif
 
 # auxilliary targets
 #

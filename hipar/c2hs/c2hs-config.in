@@ -3,20 +3,18 @@
 
 prefix=@prefix@
 exec_prefix=@exec_prefix@
-exec_prefix_set=no
 
 usage()
 {
 	cat <<EOF
 Usage: c2hs-config [OPTIONS] [LIBRARIES]
 Options:
-	[--system=HS]
-	[--prefix[=DIR]]
-	[--exec-prefix[=DIR]]
+	[--prefix]
 	[--version]
 	[--libs]
 	[--cflags]
 	[--c2hs]
+	[--package-conf]
 Libraries:
 EOF
 	exit $1
@@ -38,24 +36,8 @@ while test $# -gt 0; do
   esac
 
   case $1 in
-    --system=*)
-      sys=$optarg
-      ;;
-    --prefix=*)
-      prefix=$optarg
-      if test $exec_prefix_set = no ; then
-        exec_prefix=$optarg
-      fi
-      ;;
     --prefix)
       echo_prefix=yes
-      ;;
-    --exec-prefix=*)
-      exec_prefix=$optarg
-      exec_prefix_set=yes
-      ;;
-    --exec-prefix)
-      echo_exec_prefix=yes
       ;;
     --version)
       echo @C2HS_VERSION@
@@ -70,6 +52,9 @@ while test $# -gt 0; do
     --c2hs)
       echo_c2hs=yes
       ;;
+    --package-conf)
+      echo_package_conf=yes
+      ;;
     *)
       usage 1 1>&2
       ;;
@@ -79,25 +64,35 @@ done
 
 libdir=@libdir@/c2hs-@C2HS_VERSION@
 bindir=@bindir@
+has_pkg=@HASPKG@
+pkg_conf=$libdir/$sys/c2hs.conf
 
 if test "$echo_prefix" = "yes"; then
-	echo $prefix
+  echo $prefix
 fi
-if test "$echo_exec_prefix" = "yes"; then
-	echo $exec_prefix
-fi
-if test "$echo_cflags" = "yes"; then
-	cflags="-fglasgow-exts -package lang"
-	echo -i$libdir/$sys/import $cflags
-fi
-if test "$echo_libs" = "yes"; then
-	libsp="-package lang"
-	libsa=""
-	if test "$lib_c2hs" = "yes"; then
-		libsp="$libsp -lc2hs"
-	fi
-	echo -L$libdir/$sys $libsp $libsa
+if test x$has_pkg = xyes; then
+  if test "$echo_cflags" = "yes" -o "$echo_libs" = "yes"; then
+    echo "-package-conf $pkg_conf -package c2hs"
+  fi
+else
+  if test "$echo_cflags" = "yes"; then
+    import_dir=`grep "import_dirs" $pkg_conf | sed -e 's/^.*\["\(.*\)"\].*/\1/'`
+    cflags="-ffi"
+    echo -i$import_dir $cflags
+  fi
+  if test "$echo_libs" = "yes"; then
+    lib_dir=`grep "library_dirs" $pkg_conf | sed -e 's/^.*\["\(.*\)"\].*/\1/'`
+    libsp=""
+    libsa=""
+    if test "$lib_c2hs" = "yes"; then
+      libsp="$libsp -lc2hs"
+    fi
+    echo -L$lib_dir $libsa $libsp
+  fi
 fi
 if test "$echo_c2hs" = "yes"; then
-	echo $bindir/c2hs
+  echo $bindir/c2hs
+fi
+if test "$echo_package_conf" = "yes"; then
+  head -15 $pkg_conf | tail -14
 fi

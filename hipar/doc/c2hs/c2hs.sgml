@@ -668,9 +668,10 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.10.6 "Altocumulus Stratiformis Perlucidus Undulatus"
+<sect1>Version 0.10.7 "Altocumulus Stratiformis Perlucidus Undulatus"
 <p>
 <itemize>
+<item>GHC's package system is now supported
 <item>If two import hooks add a type mapping for a pointer hook with the same
 name, the textual later one dominates.
 <item>Bug fixes

@@ -1,3 +1,11 @@
+2002-02-13  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* Makefile: adapted to using GHC package management
+
+2002-02-11  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/Makefile (depend): increase portability
+
 2002-02-06  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* configure.in: probe for `grep'

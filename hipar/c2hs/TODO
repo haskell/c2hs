@@ -7,6 +7,10 @@ Next: -= phase re-ordering & parser clean up =-
       - configuration oracle should have an option to print the Haskell
         compiler and version it was compiled for
 
+      - have an option to compute .chi dependencies; do this on a
+        module-by-module basis generating many small depend files rather than
+        one big one
+
       - split GenBind into multiple modules
 
       - use GHC's package manager and register the c2hs libs as a package at
@@ -77,10 +81,6 @@ Next: -= phase re-ordering & parser clean up =-
 
       - the use of get/set hooks with `class'ed newtypes is complicated, as
         the type doesn't match `Ptr a'; see, eg, `GtkCList.cListGetNoOfRows'
-
-      - the idea of the hipar/mk/*.mk file to identify which projects are
-        present doesn't really cut it as `cvs update' will always check these
-        files out; fix this!
 
       - when we first read the .chs file and pre-process it to generate some
         more C header code, it might be nice to move the reading of .chi files

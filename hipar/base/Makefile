@@ -1,11 +1,11 @@
 #  Compiler Toolkit: root makefile 
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Created: 25 July 1998
 #
-#  Version $Revision: 1.8 $ from $Date: 2000/08/18 05:41:04 $
+#  Version $Revision: 1.9 $ from $Date: 2002/02/13 10:17:43 $
 #
-#  Copyright (c) 1998 Manuel M. T. Chakravarty
+#  Copyright (c) [1998..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -52,12 +52,19 @@ MKDEPENDFILES += $(addprefix sysdep/,SysDep.hs SysDepPosix.hs)
 
 # build targets
 #
-.PHONY: default objs all test
+.PHONY: default objs all libctk test
 
 default: all
 objs   : recobjs
-all    : recall
+all    : recall libctk
 test   : rectest
+
+# the library achieve containing the whole CTK
+#
+libctk: libctk.a
+libctk.a: $(addsuffix /*.o,$(PARTS))
+	-$(RM) $@
+	$(AR) -crs $@ $^
 
 # auxilliary targets
 #

@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.1 $ from $Date: 2002/02/10 13:34:27 $
+#  Version $Revision: 1.2 $ from $Date: 2002/02/13 10:17:44 $
 #
 #  Copyright (c) 1999 Manuel M. T. Chakravarty
 #
@@ -51,8 +51,11 @@ C2HSTAREXCL=--exclude=C2HSConfig.hs --exclude=c2hs-config --exclude=c2hs.spec\
 C2HSPARTS=c chs gen state toplevel
 
 ifeq ($(strip $(PACKAGE)),c2hs)
-  PARTS  = $(C2HSPARTS)
-  HIDIRS:= $(addprefix ../base/, $(BASEPARTS))
+  PARTS    = $(C2HSPARTS)
+  # don't need the base directories when including CTK via a package
+  ifeq ($(HASPKG),no)
+    HIDIRS:= $(addprefix ../base/, $(BASEPARTS))
+  endif
 endif
 
 

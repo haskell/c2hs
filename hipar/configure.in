@@ -166,28 +166,27 @@ fi
 
 dnl System-specific flags that may not be omitted.
 dnl
-dnl ghc: The system libraries `lang' and `posix' are required by 
+dnl ghc: The packages `lang' and `posix' are required by 
 dnl      `sysdep/SysDepGHC3.hs' and `sysdep/SysDepGHC4.hs', and 
 dnl      thus, transitively for the compilation of some other modules. 
 dnl
 dnl Notes: 
 dnl - We can't use `posix' in a CygWin environment.
 dnl
+PACKAGES=""
+SYSFEATURES=""
 if test -z "$CYGWIN"; then
-  SYSPOSIX="-package posix"
-  POSIX_FEATURE=posix
-else
-  SYSPOSIX=""
-  POSIX_FEATURE=""
+  PACKAGES="$PACKAGES posix"
+  SYSFEATURES="$SYSFEATURES posix"
 fi
 if test $hc_base = ghc; then
   dnl Check in which system library we find the module IOExts.
   CTK_LIB_SYSLIB(IOExts, lang exts)
-  HCSYSFLAGS="-package $syslib_IOExts $SYSPOSIX"
-  SYSFEATURES="$SYSFEATURES $POSIX_FEATURE"
+  PACKAGES="$PACKAGES $syslib_IOExts"
+  HASPKG=yes
 fi
-if test $SYS = nhc1; then
-  HCSYSFLAGS=
+if test $hc_base = nhc1; then
+  HASPKG=no
 fi
 
 dnl Select a dependency computation tool.
@@ -206,6 +205,11 @@ if test $SYS = nhc1; then
 fi
 AC_MSG_RESULT([selecting mkdependHS... $MKDEPENDHS])
 
+if test x$ENABLE_ADD_PACKAGE = xyes -a $HASPKG = no; then
+ AC_MSG_ERROR([System $SYS doesn't support package management; can't use
+"--add-package".])
+fi
+
 dnl Checks for libraries.
 
 dnl check for Electric Fence Malloc Debugger Library, if requested
@@ -215,21 +219,48 @@ if test x$efence = xyes; then
 	       [AC_MSG_ERROR([No Electric Fence library found!])])
 fi
 
+dnl Misc
+
+dnl Settings for the build time package configuration of the `base' package
+PACKAGES_STRINGS=""
+for pkg_name in $PACKAGES; do
+  if test -z $PACKAGES_STRINGS; then
+    PACKAGES_STRINGS="\"$pkg_name\""
+  else
+    PACKAGES_STRINGS="$PACKAGES_STRINGS, \"$pkg_name\""
+  fi
+done
+IMPORT_DIRS=""
+for dir in base/*; do
+  if test -d $dir; then
+    if test -z "$IMPORT_DIRS"; then
+      IMPORT_DIRS="\"$TOP/build/$SYS/$dir\""
+    else
+      IMPORT_DIRS="$IMPORT_DIRS, \"$TOP/build/$SYS/$dir\""
+    fi
+  fi
+done
+LIBRARY_DIRS="\"$TOP/build/$SYS/base\""
+
 dnl Needed substitutions.
 AC_SUBST(TOP)
 AC_SUBST(SYS)
 AC_SUBST(HCFLAGS)
-AC_SUBST(HCSYSFLAGS)
 AC_SUBST(HIDIROPT)
 AC_SUBST(PROF)
 AC_SUBST(MKDEPENDHS)
 AC_SUBST(SYSFEATURES)
 AC_SUBST(ENABLE_ADD_PACKAGE)
+AC_SUBST(HASPKG)
+AC_SUBST(PACKAGES)
+AC_SUBST(PACKAGES_STRINGS)
+AC_SUBST(IMPORT_DIRS)
+AC_SUBST(LIBRARY_DIRS)
 
 dnl write the results...
 AC_OUTPUT([
   mk/config.mk
-  base/base.build.config
+  base/base.build.conf
 ])
 
 dnl ...and chat with the user

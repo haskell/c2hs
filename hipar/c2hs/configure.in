@@ -113,6 +113,15 @@ if test $hc_base = nhc98; then
   HIDIROPT=-I
 fi
 
+dnl Determine whether the Haskell system supports packages.
+dnl
+if test $hc_base = ghc; then
+  HASPKG=yes
+fi
+if test $hc_base = nhc1; then
+  HASPKG=no
+fi
+
 dnl Determine whether we need Legacy FFI support.
 dnl
 dnl In case of Legacy FFI support, we need to determine the errno constants for
@@ -257,6 +266,13 @@ fi
 
 dnl Checks for libraries.
 
+dnl Info needed for the package configuration.
+dnl
+dnl The `exec_prefix=$prefix' line shouldn't be necessary, but for some reason 
+dnl `exec_prefix' is otherwise defined to be `NONE' here.
+exec_prefix=$prefix
+LIBDIR=`eval "echo $libdir"`
+
 dnl Needed substitutions.
 AC_SUBST(DLSUFFIX)
 AC_SUBST(C2HS_VERSION)
@@ -273,6 +289,8 @@ AC_SUBST(END_NHC)
 AC_SUBST(BEGIN_NOT_NHC)
 AC_SUBST(END_NOT_NHC)
 AC_SUBST(ENABLE_ADD_PACKAGE)
+AC_SUBST(LIBDIR)
+AC_SUBST(HASPKG)
 
 dnl Write the results...
 AC_OUTPUT([
@@ -282,5 +300,6 @@ AC_OUTPUT([
   lib/CError.hs
   mk/config.mk
   c2hs-config
+  c2hs.conf
   c2hs.spec
 ], [chmod +x c2hs-config])

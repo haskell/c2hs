@@ -11,9 +11,6 @@ Next: + improve autoconf (we would like ./configure to generate its stuff in
       + The configure patched file should arguably be generated in the build/
         tree and not in the source tree.
       + Export `DList.DList' without (..)
-      + if the CTK is compiled _without_ any packages (such as c2hs or nepal), 
-        there are problems in the makefile because the variable $(PCKS) is
-        empty
 
 
 Short Term:
