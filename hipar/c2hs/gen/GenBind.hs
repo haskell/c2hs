@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.48 $ from $Date: 2003/04/16 11:13:11 $
+--  Version $Revision: 1.49 $ from $Date: 2003/05/22 04:15:02 $
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
@@ -127,7 +127,8 @@ import Attributes (newAttrsOnlyPos)
 -- C->Haskell
 import C2HSConfig (dlsuffix)
 import C2HSState  (CST, nop, errorsPresent, showErrors, fatal,
-		   SwitchBoard(..), Traces(..), putTraceStr, getSwitch)
+		   SwitchBoard(..), Traces(..), putTraceStr, getSwitch,
+		   printCIO)
 import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 		   CHeader(..), CExtDecl, CDecl(..), CDeclSpec(..),
 		   CStorageSpec(..), CTypeSpec(..), CTypeQual(..),
@@ -397,7 +398,7 @@ expandHook (CHSSizeof ide pos) =
   where
     traceInfoSizeof         = traceGenBind "** Sizeof hook:\n"
     traceInfoDump decl size = traceGenBind $
-      "Size of declaration\n" ++ show decl ++ "\nis" 
+      "Size of declaration\n" ++ show decl ++ "\nis " 
       ++ show (fromIntegral . padBits $ size) ++ "\n"
 expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
   do
@@ -1557,8 +1558,11 @@ data BitSize = BitSize Int Int
 -- ordering relation compares in terms of required storage units
 --
 instance Ord BitSize where
-  bs1@(BitSize o1 b1) < bs2@(BitSize o2 b2) = 
+  bs1@(BitSize o1 b1) <  bs2@(BitSize o2 b2) = 
     padBits bs1 < padBits bs2 || (o1 == o2 && b1 < b2)
+  bs1                 <= bs2		     = bs1 < bs2 || bs1 == bs2
+    -- the <= instance is needed for Ord's compare functions, which is used in
+    -- the defaults for all other members
 
 -- add two bit size values
 --

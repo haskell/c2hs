@@ -61,4 +61,11 @@ __attribute__ ((aligned (__alignof (struct _MyStructAlign))))
 
 #endif /* __GNUC__ */
 
+
+/* to test nested struct/unions (regression test)
+ */
+typedef struct { int type; int typ1; } FT;
+typedef union { int type; FT typ1; } SDL_Event;
+
+
 #endif /* __STRUCTS_H__ */

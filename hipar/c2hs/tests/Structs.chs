@@ -18,6 +18,8 @@ makePoint x y  = Point ({#call fun make_point#} (cIntConv x) (cIntConv y))
 pointSize :: Int
 pointSize  = {#sizeof point#}
 
+bar = {#sizeof SDL_Event#}  -- regression test
+
 main :: IO () 
 main  = do
           val   <- liftM cIntConv $ {#get _point.y#} $! unPoint pnt

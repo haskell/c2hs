@@ -7,7 +7,7 @@
 
 <title>The Binding Generator C->Haskell
 <author>Manuel M. T. Chakravarty, <tt/chak@cse.unsw.edu.au/
-<date>v0.14, 12 April 2003
+<date>v0.15, 22 May 2003
 <abstract>
 C-&gt;Haskell is an interface generator that simplifies the development of
 <htmlurl url="http://haskell.org" name="Haskell"> bindings to C libraries.  The
@@ -859,9 +859,10 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.11.2 "Powder Snow"
+<sect1>Version 0.11.4 "Powder Snow"
 <p>
 <itemize>
+<item>Bug fixes
 <item>Constant expression can now contain enumerators
 <item><tt/header/ label removed from <tt/context/ hooks
 <item><bf>WARNING:</bf> This version of <tt/c2hs/ may <em/overwrite/ C
