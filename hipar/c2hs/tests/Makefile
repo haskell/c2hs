@@ -45,9 +45,10 @@ marsh: Marsh.chs marsh.h
 
 # runs
 
-.PHONY: tests simple.run calls.build enums.run structs.run marsh.run
+.PHONY: tests simple.run calls.build enums.run pointer.run structs.run\
+	marsh.run
 
-tests: simple.run calls.build enums.run structs.run marsh.run
+tests: simple.run calls.build enums.run pointer.run structs.run marsh.run
 
 simple.run: simple
 	@echo "---=== Output of \`simple'":

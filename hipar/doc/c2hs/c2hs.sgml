@@ -619,6 +619,9 @@ documented in the following.
 <p>
 <itemize>
 <item>Bug fixes
+<item>Library names in <tt/foreign import/s have been removed until
+the convention of the new FFI is implemented (they are currently <em/silently/
+omitted)
 <item>Added <tt/sizeof/ hooks; sizeof of type names is now also supported in
 constant expressions
 <item>Local prefix for <tt/enum/ hooks; courtesy of Armin Sander

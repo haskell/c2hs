@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.35 $ from $Date: 2001/08/26 08:34:25 $
+--  Version $Revision: 1.36 $ from $Date: 2001/08/26 13:29:35 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -690,7 +690,9 @@ foreignImport lib ident hsIdent isUnsafe ty  =
   "foreign import ccall " ++ libName ++ "\"" ++ ident ++ "\"" ++ maybeUnsafe 
   ++ "\n  " ++ hsIdent ++ " :: " ++ showExtType ty ++ "\n"
   where
-    libName	= if null lib then "" else "\"" ++ lib ++ dlsuffix ++ "\" "
+--    libName	= if null lib then "" else "\"" ++ lib ++ dlsuffix ++ "\" "
+    libName = ""
+-- FIXME: libName removed until the new FFI conventions for libs are impl.
     maybeUnsafe = if isUnsafe then " unsafe" else ""
 
 -- compute from an access path, the declerator finally accessed and the index

@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 24 July 1998 (derived from HiPar root makefile)
 #
-#  Version $Revision: 1.62 $ from $Date: 2001/05/13 11:43:34 $
+#  Version $Revision: 1.63 $ from $Date: 2001/08/26 13:29:33 $
 #
 #  Copyright (c) [1995..2000] Manuel M. T. Chakravarty
 #
@@ -95,7 +95,7 @@ BASEVERSION =$(shell $(GREP) '^versnum' $(BASEVERSFILE)\
 # base directory for tar balls and exclude patterns
 #
 TARBASE=ctk
-TAREXCL=--exclude='*CVS' --exclude='*~'\
+TAREXCL=--exclude='*CVS' --exclude='*~' --exclude='.\#*'\
 	--exclude=config.log --exclude=config.status
 
 

@@ -1,5 +1,8 @@
 2001-08-26  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
+	* gen/GenBind.hs (foreignImport): `libName' removed until the new
+	FFI conventions for libs are implemented in GHC
+
 	* c/CTrav.hs (dropPtrDeclr): fixed pointer to pointer case
 
 	* c/CPretty.hs: implemented pretty-printing for part of the C AST
