@@ -1,6 +1,6 @@
 # RPM spec file for C->Haskell
 #
-# Copyright [1999..2000] Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
+# Copyright [1999..2001] Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
 
 %define version    @C2HS_VERSION@
 %define release    SNAP
@@ -54,7 +54,8 @@ make prefix=$RPM_BUILD_ROOT%{prefix} install-doc
 rm -rf $RPM_BUILD_ROOT
 
 %files
-%doc c2hs/ChangeLog c2hs/todo 
+%doc c2hs/ChangeLog c2hs/TODO c2hs/COPYING c2hs/COPYING.LIB
+%doc c2hs/README c2hs/AUTHORS
 %doc build/doc/c2hs c2hs/tests c2hs/examples/libghttpHS
 %{prefix}/bin/c2hs
 %{prefix}/bin/c2hs-config

@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.11 $ from $Date: 2001/02/04 12:27:30 $
+#  Version $Revision: 1.12 $ from $Date: 2001/02/19 04:33:11 $
 #
 #  Copyright (c) 1999 Manuel M. T. Chakravarty
 #
@@ -87,7 +87,7 @@ examples:
 
 # installation
 #
-install:
+install: all
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(bindir)
 	$(INSTALL) -s c2hs $(DESTDIR)$(bindir)/c2hs
 	$(INSTALL_PROGRAM) c2hs-config $(DESTDIR)$(bindir)/c2hs-config

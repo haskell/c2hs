@@ -63,7 +63,7 @@ dnl (The next command is not executed, if $HC is already set.)
 AC_PATH_PROGS(HC, ghc nhc98)
 if test -z "$HC"; then
  AC_MSG_ERROR([Could not find a Haskell compiler!
-Currently supported are ghc 4.06 upwards & nhc98 1.0.
+Currently supported are ghc 4.08 upwards & nhc98 1.0.
 ** Check \"http://haskell.org\". **])
 fi
 dnl The following can happen if a wrong --with-hc=HC option is given.

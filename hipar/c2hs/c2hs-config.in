@@ -87,11 +87,11 @@ if test "$echo_exec_prefix" = "yes"; then
 	echo $exec_prefix
 fi
 if test "$echo_cflags" = "yes"; then
-	cflags="-fglasgow-exts"
+	cflags="-fglasgow-exts -package lang"
 	echo -i$libdir/$sys/import $cflags
 fi
 if test "$echo_libs" = "yes"; then
-	libsp=""
+	libsp="-package lang"
 	libsa=""
 	if test "$lib_c2hs" = "yes"; then
 		libsp="$libsp -lc2hs"

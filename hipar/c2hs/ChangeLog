@@ -1,3 +1,10 @@
+2001-02-19  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs-config.in: generated code needs -package lang for
+	compilation and linking
+
+	* toplevel/Version.hs (versnum): 0.8.3 "Gentle Moon"
+
 2001-02-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* lib/NewStablePtr.hs.in: Adaptation layer for StablePtr for the
