@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 14 February 95
 --
---  Version $Revision: 1.35 $ from $Date: 1999/12/01 14:14:37 $
+--  Version $Revision: 1.36 $ from $Date: 2004/10/08 22:31:31 $
 --
 --  Copyright (c) [1995..1999] Manuel M. T. Chakravarty
 --
@@ -203,7 +203,7 @@ isLegalIdent (c:cs)  = if c == '`' then isQualIdent cs
 lexemeToIdent            :: Position -> String -> Name -> Ident
 lexemeToIdent pos l name  = Ident s k (quad s) (newAttrs pos name)
 			    where
-			      (s, k) = parseIdent l
+			      (s, k) = parseIdent pos l
 
 -- generate an internal identifier (has no position and cannot be asccociated
 -- with attributes) (EXPORTED)
@@ -217,14 +217,15 @@ internalIdent s  = Ident s internARNum (quad s) (newAttrsOnlyPos nopos)
 onlyPosIdent       :: Position -> String -> Ident
 onlyPosIdent pos l  = Ident s k (quad s) (newAttrsOnlyPos pos)
 		      where
-			(s, k) = parseIdent l
+			(s, k) = parseIdent pos l
 
 -- Extract the name and ambiguousness resolving number from a lexeme.
 --
-parseIdent   :: String -> (String, Int)
-parseIdent l  = if (null l) 
+parseIdent   :: Position -> String -> (String, Int)
+parseIdent pos l  
+	      = if (null l) 
 		then 
-		  interr "Idents: lexemeToIdent: Empty lexeme!"
+		  interr $ "Idents: lexemeToIdent: Empty lexeme! " ++ show pos
 		else 
 		if (head l == '\'') 
 		then
