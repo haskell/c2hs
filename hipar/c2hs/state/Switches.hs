@@ -3,9 +3,9 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 6 March 99
 --
---  Version $Revision: 1.6 $ from $Date: 1999/11/06 14:54:57 $
+--  Version $Revision: 1.7 $ from $Date: 2001/04/29 13:13:53 $
 --
---  Copyright (c) 1999 Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -47,6 +47,10 @@
 --    is stored (it is supposed to include a suffix).  If it is empty, the
 --    name of the Haskell binding file is used to determine the file name.
 --
+--  * With the advent of the new FFI in GHC 5.00 we adopt c2hs to fully support
+--    these interfaces. To compile .chs files for earlier versions of GHC use
+--    --new-ffi=no .
+--
 --- TODO ----------------------------------------------------------------------
 --
 
@@ -66,7 +70,8 @@ data SwitchBoard = SwitchBoard {
 		     hpathsSB  :: [FilePath],	-- header file directories
 		     keepSB    :: Bool,		-- keep intermediate file
 		     tracesSB  :: Traces,	-- trace flags
-		     outputSB  :: FilePath	-- output file
+		     outputSB  :: FilePath,	-- output file
+		     oldFFI    :: Bool		-- GHC 4.XX compatible code
 		   }
 
 -- switch states on startup (EXPORTED)
@@ -78,7 +83,8 @@ initialSwitchBoard  = SwitchBoard {
 			hpathsSB  = [],
 			keepSB	  = False,
 		        tracesSB  = initialTraces,
-			outputSB  = ""
+			outputSB  = "",
+			oldFFI	  = False
 		      }
 
 

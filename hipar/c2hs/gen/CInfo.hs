@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 5 February 01
 --
---  Version $Revision: 1.2 $
+--  Version $Revision: 1.3 $
 --
 --  Copyright (c) 2001 Manuel M. T. Chakravarty
 --
@@ -50,6 +50,7 @@ import C2HSConfig (Ptr,
 -- C's primitive types (EXPORTED)
 --
 data CPrimType = CAddrPT	-- void *
+	       | CFunAddrPT	-- void *
 	       | CCharPT	-- char
 	       | CUCharPT	-- unsigned char
 	       | CSCharPT	-- signed char
@@ -71,6 +72,8 @@ data CPrimType = CAddrPT	-- void *
 sizes :: Array CPrimType Int
 sizes  = array (minBound, maxBound) [
            (CAddrPT   , sizeOf (undefined :: Ptr ())),
+-- FIXME: this should be FunPtr in compilers with the new FFI
+	   (CFunAddrPT, sizeOf (undefined :: {-Fun-}Ptr ())),
 	   (CCharPT   , 1),
 	   (CUCharPT  , 1),
 	   (CSCharPT  , 1),
@@ -95,6 +98,8 @@ sizes  = array (minBound, maxBound) [
 alignments :: Array CPrimType Int
 alignments  = array (minBound, maxBound) [
                 (CAddrPT   , alignment (undefined :: Ptr ())),
+-- FIXME: this should be FunPtr in compilers with the new FFI
+	        (CFunAddrPT, alignment (undefined :: {-Fun-}Ptr ())),
 		(CCharPT   , 1),
 		(CUCharPT  , 1),
 		(CSCharPT  , 1),

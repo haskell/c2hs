@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Derived: 19 March 1999
 #
-#  Version $Revision: 1.12 $ from $Date: 2001/02/16 07:28:27 $
+#  Version $Revision: 1.13 $ from $Date: 2001/04/29 13:13:52 $
 #
 #  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 #
@@ -81,8 +81,8 @@ ifeq ($(LEGACY_FFI),no)
 		>.depend.new
 	mv .depend.new .depend
 # mkdependHS is a bit stupid here and does include files if present even if
-# are part of a syslib; moreover, the -x option never works for me anyway, so 
-# let's do it the hard way
+# they are part of a syslib; moreover, the -x option never works for me 
+# anyway, so let's do it the hard way
 	mkdir -p ghc411hack_dir
 	-mv CError.hs CForeign.hs CString.hs ForeignPtr.hs MarshalAlloc.hs\
 	  MarshalArray.hs MarshalError.hs MarshalUtils.hs Ptr.hs ghc411hack_dir

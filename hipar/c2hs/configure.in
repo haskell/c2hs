@@ -57,7 +57,7 @@ dnl This is far from elegant, but works for extracting the plain version number
 C2HS_VERSION=`$GREP '^versnum' toplevel/Version.hs\
 	      | $SED '-e s/versnum.* "//' '-e s/"//'`
 
-dnl Haskell compiler; currently only GHC 4.06 upwards and nhc98 1.0 have the 
+dnl Haskell compiler; currently only GHC 4.08 upwards and nhc98 1.0 have the 
 dnl required FFI and existentially quantified variables correctly working.
 dnl (The next command is not executed, if $HC is already set.)
 AC_PATH_PROGS(HC, ghc nhc98)
@@ -74,23 +74,17 @@ fi
 dnl Determine basic compiler name.
 case `$BASENAME $HC` in
   ghc*) hc_base=ghc;;
-  nhc98) hc_base=nhc98;;
+  nhc98*) hc_base=nhc98;;
 esac
 
 dnl Check ghc's details.
 if test $hc_base = ghc; then
   dnl set GHC, as this is what the following command inspects
   GHC=$HC
-  CTK_GHC_VERSION(hc_maj_vers,hc_min_vers)
-  if test $hc_maj_vers -eq 4; then
-    if test $hc_min_vers -lt 8; then
-      AC_MSG_ERROR([You need version 4.08 upwards of ghc!
-  ** Check \"http://haskell.org/ghc/\". **])
-    fi
-  elif test $hc_maj_vers -lt 4; then
-    AC_MSG_ERROR([You need version 4.08 upwards of ghc!
-  ** Check \"http://haskell.org/ghc/\". **])
-  fi
+  CTK_GHC_VERSION(hc_vers,hc_maj_vers,hc_min_vers,hc_pl)
+  CTK_PROG_CHECK_VERSION($hc_vers, -lt, 4.08, [
+    AC_MSG_ERROR([We need to have version 4.08 upwards of ghc!
+** Check \"http://haskell.org\". **])])
   dnl Determine compilation system identifier.
   SYS=ghc$hc_maj_vers
   HIDIROPT=-i
@@ -112,21 +106,9 @@ if test $hc_base = nhc98; then
   HIDIROPT=-I
 fi
 
-dnl Extra flags for the Haskell compiler that are c2hs-specific.
-dnl
-dnl * Do not optimise lib/ with one of the buggy ghcs (4.03 - 4.06).
-dnl
-AC_MSG_CHECKING([for buggy readXXXOffAddr])
-if test $hc_maj_vers = 4 -a $hc_min_vers -ge 3 -a $hc_min_vers -le 6 ; then
-  LIB_HCFLAGS=-Onot
-  AC_MSG_RESULT([yes (optimisation switched off in lib/)])
-else
-  AC_MSG_RESULT([no])
-fi
-
 dnl Determine whether we need Legacy FFI support.
 dnl
-dnl In case of Legacy FFI support, we need to determine the errno constants for 
+dnl In case of Legacy FFI support, we need to determine the errno constants for
 dnl the OS (needed by `CError').
 dnl
 LEGACY_FFI=no

@@ -5,7 +5,8 @@ import C2HS
 
 {#context lib="calls"#}
 
-type TString = {#type tString#}
+type TString   = {#type tString#}
+type MyStringT = {#type MyStringType#}  -- extract a function type
 
 main :: IO ()
 main  = do

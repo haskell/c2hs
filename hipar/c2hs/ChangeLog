@@ -1,3 +1,37 @@
+2001-04-28  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): rewrote `alias'hook into `pointer' hook
+
+	* chs/CHS.hs: rewrote the `alias' hook into the `pointer' hook
+
+	* chs/CHSLexer.hs: removed `alias' token and added `pointer' and
+	`newtype'
+
+	* toplevel/Version.hs (versnum): 0.9.1
+
+	* gen/GenBind.hs: clean up
+
+2001-04-21  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHSLexer.hs: Added `(' and `)'
+
+	* chs/CHS.hs: Added code implementing the `alias' hook and the
+	`deriving' option for the `enum' hook.  This code was contributed
+	by Axel Simon <simona_@web.de> (also related code in CHSLexer.hs);
+	but added parenthesis to `deriving'
+
+	* c/CTrav.hs: Added code implementing the `alias' hook, which
+	was contributed by Axel Simon <simona_@web.de>
+
+	* gen/GenBind.hs: The following patch was contributed by Axel
+	Simon <simona_@web.de>: `extractCompType' generates addresses
+	of type `Ptr <type>' instead of `Addr' (if `--old-ffi=no', which
+	is the default)
+
+	* configure.in: Adapted for ghc 5.00
+
+	* toplevel/Version.hs (versnum): 0.9.0 "Blue Ginger"
+
 2001-02-22  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* lib/C2HSDeprecated.hs: Corrected String marshalling for 4.11;

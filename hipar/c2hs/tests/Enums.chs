@@ -14,8 +14,7 @@ import C2HS
 
 {#enum enum_net_type as NetType {underscoreToCase}#}
 
---{#enum enums_enums as Enums {underscoreToCase, ENUMS_TWO as Two}#}
-{#enum enums_enums as Enums {underscoreToCase TWO as Twox}#}
+{#enum enums_enums as Enums {underscoreToCase, ENUMS_TWO as Two}#}
 
 colourOfSide :: Side -> Colour
 colourOfSide  = 

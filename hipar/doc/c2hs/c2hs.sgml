@@ -7,7 +7,7 @@
 
 <title>The C->Haskell Tutorial
 <author>Manuel M. T. Chakravarty, <tt/chak@cse.unsw.edu.au/
-<date>v0.3, 11 February 2001
+<date>v0.4, 24 April 2001
 <abstract>
 C-&gt;Haskell is an interface generator that simplifies the development of
 <htmlurl url="http://haskell.org" name="Haskell"> bindings to C libraries.  The
@@ -32,7 +32,7 @@ C-&gt;Haskell, which is at
 <p>
 <bf>Copyright &amp; Distribution</bf>
 <p>
-Copyright (c) [1999..2000] by <htmlurl
+Copyright (c) [1999..2001] by <htmlurl
 url="http://www.cse.unsw.edu.au/~chak/" name="Manuel M. T. Chakravarty">.  
 The manual is distributed under the terms GNU Free Documentation License
 available from
@@ -202,11 +202,12 @@ access all other components of C-&gt;Haskell.
 
 <sect>Implementation of Haskell Binding Modules
 <p>
-This first version of the tutorial does not detail the structure of Haskell
-binding modules.  However, a discussion of binding modules, the principles
-behind the tool, and a discussion of related work can be found in a research
-paper discussing C-&gt;Haskell, which is at <url
-url="http://www.cse.unsw.edu.au/~chak/papers/papers.html#c2hs">.
+A discussion of binding modules, the principles behind the tool, and a
+discussion of related work can be found in a research paper located at
+<url url="http://www.cse.unsw.edu.au/~chak/papers/papers.html#c2hs">.  All
+features described in the paper, except <tt/enum define/ hooks are implemented
+in the tool, but since the publication of the paper, the tool has been
+extended further.
 
 Furthermore, the distribution contains examples that illustrate the use of
 C-&gt;Haskell.  In the source distribution, these examples are located below
@@ -223,6 +224,182 @@ section.  For backward compatibilitym the old interface (i.e., the pre-0.8.1
 interface) can still be used by importing <tt/C2HSDeprecated/ instead of
 <tt/C2HS/.
 
+The remainder of this section describes the hooks that are available in
+binding modules.
+
+<sect1>Context Hooks
+<p>
+<tscreen>
+{#context [header = <it/header/] [lib = <it/lib/] [prefix = <it/prefix/]#}
+</tscreen>
+<p>
+Context hooks define a set of global configuration options.  Currently, there
+are three parameters all of which are strings:
+<itemize>
+<item><em/header/ is the C header file containing the definitions, which are
+bound in the current binding module.
+<item><em/lib/ is a dynamic library that contains symbols needed by the
+present binding.
+<item><em/prefix/ is an identifier prefix that may be omitted in the lexemes
+of identifiers referring to C definitions in any binding hook.  The is useful
+as C libraries often use a prefix, such as <tt/gtk_/, as a form of poor man's
+name spaces.  Any occurrence of underline characters between a prefix and the
+main part of an identifier must also be dropped.  Case is not relevant in a
+prefix.  In case of a conflict of the abbreviation with an explicitly defined
+identifier, the explicit definition takes preference.
+</itemize>
+<p>
+All three parameters are optional.  An example of a context hook is the
+following:
+<tscreen>
+{#context header = "gtkwidget.h" prefix = "gtk"#}
+</tscreen>
+<p>
+If a binding module contains a binding hook, it must be the first hook in the
+module.
+
+<sect1>Type Hooks
+<p>
+<tscreen>
+{#type <it/ident/#}
+</tscreen>
+<p>
+A type hooks maps a C type to a Haskell type.  As an example, consider
+<p>
+<tscreen>
+type GInt = {#type g_int#}
+</tscreen>
+
+<sect1>Enumeration Hooks
+<p>
+<tscreen>
+{#enum <it/cid/ [as <it/hsid/] {<it/alias1/ , ... , <it/aliasn/}
+  [deriving (<it/clid1/ , ... , <it/clidn/)]#}
+</tscreen>
+<p>
+Rewrite the C enumeration called <it/cid/ into a Haskell data type
+declaration, which is made an instance of <tt/Enum/ such that the ordinals
+match those of the enumeration values in C.  This takes explicit enumeration
+values in the C definitions into account.  If <it/hsid/ is given, this is
+the name of the Haskell data type.  The identifiers <it/clid1/ to <it/clidn/
+are added to the deriving clause of the Haskell type.
+<p>
+By default, the names of the C enumeration are used for the constructors in
+Haskell.  If <it/alias1/ is <tt/underscoreToCase/, the original C names are
+capitalised and the use of underscores is rewritten to caps.  Moreover,
+<it/alias1/ to <it/aliasn/ may be aliases of the form <it/cid/ <tt/as/
+<it/hsid/, which map individual C names to Haskell names.
+<p>
+As an example, consider
+<p>
+<tscreen>
+{#enum WindowType {underscoreToCase} deriving (Eq)#}
+</tscreen>
+<p>
+<bf/Note:/ The <tt/enum define/ hooks described in the C-&gt;Haskell are not
+implemented yet.
+
+<sect1>Call Hooks
+<p>
+<tscreen>
+{#call [fun] [unsafe] <it/cid/ [as <it/hsid/]#}
+</tscreen>
+<p>
+A call hook rewrites to a call to the C function <it/cid/ and also ensures
+that the appropriate foreign import declaration is generated.  The tags
+<tt/fun/ and <tt/unsafe/ specify that the external function is purely
+functional and cannot re-enter the Haskell runtime, respectively.  If
+<it/hsid/ is present, it is used as the identifier for the foreign
+declaration, which otherwise defaults to the <it/cid/.
+
+As an example, consider
+<p>
+<tscreen><verb>
+sin :: Float -> Float
+sin  = {#call fun sin as "_sin"#}
+</verb></tscreen>
+
+<sect1>Get Hooks
+<p>
+<tscreen>
+{#get <it/apath/#}
+</tscreen>
+<p>
+A get hook supports accessing a member value of a C structure.  The hook
+itself yields a function that, when given the address of a structure of the
+right type, performs the structure access.  The member that is to be extracted
+is specified by the access path <it/apath/.  Access paths are formed as
+follows (following a subset of the C expression syntax):
+<itemize>
+<item>The root of any access path is a simple identifier, which denotes either
+a type name or <tt/struct/ tag.
+<item>An access path of the form <tt/*/<it/apath/ denotes dereferencing of
+the pointer yielded by accessing the access path <it/apath/.
+<item>An access path of the form <it/apath/<tt/./<it/cid/ specifies that the
+value of the <tt/struct/ member called <it/cid/ should be accessed.
+<item>Finally, an access path of the form <it/apath/<tt/->/<it/cid/, as in
+C, specifies a combination of dereferencing and member selection.
+</itemize>
+<p>
+For example, we may have
+<p>
+<tscreen><verb>
+visualGetType              :: Visual -> IO VisualType
+visualGetType (Visual vis)  = liftM cToEnum $ {#get Visual->type#} vis
+</verb></tscreen>
+
+<sect1>Set Hooks
+<p>
+<tscreen>
+{#get <it/apath/#}
+</tscreen>
+<p>
+Set hooks are formed in the same way as get hooks, but yield a function that
+assigns a value to a member of a C structure.  These functions expect a pointer
+to the structure as the first and the value to be assigned as the second
+argument.  For example, we may have
+<p>
+<tscreen>
+{#set sockaddr_in.sin_family#} addr_in (cFromEnum AF_NET)
+</tscreen>
+
+<sect1>Alias Hooks
+<p>
+<tscreen>
+{#alias <it/cid/ [as <it/hsid/] [foreign | stable]#}
+</tscreen>
+<p>
+Alias hooks introduce a C type <it/cid/ (or a pointer to a C type) into
+Haskell (possibly with a different name, namely <it/hsid/).
+
+
+<sect1>Grammar Rules
+<p>
+The following grammar rules define the syntax of binding hooks:
+<tscreen>
+<verb>
+hook     -> `{#' inner `#}'
+inner    -> `context' ctxt
+          | `type' ident
+          | `enum' idalias trans [deriving]
+          | `call' [`fun'] [`unsafe'] idalias
+          | `get' apath
+          | `set' apath
+          | `pointer' ['*'] idalias ptrkind
+
+ctxt     -> [`header' `=' string] [`lib' `=' string] [`prefix' `=' string]
+idalias  -> ident [`as' ident]
+deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
+apath    -> ident
+          | `*' apath
+          | apath `.' ident
+          | apath `->' ident
+trans    -> `{' alias_1 `,' ... `,' alias_n `}'
+alias    -> `underscoreToCase'
+          | ident `as' ident
+ptrkind  -> [`foreign' | `stable'] ['newtype' | '->' ident]
+</verb>
+</tscreen>
 
 <sect>The Haskell FFI Marshalling Library
 <p>
@@ -273,7 +450,7 @@ possible a concise example illustrating your problem would be appreciated.
 
 <sect>Copyright
 <p>
-C-&gt;Haskell is Copyright (C) [1999..2000] Manuel M. T. Chakravarty
+C-&gt;Haskell is Copyright (C) [1999..2001] Manuel M. T. Chakravarty
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -289,7 +466,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-This manual is Copyright (c) 2000 by Manuel M. T. Chakravarty. 
+This manual is Copyright (c) [2000..2001] by Manuel M. T. Chakravarty. 
 Permission is granted to copy, distribute and/or modify this document under
 the terms of the GNU Free Documentation License, Version 1.1 or any later
 version published by the Free Software Foundation; with no Invariant Sections,
@@ -305,6 +482,16 @@ The GNU Free Documentation License is available at
 <p>
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
+
+<sect1>Version 0.9.0 "Blue Ginger"
+<p>
+<itemize>
+<item>The documentation includes a description of binding hooks
+<item>Integrated <tt/alias/ hooks, which were contributed by Axel Simon
+<item>Integrated <tt/deriving/ option for <tt/enum/ hooks, which was
+contributed by Axel Simon 
+<item>Adapted to GHC 5.0
+</itemize>
 
 <sect1>Version 0.8.2 "Gentle Moon"
 <p>
@@ -327,7 +514,7 @@ importing <tt/C2HSDeprecated/
 <p>
 <itemize>
 <item>CygWin support; based on suggestions by Anibal Maffioletti Rodrigues de
-DEUS <anibaldedeus@email.com>
+DEUS &gt;anibaldedeus@email.com&lt;
 <item><tt/IntConv/ instances for <tt/Int8/, <tt/Word8/, and <tt/Char/
 </itemize>
 

@@ -4,6 +4,24 @@
 
 Next: -= phase re-ordering & parser clean up =-
 
+      - GenBind.showExtType' doesn't work properly for `PtrET CHSFunctionPtr
+        ..'; bug can be reproduced by the `Calls' test (check the type
+        assigned to `MyStringT')
+
+      - gen/CInfo.hs: should be using `FunPtr' with compilers that have it
+
+      - Idea from Alastair: To make life easier for people who want to
+        distribute tools including c2hs-generated code, it would be good to
+        have an option to delay the inclusion of system-dependent information
+        until the generated files are compiled (possibly generating files that
+        have to be run through cpp or sed or so).  With the New FFI Libraries
+        this shouldn't be too difficult, because most of the autoconf
+        information is to build c2hs and doesn't have an impact on the
+        generated code.  The obvious exception is the use of the sizes and
+        alignments of primitive C types bei c2hs.  So, here we should Haskell
+        expression computing these values from Storable rather than constants
+        computed by c2hs.
+
       - Bug?  Can't c2hs handle having the same name for a struct and a
         typedef'd name?  Eg, like here
 
@@ -28,16 +46,9 @@ Next: -= phase re-ordering & parser clean up =-
         list a given identifier (for private functions listed in the header).
       - Simon Marlow's bug (+inbox/37148)
       - add lndir to hipar/ (start utils dir)
-      - Axel's proposal for a {#newAddr Blah#} and {#newForeign Blah#} hook
-	(+inbox/39452)
-      - adapt the library to GHC 4.08 [currently plusAddr Hack is used; make
-	this clean]
       - In `GtkCList.cListGetNoOfRows' wird der Offset falsch berechnet
         (sollte 84 sein) 
       - make clean and make cleanhi don't clean the lib/ subdir
-      - use `FFI.hs' (this implies renaming of some identifiers and other
-        things; how can we stay backwards compatible to Haskell compilers that 
-        do not have the FFI library?)
       - In `GdkGL.chs', the prefix is not properly removed from the
         constructors of `GdkGL.Configs'; same problem with
         `GdkEvents.EventType'
@@ -57,10 +68,6 @@ Next: -= phase re-ordering & parser clean up =-
         instead of giving the .h file on the command line)?
 	STARTED: `header' tag is recognised in context hooks, BUT not yet
 		 used - usage requires reordering the phases
-      - we should use `Pointer a' or so (maybe better `Ptr a');
-	use the new newtype marshalling support and make
-	C->HS generate the types when producing the foreign export
-	decls
       - intro a safe flag (as opposite to unsafe, but make safe the default)
       - overload stdAddr etc for ForeignObj (stable ptr & cast)
       - {#sizeof <type>#} becomes `sizeof (<type>)'
@@ -108,9 +115,40 @@ Next: -= phase re-ordering & parser clean up =-
         `nhc' library-only compilation mode that requires to install the C->HS 
         binary for GHC first, then get the complete C->HS source, and the
         special library-only compile and installation.
-      - try STGHugs; same problem for distributions as outlined for nhc above!
       - maybe compilers based on the CTK should add a README.1ST to the root
 	directory when they are tarified
+
+Alias Hooks
+~~~~~~~~~~~
+
+Given
+
+  void gtk_clist_select_all (GtkCList *clist);
+
+and 
+
+  {#alias CList foreign newtype#}
+
+  cListSelectAll clist = 
+    {#call clist_select_all#} (unCListClass clist)
+
+we get
+
+  newtype CList = CList (ForeignPtr CList)
+
+  foreign import cListSelectAll :: ForeignPtr CList -> IO ()
+
+Moreover,
+
+  {#alias CList foreign#}
+
+would become
+
+  type CList = Ptr 
+
+* Strictly speaking, we shouldn't even need an alias table for that, as the
+  FFI can look through newtypes.
+
 
 Marshalling templates
 ~~~~~~~~~~~~~~~~~~~~~
@@ -166,11 +204,8 @@ Short term
 
 * #define enums in C: siehe unten - scheinen aber wichtig
 
-* enum hooks should allow to optionally derive Eq, Ord, etc instances of the
-  enumeration 
-
 * `GdkMarsh.GFlag' should be in the C2HS library (as `Flag') and we might want
-  something like {#enum flag ...#} for marshalling masks like `GdkEventMask'.
+  Something like {#enum flag ...#} for marshalling masks like `GdkEventMask'.
   The latter would not generate an `Enum' instance, but a `Flag' instance.
   (See also `GdkEvents.EventMask'.)
 

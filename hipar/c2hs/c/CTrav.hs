@@ -3,9 +3,9 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 October 99
 --
---  Version $Revision: 1.5 $ from $Date: 2001/02/12 06:34:39 $
+--  Version $Revision: 1.6 $ from $Date: 2001/04/29 13:13:51 $
 --
---  Copyright (c) 1999 Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -74,7 +74,7 @@ module CTrav (CT, readCT, transCT, getCHeaderCT, runCT, throwCTExc, ifCTExc,
 	      declaredDeclr, declaredName, structMembers, expandDecl,
 	      structName, isPtrType, structFromDecl, funResultAndArgs,
 	      chaseDecl, findAndChaseDecl, checkForAlias, lookupEnum,
-	      lookupStructUnion)
+	      lookupStructUnion, extractAliasNames)
 where
 
 import List       (find)
@@ -586,6 +586,59 @@ checkForAlias decl  =
     Nothing        -> return Nothing
     Just (ide', _) -> liftM Just $ chaseDecl ide' False
 
+-- chase alias declarators while collecting all names encountered on the way;
+-- at most one indirection is followed (EXPORTED)
+--
+-- * this is similar to `checkForAlias' but indicates whether an indirection
+--   was followed (first component of the result)
+--
+-- * if the declarator is a pointer (first component of the result is `True')
+--   the resulting list of synonyms does not necessarily refer to the 
+--   same type; consider:
+--
+--     typedef a int; typedef b a; typedef c *b; typedef d c;
+--
+--   The result for `(d ptrvar)' would be `[b,a,d,c]'.  The variable is
+--   a pointer to the first two types `b' (most abstract) and `a'
+--   (least abstract).  The types `d' and `c' are equal to `ptrvar'
+--   itself but in cases like
+--
+--     typedef void (*myfunc)(void)
+--
+--   it is desirable for the user to be able to refer to the alias
+--   in, eg, `(myfunc f)' as there is no name for the function.
+--
+FIXME: revise
+extractAliasNames :: CDecl -> CT s (Bool, [Ident], CDecl)
+extractAliasNames decl = chasePointer decl []
+  where
+    getSimpleDecl :: Ident -> CT s CDecl
+    getSimpleDecl id = do
+      cdecl <- getDeclOf id
+      return (id `simplifyDecl` cdecl)
+
+    chasePointer :: CDecl -> [Ident] -> CT s (Bool, [Ident], CDecl)
+    chasePointer cdecl ids = 
+      case extractAlias cdecl True of
+        Just (ide, True)  -> do
+	  cdecl' <- getSimpleDecl ide
+	  chasePointer cdecl' (ide:ids)
+	Just (ide, False) -> do
+	  cdecl' <- getSimpleDecl ide
+	  (ids', cdecl'') <- checkPointer cdecl' []
+	  return (True, reverse ids ++ reverse (ide:ids'), cdecl'')
+        Nothing		  ->
+	  return (maybe False isPtrType (declaredDeclr cdecl), 
+		 reverse ids, cdecl)
+
+    checkPointer :: CDecl -> [Ident] -> CT s ([Ident], CDecl)
+    checkPointer cdecl ids =
+      case extractAlias cdecl False of
+	Just (ide, _) -> do
+	  cdecl' <- getSimpleDecl ide
+	  checkPointer cdecl' (ide:ids)
+        Nothing       -> 
+	  return (ids, cdecl)
 
 -- smart lookup
 --
@@ -645,7 +698,7 @@ lookupStructUnion ide ind useShadows
 -- auxiliary routines
 --
 
--- if the given declaration (which may haveat most one declarator) is a
+-- if the given declaration (which may have at most one declarator) is a
 -- `typedef' alias, yield the referenced name
 --
 -- * if `ind = True', the alias may be via an indirection
@@ -735,7 +788,7 @@ typedefExpectedErr      :: Ident -> CT s a
 typedefExpectedErr ide  =   
   raiseErrorCTExc (posOf ide) 
     ["Expected type definition!",
-     "The identifier `" ++ identToLexeme ide ++ "' needs to be a type name."]
+     "The identifier `" ++ identToLexeme ide ++ "' needs to be a C type name."]
 
 unexpectedTypedefErr     :: Position -> CT s a
 unexpectedTypedefErr pos  =   

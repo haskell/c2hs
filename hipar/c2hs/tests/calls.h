@@ -9,4 +9,8 @@ typedef char *tString;
 void printString (tString str);
 void printString2 (tString);
 
+/* type of function `MyString'
+ */
+typedef char *(*MyStringType) (void);
+
 #endif /* !_CALLS_H */

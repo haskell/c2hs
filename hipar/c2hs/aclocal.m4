@@ -149,6 +149,40 @@ ifelse($#, [1], [dnl
 undefine([CTK_CV_GHC_VERSION])dnl
 ])dnl
 
+dnl -- Pinched from Michael Weber's HaskellMPI
+dnl
+dnl We keep the CTK_ prefix as this test is shared with CTK.
+dnl
+dnl CTK_PROG_CHECK_VERSION(VERSIONSTR1, TEST, VERSIONSTR2,
+dnl                        ACTION-IF-TRUE [, ACTION-IF-FALSE])
+dnl
+dnl compare versions field-wise (separator is '.')
+dnl TEST is one of {-lt,-le,-eq,-ge,-gt}
+dnl
+dnl quite shell-independent and SUSv2 compliant code
+dnl
+dnl NOTE: the loop could be unrolled within autoconf, but the
+dnl       macro code would be a) longer and b) harder to debug... ;)
+dnl
+AC_DEFUN(CTK_PROG_CHECK_VERSION,
+[if ( IFS=".";
+      a="[$1]";  b="[$3]";
+      while test -n "$a$b"
+      do
+              set -- [$]a;  h1="[$]1";  shift 2>/dev/null;  a="[$]*"
+              set -- [$]b;  h2="[$]1";  shift 2>/dev/null;  b="[$]*"
+              test -n "[$]h1" || h1=0;  test -n "[$]h2" || h2=0
+              test [$]{h1} -eq [$]{h2} || break
+      done
+      test [$]{h1} [$2] [$]{h2}
+    )
+then ifelse([$4],,[:],[
+  $4])
+ifelse([$5],,,
+[else
+  $5])
+fi])])dnl
+
 dnl Obtain the value of a C constant.
 dnl The value will be `(-1)' if the constant is undefined.
 dnl

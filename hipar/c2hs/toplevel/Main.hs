@@ -3,9 +3,9 @@
 --  Author : Manuel M. T. Chakravarty
 --  Derived: 12 August 99
 --
---  Version $Revision: 1.10 $ from $Date: 1999/11/06 14:54:57 $
+--  Version $Revision: 1.11 $ from $Date: 2001/04/29 13:13:53 $
 --
---  Copyright (c) 1999 Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -90,6 +90,12 @@
 --        Print (on standard error output) the version and copyright
 --	  information of the compiler (before doing anything else).
 --
+--
+--  --old-ffi [=yes|=no]
+--	  Generate hooks using pre-standard FFI libraries.  This currently
+--	  affects only call hooks where instead of `Addr' types 
+--	  `Ptr <someOtherType>' is used.
+--
 --- TODO ----------------------------------------------------------------------
 --
 
@@ -154,6 +160,7 @@ data Flag = CPPOpts String      -- additional options for C preprocessor
 	  | Keep	        -- keep the .i file
 	  | Output  String      -- file where the generated file should go
 	  | Version	        -- print version information on stderr
+	  | OldFFI  Bool	-- use the pre-standard FFI (pre-GHC 4.11)
 	  | Error   String      -- error occured during processing of options
 	  deriving Eq
 
@@ -192,7 +199,11 @@ options  = [
   Option ['v'] 
 	 ["version"] 
 	 (NoArg Version) 
-	 "show version information"]
+	 "show version information",
+  Option []
+	 ["old-ffi"]
+	 (OptArg oldFFISwitch "OLDFFI")
+	 "use the FFI without `Ptr a'"]
 
 -- convert argument of `Dump' option
 --
@@ -200,6 +211,15 @@ dumpArg           :: String -> Flag
 dumpArg "trace"    = Dump Trace
 dumpArg "chs"      = Dump CHS
 dumpArg _          = Error "Illegal dump type."
+
+-- convert argument of `old-ffi' option
+--
+oldFFISwitch              :: Maybe String -> Flag
+oldFFISwitch (Just "yes")  = OldFFI True
+oldFFISwitch (Just "no" )  = OldFFI False
+oldFFISwitch Nothing       = OldFFI True
+oldFFISwitch _		   = 
+  Error "Please supply either `yes' or `no' to the `--old-ffi' option."
 
 -- main process (set up base configuration, analyse command line, and execute
 -- compilation process)
@@ -300,7 +320,7 @@ help  = do
 --
 -- * `Help' cannot occur 
 --
-processOpt                :: Flag -> CST s ()
+processOpt                   :: Flag -> CST s ()
 processOpt (CPPOpts cppopts)  = addCPPOpts cppopts
 processOpt (CPP     cpp    )  = setCPP     cpp
 processOpt (Dump    dt     )  = setDump    dt
@@ -309,7 +329,8 @@ processOpt (Output  fname  )  = setOutput  fname
 processOpt Version            = do
 			          (version, _, _) <- getId 
 			          putStrCIO (version ++ "\n")
-processOpt (Error msg)     = abort msg
+processOpt (OldFFI  flag   )  = setOldFFI  flag
+processOpt (Error   msg    )  = abort      msg
 
 -- emit error message and raise an error
 --
@@ -366,6 +387,11 @@ setOutput fname  = do
 		     when (suffix fname /= hssuffix) $
 		       raiseErrs ["Output file should end in .hs!\n"]
 		     setSwitch $ \sb -> sb {outputSB = stripSuffix fname}
+
+-- set flag wether or not to use the old pre-GHC-5.00 FFI without `Ptr a'
+--
+setOldFFI      :: Bool -> CST s ()
+setOldFFI flag  = setSwitch $ \sb -> sb {oldFFI = flag}
 
 
 -- compilation process

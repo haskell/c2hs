@@ -3,9 +3,9 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 August 99
 --
---  Version $Revision: 1.11 $ from $Date: 2000/08/06 04:17:26 $
+--  Version $Revision: 1.12 $ from $Date: 2001/04/29 13:13:52 $
 --
---  Copyright (c) 1999 Manuel M. T. Chakravarty
+--  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -27,24 +27,27 @@
 --
 --  The following binding hooks are recognised:
 --
---  hook    -> `{#' inner `#}'
---  inner   -> `context' ctxt
---	     | `type' ident
---	     | `enum' idalias trans
---	     | `call' [`fun'] [`unsafe'] idalias
---	     | `get' apath
---	     | `set' apath
+--  hook     -> `{#' inner `#}'
+--  inner    -> `context' ctxt
+--	      | `type' ident
+--	      | `enum' idalias trans [deriving]
+--	      | `call' [`fun'] [`unsafe'] idalias
+--	      | `get' apath
+--	      | `set' apath
+--	      | `pointer' ['*'] idalias ptrkind
 --
---  ctxt    -> [`header' `=' string] [`lib' `=' string] [`prefix' `=' string]
---  idalias -> ident [`as' ident]
---  apath   -> ident
---	     | `*' apath
---	     | apath `.' ident
---	     | apath `->' ident
---  trans   -> `{' alias_1, ..., alias_n `}'
---  alias   -> `underscoreToCase'
---	     | ident `as' ident
---
+--  ctxt     -> [`header' `=' string] [`lib' `=' string] [`prefix' `=' string]
+--  idalias  -> ident [`as' ident]
+--  deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
+--  apath    -> ident
+--	      | `*' apath
+--	      | apath `.' ident
+--	      | apath `->' ident
+--  trans    -> `{' alias_1 `,' ... `,' alias_n `}'
+--  alias    -> `underscoreToCase'
+--	      | ident `as' ident
+--  ptrkind  -> [`foreign' | `stable'] ['newtype' | '->' ident]
+--  
 --  If `underscoreToCase' occurs in a translation table, it must be the first
 --  entry.
 --
@@ -57,8 +60,11 @@
 --
 
 module CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
-	    CHSAccess(..), CHSAPath(..), loadCHS, dumpCHS, hssuffix, chssuffix)
+	    CHSAccess(..), CHSAPath(..), CHSPtrType(..),
+	    loadCHS, dumpCHS, hssuffix, chssuffix)
 where 
+
+import List	 (intersperse)
 
 import Common    (Position, Pos(posOf), nopos)
 import Errors	 (interr)
@@ -93,6 +99,7 @@ data CHSHook = CHSContext (Maybe String)	-- header name
 	     | CHSEnum    Ident			-- C enumeration type
 			  (Maybe Ident)		-- Haskell name
 			  CHSTrans		-- translation table
+			  [Ident]		-- instance requests from user
 			  Position
 	     | CHSCall    Bool			-- is a pure function?
 			  Bool			-- is unsafe?
@@ -101,14 +108,22 @@ data CHSHook = CHSContext (Maybe String)	-- header name
 			  Position
 	     | CHSField   CHSAccess		-- access type
 			  CHSAPath		-- access path
+			  Position 
+	     | CHSPointer Bool			-- explicit '*' in hook
+			  Ident			-- C pointer name
+			  (Maybe Ident)		-- Haskell name
+			  CHSPtrType		-- Ptr, ForeignPtr or StablePtr
+			  Bool			-- create new type?
+			  (Maybe Ident)		-- Haskell type pointed to
 			  Position
 
 instance Pos CHSHook where
-  posOf (CHSContext _ _ _   pos) = pos
-  posOf (CHSType    _       pos) = pos
-  posOf (CHSEnum    _ _ _   pos) = pos
-  posOf (CHSCall    _ _ _ _ pos) = pos
-  posOf (CHSField   _ _     pos) = pos
+  posOf (CHSContext _ _ _       pos) = pos
+  posOf (CHSType    _           pos) = pos
+  posOf (CHSEnum    _ _ _ _     pos) = pos
+  posOf (CHSCall    _ _ _ _     pos) = pos
+  posOf (CHSField   _ _         pos) = pos
+  posOf (CHSPointer _ _ _ _ _ _ pos) = pos
 
 -- two hooks are equal if they have the same Haskell name and reference the
 -- same C object 
@@ -118,12 +133,15 @@ instance Eq CHSHook where
     h1 == h2 && olib1 == olib1 && opref1 == opref2
   (CHSType ide1                _) == (CHSType ide2                _) = 
     ide1 == ide2
-  (CHSEnum ide1 oalias1 _      _) == (CHSEnum ide2 oalias2 _      _) = 
-    oalias1 == oalias2 && ide1    == ide2
+  (CHSEnum ide1 oalias1 _ _    _) == (CHSEnum ide2 oalias2 _ _    _) = 
+    oalias1 == oalias2 && ide1 == ide2
   (CHSCall _ _ ide1 oalias1    _) == (CHSCall _ _ ide2 oalias2    _) = 
-    oalias1 == oalias2 && ide1    == ide2
+    oalias1 == oalias2 && ide1 == ide2
   (CHSField acc1 path1         _) == (CHSField acc2 path2         _) =    
     acc1 == acc2 && path1 == path2
+  (CHSPointer _ ide1 oalias1 _ _ _ _) 
+			          == (CHSPointer _ ide2 oalias2 _ _ _ _) =
+    ide1 == ide2 && oalias1 == oalias2
   _                               == _                          = False
 
 -- translation table (EXPORTED)
@@ -143,6 +161,19 @@ data CHSAPath = CHSRoot  Ident			-- root of access path
 	      | CHSDeref CHSAPath Position	-- dereferencing
 	      | CHSRef	 CHSAPath Ident		-- member referencing
 	      deriving (Eq)
+
+-- pointer options (EXPORTED)
+--
+
+data CHSPtrType = CHSPtr			-- standard Ptr from Haskell
+		| CHSForeignPtr			-- a pointer with a finalizer
+		| CHSStablePtr			-- a pointer into Haskell land
+		deriving (Eq)
+
+instance Show CHSPtrType where
+  show CHSPtr		 = "Ptr"
+  show CHSForeignPtr	 = "ForeignPtr"
+  show CHSStablePtr	 = "StablePtr"
 
 
 -- load and dump a CHS file
@@ -254,27 +285,43 @@ showCHSHook (CHSContext oheader olib oprefix _) =
 showCHSHook (CHSType ide _) =   
     showString "type "
   . showCHSIdent ide
-showCHSHook (CHSEnum ide oalias trans _) =   
+showCHSHook (CHSEnum ide oalias trans derive _) =   
     showString "enum "
-  . showCHSIdent ide
-  . showString " "
-  . (case oalias of
-       Nothing  -> showString ""
-       Just ide -> showString "as " . showCHSIdent ide . showString " ")
+  . showIdAlias ide oalias
   . showCHSTrans trans
+  . if null derive then id else showString $
+      "deriving (" 
+      ++ concat (intersperse ", " (map identToLexeme derive))
+      ++ ") "
 showCHSHook (CHSCall isFun isUns ide oalias _) =   
     showString "call "
   . (if isFun then showString "fun " else id)
   . (if isUns then showString "unsafe " else id)
-  . showCHSIdent ide
-  . (case oalias of
-       Nothing  -> showString ""
-       Just ide -> showString " as " . showCHSIdent ide)
+  . showIdAlias ide oalias
 showCHSHook (CHSField acc path _) =   
     (case acc of
        CHSGet -> showString "get "
        CHSSet -> showString "set ")
   . showCHSAPath path
+showCHSHook (CHSPointer star ide oalias ptrType isNewtype oRefType _) =
+    showString "pointer "
+  . (if star then showString "*" else showString "")
+  . showIdAlias ide oalias
+  . (case ptrType of
+       CHSForeignPtr -> showString " foreign"
+       CHSStablePtr  -> showString " stable"
+       _	     -> showString "")
+  . (case (isNewtype, oRefType) of
+       (True , _       ) -> showString " newtype" 
+       (False, Just ide) -> showString " -> " . showCHSIdent ide
+       (False, Nothing ) -> showString "")
+
+showIdAlias            :: Ident -> Maybe Ident -> ShowS
+showIdAlias ide oalias  =
+    showCHSIdent ide
+  . (case oalias of
+       Nothing  -> showString ""
+       Just ide -> showString " as " . showCHSIdent ide)
 
 showCHSTrans :: CHSTrans -> ShowS
 showCHSTrans (CHSTrans _2Case assocs) =   
@@ -364,6 +411,7 @@ parseFrags toks  = do
     parseFrags0 (CHSTokCall    pos:toks) = parseCall    pos        toks
     parseFrags0 (CHSTokGet     pos:toks) = parseField   pos CHSGet toks
     parseFrags0 (CHSTokSet     pos:toks) = parseField   pos CHSSet toks
+    parseFrags0 (CHSTokPointer pos:toks) = parsePointer pos        toks
     parseFrags0 toks			 = syntaxError toks
     --
     -- skip to next Haskell or control token
@@ -394,11 +442,12 @@ parseType _ toks = syntaxError toks
 parseEnum :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseEnum pos (CHSTokIdent _ ide:toks) =
   do
-    (oalias, toks' ) <- parseOptAs   toks
-    (trans , toks'') <- parseTrans   toks'
-    toks'''	     <- parseEndHook toks''
-    frags            <- parseFrags   toks'''
-    return $ CHSHook (CHSEnum ide (norm oalias) trans pos) : frags
+    (oalias, toks' )  <- parseOptAs   toks
+    (trans , toks'')  <- parseTrans   toks'
+    (derive, toks''') <- parseDerive  toks''
+    toks''''	      <- parseEndHook toks'''
+    frags             <- parseFrags   toks''''
+    return $ CHSHook (CHSEnum ide (norm oalias) trans derive pos) : frags
   where
     norm Nothing                   = Nothing
     norm (Just ide') | ide == ide' = Nothing
@@ -433,6 +482,38 @@ parseField pos access toks =
     frags         <- parseFrags toks'
     return $ CHSHook (CHSField access path pos) : frags
 
+parsePointer :: Position -> [CHSToken] -> CST s [CHSFrag]
+parsePointer pos toks =
+  do
+    (isStar, ide, toks')          <- 
+      case toks of
+	CHSTokStar _:CHSTokIdent _ ide:toks' -> return (True , ide, toks')
+	CHSTokIdent _ ide             :toks' -> return (False, ide, toks')
+	_				     -> syntaxError toks
+    (oalias , toks'2)             <- parseOptAs   toks'
+    (ptrType, toks'3)             <- parsePtrType toks'2
+    let 
+     (isNewtype, oRefType, toks'4) =
+      case toks'3 of
+	CHSTokNewtype _                  :toks' -> (True , Nothing , toks' )
+	CHSTokArrow   _:CHSTokIdent _ ide:toks' -> (False, Just ide, toks' )
+	_				        -> (False, Nothing , toks'3)
+    toks'5	                  <- parseEndHook toks'4
+    frags                         <- parseFrags   toks'5
+    return $ 
+      CHSHook 
+       (CHSPointer isStar ide (norm ide oalias) ptrType isNewtype oRefType pos)
+       : frags
+  where
+    parsePtrType :: [CHSToken] -> CST s (CHSPtrType, [CHSToken])
+    parsePtrType (CHSTokForeign _:toks) = return (CHSForeignPtr, toks)
+    parsePtrType (CHSTokStable _ :toks) = return (CHSStablePtr, toks)
+    parsePtrType                  toks	= return (CHSPtr, toks)
+
+    norm ide Nothing                   = Nothing
+    norm ide (Just ide') | ide == ide' = Nothing
+			 | otherwise   = Just ide'
+
 parseOptHeader :: [CHSToken] -> CST s (Maybe String, [CHSToken])
 parseOptHeader (CHSTokHeader _    :
 	        CHSTokEqual  _    :
@@ -461,6 +542,7 @@ parseOptAs :: [CHSToken] -> CST s (Maybe Ident, [CHSToken])
 parseOptAs (CHSTokAs _:CHSTokIdent _ ide:toks) = return (Just ide, toks)
 parseOptAs (CHSTokAs _:toks		     ) = syntaxError toks
 parseOptAs  toks			       = return (Nothing, toks)
+
 
 -- this is disambiguated and left factored
 --
@@ -512,7 +594,7 @@ parseTrans (CHSTokLBrace _:toks) =
           return (CHSTrans _2Case transs, toks'')
   where
     parse_2Case (CHSTok_2Case _:toks) = return (True, toks)
-    parse_2Case toks		       = return (False, toks)
+    parse_2Case toks		      = return (False, toks)
     --
     parseTranss (CHSTokRBrace _:toks) = return ([], toks)
     parseTranss (CHSTokComma  _:toks) = do
@@ -530,6 +612,21 @@ parseTrans (CHSTokLBrace _:toks) =
     parseAssoc toks						       =
       syntaxError toks
 parseTrans toks = syntaxError toks
+
+parseDerive :: [CHSToken] -> CST s ([Ident], [CHSToken])
+parseDerive (CHSTokDerive _ :CHSTokLParen _:CHSTokRParen _:toks) = 
+  return ([], toks)
+parseDerive (CHSTokDerive _ :CHSTokLParen _:toks)                = 
+  parseCommaIdent (CHSTokComma nopos:toks)
+  where
+    parseCommaIdent :: [CHSToken] -> CST s ([Ident], [CHSToken])
+    parseCommaIdent (CHSTokComma _:CHSTokIdent _ ide:toks) =
+      do
+        (ids, tok') <- parseCommaIdent toks
+        return (ide:ids, tok')
+    parseCommaIdent (CHSTokRParen _                 :toks) = 
+      return ([], toks)
+parseDerive toks = return ([],toks)
 
 parseIdent :: [CHSToken] -> CST s (Ident, [CHSToken])
 parseIdent (CHSTokIdent _ ide:toks) = return (ide, toks)
