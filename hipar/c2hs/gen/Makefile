@@ -1,11 +1,11 @@
 #  C->Haskell Compiler: makefile for the generator modules
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Derived: 17 March 1999
 #
-#  Version $Revision: 1.3 $ from $Date: 2002/02/23 10:51:54 $
+#  Version $Revision: 1.4 $ from $Date: 2002/03/12 12:39:16 $
 #
-#  Copyright (c) 1999 Manuel M. T. Chakravarty
+#  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -35,7 +35,6 @@ SRCS	= CInfo.hs GBMonad.hs GenBind.hs
 OBJS	= $(patsubst %.hs,%.o,$(filter %.hs,$(SRCS)))
 
 include ../../mk/common.mk
-include ../$(DEPEND)
 
 
 # make all object files

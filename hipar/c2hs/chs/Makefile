@@ -1,11 +1,11 @@
 #  C->Haskell Compiler: makefile for the CHS modules
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Derived: 13 March 1999
 #
-#  Version $Revision: 1.2 $ from $Date: 1999/08/18 00:13:29 $
+#  Version $Revision: 1.3 $ from $Date: 2002/03/12 12:39:15 $
 #
-#  Copyright (c) 1999 Manuel M. T. Chakravarty
+#  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -35,7 +35,6 @@ SRCS	= CHS.hs CHSLexer.hs
 OBJS	= $(patsubst %.hs,%.o,$(filter %.hs,$(SRCS)))
 
 include ../../mk/common.mk
-include ../$(DEPEND)
 
 
 # make all object files

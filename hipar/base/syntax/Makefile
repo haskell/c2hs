@@ -1,11 +1,11 @@
 #  Compiler Toolkit: makefile for the syntax-related modules
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.7 $ from $Date: 2001/04/29 13:06:04 $
+#  Version $Revision: 1.8 $ from $Date: 2002/03/12 12:39:14 $
 #
-#  Copyright (c) 1999 Manuel M. T. Chakravarty
+#  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -38,7 +38,6 @@ SRCS   := Lexers.hs ParserMonad.hs Parsers.hs Pretty.hs
 OBJS   := $(patsubst %.hs,%.o,$(SRCS))
 
 include ../../mk/common.mk
--include ../$(DEPEND)
 
 # check whether we can use rank-2 type variables
 #

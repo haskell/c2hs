@@ -1,11 +1,11 @@
 #  C -> Haskell Compiler: makefile for the C modules
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Derived: 6 March 1999
 #
-#  Version $Revision: 1.8 $ from $Date: 2001/08/26 08:34:24 $
+#  Version $Revision: 1.9 $ from $Date: 2002/03/12 12:39:15 $
 #
-#  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
+#  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -36,7 +36,6 @@ SRCS	= C.hs CAST.hs CAttrs.hs CBuiltin.hs CLexer.hs CNames.hs CParser.hs\
 OBJS	= $(patsubst %.hs,%.o,$(filter %.hs,$(SRCS)))
 
 include ../../mk/common.mk
-include ../$(DEPEND)
 
 
 # make all object files

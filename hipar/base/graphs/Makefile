@@ -1,11 +1,11 @@
 #  Compiler Toolkit: makefile for the graph/dependency modules
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Created: 6 December 1999
 #
-#  Version $Revision: 1.1 $ from $Date: 1999/12/06 05:57:04 $
+#  Version $Revision: 1.2 $ from $Date: 2002/03/12 12:39:14 $
 #
-#  Copyright (c) 1999 Manuel M. T. Chakravarty
+#  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@ SRCS	= Marks.hs
 OBJS	= $(patsubst %.hs,%.o,$(SRCS))
 
 include ../../mk/common.mk
-include ../$(DEPEND)
 
 # make all object files
 #

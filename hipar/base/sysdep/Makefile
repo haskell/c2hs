@@ -1,11 +1,11 @@
 #  Compiler Toolkit: makefile for the system dependent modules
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Created: 24 October 1997
 #
-#  Version $Revision: 1.13 $ from $Date: 2001/04/29 13:06:04 $
+#  Version $Revision: 1.14 $ from $Date: 2002/03/12 12:39:15 $
 #
-#  Copyright (c) [1997..1999] Manuel M. T. Chakravarty
+#  Copyright (c) [1997..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -44,7 +44,6 @@ endif
 OBJS	= $(patsubst %.hs,%.o,$(SRCS))
 
 include ../../mk/common.mk
--include ../$(DEPEND)
 
 # In case we use a GHC4 or GHC5 system, we need some extra options for 
 # `SysDep.hs'. 

@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.3 $ from $Date: 2002/03/05 13:08:38 $
+#  Version $Revision: 1.4 $ from $Date: 2002/03/12 12:39:16 $
 #
 #  Copyright (c) 1999 Manuel M. T. Chakravarty
 #
@@ -28,9 +28,25 @@
 # C->HS-specific information for the toplevel makefile
 # ====================================================
 
-# files lists for tar balls
+# files list for tar balls
 #
-C2HSFILES=doc/c2hs c2hs/mk/c2hs.pck.mk c2hs
+C2HSFILES=c2hs/mk/c2hs.pck.mk c2hs/mk/config.mk.in\
+          doc/c2hs/Makefile doc/c2hs/c2hs.sgml doc/c2hs/man1/*.in doc/c2hs/lib\
+          $(addprefix c2hs/,AUTHORS COPYING COPYING.LIB ChangeLog INSTALL\
+			    Makefile README TODO aclocal.m4 *.in configure\
+			    mk/c2hs.pck.mk mk/config.mk.in)\
+          $(addprefix c2hs/c/,Makefile tests/*.hs tests/*.i *.hs)\
+          $(addprefix c2hs/chs/,Makefile *.hs)\
+          $(addprefix c2hs/gen/,Makefile *.hs)\
+          $(addprefix c2hs/state/,Makefile *.hs)\
+          $(addprefix c2hs/toplevel/,Makefile C2HSConfig.hs.in Main.hs\
+				     Version.hs c2hs_config.c c2hs_config.h)\
+          $(addprefix c2hs/tests/,Makefile *.chs *.h *.c)\
+          $(filter-out %/C2HSConfig.hs %/CError.hs %/NewStablePtr.hs\
+		       %/NewStorable.hs,\
+	    $(wildcard $(addprefix c2hs/lib/,Makefile *.hs *.in)))
+# FIXME: not including examples/ currently; the example has to be fixed and we
+#	 need more/others
 
 # file that contain a `versnum = "x.y.z"' line
 #
@@ -41,8 +57,7 @@ C2HSVERSION  =$(shell $(GREP) '^versnum' $(C2HSVERSFILE)\
 # base directory for tar balls and exclude patterns
 #
 C2HSTARBASE=c2hs
-C2HSTAREXCL=--exclude=C2HSConfig.hs --exclude=c2hs-config --exclude=c2hs.spec\
-            $(TAREXCL)
+C2HSTAREXCL=$(TAREXCL)
 
 
 # Definition of the package parts
@@ -64,8 +79,8 @@ endif
 
 .PHONY: c2hs tar-c2hs tar-c2hs-only
 c2hs:
-	$(MAKE) -C $(BUILDDIR)/c2hs $(MFLAGS) all
-	@echo "*** The executable is \`$(BUILDDIR)/c2hs/c2hs'."
+	$(MAKE) -C c2hs $(MFLAGS) all
+	@echo "*** The executable is \`c2hs/c2hs'."
 
 C2HSTARCMD=$(TAR) -c -z $(C2HSTAREXCL) -h -f
 tar-c2hs:

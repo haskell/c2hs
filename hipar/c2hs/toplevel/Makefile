@@ -1,11 +1,11 @@
 #  C -> Haskell Compiler: makefile for the driver
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Derived: 12 August 1999
 #
-#  Version $Revision: 1.4 $ from $Date: 2001/11/14 09:08:13 $
+#  Version $Revision: 1.5 $ from $Date: 2002/03/12 12:39:16 $
 #
-#  Copyright (c) 1999 Manuel M. T. Chakravarty
+#  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -38,7 +38,6 @@ ALLOBJS	= $(OBJS)\
 	  $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 
 include ../../mk/common.mk
-include ../$(DEPEND)
 
 # Extra flags
 #

@@ -18,7 +18,6 @@ Contents:
   Makefile      -- Root makefile
   README	-- This file
   base		-- Compiler Toolkit (general purpose compiler modules)
-  build		-- Build area (created during the build process)
   configure	-- Platform-independent configuration file
   configure.in	-- Autoconf input used to produce `configure'
   doc		-- Documentation

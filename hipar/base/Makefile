@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 25 July 1998
 #
-#  Version $Revision: 1.10 $ from $Date: 2002/03/05 13:08:38 $
+#  Version $Revision: 1.11 $ from $Date: 2002/03/12 12:39:13 $
 #
 #  Copyright (c) [1998..2002] Manuel M T Chakravarty
 #
@@ -36,7 +36,14 @@ PACKAGE=base
 PCKVERSION=$(BASEVERSION)
 
 include ../mk/common.mk
--include .depend
+
+# compute object targets
+#
+# * don't include the files from sysdep/ as some are not used and those used 
+#   will be demanded anyway
+#
+OBJS=$(patsubst %.hs,%.o,\
+       $(wildcard $(addsuffix /*.hs,$(filter-out sysdep,$(BASEPARTS)))))
 
 # directories containing interface files that might be used here
 #
@@ -55,8 +62,8 @@ MKDEPENDFILES += $(addprefix sysdep/,SysDep.hs SysDepPosix.hs)
 .PHONY: default objs all libctk test
 
 default: all
-objs   : recobjs
-all    : recall libctk
+objs   : $(OBJS)
+all    : objs libctk
 test   : rectest
 
 # the library achieve containing the whole CTK

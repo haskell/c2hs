@@ -3,6 +3,13 @@
 ** This file covers only the Compiler Toolkit, see compiler subdirectories for
 ** NEWS regarding compilers built with the toolkit.
 
+0.24.0
+~~~~~~
+* Get rid of the whole build tree story; it caused more grief than it was
+  worth
+* Compilation needs to be initiated in package roots, not in parts within a
+  package
+
 0.22.4
 ~~~~~~
 * New configure option --with-hmake=HMAKE

@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Derived: 19 March 1999
 #
-#  Version $Revision: 1.15 $ from $Date: 2002/02/13 10:17:43 $
+#  Version $Revision: 1.16 $ from $Date: 2002/03/12 12:39:16 $
 #
 #  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 #
@@ -83,11 +83,6 @@ ifeq ($(LEGACY_FFI),no)
 # mkdependHS is a bit stupid here and does include files if present even if
 # they are part of a syslib; moreover, the -x option never works for me 
 # anyway, so let's do it the hard way
-	$(MKDIR) -p ghc411hack_dir
-	-$(MV) CError.hs CForeign.hs CString.hs ForeignPtr.hs MarshalAlloc.hs\
-	  MarshalArray.hs MarshalError.hs MarshalUtils.hs Ptr.hs ghc411hack_dir
-# we have to move these files out of the way, because they confuse 4.11's
-# compilation manager
 endif
 
 # Extra flags for the Haskell compiler

@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 24 October 1997
 #
-#  Version $Revision: 1.12 $ from $Date: 1998/11/10 14:51:46 $
+#  Version $Revision: 1.13 $ from $Date: 2002/03/12 12:39:13 $
 #
 #  Copyright (c) [1997..1998] Manuel M. T. Chakravarty
 #
@@ -33,7 +33,6 @@ SRCS	= Common.hs Config.hs BaseVersion.hs
 OBJS	= $(patsubst %.hs,%.o,$(SRCS))
 
 include ../../mk/common.mk
-include ../$(DEPEND)
 
 # make all object files
 #

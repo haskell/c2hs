@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 24 July 1998 (derived from HiPar root makefile)
 #
-#  Version $Revision: 1.65 $ from $Date: 2002/03/05 13:08:38 $
+#  Version $Revision: 1.66 $ from $Date: 2002/03/12 12:39:12 $
 #
 #  Copyright (c) [1995..2002] Manuel M T Chakravarty
 #
@@ -66,10 +66,19 @@ TMPDIR=/tmp
 
 # files lists
 #
+# * need the `wildcard' in `BASEPARTSFILES', as the following `filter-out' 
+#   wouldn't work otherwise
+#
+BASEPARTSFILES=$(wildcard base/*/Makefile base/*/*.hs\
+			  base/*/tests/Makefile base/*/tests/*.hs)
 BASEFILES =AUTHORS COPYING COPYING.LIB INSTALL Makefile README README.CTKlight\
 	   aclocal.m4 configure configure.in config.sub config.guess\
 	   install-sh\
-	   doc/base mk/common.mk mk/config.mk.in base
+	   mk/common.mk mk/config.mk.in\
+	   base/ChangeLog base/Makefile base/base.build.conf.in\
+	   base/base.build.config base/TODO\
+	   $(filter-out %/SysDep.hs %/SysDepPosix.hs, $(BASEPARTSFILES))\
+	   doc/base/Makefile doc/base/base.tex doc/base/base.bib
 CTKLFILES =AUTHORS COPYING.LIB README.CTKlight\
 	   base/admin/BaseVersion.hs\
 	   base/admin/Config.hs\
@@ -117,22 +126,11 @@ help:
 # system configuration (has to be executed before building)
 # ====================
 #
-# Remark: $(LNDIR)'s first argument is relative to the second.
-#
 .PHONY: config showconfig
 
 config:
-	@echo "*** Building shadow directories..."
-	@for dir in mk base $(PCKS); do\
-	  echo mkdir -p $(BUILDDIR)/$$dir;\
-	  mkdir -p $(BUILDDIR)/$$dir;\
-	  echo $(LNDIR) ../../../$$dir $(BUILDDIR)/$$dir;\
-	  $(LNDIR) ../../../$$dir $(BUILDDIR)/$$dir;\
-	done
-	mkdir -p $(DOCBUILDDIR)
-	$(LNDIR) ../../doc $(DOCBUILDDIR)
 	@echo "*** Selecting system-dependent code..."
-	$(MAKE) -C $(BUILDDIR)/base/sysdep $(MFLAGS) $@
+	$(MAKE) -C base/sysdep $(MFLAGS) $@
 	@echo "*** Configuration successfully finished."
 
 showconfig:
@@ -142,11 +140,6 @@ showconfig:
 	@echo "  Parser generator : $(HAPPY)"
 	@echo "  Mkdepend         : $(MKDEPENDHS)"
 	@echo "  Compiler packages: $(PCKS)"
-	@if [ -d $(BUILDDIR) ]; then\
-	   echo "  Build dir.       : created";\
-	 else\
-	   echo "  Build dir.       : missing (do \`make config')";\
-	 fi
 
 
 # preparations (run parser generators and compute dependencies)
@@ -161,7 +154,7 @@ prep: config parsers depend
 parsers:
 	@echo "*** Checking for the need to run a parser generator..."
 	@for pck in $(PCKS); do\
-	  $(MAKE) -C $(BUILDDIR)/$$pck $(MFLAGS) $@;\
+	  $(MAKE) -C $$pck $(MFLAGS) $@;\
 	done
 
 # Compute dependcies within each package
@@ -169,7 +162,7 @@ parsers:
 depend:
 	@echo "*** Building dependency databases..."
 	@for pck in base $(PCKS); do\
-	  $(MAKE) -C $(BUILDDIR)/$$pck $(MFLAGS) $@;\
+	  $(MAKE) -C $$pck $(MFLAGS) $@;\
 	done
 
 
@@ -183,12 +176,12 @@ all: prep build
 build: base $(PCKS)
 
 base:
-	$(MAKE) -C $(BUILDDIR)/base $(MFLAGS) all
+	$(MAKE) -C base $(MFLAGS) all
 
 doc:
 	@echo "*** Building documentation..."
 	@for dir in base $(PCKS); do\
-	  $(MAKE) -C $(DOCBUILDDIR)/$$dir $(MFLAGS) all;\
+	  $(MAKE) -C doc/$$dir $(MFLAGS) all;\
 	done
 
 
@@ -200,13 +193,13 @@ doc:
 install:
 	@echo "*** Installing packages..."
 	@for pck in $(PCKS); do\
-	  $(MAKE) -C $(BUILDDIR)/$$pck $(MFLAGS) $@;\
+	  $(MAKE) -C $$pck $(MFLAGS) $@;\
 	done
 
 install-doc:
 	@echo "*** Installing documentation..."
 	@for pck in base $(PCKS); do\
-	  $(MAKE) -C $(DOCBUILDDIR)/$$pck $(MFLAGS) install;\
+	  $(MAKE) -C doc/$$pck $(MFLAGS) install;\
 	done
 
 
@@ -220,21 +213,21 @@ install-doc:
 #
 clean:
 	@for pck in base $(PCKS); do\
-	  $(MAKE) -C $(BUILDDIR)/$$pck $(MFLAGS) $@;\
-	  $(MAKE) -C $(DOCBUILDDIR)/$$pck $(MFLAGS) $@;\
+	  $(MAKE) -C $$pck $(MFLAGS) $@;\
+	  $(MAKE) -C doc/$$pck $(MFLAGS) $@;\
 	done
 
 # Remove generated interface files
 #
 cleanhi:
 	@for pck in base $(PCKS); do\
-	  $(MAKE) -C $(BUILDDIR)/$$pck $(MFLAGS) $@;\
+	  $(MAKE) -C $$pck $(MFLAGS) $@;\
 	done
 
-# Remove all builds
+# Remove all traces of a build
 #
 spotless:
-	-$(RM) -rf build config.cache
+	-$(RM) -rf config.cache
 
 # Remove everything that is not in the source tar
 #

@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 24 October 1997
 #
-#  Version $Revision: 1.6 $ from $Date: 1998/07/26 14:50:18 $
+#  Version $Revision: 1.7 $ from $Date: 2002/03/12 12:39:13 $
 #
 #  Copyright (C) [1997..1998] Manuel M. T. Chakravarty
 #
@@ -33,7 +33,6 @@ SRCS	= Errors.hs
 OBJS	= $(patsubst %.hs,%.o,$(SRCS))
 
 include ../../mk/common.mk
-include ../$(DEPEND)
 
 # make all object files
 #

@@ -234,13 +234,13 @@ IMPORT_DIRS=""
 for dir in base/*; do
   if test -d $dir && test `basename $dir` != CVS ; then
     if test -z "$IMPORT_DIRS"; then
-      IMPORT_DIRS="\"$TOP/build/$SYS/$dir\""
+      IMPORT_DIRS="\"$TOP/$dir\""
     else
-      IMPORT_DIRS="$IMPORT_DIRS, \"$TOP/build/$SYS/$dir\""
+      IMPORT_DIRS="$IMPORT_DIRS, \"$TOP/$dir\""
     fi
   fi
 done
-LIBRARY_DIRS="\"$TOP/build/$SYS/base\""
+LIBRARY_DIRS="\"$TOP/base\""
 
 dnl Needed substitutions.
 AC_SUBST(TOP)

@@ -1,0 +1,81 @@
+								     -*-text-*-
+			  Compiler Base TODO
+			  ==================
+
+Next: 
+
+
+Short Term:
+~~~~~~~~~~~
+* See general/UNames.hs for nhc98 induced ugliness; change when nhc98 is fixed
+
+* Lexers: For unicode `Char', we need to explicit support for positive and
+  negated ranges such as ['\0'..'\255'] and ['\0'..'\255'] \\ ['a'..'c'],
+  where the latter is usually written [^abc] (see the haskell-cafe
+  discussion).
+
+* Roman introduced the class `Printable'.  A general class based pretty-print
+  system would be nice.
+
+* Parsers: Roman had the idea of allowing boolean functions to disambiguate
+  the parse table where two rules cannot be distinguished by the usual LL
+  mechanism alone (see emails).
+
+* Identifiers in any of the intermediate languages that have the same lexeme as
+  a keyword or a predefined identifier should always been pretty-printed in
+  their quoted form.
+
+  Difficult to know for each IL which identifiers have to be treated specially.
+  We need a kind of IL-dependent exception list.
+
+Middle Term:
+~~~~~~~~~~~~
+* Use a different attribute mechanism.  The stuff started for the flatten
+  prototype looks quite promising.  Observations:
+
+  - Current hipar system with a unique in every node => makes it complicated
+    to construct/transform trees, as we always have to clone subtress in a
+    monad.
+  - GHC's system => when attributes of an identifier are updated, the
+    "new" identifiers have to substituted into all expression that contain
+    usage occurences.
+
+* Graph processing support: Does it need to be a new mechanism or can we
+  realise it via Attrs (what kind of generic functions could we provide).  One
+  possibility is the use of an `Bool' attribute used to implement fast sets
+  (eg, marking).  (If there is a lot of marking, we might want to realise
+  indexing with attributes via hashing to be able to work with sparse keys and 
+  to already have O(1) during attribute table construction.)
+
+* `FiniteMap' should be an instance of `Functior' with `fmap = mapFM'
+
+* configuration shouldn't be in
+
+* FNameOps, FileOps: Introduce an autoconf set variable that determines
+  whether "/" or "\" is used as a delimiter in paths
+
+* Lexers: * After a certain number of errors (say 50); abort lexing.
+
+* Parsers (maybe similar problem with Lexers): If the grammar is not LL(1), we 
+  just get an `ambiguous grammar' error message at runtime without any hint,
+  which part of the grammer might be ambiguous.  This is too hard to debug!
+
+* In the language-specific `XXXAttrs.hs' modules, the routines for handling 
+  the different on the attribute tables have always the same structure;  Only
+  the access to the `AttrXXX' datatype is different.  It should be possible to
+  generalize them.
+
+  Moreover, the `referring identifier information' is always needed and might
+  be generalized.
+
+* The handling of state could be improved by revising the state modules and
+  using constructor classes and monad transformers.
+
+  Currently, we only define the state type abstractly when generating a new
+  instance of `CST'.  This is in order to be able to use the generic
+  operations, such as I/O, also in the monad instance.  But this comprises the 
+  security of the monad encapsulation as also the generic functions that allow 
+  to extract and copy the state can be used.  Ideally, we want to lift generic 
+  operations like I/O automagically into the new monad and to protect it from
+  access to its state.  Furthermore, some support for stripping and attaching
+  of the type-tag (intro with `newtype') would be nice.

@@ -1,9 +1,3 @@
-ifeq ($(strip $(shell pwd | grep build)),)
-  *** If you get an error here, 
-  *** you did not execute make in the *build* tree (but somewhere else)!
-endif
-
-
 HC     = ghc
 HCFLAGS= -package lang -fglasgow-exts -i../lib -L../lib -lc2hs
 C2HS   = ../c2hs

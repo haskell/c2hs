@@ -1,11 +1,11 @@
 #  Compiler Toolkit: makefile for the symbols modules
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Created: 8 January 1998
 #
-#  Version $Revision: 1.7 $ from $Date: 2000/02/28 06:29:00 $
+#  Version $Revision: 1.8 $ from $Date: 2002/03/12 12:39:14 $
 #
-#  Copyright (c) 1998 Manuel M. T. Chakravarty
+#  Copyright (c) [1998..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by

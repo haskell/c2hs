@@ -1,3 +1,9 @@
+2002-03-12  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* Makefile: adapted to revised build system
+
+	* toplevel/Version.hs (versnum): 0.10.10
+
 2002-03-06  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* chs/CHSLexer.hs (haskell): Escape characters in Haskell strings

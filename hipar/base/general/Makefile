@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.13 $ from $Date: 1999/11/06 14:54:16 $
+#  Version $Revision: 1.14 $ from $Date: 2002/03/12 12:39:13 $
 #
 #  Copyright (C) [1997..1999] Manuel M. T. Chakravarty
 #
@@ -34,7 +34,6 @@ SRCS	= DLists.hs FiniteMaps.hs FNameOps.hs FileOps.hs GetOpt.hs Sets.hs\
 OBJS	= $(patsubst %.hs,%.o,$(SRCS))
 
 include ../../mk/common.mk
-include ../$(DEPEND)
 
 # make all object files
 #

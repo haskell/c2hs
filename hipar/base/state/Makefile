@@ -1,11 +1,11 @@
 #  Compiler Toolkit: makefile for the state management modules
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.12 $ from $Date: 2000/02/28 06:28:59 $
+#  Version $Revision: 1.13 $ from $Date: 2002/03/12 12:39:14 $
 #
-#  Copyright (c) [1997..1998] Manuel M. T. Chakravarty
+#  Copyright (c) [1997..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@ SRCS	= CIO.hs DynArrays.hs State.hs StateBase.hs StateTrans.hs
 OBJS	= $(patsubst %.hs,%.o,$(SRCS))
 
 include ../../mk/common.mk
-include ../$(DEPEND)
 
 # make all object files
 #

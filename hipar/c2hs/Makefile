@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.15 $ from $Date: 2002/02/25 06:19:55 $
+#  Version $Revision: 1.16 $ from $Date: 2002/03/12 12:39:15 $
 #
 #  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
@@ -37,7 +37,6 @@ PACKAGE=c2hs
 PCKVERSION=$(C2HSVERSION)
 
 include ../mk/common.mk
--include .depend
 
 # Options for $(MKDEPENDHS)
 #
@@ -55,15 +54,16 @@ parsers:
 .PHONY: default objs all test c2hs libc2hs examples install
 
 default: all
-objs   : recobjs
-all    : recall c2hs libc2hs c2hs-config
+objs   : Main.o
+all    : objs c2hs libc2hs c2hs-config
 test   : rectest
 
 # the main executable (collect .o files dynamically)
 #
-# * `Main.o' indirectly has dependencies on all required objects
+# * `Main.o' indirectly has dependencies on all required objects (except those
+#   generated from a C source)
 #
-c2hs: Main.o
+c2hs: toplevel/Main.o toplevel/c2hs_config.o
 	$(HC) -o $@ $(HCFLAGS) $(addsuffix /*.o,$(PARTS))
 
 # the support library
@@ -114,3 +114,7 @@ cleanhi: reccleanhi
 	$(MAKE) -C lib $(MFLAGS) cleanhi
 distclean: cleanall
 	-$(RM) config.status config.log config.cache
+
+# extra dependencies
+#
+toplevel/C2HSConfig.o: toplevel/c2hs_config.h
