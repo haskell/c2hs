@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.52 $ from $Date: 2003/02/12 09:38:35 $
+#  Version $Revision: 1.53 $ from $Date: 2003/10/19 07:07:49 $
 #
 #  Copyright (c) [1997..2002] Manuel M T Chakravarty
 #
@@ -205,7 +205,7 @@ endif
 .PHONY: gendepend
 
 MKDEPENDFILES=$(wildcard $(addsuffix /*.hs,$(filter-out sysdep,$(PARTS))))
-ifeq ($(SYS),$(findstring $(SYS),ghc4 ghc5))
+ifeq ($(SYS),$(findstring $(SYS),ghc4 ghc5 ghc6))
 gendepend:
 	$(RM) $(DEPEND)
 	@echo "*** Generating dependencies for $(PACKAGE)..."

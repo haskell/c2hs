@@ -3,9 +3,9 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 24 October 1997
 #
-#  Version $Revision: 1.16 $ from $Date: 2002/09/06 06:33:53 $
+#  Version $Revision: 1.17 $ from $Date: 2003/10/19 07:07:48 $
 #
-#  Copyright (c) [1997..2002] Manuel M T Chakravarty
+#  Copyright (c) [1997..2003] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -46,13 +46,13 @@ OBJS	= $(patsubst %.hs,%.o,$(SRCS))
 
 include ../../mk/common.mk
 
-# In case we use a GHC4 or GHC5 system, we need some extra options for 
+# In case we use a GHC4, GHC5, or GHC6 system, we need some extra options for 
 # `SysDep.hs'. 
 #
 # * we currently need `-fvia-C', as the native code generator doesn't grok 
 #   some of the non-standard primitives
 #
-ifeq ($(SYS),$(findstring $(SYS),ghc4 ghc5))
+ifeq ($(SYS),$(findstring $(SYS),ghc4 ghc5 ghc6))
   EXTRAHCFLAGS= -fglasgow-exts -fvia-C
 endif
 
@@ -96,15 +96,16 @@ AVAIL_SYSDEPHS= $(wildcard SysDep*.hs)
 # * SysDepGHC5.hs is an alias of SysDepGHC4.hs
 #
 config:
-	@$(RM) SysDepGHC5.hs
+	@$(RM) SysDepGHC5.hs SysDepGHC6.hs
 	@$(LN) -s SysDepGHC4.hs SysDepGHC5.hs
-ifeq ($(SYSDEPHS),$(findstring $(SYSDEPHS),$(AVAIL_SYSDEPHS) SysDepGHC5.hs))
+	@$(LN) -s SysDepGHC4.hs SysDepGHC6.hs
+ifeq ($(SYSDEPHS),$(findstring $(SYSDEPHS),$(AVAIL_SYSDEPHS) SysDepGHC5.hs SysDepGHC5.hs))
 	$(RM) SysDep.hs
 	$(LN) -s $(SYSDEPHS) SysDep.hs
 	@echo "*** Configured for compilation system $(SYS)."
 	$(MAKE) -C ../syntax $(MFLAGS) $@
 else
-	@echo "$(SYSDEPHS) in $(AVAIL_SYSDEPHS) SysDepGHC5.hs"
+	@echo "$(SYSDEPHS) in $(AVAIL_SYSDEPHS) SysDepGHC5.hs SysDepGHC6.hs"
 	@echo "*** Unsupported Haskell compiler \`$(SYS)' specified! "
 	@exit 1
 endif
@@ -134,7 +135,7 @@ testconfig:
 
 clean:
 	-$(RM) *.o
-	-$(RM) SysDepGHC5.hs SysDep.hs SysDepPosix.hs
+	-$(RM) SysDepGHC5.hs SysDepGHC6.hs SysDep.hs SysDepPosix.hs
 
 cleanhi:
 	-$(RM) *.hi
