@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 6 March 99
 --
---  Version $Revision: 1.8 $ from $Date: 2001/05/02 13:14:44 $
+--  Version $Revision: 1.9 $ from $Date: 2001/05/05 08:48:43 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -96,6 +96,7 @@ initialSwitchBoard  = SwitchBoard {
 data Traces = Traces {
 	        tracePhasesSW  :: Bool,
 	        traceGenBindSW :: Bool,
+	        traceCTravSW   :: Bool,
 		dumpCHSSW      :: Bool
 	      }
 
@@ -107,5 +108,6 @@ initialTraces :: Traces
 initialTraces  = Traces {
 		   tracePhasesSW  = False,
 		   traceGenBindSW = False,
+		   traceCTravSW   = False,
 		   dumpCHSSW	  = False
 		 }

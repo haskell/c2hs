@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Derived: 12 August 99
 --
---  Version $Revision: 1.13 $ from $Date: 2001/05/03 13:31:41 $
+--  Version $Revision: 1.14 $ from $Date: 2001/05/05 08:48:44 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -67,6 +67,7 @@
 --
 --	  + if TYPE is `trace', trace the compiler phases (to stderr)
 --	  + if TYPE is `genbind', trace binding generation (to stderr)
+--	  + if TYPE is `ctrav', trace C declaration traversal (to stderr)
 --	  + if TYPE is `chs', dump the binding file (insert `.dump' into the
 --	    file name to avoid overwriting the original file)
 --
@@ -167,6 +168,7 @@ data Flag = CPPOpts String      -- additional options for C preprocessor
 
 data DumpType = Trace	      -- compiler trace
 	      | GenBind	      -- trace `GenBind'
+	      | CTrav	      -- trace `CTrav'
 	      | CHS	      -- dump binding file
 	      deriving Eq
 
@@ -212,6 +214,7 @@ options  = [
 dumpArg           :: String -> Flag
 dumpArg "trace"    = Dump Trace
 dumpArg "genbind"  = Dump GenBind
+dumpArg "ctrav"    = Dump CTrav
 dumpArg "chs"      = Dump CHS
 dumpArg _          = Error "Illegal dump type."
 
@@ -377,6 +380,7 @@ addHPaths paths  = setSwitch $ \sb -> sb {hpathsSB = paths ++ hpathsSB sb}
 setDump         :: DumpType -> CST s ()
 setDump Trace    = setTraces $ \ts -> ts {tracePhasesSW  = True}
 setDump GenBind  = setTraces $ \ts -> ts {traceGenBindSW = True}
+setDump CTrav    = setTraces $ \ts -> ts {traceCTravSW   = True}
 setDump CHS      = setTraces $ \ts -> ts {dumpCHSSW	 = True}
 
 -- set flag to keep the pre-processed header file

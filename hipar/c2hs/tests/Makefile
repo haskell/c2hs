@@ -5,7 +5,7 @@ endif
 
 
 HC     = ghc
-HCFLAGS= -fglasgow-exts -i../lib -L../lib -lc2hs
+HCFLAGS= -package lang -fglasgow-exts -i../lib -L../lib -lc2hs
 C2HS   = ../c2hs
 
 PRGMS = simple calls enums structs marsh
@@ -27,6 +27,11 @@ calls: Calls.chs calls.h
 enums: Enums.chs enums.h
 	$(C2HS) enums.h Enums.chs
 	$(HC) -o enums Enums.hs -#include\"enums.h\" $(HCFLAGS)
+
+pointer: Pointer.chs pointer.h pointer.c
+	$(C2HS) pointer.h Pointer.chs
+	$(CC) -c pointer.c
+	$(HC) -o pointer Pointer.hs -#include\"pointer.h\" $(HCFLAGS)
 
 structs: Structs.chs structs.h structs.c
 	$(C2HS) structs.h Structs.chs

@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 October 99
 --
---  Version $Revision: 1.9 $ from $Date: 2001/05/02 13:14:43 $
+--  Version $Revision: 1.10 $ from $Date: 2001/05/05 08:48:42 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -65,8 +65,8 @@ module CTrav (CT, readCT, transCT, getCHeaderCT, runCT, throwCTExc, ifCTExc,
 	      raiseErrorCTExc,
 	      enter, enterObjs, leave, leaveObjs, defObj, findObj,
 	      findObjShadow, defTag, findTag, findTagShadow,
-	      applyPrefixToNameSpaces, getDefOf, refersToDef, findTypeObj,
-	      findValueObj, findFunObj, 
+	      applyPrefixToNameSpaces, getDefOf, refersToDef, refersToNewDef,
+	      findTypeObj, findValueObj, findFunObj, 
 	      --
 	      -- C structure tree query functions
 	      --
@@ -87,7 +87,7 @@ import Idents	  (Ident, dumpIdent, identToLexeme)
 import Attributes (Attr(..), newAttrsOnlyPos)
 
 import C2HSState  (CST, nop, readCST, transCST, runCST, raiseError, catchExc,
-		   throwExc)
+		   throwExc, Traces(..), putTraceStr)
 import CAST
 import CAttrs     (AttrC, getCHeader, enterNewRangeC, enterNewObjRangeC,
 		   leaveRangeC, leaveObjRangeC, addDefObjC, lookupDefObjC,
@@ -213,12 +213,12 @@ leaveObjs  = transAttrCCT $ \ac -> (leaveObjRangeC ac, ())
 defObj         :: Ident -> CObj -> CT s (Maybe CObj)
 defObj ide obj  = transAttrCCT $ \ac -> addDefObjC ac ide obj
 
--- find an definition in the object name space (EXPORTED)
+-- find a definition in the object name space (EXPORTED)
 --
 findObj     :: Ident -> CT s (Maybe CObj)
 findObj ide  = readAttrCCT $ \ac -> lookupDefObjC ac ide
 
--- find an definition in the object name space; if nothing found, try 
+-- find a definition in the object name space; if nothing found, try 
 -- whether there is a shadow identifier that matches (EXPORTED)
 --
 findObjShadow     :: Ident -> CT s (Maybe (CObj, Ident))
@@ -331,14 +331,17 @@ refersToNewDef ide def  =
 getDeclOf     :: Ident -> CT s CDecl
 getDeclOf ide  = 
   do
+    traceEnter
     def <- getDefOf ide
     case def of
       UndefCD    -> interr "CTrav.getDeclOf: Undefined!"
       DontCareCD -> interr "CTrav.getDeclOf: Don't care!"
       TagCD _    -> interr "CTrav.getDeclOf: Illegal tag!"
       ObjCD obj  -> case obj of
-		      TypeCO    decl -> return decl
-		      ObjCO     decl -> return decl
+		      TypeCO    decl -> traceTypeCO >>
+					return decl
+		      ObjCO     decl -> traceObjCO >>
+					return decl
 		      EnumCO    _ _  -> illegalEnum
 		      BuiltinCO	     -> illegalBuiltin
   where
@@ -348,6 +351,14 @@ getDeclOf ide  =
 		     -- if the latter ever becomes necessary, we have to
 		     -- change the representation of builtins and give them
 		     -- some dummy declarator
+    traceEnter  = traceCTrav $ 
+		    "Entering `getDeclOf' for `" ++ identToLexeme ide 
+		    ++ "'...\n"
+    traceTypeCO = traceCTrav $ 
+		    "...found a type object.\n"
+    traceObjCO  = traceCTrav $ 
+		    "...found a vanilla object.\n"
+
 
 -- convenience functions
 --
@@ -520,20 +531,15 @@ dropPtrDeclr (CFunDeclr declr args vari         ats)   =
 dropPtrDeclr _                                         =
   interr "CTrav.dropPtrDeclr: No pointer!"
 
--- checks whether the declaration of the given identifier defines a pointer
--- object (EXPORTED)
+-- checks whether the given declaration defines a pointer object (EXPORTED)
 --
 -- * there may only be a single declarator in the declaration
 --
-isPtrDecl     :: Ident -> CT s Bool
-isPtrDecl ide = do
-		  decl <- chaseDecl ide False
-		  case decl of
-		    CDecl _ []                   _ -> return False
-		    CDecl _ [(Just declr, _, _)] _ -> return $ isPtrDeclr declr
-		    _				   -> 
-		       interr "CTrav.isPtrDecl: \
-		       \There was more than one declarator!"
+isPtrDecl                                  :: CDecl -> Bool
+isPtrDecl (CDecl _ []                   _)  = False
+isPtrDecl (CDecl _ [(Just declr, _, _)] _)  = isPtrDeclr declr
+isPtrDecl _				    =
+  interr "CTrav.isPtrDecl: There was more than one declarator!"
 
 -- checks whether the given declarator defines a function object (EXPORTED)
 --
@@ -602,17 +608,24 @@ chaseDecl         :: Ident -> Bool -> CT s CDecl
 --
 chaseDecl ide ind  = 
   do
-    cdecl <- getDeclOf ide
-    case extractAlias (ide `simplifyDecl` cdecl) ind of
+    traceEnter
+    cdecl     <- getDeclOf ide
+    let sdecl  = ide `simplifyDecl` cdecl
+    case extractAlias sdecl ind of
       Just    (ide', ind') -> chaseDecl ide' ind'
-      Nothing              -> return $ ide `simplifyDecl` cdecl
+      Nothing              -> return sdecl
+  where
+    traceEnter = traceCTrav $ 
+		   "Entering `chaseDecl' for `" ++ identToLexeme ide 
+		   ++ "' " ++ (if ind then "" else "not ") 
+		   ++ "following indirections...\n"
 
 -- find type object in object name space and then chase it (EXPORTED)
 --
 -- * see also `chaseDecl'
 --
--- * also create an object association from the identifier to the object that
---   it _directly_ represents
+-- * also create an object association from the given identifier to the object
+--   that it _directly_ represents
 --
 -- * if the third argument is `True', use `findObjShadow'
 --
@@ -620,6 +633,7 @@ findAndChaseDecl                    :: Ident -> Bool -> Bool -> CT s CDecl
 findAndChaseDecl ide ind useShadows  =
   do
     (obj, ide') <- findTypeObj ide useShadows   -- is there an object def?
+    ide  `refersToNewDef` ObjCD obj
     ide' `refersToNewDef` ObjCD obj	        -- assoc needed for chasing
     chaseDecl ide' ind
 
@@ -773,6 +787,11 @@ assertFunDeclr pos _					             =
 assertIfEnumThenFull                          :: CTag -> CT s ()
 assertIfEnumThenFull (EnumCT (CEnum _ [] at))  = enumForwardErr (posOf at)
 assertIfEnumThenFull _			       = nop
+
+-- trace for this module
+--
+traceCTrav :: String -> CT s ()
+traceCTrav  = putTraceStr traceCTravSW
 
 
 -- error messages

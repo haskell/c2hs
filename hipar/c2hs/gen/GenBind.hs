@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.24 $ from $Date: 2001/05/03 13:31:41 $
+--  Version $Revision: 1.25 $ from $Date: 2001/05/05 08:48:43 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -164,7 +164,7 @@ import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 		   declaredName , structFromDecl, funResultAndArgs, 
 		   chaseDecl, findAndChaseDecl, checkForAlias, lookupEnum,
 		   lookupStructUnion, isPtrDeclr, dropPtrDeclr, isPtrDecl,
-		   isFunDeclr)  
+		   isFunDeclr, refersToNewDef, CDef(..))
 import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 		   CHSAccess(..), CHSAPath(..),CHSPtrType(..))
 import CInfo      (CPrimType(..), sizes, alignments)
@@ -493,13 +493,19 @@ expandHook (CHSField access path pos) =
     setGet pos access offsets ty
 expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType pos) =
   do
-    -- look up the original name in the C syntax tree using shadow entries;
-    -- if the user does not supply her own Haskell name we generate one from
-    -- the C name
+    traceInfoPointer
     --
-    (_, cNameFull) <- findTypeObj cName True
-    unless isStar $ 
-      assertIsPtr cNameFull
+    -- get the pointer declaration considering shadow entries, but not
+    -- skipping indirections
+    --
+    cdecl <- findAndChaseDecl cName False True
+    cNameFull <- case declaredName cdecl of
+		   Just ide -> return ide
+		   Nothing  -> interr "GenBind.expandHook: Where is the name?"
+    cNameFull `refersToNewDef` ObjCD (TypeCO cdecl) -- assoc needed for chasing
+    traceInfoCName cNameFull
+    unless (isStar || isPtrDecl cdecl) $ 
+      ptrExpectedErr (posOf cName)
     let hsName = identToLexeme $ fromMaybe cName oalias
     hsType <- case oRefType of
 		Nothing     -> do
@@ -507,6 +513,7 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType pos) =
 				 et    <- extractPtrType cDecl
 				 return $ showExtType et
 		Just hsType -> return (identToLexeme hsType)
+    traceInfoHsType hsName hsType
     keepOld <- getSwitch oldFFI
     let ptrArg  = if keepOld 
 		  then "()"		-- legacy FFI interface
@@ -520,13 +527,16 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType pos) =
       _		    -> thePtr `ptrMapsTo` (hsName, hsName)
     return $
       if isNewtype 
-      then "newtype " ++ hsName ++ " = " ++ hsName ++ "(" ++ ptrType ++ ")"
-      else "type "    ++ hsName ++ " = "                  ++ ptrType
+      then "newtype " ++ hsName ++ " = " ++ hsName ++ " (" ++ ptrType ++ ")"
+      else "type "    ++ hsName ++ " = "                   ++ ptrType
   where
-    assertIsPtr ide = do
-		        isPtr <- isPtrDecl ide
-			unless isPtr $
-			  ptrExpectedErr (posOf cName)
+    traceInfoPointer   = putTraceStr traceGenBindSW "** Pointer hook:\n"
+    traceInfoCName ide = putTraceStr traceGenBindSW $ 
+		           "found C object `" ++ identToLexeme ide
+			   ++ "'\n"
+    traceInfoHsType name ty = putTraceStr traceGenBindSW $ 
+			        "associated with Haskell entity `"
+			        ++ name ++ "'\nhaving type " ++ ty ++ "\n"
 
 -- produce code for an enumeration
 --
