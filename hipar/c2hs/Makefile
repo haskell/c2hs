@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.18 $ from $Date: 2002/09/06 07:56:26 $
+#  Version $Revision: 1.19 $ from $Date: 2002/09/16 13:36:58 $
 #
 #  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
@@ -100,6 +100,12 @@ ifeq ($(ENABLE_ADD_PACKAGE),yes)
 	$(DESTDIR)$(bindir)/c2hs-config --package-conf\
 	| $(GHCPKG) --update-package --auto-ghci-libs
 endif
+
+# to invoke GHCi with all the relevant stuff loaded (good for debugging)
+#
+.PHONY: ghci
+ghci: toplevel/c2hs_config.o
+	$(HC) --interactive $(HCFLAGS) toplevel/c2hs_config.o toplevel/Main.hs
 
 # auxilliary targets
 #
