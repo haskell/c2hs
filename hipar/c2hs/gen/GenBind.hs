@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 17 August 99
 --
---  Version $Revision: 1.37 $ from $Date: 2001/10/08 04:07:16 $
+--  Version $Revision: 1.38 $ from $Date: 2001/10/08 11:23:03 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -140,7 +140,7 @@
 module GenBind (expandHooks) 
 where 
 
-import Char	  (toUpper, toLower)
+import Char	  (toUpper, toLower, isSpace)
 import List       (find, deleteBy, intersperse)
 import Maybe	  (catMaybes, isNothing, isJust, fromJust, fromMaybe, 
 		   listToMaybe, mapMaybe)
@@ -287,7 +287,9 @@ instance Read Ident where
 			     if null ideChars 
 			     then []
 			     else [(onlyPosIdent nopos ideChars, tail rest)]
-  readsPrec _ cs           = []
+  readsPrec p (c:cs)
+    | isSpace c						     = readsPrec p cs
+  readsPrec _ _						     = []
 
 -- the local state consists of
 --

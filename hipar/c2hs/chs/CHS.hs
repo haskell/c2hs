@@ -3,7 +3,7 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 16 August 99
 --
---  Version $Revision: 1.17 $ from $Date: 2001/10/08 04:07:16 $
+--  Version $Revision: 1.18 $ from $Date: 2001/10/08 11:23:03 $
 --
 --  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 --
@@ -88,6 +88,7 @@ module CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 	    loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI, chisuffix)
 where 
 
+import Char	 (isSpace)
 import List	 (intersperse)
 import Monad	 (when)
 
@@ -227,6 +228,9 @@ instance Read CHSPtrType where
     [(CHSForeignPtr, rest)]
   readsPrec _ ('S':'t':'a':'b':'l':'e'    :'P':'t':'r':rest) = 
     [(CHSStablePtr, rest)]
+  readsPrec p (c:cs)
+    | isSpace c						     = readsPrec p cs
+  readsPrec _ _						     = []
 
 
 -- load and dump a CHS file

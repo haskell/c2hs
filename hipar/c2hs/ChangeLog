@@ -1,3 +1,7 @@
+2001-10-08  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs: debugged
+
 2001-10-07  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenBind.hs: handling class hooks
