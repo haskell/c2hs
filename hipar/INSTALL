@@ -1,11 +1,14 @@
 Prerequisites							     -*-text-*-
 ~~~~~~~~~~~~~
 
-You need a Haskell 98 compiler.  Currently, this has to be GHC 4.02 upwards or
+You need a Haskell 98 compiler.  Currently, this has to be GHC 4.08 upwards or
 NHC98 1.0.  To get a Haskell compiler check
 
   http://haskell.org/
 
+I am developing and testing under GNU/Linux.  If you intend to install on a
+Solaris or Win32 machine, please see the information under the heading
+"Solaris Notes" and "Win32 Notes", respectively.
 
 Simple install procedure
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -17,9 +20,8 @@ Simple install procedure
   [ Become root if necessary ]
   % make install			   # install all compilers
 
-If there are problems, see the known problems section at the end.  If you are
-installing from CVS, please read the corresponding section at the end of this
-file first.
+If you are installing from CVS, please read the corresponding section below
+first.
 
 The Nitty-Gritty
 ~~~~~~~~~~~~~~~~
@@ -39,9 +41,6 @@ A few of the more important ones:
 
 *  --enable-prof           enable profiling support
 
-This option is useless in the 4.x series up to, and including, 4.04 of GHC, as
-profiling support is broken in these versions.
-
 *  --with-hc=HC            use Haskell compiler HC
 
 This needs to be the full path to the compiler executable.
@@ -50,8 +49,7 @@ This needs to be the full path to the compiler executable.
 
 *  --with-ghc-native	   use GHC native code generator (if available)
 
-This option works currently only with GHC 4.07 upwards and only on x86
-hardware.
+This option works for hardware for which GHC supports native code generation.
 
 *  --with-efence           link with efence malloc debugger
 
@@ -67,7 +65,7 @@ is contained in `doc/base/base.tex'.
 
 Supported Systems and Porting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Glasgow Haskell Compilation System, Version 4.x; x >= 02
+Glasgow Haskell Compilation System, Version 4.08 upwards
 
 All (compilation) system-dependent code is contained in `base/sysdep/', ie, by
 porting the `SysDep' module, other systems should also work.  In case of
@@ -75,17 +73,7 @@ problems, contact <chak@cse.unsw.edu.au>.
 
 Restrictions
 ~~~~~~~~~~~~
-The module `base/syntax/Parsers.hs' builds only with GHC 4.x (x >= 06) - if
-a version 3.x system is selected, the make process automatically avoids
-compiling this module. 
-
-IMPORTANT NOTE: C->Haskell requires the `Parsers.hs' module!
-
-Known Problems
-~~~~~~~~~~~~~~
-gmake 3.77 (at least on Solaris) - 
-  The Makefiles are known not to be working with this version.  Upgrade to a
-  later release (eg, 3.78.1 works fine).
+Currently, none.
 
 Additional Instructions for Building from CVS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -93,6 +81,19 @@ If you are building from CVS, you have to execute
 
   % autoreconf
 
-in the toplevel hipar/ directory before continuing with the instructions
+in the toplevel hipar/ directory before following with the instructions
 above.
 
+Solaris Notes
+~~~~~~~~~~~~~
+* The standard Solaris `grep' does not understand the `-e' option; please use
+  `/usr/xpg4/bin/grep'.
+
+* gmake 3.77 does not work properly; please use 3.78.1 or higher.
+
+Win32 Notes
+~~~~~~~~~~~
+The building process uses a tool called `lndir' to construct a build tree from
+the source tree.  Unfortunately, there a different versions of this tool,
+which work in slightly different ways.  It seems that the version of `lndir'
+that is available from the X11-for-Cygwin site works best.

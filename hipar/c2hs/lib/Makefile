@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Derived: 19 March 1999
 #
-#  Version $Revision: 1.13 $ from $Date: 2001/04/29 13:13:52 $
+#  Version $Revision: 1.14 $ from $Date: 2002/02/10 13:34:27 $
 #
 #  Copyright (c) [1999..2001] Manuel M. T. Chakravarty
 #
@@ -75,16 +75,16 @@ depend:
 	$(MKDEPENDHS) -optdep-f -optdep$(DEPEND) $(HCFLAGS)\
 	  $(EXTRAMKDEPENDOPTS) $(SRCS)
 ifeq ($(LEGACY_FFI),no)
-	grep -v -e CError -e CForeign -e CString\
-		-e ForeignPtr -e MarshalAlloc -e MarshalArray\
-		-e MarshalError -e MarshalUtils -e "\bPtr" .depend\
-		>.depend.new
-	mv .depend.new .depend
+	$(GREP) -v -e CError -e CForeign -e CString\
+		   -e ForeignPtr -e MarshalAlloc -e MarshalArray\
+		   -e MarshalError -e MarshalUtils -e "\bPtr" .depend\
+		   >.depend.new
+	$(MV) .depend.new .depend
 # mkdependHS is a bit stupid here and does include files if present even if
 # they are part of a syslib; moreover, the -x option never works for me 
 # anyway, so let's do it the hard way
-	mkdir -p ghc411hack_dir
-	-mv CError.hs CForeign.hs CString.hs ForeignPtr.hs MarshalAlloc.hs\
+	$(MKDIR) -p ghc411hack_dir
+	-$(MV) CError.hs CForeign.hs CString.hs ForeignPtr.hs MarshalAlloc.hs\
 	  MarshalArray.hs MarshalError.hs MarshalUtils.hs Ptr.hs ghc411hack_dir
 # we have to move these files out of the way, because they confuse 4.11's
 # compilation manager
@@ -92,10 +92,13 @@ endif
 
 # Extra flags for the Haskell compiler
 #
-# * The following enables the use of the FFI and sucks in the prototypes needed
-#   by external calls 
+# * The following enables the use of the FFI; if we are building a package, 
+#   one more extra option is needed.
 #
 EXTRAHCFLAGS    = -fglasgow-exts $(LIB_HCFLAGS)
+ifeq ($(ENABLE_ADD_PACKAGE),yes)
+EXTRAHCFLAGS   += -package-name $(PACKAGE)
+endif
 
 # make all object files
 #

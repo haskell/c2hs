@@ -32,6 +32,11 @@ AC_ARG_WITH(hcflags,
             [  --with-hcflags=HCFLAGS  specify flags for Haskell compiler],
 	    [HCFLAGS=$withval])
 
+dnl Select whether to use --add-package during installation.
+AC_ARG_ENABLE(add_package,
+	      [  --enable-add-package    register package during installation],
+	      [ENABLE_ADD_PACKAGE=$enableval])
+
 dnl Link with electric fence?
 AC_ARG_WITH(efence, 
 	    [  --with-efence           link with efence malloc debugger],
@@ -52,6 +57,8 @@ AC_PATH_PROG(EXPR,expr)
 AC_PATH_PROG(GREP,grep)
 AC_PATH_PROG(HEAD,head)
 AC_PATH_PROG(SED,sed)
+AC_PATH_PROG(MKDIR,mkdir)
+AC_PATH_PROG(MV,mv)
 
 dnl This is far from elegant, but works for extracting the plain version number
 C2HS_VERSION=`$GREP '^versnum' toplevel/Version.hs\
@@ -265,6 +272,7 @@ AC_SUBST(BEGIN_NHC)
 AC_SUBST(END_NHC)
 AC_SUBST(BEGIN_NOT_NHC)
 AC_SUBST(END_NOT_NHC)
+AC_SUBST(ENABLE_ADD_PACKAGE)
 
 dnl Write the results...
 AC_OUTPUT([

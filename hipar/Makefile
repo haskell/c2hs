@@ -3,7 +3,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 24 July 1998 (derived from HiPar root makefile)
 #
-#  Version $Revision: 1.63 $ from $Date: 2001/08/26 13:29:33 $
+#  Version $Revision: 1.64 $ from $Date: 2002/02/10 13:34:26 $
 #
 #  Copyright (c) [1995..2000] Manuel M. T. Chakravarty
 #
@@ -20,17 +20,19 @@
 #  = DOCU =====================================================================
 #
 #  * This makefile handles the toplevel commands of the Compiler Toolkit.  
-#    Compiler can be dropped in by setting up a `mk/<mycomp>.mk' makefile plus
-#    a `<mycomp>' source directory.  The makefile contains compiler-specific 
-#    definitions for the various `make' targets and the source directory 
-#    contains the complete set of compiler-specific source files.
+#    A new compiler can be dropped in by setting up a `<mycomp>' source 
+#    directory plus a `<mycomp>/mk/<mycomp>.pck.mk' makefile.  The makefile 
+#    contains compiler-specific definitions for the various `make' targets and
+#    the source directory contains the complete set of compiler-specific 
+#    source files.
 #
-#    It is important that the variables and targets defined in `mk/<mycomp>.mk'
-#    are prefixed with a compiler-specific prefix.  This allows to have 
-#    multiple compiler in a single Compiler Toolkit tree without conflicts.
+#    It is important that the variables and targets defined in 
+#    `<mycomp>/mk/<mycomp>.pck.mk' are prefixed with a compiler-specific 
+#    prefix.  This allows to have multiple compiler in a single Compiler 
+#    Toolkit tree without conflicts.
 #
 #    The main build target and the tar target of a package are defined 
-#    `mk/<mycomp>.mk'.
+#    `<mycomp>/mk/<mycomp>.pck.mk'.
 #
 #  * A build is performed below `build' in a directory named by the basename of
 #    the used compiler (as given by $(HC)).  In this directory, shadow 

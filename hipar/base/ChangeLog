@@ -1,3 +1,11 @@
+2002-02-10  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* ../mk/common.mk: added package support
+
+	* ../configure.in: added package support; replaced -syslib by -package
+
+	* admin/BaseVersion.hs (versnum): 0.23.0
+
 2002-01-06  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* common.mk: removed TMP as it causes problems on cygwin as

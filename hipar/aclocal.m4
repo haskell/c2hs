@@ -7,7 +7,7 @@ dnl ######################################################################
 dnl GHC syslib versionitis
 dnl
 dnl CTK_LIB_SYSLIB(Foo, bar baz bing) tests in which of
-dnl the syslibs bar, baz, and bing the module Foo resides and
+dnl the packages bar, baz, and bing the module Foo resides and
 dnl calls AC_SUBST(syslib_Foo) on it.
 dnl ######################################################################
 
@@ -22,10 +22,10 @@ rm -rf conftest*
 cat > conftest.hs <<EOF
 import $1
 EOF
-$HC -M -optdep-f -optdepconftest.dep -syslib [$]ctk_syslib conftest.hs  > /dev/null 2> /dev/null && break
+$HC -M -optdep-f -optdepconftest.dep -package [$]ctk_syslib conftest.hs  > /dev/null 2> /dev/null && break
 done
 rm -rf conftest*
-test "[$]ctk_syslib" = ThisIsAMegaHack && AC_MSG_ERROR(No syslib for $1 found)
+test "[$]ctk_syslib" = ThisIsAMegaHack && AC_MSG_ERROR(No package for $1 found)
 CTK_CV_NAME=[$]ctk_syslib
 ])
 CTK_SYSLIB_NAME=$CTK_CV_NAME

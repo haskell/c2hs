@@ -5,7 +5,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 5 April 1999 (from parts of common.mk)
 #
-#  Version $Revision: 1.13 $ from $Date: 2001/02/07 09:24:51 $
+#  Version $Revision: 1.14 $ from $Date: 2002/02/10 13:34:28 $
 #
 #  Copyright (c) [1997..1999] Manuel M. T. Chakravarty
 #
@@ -107,3 +107,9 @@ HSTAGS      = @HSTAGS@
 # System features
 #
 SYSFEATURES = @SYSFEATURES@
+
+# Installation options
+#
+# * `== yes' when enabled
+#
+ENABLE_ADD_PACKAGE = @ENABLE_ADD_PACKAGE@

@@ -1,11 +1,11 @@
 #  Compiler Toolkit: common make include
 #
-#  Author : Manuel M. T. Chakravarty
+#  Author : Manuel M T Chakravarty
 #  Created: 22 October 1997
 #
-#  Version $Revision: 1.45 $ from $Date: 2002/01/06 08:34:44 $
+#  Version $Revision: 1.46 $ from $Date: 2002/02/10 13:34:28 $
 #
-#  Copyright (c) [1997..1999] Manuel M. T. Chakravarty
+#  Copyright (c) [1997..2002] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -90,14 +90,15 @@ ifeq ($(strip $(PACKAGE)),base)
   HIDIRS:=
 endif
 
-# all other <package>.mk files in this directory provide package information 
-# for a package <package>; and compute list of all package names
+# package information for a package <package> is contained in 
+# <package>/mk/<package>.pck.mk files, which we also use to compute list of 
+# all package names
 #
-PCKMKS=$(filter-out %/common.mk %/config.mk,$(wildcard $(TOP)/mk/*.mk))
+PCKMKS=$(wildcard $(TOP)/*/mk/*.pck.mk)
 ifneq ($(strip $(PCKMKS)),)
   include $(PCKMKS)
 endif
-PCKS=$(notdir $(basename $(PCKMKS)))
+PCKS=$(notdir $(basename $(basename $(PCKMKS))))
 
 # Search path for make
 # ====================
@@ -120,7 +121,7 @@ endif
 #
 #HIDIRSCOL  = $(subst $(space),:,$(strip $(HIDIRS)))
 HIDIRSINCL  = $(addprefix $(HIDIROPT),$(HIDIRS))
-HCFLAGS    += $(PROF) $(HIDIRSINCL) $(EXTRAHCFLAGS)
+HCFLAGS    += -package-name $(PACKAGE) $(PROF) $(HIDIRSINCL) $(EXTRAHCFLAGS)
 
 # Misc
 # ====

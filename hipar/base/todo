@@ -41,6 +41,16 @@ Short Term:
 
 Middle Term:
 ~~~~~~~~~~~~
+* Use a different attribute mechanism.  The stuff started for the flatten
+  prototype looks quite promising.  Observations:
+
+  - Current hipar system with a unique in every node => makes it complicated
+    to construct/transform trees, as we always have to clone subtress in a
+    monad.
+  - GHC's system => when attributes of an identifier are updated, the
+    "new" identifiers have to substituted into all expression that contain
+    usage occurences.
+
 * Graph processing support: Does it need to be a new mechanism or can we
   realise it via Attrs (what kind of generic functions could we provide).  One
   possibility is the use of an `Bool' attribute used to implement fast sets
