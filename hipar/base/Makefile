@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 25 July 1998
 #
-#  Version $Revision: 1.16 $ from $Date: 2003/10/20 08:00:43 $
+#  Version $Revision: 1.17 $ from $Date: 2005/05/17 08:03:24 $
 #
 #  Copyright (c) [1998..2002] Manuel M T Chakravarty
 #
@@ -69,7 +69,7 @@ MKDEPENDFILES += $(addprefix sysdep/,SysDep.hs SysDepPosix.hs)
 #
 .PHONY: default objs all libctk test
 
-default: all
+default: all base.build.conf
 objs   : $(OBJS)
 all    : objs libctk
 test   : rectest
@@ -87,11 +87,27 @@ libctk.a: objs
 ctk.o: libctk.a
 	ld -r -x -o $@ $(WHOLE_ARCHIVE_FLAG) $<
 
+# in-place ghc package configuration file
+#
+base.build.conf: libctk.a
+ifeq "$(GHC_MAJOR_VERSION)" "6"
+ifeq "$(GHC_MINOR_VERSION)" "4"
+# GHC 6.4 uses the new Cabal package.conf format, so generate base.build.conf
+# from base.build.conf.cabal
+base.build.conf: base.build.conf.cabal
+	echo '[]' > $@
+	ghc-pkg update -f $@ $<
+endif
+else
+base.build.conf: base.build.conf.ghc-pre-6.4
+	cp $< $@
+endif
+
 # auxilliary targets
 #
 .PHONY: depend clean cleanhi
 
 depend : gendepend
 clean  : recclean
-	-$(RM) libctk.a
+	-$(RM) libctk.a base.build.conf
 cleanhi: reccleanhi

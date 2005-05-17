@@ -50,6 +50,11 @@ if test "$CYGWIN" = "yes"; then
   DLSUFFIX=".dll"
   TMPDIR="C:\TMP"
 fi
+dnl This test should arguably be a bit less ad-hoc: it only works with bash
+dnl and zsh, but since bash is /bin/sh on Mac OS X, It Should Always Work(TM)
+case "$OSTYPE" in
+  darwin*) DLSUFFIX=".dylib" ;;
+esac
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -97,6 +102,8 @@ if test $hc_base = ghc; then
   SYS=ghc$hc_maj_vers
   HCID="GHC $hc_vers"
   HIDIROPT=-i
+  GHC_MAJOR_VERSION="$hc_maj_vers"
+  GHC_MINOR_VERSION="$hc_min_vers"
   REQUIRES_HASKELL="ghc = $hc_vers"
 fi
 
@@ -157,6 +164,8 @@ AC_SUBST(DLSUFFIX)
 AC_SUBST(TMPDIR)
 AC_SUBST(C2HS_VERSION)
 AC_SUBST(HCFLAGS)
+AC_SUBST(GHC_MAJOR_VERSION)
+AC_SUBST(GHC_MINOR_VERSION)
 AC_SUBST(LIB_HCFLAGS)
 AC_SUBST(SYS)
 AC_SUBST(HCID)
@@ -174,6 +183,7 @@ AC_OUTPUT([
   toplevel/C2HSConfig.hs
   mk/config.mk
   c2hs-config
-  c2hs.conf
+  c2hs.conf.ghc-pre-6.4
+  c2hs.conf.cabal
   c2hs.spec
 ], [chmod +x c2hs-config])

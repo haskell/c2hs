@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 24 July 1998 (derived from HiPar root makefile)
 #
-#  Version $Revision: 1.66 $ from $Date: 2002/03/12 12:39:12 $
+#  Version $Revision: 1.67 $ from $Date: 2005/05/17 08:03:23 $
 #
 #  Copyright (c) [1995..2002] Manuel M T Chakravarty
 #
@@ -75,8 +75,9 @@ BASEFILES =AUTHORS COPYING COPYING.LIB INSTALL Makefile README README.CTKlight\
 	   aclocal.m4 configure configure.in config.sub config.guess\
 	   install-sh\
 	   mk/common.mk mk/config.mk.in\
-	   base/ChangeLog base/Makefile base/base.build.conf.in\
-	   base/base.build.config base/TODO\
+	   base/ChangeLog base/Makefile \
+	   base/base.build.conf.cabal.in base/base.build.conf.ghc-pre-6.4.in \
+	   base/TODO\
 	   $(filter-out %/SysDep.hs %/SysDepPosix.hs, $(BASEPARTSFILES))\
 	   doc/base/Makefile doc/base/base.tex doc/base/base.bib
 CTKLFILES =AUTHORS COPYING.LIB README.CTKlight\

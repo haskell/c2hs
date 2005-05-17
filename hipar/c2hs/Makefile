@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.19 $ from $Date: 2002/09/16 13:36:58 $
+#  Version $Revision: 1.20 $ from $Date: 2005/05/17 08:03:26 $
 #
 #  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
@@ -46,7 +46,7 @@ MKDEPENDOPTS=
 #
 # * the target `parsers' needs to be defined
 #
-.PHONY: parsers
+.PHONY: parsers install-conf register-package
 parsers:
 
 # build targets
@@ -83,12 +83,11 @@ examples:
 
 # installation
 #
-install: all
+install: all install-conf register-package
 	$(INSTALL_PROGRAM) -d $(DESTDIR)$(bindir)
 	$(INSTALL) -s c2hs $(DESTDIR)$(bindir)/c2hs
 	$(INSTALL_PROGRAM) c2hs-config $(DESTDIR)$(bindir)/c2hs-config
 	$(INSTALL) -d $(DESTDIR)$(pkglibdir)
-	$(INSTALL_DATA) c2hs.conf $(DESTDIR)$(pkglibdir)/c2hs.conf
 	$(INSTALL_DATA) lib/libc2hs.a $(DESTDIR)$(pkglibdir)/libc2hs.a
 	$(INSTALL) -d $(DESTDIR)$(pkgimportdir)
 	@for hi in lib/*.hi; do\
@@ -96,10 +95,22 @@ install: all
 	       $(DESTDIR)$(pkgimportdir)/`$(BASENAME) $$hi`;\
 	  $(INSTALL_DATA) $$hi $(DESTDIR)$(pkgimportdir)/`$(BASENAME) $$hi`;\
 	done
+
+install-conf:
+ifeq "$(GHC_MAJOR_VERSION)" "6"
+ifeq "$(GHC_MINOR_VERSION)" "4"
+	$(INSTALL_DATA) c2hs.conf.cabal $(DESTDIR)$(pkglibdir)/c2hs.conf
+endif
+else
+	$(INSTALL_DATA) c2hs.conf.ghc-pre-6.4 $(DESTDIR)$(pkglibdir)/c2hs.conf
+endif
+
+register-package:
 ifeq ($(ENABLE_ADD_PACKAGE),yes)
 	$(DESTDIR)$(bindir)/c2hs-config --package-conf\
 	| $(GHCPKG) --update-package --auto-ghci-libs
 endif
+
 
 # to invoke GHCi with all the relevant stuff loaded (good for debugging)
 #
@@ -115,7 +126,7 @@ depend: gendepend
 	$(MAKE) -C lib $(MFLAGS) $@
 clean: recclean
 	$(MAKE) -C lib $(MFLAGS) clean
-	-rm -f c2hs
+	-rm -f c2hs c2hs.conf
 cleanhi: reccleanhi
 	$(MAKE) -C lib $(MFLAGS) cleanhi
 distclean: cleanall

@@ -3,7 +3,7 @@
 --  Author : Manuel M T Chakravarty
 --  Derived: 12 August 99
 --
---  Version $Revision: 1.20 $ from $Date: 2004/10/17 08:31:09 $
+--  Version $Revision: 1.21 $ from $Date: 2005/05/17 08:03:27 $
 --
 --  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --
@@ -129,7 +129,7 @@ import Monad      (when, unless, mapM)
 
 -- base libraries
 import Common     (errorCodeFatal)
-import GetOpt     (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo,
+import System.Console.GetOpt     (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo,
 		   getOpt)
 import FNameOps   (suffix, basename, dirname, stripSuffix, addPath)
 import Errors	  (interr)

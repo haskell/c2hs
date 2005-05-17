@@ -1,0 +1,20 @@
+-- This line must remain here for c2hs-config to work: please don't delete me!
+
+name:			c2hs
+version:		@C2HS_VERSION@
+maintainer:		chak@cse.unsw.edu.au
+license:		GPL
+
+exposed:		False
+exposed-modules:
+	C2HS,
+	C2HSBase,
+	C2HSMarsh
+
+import-dirs:		"@LIBDIR@/c2hs-@C2HS_VERSION@/@SYS@/import"
+library-dirs:		"@LIBDIR@/c2hs-@C2HS_VERSION@/@SYS@"
+
+hs-libraries:		"c2hs"
+depends:		haskell98
+extensions:		ForeignFunctionInterface
+

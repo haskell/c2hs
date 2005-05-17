@@ -5,7 +5,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 5 April 1999 (from parts of common.mk)
 #
-#  Version $Revision: 1.17 $ from $Date: 2003/10/20 08:00:50 $
+#  Version $Revision: 1.18 $ from $Date: 2005/05/17 08:03:28 $
 #
 #  Copyright (c) [1997..1999] Manuel M. T. Chakravarty
 #
@@ -88,7 +88,9 @@ pkgimportdir  = $(pkglibdir)/import
 HC          = @HC@
 SYS	    = @SYS@
 HCFLAGS     = $(addprefix -package , @PACKAGES@) @HCFLAGS@
-GHCPKG	    = $(dir $(HC))ghc-pkg
+GHCPKG	    = @GHCPKG@
+GHC_MAJOR_VERSION	= @GHC_MAJOR_VERSION@
+GHC_MINOR_VERSION	= @GHC_MINOR_VERSION@
 
 # option for specifying additional .hi directories
 #
