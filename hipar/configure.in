@@ -176,6 +176,10 @@ else
   AC_CHECK_TOOL(GHCPKG, ghc-pkg, ghc-pkg)
 fi
 
+dnl GHC 6.4 is based on the Haskell Cabal.
+CTK_PROG_CHECK_VERSION($hc_vers, -lt, 6.4, CABAL=no, CABAL=yes)
+AC_SUBST(CABAL)
+
 dnl Optimise Haskell by default (and add some not really needed options).
 dnl
 dnl GHC: The option `-recomp' stops the compilation of a file if ghc can figure

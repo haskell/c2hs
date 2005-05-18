@@ -1,3 +1,7 @@
+2005-05-18  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.13.6
+
 2005-03-14  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* c/CParser.hs: Allow lists of GNU C attributes (patch contributed

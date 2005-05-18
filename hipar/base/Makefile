@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 25 July 1998
 #
-#  Version $Revision: 1.17 $ from $Date: 2005/05/17 08:03:24 $
+#  Version $Revision: 1.18 $ from $Date: 2005/05/18 03:04:02 $
 #
 #  Copyright (c) [1998..2002] Manuel M T Chakravarty
 #
@@ -67,9 +67,10 @@ MKDEPENDFILES += $(addprefix sysdep/,SysDep.hs SysDepPosix.hs)
 
 # build targets
 #
-.PHONY: default objs all libctk test
+.PHONY: default config objs all libctk test
 
-default: all base.build.conf
+default: all
+config : base.build.conf
 objs   : $(OBJS)
 all    : objs libctk
 test   : rectest
@@ -89,15 +90,18 @@ ctk.o: libctk.a
 
 # in-place ghc package configuration file
 #
-base.build.conf: libctk.a
-ifeq "$(GHC_MAJOR_VERSION)" "6"
-ifeq "$(GHC_MINOR_VERSION)" "4"
+#base.build.conf: libctk.a
+ifeq ("$(CABAL)","yes")
 # GHC 6.4 uses the new Cabal package.conf format, so generate base.build.conf
 # from base.build.conf.cabal
+# Evil Hack: `ghc-pkg' barfs if `libctk.a' does not exist, but we must build 
+#   the package conf *before* we build the library (constraint of the toplevel
+#   Makefile).  So, we `touch libctk.a' to fake it... *sigh*
 base.build.conf: base.build.conf.cabal
+	touch libctk.a
 	echo '[]' > $@
 	ghc-pkg update -f $@ $<
-endif
+	rm -f libctk.a
 else
 base.build.conf: base.build.conf.ghc-pre-6.4
 	cp $< $@

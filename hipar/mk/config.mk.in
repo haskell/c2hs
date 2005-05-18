@@ -5,7 +5,7 @@
 #  Author : Manuel M. T. Chakravarty
 #  Created: 5 April 1999 (from parts of common.mk)
 #
-#  Version $Revision: 1.18 $ from $Date: 2005/05/17 08:03:28 $
+#  Version $Revision: 1.19 $ from $Date: 2005/05/18 03:04:04 $
 #
 #  Copyright (c) [1997..1999] Manuel M. T. Chakravarty
 #
@@ -111,6 +111,7 @@ HSTAGS      = @HSTAGS@
 #
 SYSFEATURES = @SYSFEATURES@
 HASPKG	    = @HASPKG@
+CABAL	    = @CABAL@
 
 # Installation options
 #

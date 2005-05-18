@@ -1,3 +1,16 @@
+2005-05-18  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* Makefile: Evil Hack to be able create base.build.conf before
+	building `libctk.a'
+
+2005-05-18  André Pang  <ozone@algorithm.com.au>
+
+	* Adaptation to GHC 6.4 and the Cabal package system
+
+2005-05-18  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* admin/BaseVersion.hs (versnum): 0.27.0
+
 2004-05-15  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* configure.in: Using `egrep' is available (as grep on SunOS

@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 24 July 1998 (derived from HiPar root makefile)
 #
-#  Version $Revision: 1.67 $ from $Date: 2005/05/17 08:03:23 $
+#  Version $Revision: 1.68 $ from $Date: 2005/05/18 03:04:02 $
 #
 #  Copyright (c) [1995..2002] Manuel M T Chakravarty
 #
@@ -132,6 +132,7 @@ help:
 config:
 	@echo "*** Selecting system-dependent code..."
 	$(MAKE) -C base/sysdep $(MFLAGS) $@
+	$(MAKE) -C base $(MFLAGS) $@
 	@echo "*** Configuration successfully finished."
 
 showconfig:

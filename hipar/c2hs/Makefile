@@ -3,7 +3,7 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 27 February 1999
 #
-#  Version $Revision: 1.20 $ from $Date: 2005/05/17 08:03:26 $
+#  Version $Revision: 1.21 $ from $Date: 2005/05/18 03:04:03 $
 #
 #  Copyright (c) [1999..2002] Manuel M T Chakravarty
 #
@@ -51,7 +51,8 @@ parsers:
 
 # build targets
 #
-.PHONY: default objs all test c2hs libc2hs examples install
+.PHONY: default objs all test c2hs libc2hs examples install install-dirs\
+	install-conf register-package
 
 default: all
 objs   : Main.o
@@ -83,24 +84,24 @@ examples:
 
 # installation
 #
-install: all install-conf register-package
-	$(INSTALL_PROGRAM) -d $(DESTDIR)$(bindir)
+install: all install-dirs install-conf register-package
 	$(INSTALL) -s c2hs $(DESTDIR)$(bindir)/c2hs
 	$(INSTALL_PROGRAM) c2hs-config $(DESTDIR)$(bindir)/c2hs-config
-	$(INSTALL) -d $(DESTDIR)$(pkglibdir)
 	$(INSTALL_DATA) lib/libc2hs.a $(DESTDIR)$(pkglibdir)/libc2hs.a
-	$(INSTALL) -d $(DESTDIR)$(pkgimportdir)
 	@for hi in lib/*.hi; do\
 	  echo $(INSTALL_DATA) $$hi\
 	       $(DESTDIR)$(pkgimportdir)/`$(BASENAME) $$hi`;\
 	  $(INSTALL_DATA) $$hi $(DESTDIR)$(pkgimportdir)/`$(BASENAME) $$hi`;\
 	done
 
+install-dirs:
+	$(INSTALL_PROGRAM) -d $(DESTDIR)$(bindir)
+	$(INSTALL) -d $(DESTDIR)$(pkglibdir)
+	$(INSTALL) -d $(DESTDIR)$(pkgimportdir)
+
 install-conf:
-ifeq "$(GHC_MAJOR_VERSION)" "6"
-ifeq "$(GHC_MINOR_VERSION)" "4"
+ifeq ("$(CABAL)","yes")
 	$(INSTALL_DATA) c2hs.conf.cabal $(DESTDIR)$(pkglibdir)/c2hs.conf
-endif
 else
 	$(INSTALL_DATA) c2hs.conf.ghc-pre-6.4 $(DESTDIR)$(pkglibdir)/c2hs.conf
 endif

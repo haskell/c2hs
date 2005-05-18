@@ -69,6 +69,7 @@ Authors:
 Thanks to Simon L. Peyton Jones <simonpj@microsoft.com> and Roman Lechtchinsky
 <wolfro@cs.tu-berlin.de> for their helpful suggestions that improved the
 design and implementation of the `Lexers' module.  Thanks also to Roman for
-comments on other modules of the Compiler Toolkit.
+comments on other modules of the Compiler Toolkit.  Thanks to André Pang 
+<ozone@algorithm.com.au> for the GHC 6.4 port.
 
 Maintainer: chak@cse.unsw.edu.au
