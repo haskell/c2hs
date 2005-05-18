@@ -7,7 +7,7 @@
 
 <title>The Binding Generator C->Haskell
 <author>Manuel M. T. Chakravarty, <tt/chak@cse.unsw.edu.au/
-<date>v0.18, 13 October 2004
+<date>v0.19, 19 May 2005
 <abstract>
 C-&gt;Haskell is an interface generator that simplifies the development of
 <htmlurl url="http://haskell.org" name="Haskell"> bindings to C libraries.  The
@@ -31,7 +31,7 @@ function hooks and conditional compilation.
 <p>
 <bf>Copyright &amp; Distribution</bf>
 <p>
-Copyright (c) [1999..2004] by <htmlurl
+Copyright (c) [1999..2005] by <htmlurl
 url="http://www.cse.unsw.edu.au/~chak/" name="Manuel M. T. Chakravarty">.  
 The manual is distributed under the terms GNU Free Documentation License
 available from
@@ -888,9 +888,10 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.13.5 "Pressing Forward"
+<sect1>Version 0.13.6 "Pressing Forward"
 <p>
 <itemize>
+<item>Works with GHC 6.4 and Cabal packages
 <item>Strings may contain 8-bit characters (e.g., umlauts).
 <item>Identifier may optionally be put in single quotes.  (This is useful if
 they would otherwise collide with a C-&gt;Haskell keyword.)
