@@ -1,0 +1,321 @@
+								     -*-text-*-
+                                C2HS TODO
+                                =========
+
+Next: -= phase re-ordering & parser clean up =-
+
+      - pre-define __builtin_va_list as a typedef'ed symbol
+      - include `unsafePerformIO' into C2HS lib
+      - add lndir to hipar/ (start utils dir)
+      - Axel's proposal for a {#newAddr Blah#} and {#newForeign Blah#} hook
+      - adapt the library to GHC 4.08 [currently plusAddr Hack is used; make
+	this clean]
+      - In `GtkCList.cListGetNoOfRows' wird der Offset falsch berechnet
+        (sollte 84 sein) 
+      - rename todo -> TODO
+      - make clean and make cleanhi don't clean the lib/ subdir
+      - use `FFI.hs' (this implies renaming of some identifiers and other
+        things; how can we stay backwards compatible to Haskell compilers that 
+        do not have the FFI library?)
+      - In `GdkGL.chs', the prefix is not properly removed from the
+        constructors of `GdkGL.Configs'; same problem with
+        `GdkEvents.EventType'
+      - maybe we should replace the keyword `fun' by `pure' (but retain
+        `fun' as a deprecated keyword for a while to avoid breaking code;
+	maybe emit a warning)
+      - install the executable (c2hs and c2hs-config) with a version number
+        suffix and make a symbolic link for the name without version number
+        (makes installing multiple versions easier)
+      - what about the bug re cyclic structures in nhc with the new version
+        1.0? 
+      - the import path (/usr/lib/c2hs-0.7.5/ghc4/import) has to be more
+	specific and has to also include the minor version number of ghc
+	(as interface file formats change with minor versions :-(
+      - #define enum's (see below) - also requires reordering of phases
+      - Add an optional header="..." option in context hooks (can be used
+        instead of giving the .h file on the command line)?
+	STARTED: `header' tag is recognised in context hooks, BUT not yet
+		 used - usage requires reordering the phases
+      - we should use `Pointer a' or so (maybe better `Ptr a');
+	use the new newtype marshalling support and make
+	C->HS generate the types when producing the foreign export
+	decls
+      - intro a safe flag (as opposite to unsafe, but make safe the default)
+      - overload stdAddr etc for ForeignObj (stable ptr & cast)
+      - {#sizeof <type>#} becomes `sizeof (<type>)'
+      - All the C2HS binding hook keyword, such as `type', cannot be used in
+	access paths of get/set hooks! (See `gdk/GdkVisual.chs'.)
+      - C2HSMarsh: from qrczak@knm.org.pl (Marcin 'Qrczak' Kowalczyk)
+          allocBytes:: Int -> (Ptr a -> IO b) -> IO b -- For temporary storage
+	  mallocBytes:: Int -> IO (Ptr a)             -- For persistent object
+	  mallocForeignObj:: Int -> IO ForeignObj     -- malloc + freeing finalizer
+      - C2HSMarsh: 
+	  (!!!)   :: FromAddr a => Ptr a -> Int -> IO a
+	  p !!! i  = do
+		       v <- fixIO $ deref (p `plusAddr` sizeof v * i)
+		       return v
+          (Use in GdkColor, then)
+      - C2HSMarhs:
+	for compound structures it is inconvenient that in a pointer-based
+        out, an initial value is needed; thus
+	  out   :: (Storable a, FromAddr a) => a -> Marsh a Addr
+	  out x  = malloc x :> addrStd
+	and this is also convenient
+	  inp   :: ToAddr a => a -> Marsh () Addr
+	  inp x  = stdAddr x :> free
+        Axel also proposes this
+	  byValue :: b -> Marsh () b
+	  byValue x = use x :> forget
+      - C2HSMarsh: 
+	  - should re-export unsafePerformIO and plusAddr
+	  - define marsh4 and marsh5 
+      - Axel suggests,
+	  2b. Automatisches Marshalling von Strukturen.
+	  Eigentlich müßte es doch möglich sein, automatisch Instanzen von
+	  Storable für Strukturen zu erstellen. Falls man mal einen generische
+	  Pointer hat, kann man ja mit der ... as ... Methode eigene
+	  Marshalling Funktionen zur Verfügung stellen. Oder habe ich da etwas
+	  grundsätzliches übersehen? 
+      - there are still optimisation related !!! in Parsers.hs
+      - ghttp auskoppeln; extra C->HS library page
+      - what about supporting producing bindings for nhc?  An added problem
+        here is that the library `C2HS' has to be compiled with the compiler
+        that is target with the bindings.  To possible options: (1) Distribute 
+        the source of `C2HS' even in C->HS binary releases and support
+        compiling the library source with other Haskell systems.  (2) Add a
+        `nhc' library-only compilation mode that requires to install the C->HS 
+        binary for GHC first, then get the complete C->HS source, and the
+        special library-only compile and installation.
+      - try STGHugs; same problem for distributions as outlined for nhc above!
+      - maybe compilers based on the CTK should add a README.1ST to the root
+	directory when they are tarified
+
+Short term
+~~~~~~~~~~
+* Explain the grabbing of cpp -I options from -cppopts= (aka -C) values better 
+  in the docu and add something like:
+
+    I prefer that to giving an option to c2hs and passing it to
+    cpp, because - as you say - you usually already have a
+    variable with the cpp options in your makefile and this way
+    you can easily reuse it.
+
+* #define enums in C: siehe unten - scheinen aber wichtig
+
+* enum hooks should allow to optionally derive Eq, Ord, etc instances of the
+  enumeration 
+
+* `GdkMarsh.GFlag' should be in the C2HS library (as `Flag') and we might want
+  something like {#enum flag ...#} for marshalling masks like `GdkEventMask'.
+  The latter would not generate an `Enum' instance, but a `Flag' instance.
+  (See also `GdkEvents.EventMask'.)
+
+* line directives for the Haskell compiler (emit only after chunks of
+  C->HS generated code); there should be an option to disable this
+
+* A function prototype that uses a defined type on its left hand side may
+  declare a function, while that is not obvious from the declaration itself
+  (without also considering the `typedef').  This is not understood by
+  `GenBind' so far.
+
+* How about using `ForeignObj's instead of `Addr's whenever passing an address 
+  to C?  This is not desirable, for example, in case of an `Addr' obtained by
+  a foreign export dynamic.  Maybe allow to specify that in C types pointer to 
+  certain types mean `ForeignObj's (or default `ForeignObj's and some mean
+  Addr). 
+
+  Actually, the argument in
+  file:/usr/doc/ghc-4.02/docs/libraries/libs-16.html#ss16.6
+  for not using an `Addr' shouldn't apply to FFI calls.  If passing the `Addr'
+  to C land is the last action done with a `ForeignObj' in Haskell, then the
+  finaliser will still be called - so, it doesn't make any difference if we
+  had a function to get the `Addr' out of the `ForeignObj' in Haskell and
+  would pass this to C.  ** Last statement isn't true anymore since the
+  special rule concerning the lifetime of ForeignObjs **
+
+  We definitely want Haskell side ForeignObj, MutableArrays, etc to Addr casts.
+
+* Why is a stable name an `unsigned long' in C land?  How about a `void *' and 
+  being able to get the `Addr' also in Haskell land?
+
+* if in a binding file erroneously `t->m' is used instead of `t.m' and `t' is
+  the tag of a struct, the error message just complains that there is no type
+  object for called `t'; it would be more user friendly to report in addition
+  that the tag `t' exists, but cannot be used in this expression
+
+* improve C parser in c/
+
+  The space leak got smaller, but there is still too much heap used during
+  parsing. 
+
+* Should it be possible to specify a calling convention in context hook?
+  Isn't it a mitake to have explicit calling convention in the FFI?  Shouldn't 
+  that be adapted automatically depending on the target architecture?
+
+* Tutorial with ideas about conventions for binding libraries (naming
+  conventions etc)
+
+* Sven: How about exporting Haskell functions (also dynamic export)?
+  - callback registration function that explicitly have the type of the
+    callback function (from which we might want to generate a foreign export
+    dynamic). 
+
+* `mapM raise errs' in `lexC' increases the heap usage by a factor of _8_ when 
+  running the lexer alone on `gtkext.h' - probably because the whole analysis
+  has to be completed before we can be sure to have no error (and this kills
+  an interlocked produced/consumer scheme for the lexer and whatever function
+  is consuming the tokens).
+
+Side issues:
+------------
+
+* FFI issue: There are no floating types with explicit sizes.  (Would be
+  needed to make the size mapping in `configure.in' more portable.)
+
+* FFI: Would it be nicer if the `Addr.read/writeXXXOffAddr' functions would
+  get an offset in bytes instead of in multiples of the kind of datum that
+  they are accessing (would definitely be better for accessing structures
+  etc.)
+
+* FFI: How can structs as function results be realised?
+
+* FFI: Would it be clean when a foreign import declaration generates the
+  necessary prototype corresponding to this automatically instead of relying
+  on ugly `-#include's?
+
+* FFI: Addr.plusAddr should get the precedence of (+)
+
+* FFI: If the FFI for C functions returning a structure would return a pointer 
+  to that structure, we could handle them without extra impedance code in C.
+  The problem is of course, where to store the structure (and how to free it).
+
+* FFI: It is not good for portability that .so is explicit in foreign
+  declarations. 
+
+* There should be a facility to import global C variables.  The name they are
+  bound to should return the address of the variable when accessed (thus,
+  everything remains ref trans).
+
+Tip from Alastair: 
+     If you compile a C file (with gcc) with debugging on
+     and use 
+
+       objdump --debugging main.o
+
+     to examine it, it prints out the size and offset of the fields of a
+     struct.
+
+Middle term
+~~~~~~~~~~~
+
+* Directories contained in `C_INCLUDE_PATH' should be searched for header
+  files after directories extracted from the -I option in cpp options, but
+  before the standard header file directories are searched.
+
+* C->HS might get a lot easier to use by providing as optional marshalling
+  libraries modules that handle often occurring standard stuff like converting 
+  `time_t' to `CalendarTime' or handle sockets etc.  We would, then, probably
+  like to have a matching Posix or so library.
+
+------------ Pre-1.0 rewrite ---------------
+
+Problems:
+
+* There are some implicit requirements on the position of binding hooks, which
+  the tool doesn't really enforce: context must be first, context and enum may
+  only occur where a toplevel definition is allowed. (This should be checked
+  before `GenBind' is used.)  We can not really check that a hook is in a
+  position where a toplevel definition is allowed (without analysing
+  significant parts of the Haskell code), but we can at least guarantee that
+  these hooks occur in column position 0.
+
+* Sven: #define enums in C: Introduce (#enum define SomeEnum {...}#) hooks
+  that collect `#define' symbols into an enumeration type; see also
+  +haskell/4025.  One probem: If identifiers with the same lexeme as
+  `SomeEnum' or the enum members are already defined in the C header, we might 
+  get conflicts.
+
+  The problem of this approach is that if the macro expands to something that
+  is not a constant expression C, we will get error messages from the
+  preprocessor, which are strange to the user.
+
+  Further idea, Michael's: extensible enums
+
+  There are, however, a number of interesting options supported by gcc -E that
+  might make alternative solutions to the problem feasible.
+
+Approach:
+
+* Split `CHS' into a more conventional `CHSAST', `CHSSyntax', and `CHSAnalysis'
+  (or similar) structure and with `CHSAnalysis' add a pass that goes over the
+  binding file before `GenBind' is used.  Tasks: Static semantic checks
+  (context hook is first etc), collect all enum-define hooks etc
+
+* .chs has to be read before .h (due to the enum-define hooks)
+
+* Generating a header file that includes the bound to header and running this
+  through cpp has the added advantage that we don't have to give a path for
+  headers that are in any of the standard paths
+
+END of ----- Pre-1.0 rewrite ---------------
+
+* We could specify which header files matches a Haskell binding module in a
+  hook (context hook?) in the binding file.  We could even include some
+  verbatim C code, instead of having extra C files.
+
+* Do we like direct support for mapping complete structs (if they are
+  sufficiently wellbehaved?) into Haskell data structures - both by generating
+  the Haskell data type definitions and by generating a `cFrom<Struct>' and a
+  `cTo<Struct>' routine.  The latter would be generated as a cascade of field
+  hooks.  H/Direct's formal definition of structure marshalling might be
+  helpful here.
+
+* Support for evaluating constants is not complete yet.  In this context, it
+  should probably also be checked, when there are two overlapping tags in an
+  enum (this is allowed in C, but is problematic for marshaling). 
+
+* How about Hugs support?  Is it already possible with current Hugs?
+
+
+Release Checklist
+~~~~~~~~~~~~~~~~~
+
+(1) In root of working directory,
+
+      % make tar-c2hs
+
+(2) Compile the resulting source distribution with latest ghc stable release:
+
+      % tar xzf c2hs-x.y.z.tar.gz
+      % cd c2hs-x.y.z
+      % ./configure
+      % make
+
+(3) Install and regression testing:
+
+    - Installation procedure
+
+        % make install
+
+    - Tests in build/ghc?/c2hs/tests/ directory
+
+    - Build libghttp example
+
+    - Build Gtk+HS
+
+(4) Check documentation and add release notes
+
+(5) Extended build test: build with older stable release of ghc and with the
+    cvs version
+
+(6) Register CVS tags for CTK and C->HS (syntax: Release-c2hs_x_y_z)
+
+(7) Make newest `tar' and build rpm
+
+(8) Put tar.gz and rpm sources and binaries up on Web page
+
+(9) Optionally also release the current version of CTK
+
+(10) Update the C2HS library files under the Web page's lib/ directory
+
+(11) Announce: haskell@haskell.org, freshmeat.net

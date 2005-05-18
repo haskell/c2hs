@@ -1,0 +1,69 @@
+#  Compiler Toolkit: makefile for the state management modules
+#
+#  Author : Manuel M. T. Chakravarty
+#  Created: 22 October 1997
+#
+#  Version $Revision: 1.12 $ from $Date: 2000/02/28 06:28:59 $
+#
+#  Copyright (c) [1997..1998] Manuel M. T. Chakravarty
+#
+#  This file is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This file is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  = DOCU =====================================================================
+#
+
+#  ***************************************
+#  !!! This makefile requires GNU make !!!
+#  ***************************************
+
+# info for this part: its package, name, sources and objects files (must be 
+# before the include due to conditionals etc in `common.mk')
+#
+PACKAGE = base
+PART    = state
+SRCS	= CIO.hs DynArrays.hs State.hs StateBase.hs StateTrans.hs
+OBJS	= $(patsubst %.hs,%.o,$(SRCS))
+
+include ../../mk/common.mk
+include ../$(DEPEND)
+
+# make all object files
+#
+objs: $(OBJS)
+
+# make all
+#
+all: objs
+
+# State modules test
+#
+.PHONY: test
+test: state
+
+StateOBJS = BaseVersion.o Common.o CIO.o Config.o Errors.o State.o\
+	    StateBase.o StateTrans.o SysDep.o UNames.o Utils.o FileOps.o\
+	    FNameOps.o
+
+StateOBJSX= $(wildcard $(addprefix ../*/,$(StateOBJS)))
+
+state: $(StateOBJS) tests/Main.hs
+	mkdir -p $(TMP)
+	$(HC) -o $(TMP)/$@ $(HCFLAGS) $(StateOBJSX) tests/Main.hs
+	@echo "*** call $(TMP)/$@"
+
+# misc targets
+#
+.PHONY: clean cleanhi
+
+clean:
+	-$(RM) *.o $(TMP)/state
+cleanhi:
+	-$(RM) *.hi

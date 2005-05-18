@@ -1,0 +1,133 @@
+--								  -*-haskell-*-
+--  ** @configure_input@ **
+--  ===========================================================================
+--  C -> Haskell Compiler: configuration
+--
+--  Author : Manuel M. T. Chakravarty
+--  Created: 27 September 99
+--
+--  Version $Revision: 1.6 $ from $Date: 2000/04/09 10:15:57 $
+--
+--  Copyright (c) [1999..2000] Manuel M. T. Chakravarty
+--
+--  This file is free software; you can redistribute it and/or modify
+--  it under the terms of the GNU General Public License as published by
+--  the Free Software Foundation; either version 2 of the License, or
+--  (at your option) any later version.
+--
+--  This file is distributed in the hope that it will be useful,
+--  but WITHOUT ANY WARRANTY; without even the implied warranty of
+--  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--  GNU General Public License for more details.
+--
+--- DESCRIPTION ---------------------------------------------------------------
+--
+--  Configuration options; largely set by `configure'.
+--
+--  The details for `char' are hardcoded, because they cannot change.  If the
+--  used C compiler does not support `long long' or `long double', we the size 
+--  of these types will be set to 0.
+--
+--- TODO ----------------------------------------------------------------------
+--
+
+module C2HSConfig (cpp, cppopts, hpaths, dlsuffix,
+		   CPrimType(..), sizes, alignments)
+where
+
+import Ix    (Ix)
+import Array (Array, array)
+
+
+-- program settings
+-- ----------------
+
+-- C preprocessor executable (EXPORTED)
+--
+cpp :: FilePath
+cpp  = "@CPP@"
+
+-- C preprocessor options (EXPORTED)
+--
+-- * `-P' would suppress `#line' directives
+--
+cppopts :: String
+cppopts  = ""
+
+-- standard system search paths for header files (EXPORTED)
+--
+hpaths :: [FilePath]
+hpaths  = [".", "/usr/include", "/usr/local/include"]
+
+-- OS-dependent suffix for dynamic libraries
+--
+dlsuffix :: String
+dlsuffix  = "@DLSUFFIX@"
+
+
+-- calibration of C's primitive types
+-- ----------------------------------
+
+-- C's primitive types (EXPORTED)
+--
+data CPrimType = CAddrPT	-- void *
+	       | CCharPT	-- char
+	       | CUCharPT	-- unsigned char
+	       | CSCharPT	-- signed char
+	       | CIntPT		-- int
+	       | CSIntPT	-- short int
+	       | CLIntPT	-- long int
+	       | CLLIntPT	-- long long int
+	       | CUIntPT	-- unsigned int
+	       | CUSIntPT	-- unsigned short int
+	       | CULIntPT	-- unsigned long int
+	       | CULLIntPT	-- unsigned long long int
+	       | CFloatPT	-- float
+	       | CDoublePT	-- double
+	       | CLDoublePT	-- long double
+	       deriving (Bounded, Eq, Ord, Ix)
+
+-- sizes of C's primitive types (EXPORTED)
+--
+sizes :: Array CPrimType Int
+sizes  = array (minBound, maxBound) [
+           (CAddrPT   , @SIZEOF_VOID_P@),
+	   (CCharPT   , 1),
+	   (CUCharPT  , 1),
+	   (CSCharPT  , 1),
+	   (CIntPT    , @SIZEOF_INT@),
+	   (CSIntPT   , @SIZEOF_SHORT_INT@),
+	   (CLIntPT   , @SIZEOF_LONG_INT@),
+	   (CLLIntPT  , @SIZEOF_LONG_LONG_INT@),
+	   (CUIntPT   , @SIZEOF_UNSIGNED_INT@),
+	   (CUSIntPT  , @SIZEOF_UNSIGNED_SHORT_INT@),
+	   (CULIntPT  , @SIZEOF_UNSIGNED_LONG_INT@),
+	   (CULLIntPT , @SIZEOF_UNSIGNED_LONG_LONG_INT@),
+	   (CFloatPT  , @SIZEOF_FLOAT@),
+	   (CDoublePT , @SIZEOF_DOUBLE@),
+	   (CLDoublePT, @SIZEOF_LONG_DOUBLE@)
+	 ]
+
+-- alignment of C's primitive types (EXPORTED)
+--
+-- * more precisely, the padding put before the type's member starts when the
+--   preceding component is a char
+--
+alignments :: Array CPrimType Int
+alignments  = array (minBound, maxBound) [
+                (CAddrPT   , @ALIGNOF_VOID_P@),
+		(CCharPT   , 1),
+		(CUCharPT  , 1),
+		(CSCharPT  , 1),
+		(CIntPT    , @ALIGNOF_INT@),
+		(CSIntPT   , @ALIGNOF_SHORT_INT@),
+		(CLIntPT   , @ALIGNOF_LONG_INT@),
+		(CLLIntPT  , @ALIGNOF_LONG_LONG_INT@),
+		(CUIntPT   , @ALIGNOF_UNSIGNED_INT@),
+		(CUSIntPT  , @ALIGNOF_UNSIGNED_SHORT_INT@),
+		(CULIntPT  , @ALIGNOF_UNSIGNED_LONG_INT@),
+		(CULLIntPT , @ALIGNOF_UNSIGNED_LONG_LONG_INT@),
+		(CFloatPT  , @ALIGNOF_FLOAT@),
+		(CDoublePT , @ALIGNOF_DOUBLE@),
+		(CLDoublePT, @ALIGNOF_LONG_DOUBLE@)
+	      ]

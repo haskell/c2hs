@@ -1,0 +1,256 @@
+#  Compiler Toolkit Toplevel: root makefile 
+#
+#  Author : Manuel M. T. Chakravarty
+#  Created: 24 July 1998 (derived from HiPar root makefile)
+#
+#  Version $Revision: 1.60 $ from $Date: 2000/08/24 08:32:43 $
+#
+#  Copyright (c) [1995..2000] Manuel M. T. Chakravarty
+#
+#  This file is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This file is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  = DOCU =====================================================================
+#
+#  * This makefile handles the toplevel commands of the Compiler Toolkit.  
+#    Compiler can be dropped in by setting up a `mk/<mycomp>.mk' makefile plus
+#    a `<mycomp>' source directory.  The makefile contains compiler-specific 
+#    definitions for the various `make' targets and the source directory 
+#    contains the complete set of compiler-specific source files.
+#
+#    It is important that the variables and targets defined in `mk/<mycomp>.mk'
+#    are prefixed with a compiler-specific prefix.  This allows to have 
+#    multiple compiler in a single Compiler Toolkit tree without conflicts.
+#
+#    The main build target and the tar target of a package are defined 
+#    `mk/<mycomp>.mk'.
+#
+#  * A build is performed below `build' in a directory named by the basename of
+#    the used compiler (as given by $(HC)).  In this directory, shadow 
+#    directories of the source trees are created.
+#
+#  * Before anything can be build, a `make config' has to be executed.  
+#    Whenever the compiler $(HC) or system $(SYS) used for the build changes, 
+#    `make config' has to be executed again.  It also has to be re-executed
+#    when files are added, deleted, or moved in a source tree.
+#
+#  * GNU make is required: The makefiles use conditionals and various makefile
+#    functions.
+#
+#  = TODO =====================================================================
+#
+
+#  ***************************************
+#  !!! This makefile requires GNU make !!!
+#  ***************************************
+
+
+# default target (must be first)
+# ==============
+# 
+.PHONY: default
+default: all
+
+include mk/common.mk
+
+TMPDIR=/tmp
+
+# files lists
+#
+BASEFILES =AUTHORS COPYING COPYING.LIB INSTALL Makefile README README.CTKlight\
+	   aclocal.m4 configure configure.in config.sub config.guess\
+	   install-sh\
+	   doc/base mk/common.mk mk/config.mk.in base
+CTKLFILES =AUTHORS COPYING.LIB README.CTKlight\
+	   base/admin/BaseVersion.hs\
+	   base/admin/Config.hs\
+	   base/admin/Common.hs\
+	   base/general/DLists.hs\
+	   base/errors/Errors.hs\
+	   base/syntax/Lexers.hs\
+	   base/syntax/Parsers.hs\
+	   base/general/Utils.hs
+
+# file that contain a `versnum = "x.y.z"' line
+#
+BASEVERSFILE =base/admin/BaseVersion.hs
+
+# this is far from elegant, but works for extracting the plain version number
+#
+BASEVERSION =$(shell $(GREP) '^versnum' $(BASEVERSFILE)\
+		     | sed '-e s/versnum.* "//' '-e s/"//')
+
+# base directory for tar balls and exclude patterns
+#
+TARBASE=ctk
+TAREXCL=--exclude='*CVS' --exclude='*~'\
+	--exclude=config.log --exclude=config.status
+
+
+# help target
+# ===========
+# 
+
+help:
+	@echo "*** Usage:"
+	@echo "***   \`make prep'       -- generate parsers and compute dependencies"
+	@echo "***   \`make base'       -- build Compiler Toolkit"
+	@echo "***   \`make <mycomp>'   -- build compiler below <mycomp>"
+	@echo "***   \`make all'        -- `prep', build, and all compilers"
+	@echo "***   \`make showconfig' -- print current configuration"
+
+
+# system configuration (has to be executed before building)
+# ====================
+#
+# Remark: $(LNDIR)'s first argument is relative to the second.
+#
+.PHONY: config showconfig
+
+config:
+	@echo "*** Building shadow directories..."
+	@for dir in mk base $(PCKS); do\
+	  echo mkdir -p $(BUILDDIR)/$$dir;\
+	  mkdir -p $(BUILDDIR)/$$dir;\
+	  echo $(LNDIR) ../../../$$dir $(BUILDDIR)/$$dir;\
+	  $(LNDIR) ../../../$$dir $(BUILDDIR)/$$dir;\
+	done
+	mkdir -p $(DOCBUILDDIR)
+	$(LNDIR) ../../doc $(DOCBUILDDIR)
+	@echo "*** Selecting system-dependent code..."
+	$(MAKE) -C $(BUILDDIR)/base/sysdep $(MFLAGS) $@
+	@echo "*** Configuration successfully finished."
+
+showconfig:
+	@echo "*** Current configuration:"
+	@echo "  Compiler         : $(HC)"
+	@echo "  System           : $(SYS)"
+	@echo "  Parser generator : $(HAPPY)"
+	@echo "  Mkdepend         : $(MKDEPENDHS)"
+	@echo "  Compiler packages: $(PCKS)"
+	@if [ -d $(BUILDDIR) ]; then\
+	   echo "  Build dir.       : created";\
+	 else\
+	   echo "  Build dir.       : missing (do \`make config')";\
+	 fi
+
+
+# preparations (run parser generators and compute dependencies)
+# ============
+#
+.PHONY: prep parsers depend
+
+prep: config parsers depend
+
+# Generate parsers
+#
+parsers:
+	@echo "*** Checking for the need to run a parser generator..."
+	@for pck in $(PCKS); do\
+	  $(MAKE) -C $(BUILDDIR)/$$pck $(MFLAGS) $@;\
+	done
+
+# Compute dependcies within each package
+#
+depend:
+	@echo "*** Building dependency databases..."
+	@for pck in base $(PCKS); do\
+	  $(MAKE) -C $(BUILDDIR)/$$pck $(MFLAGS) $@;\
+	done
+
+
+# building things
+# ===============
+#
+.PHONY: all build base doc
+
+all: prep build
+
+build: base $(PCKS)
+
+base:
+	$(MAKE) -C $(BUILDDIR)/base $(MFLAGS) all
+
+doc:
+	@echo "*** Building documentation..."
+	@for dir in base $(PCKS); do\
+	  $(MAKE) -C $(DOCBUILDDIR)/$$dir $(MFLAGS) all;\
+	done
+
+
+# installation
+# ============
+#
+.PHONY: install install-doc
+
+install:
+	@echo "*** Installing packages..."
+	@for pck in $(PCKS); do\
+	  $(MAKE) -C $(BUILDDIR)/$$pck $(MFLAGS) $@;\
+	done
+
+install-doc:
+	@echo "*** Installing documentation..."
+	@for pck in base $(PCKS); do\
+	  $(MAKE) -C $(DOCBUILDDIR)/$$pck $(MFLAGS) install;\
+	done
+
+
+# auxilliary targets
+# ==================
+#
+
+.PHONY: clean cleanhi spotless distclean
+
+# Remove generated objects and executables
+#
+clean:
+	@for pck in base $(PCKS); do\
+	  $(MAKE) -C $(BUILDDIR)/$$pck $(MFLAGS) $@;\
+	  $(MAKE) -C $(DOCBUILDDIR)/$$pck $(MFLAGS) $@;\
+	done
+
+# Remove generated interface files
+#
+cleanhi:
+	@for pck in base $(PCKS); do\
+	  $(MAKE) -C $(BUILDDIR)/$$pck $(MFLAGS) $@;\
+	done
+
+# Remove all builds
+#
+spotless:
+	-$(RM) -rf build
+
+# Remove everything that is not in the source tar
+#
+distclean: spotless
+	-$(RM) config.status config.log config.cache
+	-$(FIND) . -name \*.in | $(SED) -e 's/\.in$$//;/\/configure$$/d'\
+	         | xargs -r $(RM)
+
+# tar various packages
+#
+TARCMD=$(TAR) -c -z $(TAREXCL) -h -f
+tar-base:
+	-ln -s . $(TARBASE)-$(BASEVERSION)
+	$(TARCMD) $(TARBASE)-$(BASEVERSION).tar.gz\
+	  $(addprefix $(TARBASE)-$(BASEVERSION)/,$(BASEFILES))
+	-$(RM) $(TARBASE)-$(BASEVERSION)
+tar-ctk: tar-base
+tar-ctkl: 
+	@[ ! -e $(TMPDIR)/ctkl-$(BASEVERSION) ]\
+	 || (echo "Temp file $(TMPDIR)/ctkl-$(BASEVERSION) already exsits."\
+	     && exit 1)
+	mkdir $(TMPDIR)/ctkl-$(BASEVERSION)
+	$(CP) $(CTKLFILES) $(TMPDIR)/ctkl-$(BASEVERSION)
+	cd $(TMPDIR); $(TARCMD) $(shell pwd)/ctkl-$(BASEVERSION)-src.tar.gz\
+	  ctkl-$(BASEVERSION)
+	$(RM) -r $(TMPDIR)/ctkl-$(BASEVERSION)

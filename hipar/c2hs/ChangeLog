@@ -1,0 +1,334 @@
+2000-08-22  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HSDeprecated.hs: contains a compatibility interface to the
+	"Afterthought" series
+
+2000-08-18  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.8.0 "Gentle Moon"
+
+	** WARNING: Only the FFI of GHC 4.08 upwards is supported **
+
+	** WARNING: Code breaking changes to the marshalling library **
+	**          Compatibility library provided		     **
+
+2000-08-12  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HSBase.hs (IntConv): instances for Int8, Word8, and Char
+
+	* toplevel/Version.hs (versnum): 0.7.10
+
+2000-08-06  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs (showCHSTrans): corrected syntax
+	(parseTrans): comma now correctly required after underscoreToCase
+
+	* gen/GenBind.hs (transTabToTransFun): properly handles prefixes
+	in the translation function
+	(enumDef): prefixes are now generally removed from enumerators
+	without the constraint that the prefix has to be removed from all
+	enumerators or none
+
+2000-08-04  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (usualArithConv): forgot a case; patch
+	contributed by Axel Simon <simona@pool.Informatik.rwth-aachen.de>
+
+	* toplevel/Version.hs (versnum): 0.7.9
+
+2000-07-06  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (specType.matches): forgot a case; bug spotted by
+	Axel Simon <simona@pool.Informatik.rwth-aachen.de>
+
+	* lib/C2HSBase.hs (plusAddr): ugly kludge for GHC 4.08 (doesn't
+	work with any older version for the moment)
+
+	* toplevel/Version.hs (versnum): 0.7.8
+
+2000-04-15  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CLexer.hs (pragma): ignores `#pragma's
+
+	* toplevel/Version.hs (versnum): 0.7.7
+
+2000-04-09  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* mk/config.mk.in: added
+
+	* gen/GenBind.hs: added `long long's
+	(specType): added error message for unsupported types
+
+	* lib/C2HSConfig.hs.in: added `long long's
+
+	* toplevel/C2HSConfig.hs.in: added `long long's
+
+	* toplevel/Version.hs (versnum): 0.7.6
+
+2000-04-08  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* configure.in: corrected sed expression for Solaris
+
+2000-03-02  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* tests/Makefile: added & revised all the tests
+
+	* configure.in: debugging
+
+2000-03-01  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HSMarsh.hs (addrWithMarkerToList): debugged
+
+2000-02-28  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): adapted to new `CHSContext' def
+
+	* c/CParser.hs: Using `Utils.Tag' class to make `CToken' an instance of
+	`Token'
+
+	* c/CLexer.hs: Making `CToken' an instance of `Utils.Tag' instead
+	of `Eq'
+
+2000-02-25  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs: added `header' tag in context hook
+
+	* chs/CHSLexer.hs: added keyword `header'
+
+	* c/CLexer.hs, c/CParser.hs, c/CAST.hs: added C99 type qualifier
+	  `restrict'; thanks to "Marcin 'Qrczak' Kowalczyk"
+	  <qrczak@knm.org.pl> for pointing this out
+
+2000-02-24  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (foreignImport): system-dependent library suffix
+
+	* configure.in,toplevel/C2HSConfig.hs.in: DLSUFFIX
+
+2000-02-23  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.7.5
+
+1999-12-04  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* lib/C2HSBase.hs (BoolConv): added
+
+1999-11-24  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* ../doc/c2hs/Makefile: corrections by Michael Weber
+ 	<michael.weber@Post.RWTH-Aachen.DE>
+
+1999-11-17  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* Man pages and debianisation, courtesy of Michael Weber
+	<michael.weber@Post.RWTH-Aachen.DE>
+
+	* c/CNames.hs: no new range for tag definitions is started when
+	entering a struct declaration list or a parameter list; thanks to
+	Volker Wysk <volker.wysk@student.uni-tuebingen.de> for the bug report
+
+	* c/CAttrs.hs (enterNewObjRangeC): added
+	(leaveObjRangeC): added
+
+1999-11-16  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* c/CTrav.hs (extractAlias): now correctly handles anonymous
+	declarations; introduced new function `declaredDeclr'; thanks to
+	Michael Weber <michael.weber@Post.RWTH-Aachen.DE> for the bug report
+
+	* toplevel/Version.hs (versnum): 0.7.4
+
+1999-11-07  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* lib/C2HSBase.hs: adapted to new `assign' and `deref' routines
+
+	* gen/GenBind.hs: debugged
+
+	* c/CTrav.hs (extractStruct): takes care that forward declerations 
+	of structs are followed to the full definition
+
+	* lib/C2HSMarsh.hs: added `nothingIf', `nothingIfNull';
+	generalised string handling to `listToAddrWithLen' and
+	`addrWithLenToList' 
+
+1999-11-06  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* toplevel/Main.hs: Header file search in standard directories and 
+	directories passed in `-IDIR' options to cpp.
+
+	* c2hs-config.in: Added `--c2hs' option to `c2hs-config'
+
+	* lib/C2HSMarsh.hs: Michael's `Int'/`Word' patch
+
+1999-11-03  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* lib/C2HSMarsh.hs: more instances for `ToAddr' & `FromAddr'
+
+	* toplevel/Version.hs (versnum): 0.7.3
+
+1999-10-30  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* Makefile: adapted to modularised CTK and added installation support
+
+	* c2hs-config.in: added
+
+	* toplevel/Version.hs (versnum): 0.7.2
+
+1999-10-28  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* c/CNames.hs: multiple declarations for the same object are
+	now allowed (thanx Michael)
+
+	* lib/C2HSMarsh.hs: added some suggestions from Michael Weber
+
+	* c/CLexer.hs: #line directives
+
+1999-10-26  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* configure.in: no sizeof or align tests for char
+
+1999-10-25  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* gen/GenBind.hs: some clean up and improved error message with
+	more position information
+
+	* chs/CHS.hs: Positions are maintained for improved error messages.
+
+	* toplevel/Main.hs: removes intermediate file (but it can be
+	retained on explicit request)
+
+	* toplevel/Version.hs (versnum): 0.7.1
+
+1999-10-24  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* examples/libghttpHS/Ghttp.chs: adapted to new syntax & features
+
+	* configure.in: Solaris patch from Michael Weber
+	<michael.weber@Post.RWTH-Aachen.DE>
+
+	* gen/GenBind.hs: new hook syntax
+
+	* chs/CHS.hs (and friends): grok new hook syntax
+
+1999-10-23  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* toplevel/Version.hs (versnum): 0.7.0 (align hook syntax with paper)
+
+	* c/CTrav.hs: routines from `CNames' and `GenBind' generalised and 
+	exported from `CTrav'
+	(defTag): handles enum tags now correctly
+
+1999-10-22  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* c/CNames.hs: sets up the object associations for usage positions
+
+1999-10-21  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* c/CTrav.hs (defTag): handles refined struct definitions
+
+	* toplevel/Main.hs: Command line option patch from Michael Weber
+	<michael.weber@Post.RWTH-Aachen.DE>
+
+	* c/CNames.hs: computes the object reference attributes now
+
+	* c/CTrav.hs (isTypedef): added
+
+	* toplevel/Version.hs (versnum): 0.6.2
+
+1999-10-20  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* examples/libghttpHS/Ghttp.chs: uses `C2HS's exception handling
+
+	* lib/C2HSMarsh.hs: debugging
+
+	* toplevel/Version.hs (versnum): 0.6.1
+
+1999-10-18  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* c/CLexer.hs: computes attributes for identifiers
+
+1999-10-17  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* c/CNames.hs: moved gathering of definitions from `C', starting a 
+	more standard name analysis pass
+
+	* c/CTrav.hs: basic traversal support for name space and
+	definition attribute operations
+
+	* c/CAttrs.hs: C definition attribute data type and operations
+
+	* toplevel/Version.hs: 0.6.0
+
+1999-10-16  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* lib/C2HSMarsh.hs: Marshaling idioms & exception handling
+
+1999-10-13  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* examples/libghttpHS/Ghttp.chs: compiles
+
+	* toplevel/Main.hs (execute): debugged
+
+	* lib/C2HS.hs: Advanced marshaling support
+
+	
+Pre-GNU style change log
+------------------------
+
+0.5.1
+~~~~~
+12Oct99 lib/C2HSMarsh -> lib/C2HSBase; lib/C2HSMarsh new
+
+0.5.0
+~~~~~
+08Oct99 Debugging
+06Oct99 (# ... #) to {# ... #}; extended `C2HSMarsh'; `Ghttp' example
+
+0.4.1
+~~~~~
+01Oct99 Improved autoconf support for computing the information necessary for
+	determining struct offsets & corresponding changes in `GenBind'
+	plus full struct and union support
+
+0.4.0
+~~~~~
+29Sep99 Debugging
+28Sep99 Improving marshaling lib
+27Sep99 Autoconf support
+26Sep99 More lexer debugging, typedef chasing & field hooks with indirections;
+	preprocessing of the C header implemented
+21Sep99 Debugged CHS lexer (Haskell comments etc)
+
+0.3.0
+~~~~~
+06Sep99 Enums correctly lead to `CInt's in foreign import declarations
+01Sep99 Added dot syntax for field hooks
+
+0.2.2
+~~~~~
+01Sep99 Added support for explicit tag values in enumerations
+31Aug99 added tag objects to `CAttrs.hs' and `C.hs'; enumeration hooks are
+	partial functional
+
+0.2.1
+~~~~~
+30Aug99 context and call hooks are functional
+
+0.2.0
+~~~~~
+29Aug99 full path completed
+19Aug99 started `lib' part
+17Aug99 started `gen' part
+17Aug99 finished the CHS parser and printing routines in `CHS.hs'
+16Aug99 finished first version of CHS lexer; added `CHS.hs'
+15Aug99 started `chs' part
+
+0.1.1
+~~~~~
+12Aug99 Various fixes to the C lexer and parser; added toplevel/Main.hs and
+	c/C.hs
+
+0.1.0
+~~~~~
+03Apr99 Finished first complete version of C lexer and parser
+27Feb99 starting project

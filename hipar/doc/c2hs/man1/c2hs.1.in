@@ -1,0 +1,125 @@
+.\" Hey Emacs! This file is -*- nroff -*- source.
+.\"
+.\" Version $Revision: 1.1 $ from $Date: 1999/11/17 14:21:02 $
+.\"
+.TH C2HS 1 "14 November 1999" "Version @VERSION@" C\->Haskell
+.SH NAME
+c2hs \- C->Haskell Interface Generator
+
+.SH SYNOPSIS
+.B c2hs
+.RB [ OPTIONS ]...
+.I header-file
+.I binding-file
+
+.SH DESCRIPTION
+This manual page briefly describes the
+.B c2hs
+command.  For more details, refer to the main documentation, which is
+available in various other formats, including SGML and HTML; see below.
+.PP
+
+.SH OPTIONS
+The programs follow the usual GNU command line syntax, with long options
+starting with two dashes (`-'). A summary of options are included below. For
+a complete description, see the other documentation.
+
+.B c2hs
+accepts the following options:
+.TP
+.B  \-h, \-?, \-\-help
+brief help
+.TP
+.B  \-v, \-\-version
+show version information
+.TP
+.BI \-c \ CPP\fR, \ \-\-cpp= CPP
+use executable \fICPP\fR to invoke C preprocessor
+.TP
+.BR \-C \ CPPOPTS\fR, \ \-\-cppopts= CPPOPTS
+pass CPPOPTS to the C preprocessor
+.TP
+.BR \-d \ TYPE\fR, \ \-\-dump= TYPE
+dump internal information (for debugging), where TYPE is one of:
+.RS
+.IP "\(bu \fBtrace\fR" 10
+trace compiler phases
+.IP "\(bu \fBchs\fR"   10
+dump the binding file (adds \fI.dump\fR to the name)
+.RE
+.TP
+.BI \-o \ FILE\fR, \ \-\-output= FILE
+output result to \fIFILE\fR (should end in \fI.hs\fR)
+.TP
+.B  \-k, \-\-keep
+keep pre-processed C header
+.PP
+
+.I header-file
+is the header file belonging to the marshalled library. It must end with
+suffix 
+.IR .h .
+
+.I binding-file
+is the corresponding Haskell binding file, which must end with suffix
+.IR .chs .
+
+The most useful of these options is probably 
+.B  \-\-cppopts
+(or 
+.BR \-C ).
+If the C header file needs any special options (like \-D or \-I) to go
+through the C pre-processor, here is the place to pass them.
+
+.SH EXAMPLES
+
+The C->Haskell Interface Generator is usually called as:
+
+.B c2hs
+.I lib.h Lib.chs
+
+where 
+.I  lib.h
+is the header file and
+.I  Lib.chs
+the Haskell binding module, which define the C- and Haskell-side interface,
+respectively.  If no errors occur, the result is a pure Haskell module
+.IR Lib.hs ,
+which implements the Haskell API of the library.
+
+A more advanced call may look like this:
+
+.BR "c2hs \-\-cppopts=" '\-I\fI/some/obscure/dir\fR
+-DEXTRA'
+.I lib.h Lib.chs
+
+Often, 
+.I  lib.h
+will not be in the current directory, but in one of the header file
+directories.  Apart from the current directory, C->Haskell looks in two
+places for the header: first, in the standard include directory of the used
+system, this is usually
+.IR /usr/include " and " /usr/local/include ;
+and second, it will look in every directory that is mentioned in a 
+.RI \-I DIR
+option passed to the pre-processor via 
+.BR \-\-cppopts .
+
+.SH CAVEATS
+Do not forget the quotes if you have more than one option that you want to
+give to the pre-processor.
+
+.SH "SEE ALSO"
+.B c2hs-config(1)
+
+.I @DOCDIR@/html/c2hs.html
+
+.SH COPYRIGHT
+C->Haskell Version @VERSION@ Copyright (c) 1999 Manuel M. T. Chakravarty
+<chak@is.tsukuba.ac.jp>
+
+.SH AUTHOR
+This manual page was mainly assembled from the original documentation.
+
+It was written by Michael Weber <michael.weber@post.rwth-aachen.de> for the
+Debian GNU/Linux system (but may be used by others).

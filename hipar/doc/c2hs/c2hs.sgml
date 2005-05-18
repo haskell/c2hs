@@ -1,0 +1,309 @@
+<!doctype linuxdoc system>
+
+<!-- C->Haskell documentation
+ -->
+
+<article>
+
+<title>The C->Haskell Tutorial
+<author>Manuel M. T. Chakravarty, <tt/chak@is.tsukuba.ac.jp/
+<date>v0.2, 2 March 2000
+<abstract>
+C-&gt;Haskell is an interface generator that simplifies the development of
+<htmlurl url="http://haskell.org" name="Haskell"> bindings to C libraries.  The
+tool processes existing C header files that determine data layout and function
+signatures on the C side in conjunction with Haskell modules that specify
+Haskell-side type signatures and marshaling details.  Hooks embedded in the
+Haskell code signal access to C structures and functions -- they are expanded
+by the interfacing tool in dependence on information from the corresponding C
+header file.  Another noteworthy property is the lightweight nature of the
+approach.
+
+This first version of the tutorial merely describes the installation and use
+of the tool, but it does not detail the structure of Haskell binding modules.
+However, a discussion of binding modules, the principles behind the tool, and
+a discussion of related work can be found in a research paper discussing
+C-&gt;Haskell, which is at
+<url url="http://www.score.is.tsukuba.ac.jp/~chak/papers/papers.html#c2hs">.
+</abstract>
+
+<toc>
+
+<p>
+<bf>Copyright &amp; Distribution</bf>
+<p>
+Copyright (c) [1999..2000] by <htmlurl
+url="http://www.cse.unsw.edu.au/~chak/" name="Manuel M. T. Chakravarty">.  
+The manual is distributed under the terms GNU Free Documentation License
+available from
+<url url="http://www.fsf.org/copyleft/fdl.html">.
+<p>
+The master copy of this document is at <url
+url="http://www.cse.unsw.edu.au/~chak/haskell/c2hs/">; the source is in
+SGML, which allows you to produce a selection of standard formats, including
+HTML and Postscript.
+
+<p>
+<bf>Contributions</bf>
+<p>
+If you have any comments, suggestions, or contributions, please send them to
+<htmlurl url="mailto:chak@is.tsukuba.ac.jp" name="chak@is.tsukuba.ac.jp">.
+
+
+<sect>Installation
+<p>
+It follows a brief discussion of the installation from source.  There is,
+however, a file <tt/INSTALL/ in the source distribution, which is more
+frequently updated and should be consulted in any case.
+
+<sect1>Where is the Source?
+<p>
+The master site of C-&gt;Haskell is at <url
+url="http://www.score.is.tsukuba.ac.jp/~chak/haskell/c2hs/">.  It has all the
+latest information and sources.  Furthermore, it explains how to get anonymous 
+CVS access to C-&gt;Haskell's repository and may have pre-compiled binaries
+for easier installation.
+
+<sect1>What Else Do I Need?
+<p>
+You need a Haskell system supported by C-&gt;Haskell.  Currently this is only
+the <em/Glasgow Haskell Compiler (GHC)/, which you can obtain from <url
+url="http://haskell.org/ghc/">.  You need a fairly recent version of the
+Haskell compiler.  C-&gt;Haskell uses a compiler support library called the
+<em/Compiler Toolkit/.  In the main distribution, the Compiler Toolkit is
+already contained in the source tar ball -- be sure to download a file named
+<tt/c2hs-/<em/x/<tt/./<em/y/<tt/./<em/z/<tt/.tar.gz/, were
+<em/x/<tt/./<em/y/<tt/./<em/z/ is the version number of the package.
+
+To build the documentation, you will also need the <em/SGML Tools/, which you
+find at your nearest sunsite or Linux mirror or at <url
+url="ftp://ftp.lip6.fr/pub/sgml-tools/">.  On an up-to-date Linux system, the
+tools are probably already installed.
+
+<sect1>I Got Everything, and Now?
+<p>
+The short answer is
+<tscreen><verb>
+% gzip -cd c2hs.X.Y.Z.tar.gz | tar xvf -  # unpack the sources
+% cd c2hs.X.Y.Z			          # change to the toplevel directory
+% ./configure				  # run the `configure' script
+% make				          # build everything
+[ Become root if necessary ]
+% make install			          # install the tool
+</verb></tscreen>
+<p>
+In the <tt/INSTALL/ file, there are more details.
+
+Optionally, you can build the documentation by issuing <tt/make doc/.
+
+
+<sect>Usage of C-&gt;Haskell
+<p>
+Let's have a brief look at how to call the tool and how to use the generated
+interfaces.
+
+<sect1>Usage of <tt/c2hs/
+<p>
+C-&gt;Haskell is implemented by the executable <tt/c2hs/.  It is usually
+called as
+<p>
+<quote>
+<tt/c2hs /<em/lib/<tt/.h /<em/Lib/<tt/.chs/
+</quote>
+<p>
+where <em/lib/<tt/.h/ is the header file and <em/Lib/<tt/.chs/ the Haskell
+binding module, which define the C- and Haskell-side interface, respectively.
+If no errors occur, the result is a pure Haskell module <em/Lib/<tt/.hs/,
+which implements the Haskell API of the library.
+
+The executable <tt/c2hs/ has a couple more options:
+<p>
+<tscreen><verb>
+Usage: c2hs [ option... ] header-file binding-file
+
+  -C CPPOPTS  --cppopts=CPPOPTS  pass CPPOPTS to the C preprocessor         
+  -c CPP      --cpp=CPP          use executable CPP to invoke C preprocessor
+  -d TYPE     --dump=TYPE        dump internal information (for debugging)  
+  -h, -?      --help             brief help (the present message)           
+  -k          --keep             keep pre-processed C header                
+  -o FILE     --output=FILE      output result to FILE (should end in .hs)  
+  -v          --version          show version information                   
+
+The header file must be a C header file matching the given binding file.
+The dump TYPE can be
+  trace   -- trace compiler phases
+  chs     -- dump the binding file (adds `.dump' to the name)
+</verb></tscreen>
+<p>
+The most useful of these is probably <tt/--cppopts=/ (or <tt/-C/).  If the C
+header file needs any special options (like <tt/-D/ or <tt/-I/) to go through
+the C pre-processor, here is the place to pass them.  A call may look like
+this:
+<p>
+<quote>
+<tt>c2hs --cppopts='-I/some/obscure/dir -DEXTRA' </tt><em/lib/<tt/.h /<em/Lib/<tt/.chs/
+</quote>
+<p>
+Do not forget the quotes if you have more than one option that you want to
+give to the pre-processor.
+
+Often, <em/lib/<tt/.h/ will not be in the current directory, but in one of the
+header file directories.  Apart from the current directory, C-&gt;Haskell
+looks in two places for the header: first, in the standard include directory
+of the used system, this is usually <tt>/usr/include</tt> and
+<tt>/usr/local/include</tt>; and second, it will look in every directory that
+is mentioned in a <tt/-IDIR/ option passed to the pre-processor via
+<tt/--cppopts/. 
+
+<sect1>Compilation of a Generated Haskell API
+<p>
+C-&gt;Haskell comes with a powerful marshalling library, called <tt/C2HS/,
+which is imported by virtually all library bindings.  Consequently, you will
+have to tell the Haskell compiler where to find the interface files when you
+compile a generated interface and you have to tell the linker where to find
+the library archive of <tt/C2HS/.  To simplify this usually operating and
+compilation system-dependent process, C-&gt;Haskell comes with a simple
+configuration manager, in the form of the executable <tt/c2hs-conf/.  It can
+be used to inquire information for compilation and linking and pass that
+information on to the Haskell compiler.  The call
+<p>
+<tscreen>
+c2hs-config --cflags
+</tscreen>
+<p>
+returns all flags that need to be given to the Haskell compiler for
+compilation and
+<p>
+<tscreen>
+c2hs-config --lib
+</tscreen>
+<p>
+returns all flags necessary for linking.  Overall, you may want to use a call
+like the following to compile a generated library module:
+<p>
+<quote>
+<tt/ghc `c2hs-config --cflags` -c /<em/Lib/<tt/.hs/
+</quote>
+<p>
+The backquotes cause the shell to call <tt/c2hs-config/ and substitute the
+call by the flags returned.  This, of course, also works in a makefile.
+
+Furthermore, <tt/c2hs-config/ can also be used to locate the executable of the 
+tool itself, by calling
+<p>
+<tscreen>
+c2hs-config --c2hs
+</tscreen>
+<p>
+This slightly simplifies configuration management of libraries generated by
+C-&gt;Haskell, as it is sufficient to know the location of <tt/c2hs-config/ to 
+access all other components of C-&gt;Haskell.
+
+
+<sect>Implementation of Haskell Binding Modules
+<p>
+This first version of the tutorial does not detail the structure of Haskell
+binding modules.  However, a discussion of binding modules, the principles
+behind the tool, and a discussion of related work can be found in a research
+paper discussing C-&gt;Haskell, which is at <url
+url="http://www.score.is.tsukuba.ac.jp/~chak/papers/papers.html#c2hs">.
+
+Furthermore, the distribution contains examples that illustrate the use of
+C-&gt;Haskell.  In the source distribution, these examples are located below
+the directories <tt/tests/ and <tt/examples/.  The latter contains a binding 
+for the <url url="http://www.gnome.org" name="Gnome"> HTTP 1.1 library
+<tt/ghttp/.  The sources of the marshalling library <tt/C2HS/ are in the
+directory <tt/lib/ and contain a fair amount of comments, which should help
+getting you started.
+
+
+<sect>Bug Reports and Suggestions
+<p>
+Please address any bug reports and suggestions to <htmlurl
+url="mailto:chak@is.tsukuba.ac.jp" name="chak@is.tsukuba.ac.jp">.  A good bug
+report contains information on the used operating system and Haskell compiler
+as well as the version of C-&gt;Haskell that you have been using.  You can
+obtain the version information by running <tt/c2hs-config --version/.  If
+possible a concise example illustrating your problem would be appreciated.
+
+
+<sect>Copyright
+<p>
+C-&gt;Haskell is Copyright (C) [1999..2000] Manuel M. T. Chakravarty
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+This manual is Copyright (c) 2000 by Manuel M. T. Chakravarty. 
+Permission is granted to copy, distribute and/or modify this document under
+the terms of the GNU Free Documentation License, Version 1.1 or any later
+version published by the Free Software Foundation; with no Invariant Sections,
+with no Front-Cover Texts, and with the no Back-Cover Texts.  A copy of the
+license is included in the section entitled "GNU Free Documentation License".
+
+<sect>GNU Free Documentation License
+<p>
+The GNU Free Documentation License is available at
+<url url="http://www.fsf.org/copyleft/fdl.html">.
+
+<sect>Release Notes
+<p>
+Important changes (especially those affecting the semantics of the tool) are
+documented in the following.
+
+<sect1>Version 0.7.10 "Afterthought"
+<p>
+<itemize>
+<item>
+<item>CygWin support; based on suggestions by Anibal Maffioletti Rodrigues de
+DEUS <anibaldedeus@email.com>
+<item><tt/IntConv/ instances for <tt/Int8/, <tt/Word8/, and <tt/Char/
+</itemize>
+
+<sect1>Version 0.7.9 "Afterthought"
+<p>
+<itemize>
+<item>Debugged the stripping of prefixes from enumerators; prefixes are now
+generally stripped, independent of whether they can be stripped from all
+enumerators of a given enumeration type
+<item>Comma now correctly required after <tt/underscoreToCase/.  <bf>WARNING:
+This breaks source compatibility with previous versions.</bf>
+</itemize>
+
+<sect1>Version 0.7.8
+<p>
+<itemize>
+<item>Provisional support for GHC 4.08
+<item>Corrected constant folding
+</itemize>
+
+<sect1>Version 0.7.7
+<p>
+Ignores any occurrence of <tt/#pragma/.
+
+<sect1>Version 0.7.6
+<p>
+Bug fixes and support for <tt/long long/.
+
+<sect1>Version 0.7.5
+<p>
+This is mainly a bug fix release.  In particular, the space behaviour of
+C-&gt;Haskell has been significantly improved.
+<p>
+IMPORTANT NOTE: From this release on, library names in <tt/lib/ tags in
+<tt/context/ hooks should <em/not/ contain a suffix (i.e., omit <tt/.so/
+etc).
+
+
+</article>

@@ -1,0 +1,1333 @@
+\documentclass{report}
+
+\usepackage[T1]{fontenc}
+\usepackage{a4wide}
+\usepackage{alltt}
+\usepackage{harvard}
+%
+\usepackage{version}
+
+%\excludeversion{DRAFT}
+\includeversion{DRAFT}
+
+\def\Version{\relax}
+\begin{DRAFT}%
+{
+  \gdef\Version{%
+    \\
+    \textbf{--- DRAFT ---}\\[1ex]
+    \ttfamily\scriptsize
+    $\relax$Id: base.tex,v 0.10 1999/05/03 19:53:12 chak Exp $\relax$%
+    \ignorespaces}
+  }
+\end{DRAFT}
+
+
+% backslash hack (uses the answer to Exercise 7.5 from Knuth's TeXbook)
+%
+{
+  \catcode`/=0 
+  \catcode`\\=13 
+  /gdef/backslashchar{/string\}
+}
+
+\newcommand{\FOC}{\textsc{Foc}}
+\newcommand{\KCode}{\textsc{KCode}}
+
+\newtheorem{designrule}{Rule}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\nonterm}[1]{\(\langle\textrm{#1}\rangle\)}
+
+\newcommand{\schema}[1]{\textrm{#1}}
+
+
+\begin{document}
+\title{A Compiler Toolkit in Haskell\\
+  --- toolkit version 0.17 ---\Version} 
+\author{Manuel M. T. Chakravarty\\[2ex]
+  Institute of Information Sciences and Electronics\\
+  University of Tsukuba\\
+  \texttt{chak@is.tsukuba.ac.jp}\\
+  \texttt{www.score.is.tsukuba.ac.jp/\string~chak}}
+\date{}
+\maketitle
+
+\tableofcontents
+
+
+\chapter{Introduction}
+\label{cha:intro}
+
+Functional languages like Haskell~\cite{haskell} are ideal for implementing
+compilers.  Complemented with a lexer and parser generator, they provide much
+of the functionality and ease-of-use associated with specialized compiler
+tools (aka compiler compilers) while being more flexible, better supported,
+and guaranteeing better long time availability.
+
+There is a significant set of functionality that is required in each compiler
+like symbol table management, input-output operations, error management, and
+so on, which are good candidates for code reuse.  \emph{The Compiler Toolkit}
+is an attempt to provide an open collection of modules for these recurring
+tasks in a popular functional language.  Currently, the toolkit is used in two
+compiler projects, the \emph{Distributed Haskell Compiler} and the \emph{Nepal
+  Compiler} (a prototypical system for highly optimizing implementation of
+nested data-parallel languages).
+
+The toolkit contains self-optimizing scanner and parser libraries, which are
+designed such that they depend only on some basic functionality of the
+toolkit.  Therefore, it is possible to use this libraries, while omitting much
+of the rest of the toolkit, like the state management, which may be too
+heavyweight for small compilers or interpreters.  This is important as the
+scanner and parser libraries are meant for parsing small to medium-sized
+languages; bigger projects will probably want to use generators for increased
+efficiency and better error messages while building the compiler (the error
+handling capabilities of the resulting parsers are, if anything, better than
+those of parsers obtained with existing parser generators).
+
+\begin{quote}\itshape
+  In its current state, the Compiler Toolkit already provides a significant
+  amount of core functionality, which is reasonably well tested.  While it is
+  still consider to be in beta state and has not undergone any performance
+  debugging, I already expect it to be helpful to somebody starting a new
+  compiler effort.  However, no warranty is given.
+\end{quote}
+
+Bug reports, comments, and suggestions are highly welcome and should be
+directed to 
+%
+\begin{quote}
+  \code{chak@score.is.tsukuba.ac.jp}
+\end{quote}
+
+
+\section{Acknowledgements}
+
+Sven Panne \code{<Sven.Panne@informatik.uni-muenchen.de>} authored the module
+\code{GetOpts.hs} for processing command-line arguments.  Gabriele Keller,
+Wolf Pfannenstiel, and Martin Simons provided feedback in the context of the
+Nepal compiler project.
+
+
+\section{Copyleft}
+
+This system is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This system is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this system; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+
+\chapter{Source Tree and System Building}
+\label{sec:source}
+
+The root directory contains the subdirectories \code{mk}, \code{base},
+\code{doc}, \code{dhc}, and \code{nepal}, which contain the makefiles, the
+Compiler Toolkit, documentation, the Distributed Haskell Compiler, and the
+Nepal Compiler, respectively.\footnote{The latter two (\code{dhc} and
+  \code{nepal}) are optional.  They are not necessary for using the toolkit,
+  but rather built on top of it.  Nevertheless, these two compilers are two
+  good examples on how to use the toolkit.}  Moreover, there is a root
+\code{Makefile} and, during configuration, a \code{build} tree is created.
+Each of the three \emph{packages} \code{base}, \code{dhc}, and \code{nepal}
+contains a package root \code{Makefile} and a set of \emph{parts}, i.e.,
+subdirectories, with the sources for each package.  The packages \code{dhc}
+and \code{nepal} are optional.  However, some of their structure is described
+here, as it is recommended that other compilers build on top of the Compiler
+Toolkit use the same structure.
+
+The makefile \code{mk/common.mk} is included by all other makefiles.  It
+defines global variables and generic targets, to keep the \code{Makefile}s
+small and avoid redundancies.  Rules for compiler packages, such as \code{dhc} 
+and \code{nepal} are contained in \code{mk/dhc.mk} and \code{mk/nepal.mk}.
+
+
+\section{The Root Makefile}
+
+The targets of the root \code{Makefile}:
+%
+\begin{description}
+\item[\code{config}] Configure the system: Create the build tree and select
+  code that is dependent on the compilation system.
+\item[\code{showconfig}] Print the current status of the configuration.
+\item[\code{parsers}] Generate parsers from parser specifications. (Requires
+  that \code{config} was done.)
+\item[\code{depend}] Compute dependencies.  Generates a \code{.depend} file
+  for each package.
+\item[\code{prep}] First, do \code{parsers}, then, \code{depend}.
+\item[\code{base}] Build the Compiler toolkit. (Requires that \code{prep} was
+  done.) 
+\item[\code{dhc}] Build the Distributed Haskell Compiler. (Requires that
+  \code{base} was done.)
+\item[\code{nepal}] Build the Nepal Compiler. (Requires that \code{base} was
+  done.)
+\item[\code{clean}] Remove generated parsers, object files, and executables.
+\item[\code{cleanhi}] Remove interface files.
+\item[\code{cleanall}] Does both \code{clean} and \code{cleanhi}.
+\item[\code{spotless}] Remove the build tree.
+\end{description}
+
+
+\section{The Packages}
+
+Each package comes with its own root \code{Makefile} and a set of parts, i.e.,
+subdirectories that contain the sources grouped by function.  Furthermore,
+there is a \code{test} directory that contains code for testing the package
+(furthermore, some parts have their own \code{test} subdirectories).  In
+addition to the root \code{Makefile}, each part in a package has its own
+\code{Makefile}.
+
+The root \code{Makefile} of each package provides the following targets:
+%
+\begin{description}
+\item[\code{depend}] Generate the \code{.depend} file for this package.
+\item[\code{objs}] Build all object files (recursively).
+\item[\code{all}] Build the whole package.
+\item[\code{test}] Build all tests (the executables are written into a
+  directory specified by the variable \code{TMP}).
+\item[\code{clean}, \code{cleanhi}, \code{cleanall}] Like in the main
+  \code{Makefile} (see above).
+\end{description}
+
+Each part-specific \code{Makefile} provides the following targets:
+%
+\begin{description}
+\item[\code{objs}] Build all object files of this part.
+\item[\code{all}] Build everything in this part.
+\end{description}
+%
+And in addition, the usual targets to build individual object files.  Some
+parts include part-specific tests in a local \code{test} directory.  In this
+case, the part's \code{Makefile} includes targets to build the test code.
+
+Objects of a package can be made in all parts and in the root of the package.
+The makefile structure is such that, for each object that has to be rebuild,
+the make process automatically switches to the object's part and rebuilds it
+there.
+
+\subsection{Some Basic Rules}
+
+\begin{itemize}
+\item The import relation within each packages must be cycle free.
+\item The package \code{base} may not import anything from \code{dhc} or
+  \code{nepal}.  The packages \code{dhc} and \code{nepal} import from
+  \code{base}, but they may not import from each other.
+\item The dependencies do not cover imports of \code{dhc} and \code{nepal}
+  from \code{base}.  In other words, \code{base} has to be compiled first and
+  be explicitly recompiled when some of its modules change.  This does not
+  happen automatically when clients from \code{dhc} and \code{nepal} are
+  compiled.  The target \code{all} in the main \code{Makefile} always builds
+  \code{base} first.
+\end{itemize}
+
+\subsection{Package Version and Change Log}
+
+The version information of \code{base} is contained in
+\code{base/general/BaseVersion.hs} and the version information for \code{dhc}
+and \code{nepal} is in the file \code{Version.hs} in the \code{toplevel}
+directory of each package.  Each package contains a file \code{CHANGES} with a 
+change log.
+
+\subsection{The Compiler Toolkit (\code{base})}
+
+\begin{description}
+\item[\code{admin}] Contains \code{BaseVersion.hs}, \code{Config.hs}, and
+  \code{Common.hs}
+\item[\code{errors}] The error management modules
+\item[\code{general}] General purpose modules, such as finite maps,
+  pretty-printing routines, and so on
+\item[\code{state}] The modules implementing the global and local compiler
+  states (for error management, exception handling, compiler switches etc.) as
+  well as state manipulation routines, such as updatable dynamic arrays etc.
+\item[\code{syms}] Symbol management, i.e., identifiers and attributes
+\item[\code{syntax}] Self-optimizing lexer and parser library
+\item[\code{sysdep}] System dependent modules
+\end{description}
+
+\subsection{The Distributed Haskell Compiler (\code{dhc})}
+
+\begin{description}
+\item[\code{driver}] Self-contained batch style driver that runs the actual
+  compiler as a subprocess
+\item[\code{ents}] Entity management
+\item[\code{foc}] \FOC\ structure definition, parser, semantic analysis,
+  pretty-printing, and binary code emission
+\item[\code{kcode}] \KCode\ structure definition, parser, semantic analysis,
+  and pretty-printing
+\item[\code{prims}] Compiler built-in primitives
+\item[\code{state}] Instantiates the Compiler Toolkit's extra state for
+  \code{dhc} 
+\item[\code{kc2emu}] \KCode\ emulator
+\item[\code{toplevel}] Interaction of the compiler with the user
+\end{description}
+
+\subsection{The Nepal Compiler (\code{nepal})}
+
+\begin{description}
+\item[\code{flat}] Flattening transformation
+\item[\code{kl}] Nested kernel language
+\item[\code{prims}] Compiler built-in primitives
+\item[\code{state}] Instantiates the Compiler Toolkit's extra state for
+  \code{nepal} 
+\item[\code{toplevel}] Interaction of the compiler
+\end{description}
+
+
+\section{The \code{build} Tree}
+
+In the build tree a subdirectory is created for each Haskell compilation
+system that is used to build all or part of the toolkit.
+
+
+\section{Building the System}
+
+The Compiler Toolkit is build as follows:
+%
+\begin{enumerate}
+\item Edit \code{mk/config.mk} and set the variables \code{HC} (haskell
+  compiler) and \code{SYS} (compilation system) to whatever you want to use to
+  build the system (check the comments in the file to make sure that there is
+  support for this compilation system).
+\item \code{make config} (creates the \code{build} tree and selects the system 
+  dependent code)
+\item \code{make prep} (computes the dependencies; also generates parsers if
+  \code{dhc} or \code{nepal} is present)
+\item \code{make all} (build the whole system; do \code{make base} if you want 
+  to avoid building \code{dhc} and \code{nepal})
+\end{enumerate}
+
+
+\section{System Configuration}
+
+The system is configured by editing \code{mk/config.mk} and
+\code{base/admin/Config.hs}.  In \code{mk/config.mk}, the two variables
+\code{HC} and \code{SYS} determine the name of the Haskell compiler and the
+used compilation system, respectively.  Currently, only \code{ghc} 3.$x$ and
+4.$x$ (the latter with $x\geq02$) is supported, which requires to set
+\code{SYS} to \code{GHC3} and \code{GHC4}, respectively.  In dependence on the
+value of \code{SYS}, the target \code{make config} selects the appropriate
+system-dependent code.
+
+\subsection{Restriction}
+
+The module \code{base/syntax/Parsers.hs} builds only with GHC 4.$x$
+($x\geq02$)---if a version 3.$x$ system is selected, the make process
+automatically avoids compiling this module.  Due to a bug in GHC 4.02, the
+generated \code{.hi} file \code{build/ghc-4/base/syntax/Parsers.hs} must be
+edited by hand and the first two occurences of \code{\{\}} (left brace
+immediately followed by right brace) should be deleted; otherwise, the
+compilation of modules importing \code{Parsers.hs} will fail.  This bug should
+be fixed from GHC 4.02 on.
+
+
+\section{Code Depending on the Compilation System}
+
+The Compiler Toolkit needs to use some features that are not fixed in the
+Haskell 98 language definition, but which are supported by any descent Haskell
+compilation system---like, for example, updatable arrays.  All
+system-dependent code is isolated in the part \code{sysdep} in the compiler
+toolkit.  This is to simplify ports to other systems.  Currently, there is a
+single module in this part, called \code{SysDep}.  Its system-dependent
+implementations are located in files called \code{SysDep$\textit{\rmfamily
+    Sys}$.hs}, where \textit{Sys} is the value of the makefile variable
+\code{SYS} for a particular system.  For GHC 3.$x$, it is \code{SysDepGHC3.hs},
+and for GHC 4.$x$, it is \code{SysDepGHC4.hs}
+
+
+\chapter{Style Guide}
+
+A uniform coding style within all modules and a sufficient amount of comments
+are a prerequisite to guarantee readable code that can be understood by people
+other than the author.  \emph{I hereby kindly ask anybody who contributes code
+  to follow the guidelines detailed below.}
+
+
+\section{General Remarks}
+
+Try to model the names of files and identifiers after those used in existing
+files.  In particular, use identifiers that are descriptive, but do not be too
+verbose.  It is always a good idea to prefix or suffix identifiers related to
+a certain intermediate language or abstract data type with an abbreviation of
+that language's or type's name.  Consider the context in which an identifier
+will be used.  If it is only used internally or in closely connected group of
+modules, it can be briefer as if it is used throughout the whole system.
+
+Please do not use more than 80 characters per line (actually, it is nice to try
+to stick to 79, to avoid wrapped lines in some editors).  Try to format your
+code like that of the rest of the system.
+
+
+\section{File Header}
+
+Each file (makefiles, Haskell modules etc.) starts with a header identifying
+the purpose of the file as well as the author(s), GPLs the file, and
+provides a concise description of how the code works and what further work
+has to be done at the file.  Figure~\ref{fig:file-header} displays a template
+of such a header.
+%
+\begin{figure}
+\begin{alltt}
+--  Compiler Toolkit: \schema{short description of the file's purpose}
+--
+--  Author : \schema{author(s)}
+--  Created: \schema{creation data}
+--
+--  Version $Revision: 0.10 $ from $Date: 1999/05/03 19:53:12 $
+--
+--  Copyright (c) \schema{year(s)} \schema{copyright holder(s)}
+--
+--  This file is free software; you can redistribute it and/or modify
+--  it under the terms of the GNU General Public License as published by
+--  the Free Software Foundation; either version 2 of the License, or
+--  (at your option) any later version.
+--
+--  This file is distributed in the hope that it will be useful,
+--  but WITHOUT ANY WARRANTY; without even the implied warranty of
+--  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--  GNU General Public License for more details.
+--
+--- DESCRIPTION ---------------------------------------------------------------
+--
+--  \schema{several lines}
+--  \schema{description of the}
+--  \schema{file's purpose}
+--  \schema{and sources of information used}
+--
+--- DOCU ----------------------------------------------------------------------
+--
+--  language: \schema{implementation language (version)}
+--
+--  \schema{description of how the code works}
+--  \schema{any preconditions and error handling}
+--  \schema{how the code should be used}
+--  \schema{and so on}
+--
+--- TODO ----------------------------------------------------------------------
+--
+--  \schema{open questions, bugs, possible extensions, etc.}
+--
+\end{alltt}
+\caption{Template of a file header.}
+\label{fig:file-header}
+\end{figure}
+
+
+\section{Comments}
+
+Do not be shy about writing comments.  It makes the code much easier to
+understand for other people and you may benefit yourself if you get back to
+the code after a longer pause.  Actually, for complicated parts it is often
+good to write the comments first, so that you develop a clear understanding
+what you want to do, and then, code afterwards.  A good rule of thumb is to
+include some more detailed documentation for every logical error that you find
+during debugging.  If you did not find the correct solution immediately,
+others are likely to fall into the same trap.
+
+Do not describe the code, describe what the code does and why it works this
+way.  For example, given
+%
+\begin{verbatim}
+let
+  column' = column + 1
+in
+  format (column')
+\end{verbatim}
+%
+it is not very helpful to write ``the value passed to \texttt{format} is one
+greater than that of \texttt{column}''---this is clear from the code.  Instead
+something, like ``the width of the formated region is one character wider than
+that of the cursor's current column position, to avoid some boundary
+conditions'' provides important additional information.
+
+\subsection{Comments for Clusters of Definitions}
+
+It is good style to group the data type and function definitions in a larger
+modules logically and to prefix each such group with a brief description of
+its purpose.  Long explanations belong into the module header or external
+documentation, but brief descriptions ease the orientation in a complex
+module.  If it gets too complex, consider splitting it into sub-modules.
+
+\subsection{Comments for Funtion Definitions}
+
+Figure~\ref{fig:fun-comment} gives the template of a function definition and
+its comments.
+%
+\begin{figure}
+\begin{alltt}
+-- \schema{concise description of what the function does and what its input values are,}
+-- \schema{followed by \texttt{(EXPORTED)} if it is exported}
+--
+-- \schema{a bullet list describing import details about the input values}
+-- \schema{and the output value; furthermore, preconditions and possible}
+-- \schema{error states; in short anything needed when using the function}
+--
+\schema{function name} :: \schema{function type}
+--
+-- \schema{implementation specific details}
+--
+\schema{function equations}
+\end{alltt}
+\caption{Template of a comment for a function definition.}
+\label{fig:fun-comment}
+\end{figure}
+%
+It starts with a brief, one sentence description of the function, which is
+followed by \code{(EXPORTED)} if the function is exported.  Afterwards a
+bullet list describes details of arguments, preconditions, and so on.  It
+follows the functions type and its equations.  Between the type and the
+equations, there may be implementation specific details (if we want to make
+clear that they are not part of the interface).
+
+The following is an example of a nicely commented function.
+%
+\begin{verbatim}
+-- raise a fatal compilation error (EXPORTED)
+--
+-- * the error is together with the up-to-now accumulated errors reported
+--   as part of the error message of the fatal error exception
+--
+-- * the current thread of control is discarded and control is passed to the
+--   innermost handler for fatal errors
+--
+-- * the first argument must contain a short description of the error, while
+--   the second and third argument are like the two arguments to `raise'
+--
+raiseFatal                :: String -> Position -> [String] -> CST s a
+raiseFatal short pos long  = raise FatalErr pos long        >>
+                             showErrors                     >>= \errmsgs ->
+                             fatal (short ++ "\n\n" ++ errmsgs)
+\end{verbatim}
+%
+The following is an example of a function carrying an implementation specific
+comment between its type and equations.
+%
+\begin{verbatim}
+-- fixpoint combinator in the monad
+--
+fixSTB   :: (a -> STB bs gs a) -> STB bs gs a
+--
+-- builds on the fixpoint combinator embedded within the IO monad; the
+-- future overall result, wrapped into a closure with the function extracting
+-- the user-level result component, is used to build the cycle
+--
+fixSTB m  = STB $ \bs gs 
+                  -> fixIO (\future -> let 
+                                         STB m' = m (extractResult future) 
+                                       in 
+                                       m' bs gs)
+            where
+              extractResult (_, _, Right r) = r
+              extractResult (_, _, Left _ ) = interr "StateTrans.fixSTB: \
+                                                     \Tried to access result \
+                                                     \of unsuccessful \
+                                                     \recursive computation!"
+\end{verbatim}
+% $ <- for font-lock 
+
+Comments within function bodies are sometimes also useful, but should be used
+with care and be concise to avoid cluttering the code.
+
+\subsection{Comments for Data Definitions}
+
+
+\section{Variable Names}
+
+
+\chapter{Purely Functional Compiler Hacking}
+\label{cha:func-comp}
+
+In a purely functional language like Haskell, additional thought has to be
+given to the implementation of compiler modules that are traditionally
+implemented using side-effecting operations, e.g., management of a global
+error table and incremental computation of attributes.
+\citeasnoun{wadler:compr-monads} and
+\citeasnoun{peyton-jones-etal:state-in-haskell} propose monads to realize such 
+operations.
+
+
+\section{State-Based Computations}
+\label{sec:state}
+
+The part \code{state} in the Compiler Toolkit provides support for state-based
+computations.  The core module is \code{StateTrans}. It defines a state
+transformer monad that encapsulates two different states of possibly different
+type. One is called the \emph{base state} and the other the \emph{generic
+  state}. The base state is used to store (mutable) data structures that are
+needed throughout the whole compilation process, such as, the current setting
+of the compiler switches and the global error table. The generic state is used
+for different purposes in different contexts, such as, the current environment
+in the name analysis.
+
+The module \code{StateBase} instantiates the base state to a concrete state,
+but still leaves the component storing the compiler switches open (as those
+are dependent on the concrete compiler).  This definition is supplemented by
+operations providing to access to the base state by the module \code{State}.
+This latter module provides the interface to state-based computations for all
+modules that are not part of the support package for state-based computations.
+
+\begin{quote}\itshape
+  In other words, modules outside of \code{state} should not import any module
+  from \code{state} apart from \code{State}.
+\end{quote}
+
+Please note that the implementation of \code{state} could probably benefit
+from using constructor classes, but those where not yet available when these
+modules where implemented.  However, the state monad exported by \code{State}
+is an instance of Haskell's \code{Monad} class.
+
+\subsection{\code{StateTrans}}
+\label{sec:StateTrans}
+
+The state monad provided by \code{StateTrans} is an extension of the \code{IO}
+monad; it is called \code{STB} (state transformer base). This allows to lift
+all the monadic I/O operations provided by Haskell into \code{STB}, which is
+done in the module \code{CIO} (compiler IO).  \code{StateTrans} provides the
+function \code{liftIO} for this purpose. Only the management of fatal errors
+is directly handled in \code{StateTrans} because \code{handle} cannot be
+lifted by \code{liftIO}---see also Section~\ref{sec:fatal}.
+
+\subsection{\code{StateBase}}
+\label{sec:StateBase}
+
+\code{StateBase} instantiates \code{STB} to \code{CST} (Compiler State
+Transformer), where the base state is fixed except the \emph{extra state},
+which is a component of the base state that can be fixed by the client
+compiler, e.g., to store the compiler switches.  The definition of
+\code{StateBase} are not included in \code{State} to avoid cyclic imports and
+to be able to share some details about the implementation of \code{CST} among
+the state modules, which is not visible for the rest of the system.
+
+\subsection{\code{State}}
+\label{sec:State}
+
+The \code{State} module instantiates the base state with a data structure
+containing the following components, which is defined in module
+\code{StateBase}:
+%
+\begin{itemize}
+\item version strings,
+\item global error table,
+\item extra state (compiler switches), and
+\item global name supply (for gensym).
+\end{itemize}
+%
+This data structures is mainainted in the extra module \code{StateBase} to
+allow the sharing of internal information between the modules of part
+\code{state}, which are hidden from modules importing \code{State}.
+
+\subsubsection{Global Error Table}
+
+The global error table accumulates warnings (\code{raiseWarning}), errors
+(\code{raiseError}), and fatal errors (\code{raiseFatal}) until they are
+extracted from the state using \code{showErrors}. The operation
+\code{showErrors} pretty prints the accumulated error messages into a
+\code{String}, which is returned, and removes the errors from the global error
+table. On occurence of a fatal error, a fatal error exception is raised and the
+pretty printed accumulated errors are added to the message of the fatal error
+exception.
+
+The routine \code{errorsPresent} inquires whether errors (not warnings) are
+present in the global error table. 
+
+\subsubsection{Extra State}
+
+The extra state can be instantiated by the client compiler.  Its initial value 
+is passed to the \code{run} funcion.
+
+\subsection{Use of the Generic State}
+\label{sec:generic-state}
+
+The generic state (parameter of \code{CST}) is useful when a data structure
+has to be updated often or has to be plumped thorugh some computation for
+other reasons. It does not necessarily mean that the data structure is really
+updated in-place, but it may. It is important for the readability of the code,
+its reuse, and maintainability to keep the state information, i.e., the
+mutable data structures, separate from the part of the data structures that
+are not only used locally and can be treated in a functional fashion.
+%
+\begin{quote}
+  An important design rule: \textit{Localize state.}
+\end{quote}
+%
+As an example consider implementation of a graph-traversal that needs marking.
+The use of a mutable table of marks that is seperate from the data structure
+representing the graph localizes the state better than storing a `marked' flag
+within each node.  As a result the graph itself will still be a purely
+functional structure, only the short-lived table of marks will be impure and
+can be discarded just after the traversal is finished.
+
+Regarding the instantiation of \code{CST}, note to
+%
+\begin{quote}\itshape
+  Make the state abstract, not the monad instance.
+\end{quote}
+%
+When \code{CST} is instantiated with a state, this state type should be
+abstract (e.g., defined with \code{newtype} and structure hidden in some
+module).  This is better than making the instance of \code{CST} itself
+abstract with \code{newtype}, because the latter renders the generic
+operations on \code{CST} (e.g., the I/O functions) useless, i.e., they have to 
+be explicitly lifted into the new monad.
+
+
+\section{Fatal Errors and Exceptions}
+\label{sec:fatal}
+
+The module \code{StateTrans} uses the error mechanism of Haskell \code{IO} to
+manage fatal errors and exceptions. Fatal errors can be both raised by the
+system and be user-defined. Exceptions are always user-defined.
+%
+\begin{itemize}
+
+\item Exceptions are meant to be caught in order to recover the currently
+  executed operation (e.g., we may want to abort type checking a certain
+  expression, but continue with type checking the next function definition).
+  Exceptions turn into fatal errors if they are not caught. Execeptions are
+  tagged, which allows to deal with multiple kinds of exceptions at the same
+  time and to handle them differently.
+
+  Exceptions are raised using \code{thow} and handled using \code{catch}.
+
+\item User-defined fatal errors abort the currently executed operation (e.g.,\
+  loading a program module), but they may be caught at the top-level in order
+  to terminate gracefully or to invoke another operation. There is no special
+  support for distinguishing different kinds of fatal-errors.
+
+  The routine \code{fatalsHandledBy} allows to catch and recover from fatal
+  errors and \code{fatal} raises them. Note that \code{State.raiseFatal} raises
+  a fatal compilation error.
+
+\end{itemize}
+%
+Apart from its tag each exceptions carries a message, i.e., a string that
+described the cause for the exception. The message is passed to the exception
+handler when the exception is caught and it becomes part of the error message
+when the exception turns into a fatal error.
+
+\section{Unique Names}
+
+The module \code{UNames} provides a supply for unique names that does not rely
+on monads and only needs a downward threading of the name supply.  A monadic
+supply would not work well with the way Happy currently uses the monad in its
+generated parsers.  The implementation of \code{UNames}
+follows~\cite{augustsson-etal:gensym}.
+
+\section{Proposed Handling of Compiler Switches}
+
+Currently supported:
+%
+\begin{itemize}
+\item On/off of printing different kinds of trace information.
+\end{itemize}
+
+The available trace information is specified by \code{Switches.Trace}.
+\code{XState.setTrace} (the module instantiating the extra state in the client
+compiler) allows to set the trace status for one kind of trace information,
+and \code{XState.traceSet} allows to inquire that status. The routine
+\code{XState.putTraceStr} outputs the given message onto \code{stderr} when
+the specified kind of trace information is activated.
+
+
+\chapter{Syntax---Lexers, Parsers, and Pretty-Printers}
+\label{cha:syntax}
+
+There are basically three methods to build lexical analyzers (lexers) and
+parsers for a compiler using the toolkit: (1) write them by hand, (2) use the
+supplied self-optimizing lexer and parser libraries, or (3) use a generator.
+While writing up to medium-sized lexers in a functional language by hand is
+largely painless (but boring), anything but writing very small parsers is far
+from enjoyable.
+
+An easy way to escape these pains in a functional language is the use of
+parser combinators.  Generally, these are not very efficient (as they are
+highly indeterministic) and it is difficult to produce good error messages
+(and basically impossible to recover from errors).  The parser combinators
+included in the toolkit, however, use a technique
+from \citeasnoun{swierstra-etal:det-comb-parse} to drastically improve the
+efficiency and solve the problems with the error messages.  To achieve this,
+the grammar is restricted to be LL(1), which allows to generate parser tables
+on the fly, which make the parsing process deterministic.  Furthermore, the
+toolkit includes a self-optimizing lexer library that enjoys similar
+properties, while restricting the lexer specification to regular expressions
+plus a mechanism to switch between different lexers in lexer actions to
+implement non-regular features, such as, nested comments.
+
+Finally, the toolkit supports the use of the LALR(1) parser generator Happy.
+I did not try the lexer generator Alex so far---any evaluation is welcome.
+
+The compilers DHC and Nepal use handwritten lexers in combination with
+Happy-generated parsers.  A new, relatively small compiler is in the works
+that uses the self-optimizing lexer and parser combinators.
+
+
+\section{Self-optimizing Lexers}
+
+The module \code{Lexers} provides a number of combinators to form regular
+expressions of type \code{Regexp}, which together with lexer actions
+(functions invoked when a matching lexeme is detected) can be combined into
+lexers of type \code{Lexer}.  Meta actions can be used to switch between
+different lexers during lexical analysis, which allows to recognize nested
+comments etc.
+
+\subsection{Requirements}
+
+In a light-weight system, which does not use the toolkit's state management.
+It is sufficient to use the following modules together with \code{Lexers}:
+\code{Common}, \code{Config}, \code{DLists}, \code{Errors}, \code{Utils}.
+
+\subsection{Usage}
+
+The type \code{Regexp s t} stands for a regular expression used to build a
+lexer that maintains a state \code{s} during lexical analysis and generates
+tokens of type \code{t}.
+
+The following combinators are available for forming regular expressions:
+%
+\begin{quote}
+\begin{verbatim}
+infixl 4 `quest`, `star`, `plus`
+infixl 3 +>
+infixl 2 >|<
+
+epsilon :: Regexp s t
+char    :: Char -> Regexp s t
+(+>)    :: Regexp s t -> Regexp s t -> Regexp s t
+(>|<)   :: Regexp s t -> Regexp s t -> Regexp s t
+alt     :: [Char] -> Regexp s t
+star    :: Regexp s t -> Regexp s t -> Regexp s t
+plus    :: Regexp s t -> Regexp s t -> Regexp s t
+quest   :: Regexp s t -> Regexp s t -> Regexp s t
+string  :: String -> Regexp s t
+\end{verbatim}
+\end{quote}
+%
+The expression \code{epsilon} accepts only the empty word and \code{char} the
+given character.  The operator \code{+>} denotes sequential and \code{>|<}
+disjunctive composition; with \code{alt} a set of characters can be
+disjunctively combined.  An expression \(x\code{ `star` }y\) corresponds to
+\(x{*}y\) in the usual regular expression syntax, i.e., it allows an arbitrary
+number of repetitions of $x$ followed by a single word accepted by $y$.
+Similarly, \(x\code{ `plus` }y\) allows an arbitrary number of repetitions of
+$x$ as long as their is at least one.  Furthermore, \(x\code{ `quest` }y\)
+allows one or no word from $x$.  As \code{star}, \code{plus}, and \code{quest}
+are infix operations, a trailing \code{epsilon} is required if they occur at
+the end of a regular expression.  Finally, \code{string} accepts the given
+sequence of characters.  For example,
+%
+\begin{quote}
+\begin{verbatim}
+ident  = alt alpha +> (alt alpha >|< alt num) `star` epsilon
+         where
+           alpha = ['a'..'z'] ++ ['A'..'Z']
+           num   = ['0'..'9']
+\end{verbatim}
+\end{quote}
+%
+defines a regular expression for an identifier starting with an alphabetical
+character followed by a sequence of characters and numerals.
+
+A regular expression can be converted into a lexer by adding an action with
+\code{lexaction} or \code{lexmeta}.
+%
+\begin{quote}
+\begin{verbatim}
+infixl 3 `lexaction`, `lexmeta`
+infixl 2 >||<
+
+type Action t = String -> Position -> Maybe t
+type Meta s t = Position -> s -> (Position, s, Maybe (Lexer s t))
+
+lexaction :: Regexp s t -> Action t -> Lexer s t
+lexmeta   :: Regexp s t -> Meta s t -> Lexer s t
+
+(>||<) :: Lexer s t -> Lexer s t -> Lexer s t
+\end{verbatim}
+\end{quote}
+%
+An \code{Action t} converts a lexeme and its position into a token (it may
+choose to return nothing, which means that the lexeme is ignored and is, e.g.,
+useful for white space).  Furthermore, a \emph{meta action} \code{Meta s t}
+gets the current position and the current user-defined state maintained during 
+lexing; it produces a new position and state and may also return a lexer.  If
+a lexer is returned, it is used for the next lexeme.  Meta actions can be used 
+to realize nested comments by storing the current nesting level in the
+user-defined state and returning a different lexer depending on whether the
+nesting level is zero or not.  Lexers can be combined disjunctively with
+\code{>||<}. 
+
+Finally, a lexer can be applied with the function \code{execLexer}:
+%
+\begin{quote}
+\begin{verbatim}
+type LexerState s = (String, Position, s)
+
+execLexer :: Lexer s t -> LexerState s -> ([t], [Error])
+\end{verbatim}
+\end{quote}
+%
+The lexer state consists of the string to be tokenised, the position of the
+first character in the string, and a user-defined state component of type
+\code{s} (which can be transformed using meta actions).  Given a lexer and an
+initial state, \code{execLexer} returns a list of tokens and a list of errors
+(the type \code{Error} is defined in the module \code{Errors}).  The control
+characters \code{\backslashchar n}, \code{\backslashchar r},
+\code{\backslashchar f}, and \code{\backslashchar t} are automatically handled 
+by \code{execLexer} (to keep track of the current position) and may not be
+recognized by the given lexer (to avoid ambiguities).
+
+
+\section{Self-optimizing Parsers}
+
+\code{Parsers} allows the specification of self-optimizing LL(1) parsers and
+follows ideas from \citeasnoun{swierstra-etal:det-comb-parse}.
+
+\subsection{Requirements}
+
+The use of these modules requires a system supporting existentially quantified
+type variables, such as GHC 4.$x$.  In a light-weight compiler, which does not
+use the toolkit's state management.  It is sufficient to use the following
+modules together with \code{Parsers}: \code{Common}, \code{Config},
+\code{Errors}, \code{Utils}.
+
+\subsection{Usage}
+
+A set of combinators is provided for specifying the grammar accepted by a
+parser. 
+%
+\begin{quote}
+\begin{verbatim}
+infixl 4 *>, -*>, *->, *$>, $>
+infixl 3 `action`
+infixl 2 <|>, `opt`
+
+class (Pos t, Show t, Eq t) => Token t
+\end{verbatim}
+\end{quote}
+%
+These preliminary definitions define the fixities and the type constraints on
+types that can be used as tokens accepted by a parser.  Tokens must contain a
+position and equality must be defined for them.  The equality determines
+whether they "match" during parsing, i.e., whether they are equal modulo their
+attributes (the position is, of course, an attribute).  Tokens are,
+furthermore, printable (instance of \code{Show}); the resulting string should
+correspond to the lexeme of the token and not the data constructor used to
+represent it internally (i.e., do not merely derive \code{Show} in the data
+definition). 
+
+The following basic combinators are available for constructing parsers of type
+\code{Parser a t r}, which has a user-defined state component \code{a},
+accepts tokens of kind \code{t}, and produces a result of type \code{r}:
+%
+\begin{quote}
+\begin{verbatim}
+empty :: Token t => r -> Parser a t r
+token :: Token t => t -> Parser a t t
+skip  :: Token t => t -> Parser a t ()
+(<|>) :: Token t => Parser a t r -> Parser a t r -> Parser a t r
+(*$>) :: Token t => Parser a t (s -> r) -> Parser a t s -> Parser a t r
+(*>)  :: Token t => Parser a t s -> Parser a t r -> Parser a t (s, r)
+($>)  :: Token t => (s -> r) -> Parser a t s -> Parser a t r
+meta  :: Token t => (a -> (a, r)) -> Parser a t r
+\end{verbatim}
+\end{quote}
+%
+The parsers produced by \code{token} and \code{skip} accept tokens, which are
+equal (in the sense of \code{(==)}) to the passed in one.  A parser \(p\code{
+  <|> }q\) accepts either words of $p$ or $q$.  Two parsers are put in
+sequence with either \code{(*\$>)} or \code{(*>)}; the difference with these
+two is that \code{(*\$>)} applies the result of the first parser at the result
+of the second, whereas \code{(*>)} combines both results into a pair.  Finally,
+\code{(\$>)} applies a function to the result of a parser and \code{meta} adds
+a meta action, which transforms the user-defined state.  A user-defined state
+can, for example, be used for threading a unique name supply through the
+parsing process (see the modules \code{UNames} and \code{State}).  Note that
+meta actions are applied top-down, whereas actions are applied bottom-up.
+%$ <- for AUCTeXs font-lock
+
+In addition to the basic combinators, there is the following set of useful
+compound combinators build from the basic combinators (for details, see the
+description in \code{Parsers}).
+%
+\begin{quote}
+\begin{verbatim}
+action   :: Token t => Parser a t s -> (s -> r) -> Parser a t r
+opt      :: Token t => Parser a t r -> r -> Parser a t r
+(*->)    :: Token t => Parser a t r -> Parser a t s -> Parser a t r
+(-*>)    :: Token t => Parser a t s -> Parser a t r -> Parser a t r
+many     :: Token t => (r -> s -> s) -> s -> Parser a t r -> Parser a t s
+list     :: Token t => Parser a t r -> Parser a t [r]
+many1    :: Token t => (r -> r -> r) -> Parser a t r -> Parser a t r
+list1    :: Token t => Parser a t r -> Parser a t [r]
+sep      :: Token t 
+         => (r -> u -> s -> s) -> s -> Parser a t u -> Parser a t r -> Parser a t s
+seplist  :: Token t => Parser a t s -> Parser a t r -> Parser a t [r]
+sep1     :: Token t 
+         => (r -> s -> r -> r) -> Parser a t s -> Parser a t r -> Parser a t r
+seplist1 :: Token t => Parser a t s -> Parser a t r -> Parser a t [r]
+\end{verbatim}
+\end{quote}
+
+A parser is applied to an initial state of type \code{a} and a list of tokens
+of type \code{t} with \code{execParser}.
+%
+\begin{quote}
+\begin{verbatim}
+execParser :: Token t => Parser a t r -> a -> [t] -> (r, [Error], [t])
+\end{verbatim}
+\end{quote}
+%
+The parser result of type \code{r}, a list of errors, and any remaining tokens
+are returned.  If there is any fatal error, the result is undefined.  In the
+current version, no error recovery is attempted (i.e., all errors are fatal).
+
+
+\section{Using the Parser Generator Happy}
+
+There is special support for the LALR(1) parser generator Happy 1.5,
+%
+\begin{quote}
+  \texttt{http://www.dcs.gla.ac.uk/fp/software/happy/}
+\end{quote}
+%
+which is modeled after the standard UNIX tool yacc.  I recommend using Happy's 
+feature of creating a "monadic" parser\footnote{The utilized structure,
+  actually, is formally not a monad.}, which can be achieved using a
+declaration of the form
+%
+\begin{quote}
+\begin{alltt}
+%monad \{\textit{\rmfamily{}type}\}\{\textit{\rmfamily{}then}\}\{\textit{\rmfamily{}return}\}
+\end{alltt}
+\end{quote}
+%
+where \textit{type} is the type constructor of the monad and the functions
+\textit{then} and \textit{return} implement the bind and unit operations,
+respectively.
+
+Support code is contained in the module \code{ParserMonad.hs}, which exports
+the monad constructor \code{Parse} as well as the bind and unit functions
+\code{thenParse} and \code{returnParse}.  So, the monad declaration in the
+parser specification should be
+%
+\begin{quote}
+\begin{verbatim}
+%monad {Parse}{thenParse}{returnParse}
+\end{verbatim}
+\end{quote}
+%
+This monad allows to maintain \code{Common.Position} information and a unique
+name supply (from the module \code{UNames}) during parsing.  The latter is
+needed to construct structure trees using \code{Attributes.Attrs} for storing
+attributes. 
+
+The functions \code{parseError} is used to flag a syntactical error and
+\code{parseNewName} obtains a new unique name.  Finally, \code{runParse}
+executes a parser.
+
+I recommend \code{nepal/kl/KLParser.ly} and \code{dhc/foc/FOCParser.ly} as
+examples (and the matching \emph{hand coded} lexers \code{nepal/kl/KLLexer.hs}
+and \code{dhc/foc/FOCLexer.hs}, respectively).
+
+
+\section{Pretty Printing}
+
+The module \code{Pretty.hs} contains a rather straight-forward implementation
+of John Hughes' pretty printing combinators.
+
+
+\chapter{Static Semantics I---Name Analysis and the Like}
+\label{cha:static1}
+
+
+\section{Identifiers}
+\label{sec:idents}
+
+We do not need a `real' hash table, because
+%
+\begin{itemize}
+\item after the name analysis, identifiers are anyway only used for
+  pretty-printing, and
+\item for the name analysis computing some magic number from each identifiers
+  lexeme (just as the hash function would do), storing that in the
+  representation of the identifiers, and providing a special equality that only
+  compares the lexeme if the magic numbers are equal has the same complexity.
+\end{itemize}
+%
+We spare us the use of some array that has to be updated destructively. The
+main disadvantage is increased memory usage due to maintaining a complex
+identifiers representation for {\em each identifier occurence} (including the
+often equal, but not shared, lexemes).
+
+This technique speeds up the equality test between \emph{distinct} identifiers.
+
+
+\section{Attributes}
+\label{sec:attrs}
+
+Attributes are not directly stored in the structure tree nodes. Instead, each
+node has a unqiue \emph{attribute identifier}. Each kind of attribute is stored
+in a global attribute table that is accessed via the attribute
+identifiers. These tables may have different representations according to the
+needs of an attribute. The representation may even be changed, e.g.,\ by
+freezing a finite map into an array.
+
+Advantages:
+%
+\begin{itemize}
+\item Mutable attributes are highly localized, conforming to rule saying that
+  state should be localized.
+\item Copying the structure tree to change some attribute is avoided.
+\item Complete attributes can be newly used or discarded independent from the
+  structure tree or anything else. This is not only positive for minimizing
+  changes in the struture tree, but also for maintaining the whole program
+  code.
+\end{itemize}
+
+Disadvantage: Increased access time to the attributes.
+
+The handling of the attribute identifiers and the attribute tables is defined
+in the module \code{Attributes}.  The attribute data type \code{Attrs} also
+contains a variant that does not contain an attribute identifier, but only a
+position.  This is used, for example, for the defining occurences of
+identifiers of builtin objects.
+
+\subsection{Making Attributes}
+
+Any type that is meant to be used as an attribute has to be an element of the
+type class \code{Attr} (the class identifiers a "don't care" and an
+"undefined" value for each attribute).
+
+The use of the data type \code{StdAttr} provides a canonical way of making a
+type an attribute, as the instance \code{Attr (StdAttr a)} is predefined, and
+the functions \code{getStdAttr}, \code{getStdAttrDft},
+\code{isDontCareStdAttr}, \code{setStdAttr}, and \code{updStdAttr} allow
+direct access to the attributes in attribute tables storing standard
+attributes. 
+
+\subsection{Identifier Attributes vs.\ AST Attributes}
+
+Two kinds of attribute identifiers are maintained. One kind is attached to
+identifiers and the other kind is attached to nodes of the structure
+tree. Attribute table are always either for one or the other kind of
+attributes---this facilitates making the attribute tables dense.
+
+The main function of the identifiers attributes is to reference the object
+that the identifiers represents.  Note that the identifiers of the
+\emph{defining occurences} of builtin objects can not be associated with
+attributes in an attribute table.  A position is the only attribute they can
+take.  (Giving them full attributes would cause some hassle, because they then
+would need a unique name, and furthermore, these attributes would not be used
+anyway.  Note also that these identifiers are not represented in the structure
+tree; they are only referenced via attributes of \emph{using occurrences} of
+the same identifier.)
+
+Rationale: Trying to realize both kinds of attributes by using just attributes
+in the AST leads to either complications in the AST or a lot of attribute
+tables and, furthermore, leads to sparse attribute tables.
+
+\chapter{Static Semantics II---Type Check}
+\label{cha:static2}
+
+
+\chapter{Code Generation}
+\label{cha:codegen}
+
+\section{Primitive Definition Files}
+\label{sec:pdf}
+
+\begin{verbatim}
+Adapt the following.  Instead of the big Primitives.hs module, we now have one
+XXXPrims for every IL.  It contains the PDF signatures as well as imports the
+PDFs and PDF kind files for all primitives of this IL.  We call the material
+in such files from now on the PDF signatures.
+\end{verbatim}
+
+To keep the core of the compiler as small as possible \emph{primitive
+  definition files (PDFs)} are used to specify the translation of the
+primitives occuring in \KCode\ and \FOC.  To ease the maintenance of the
+primitives, the PDFs have a restricted layout (although they are standard
+Haskell files).
+
+Each PDF is associated with a \emph{PDF kind}, which is defined by the pair of
+the source and the target language covered by a PDF (e.g., source is \KCode\ 
+and target is \FOC). For each PDF kind that occurs in the compiler a kind
+definition module exists that provides functions for the PDFs of this kind.
+The name of a PDF kind is of the form \nonterm{source}\code 2\nonterm{target},
+where \nonterm{source} and \nonterm{target} are the abbreviations for the
+source and target language.
+
+Kind definitions mainly export functions that support the easy construction of
+structure tree fragments of the target language (or evaluation, in the case of
+primitives definitions for the interpreter modules).
+
+Furthermore, there is for each kind of source language a PDF signature file,
+which defines signatures of the primitives. Such modules are named as
+\nonterm{source}\code{2xPT} and do merely export one constant, for each
+primitive, that contains the type.  PDF signatures obey the following rules:
+%
+\begin{itemize}
+\item For each primitive, a constant definition, which specifies the
+  object-level signature of the primitive and has the name of the primitive
+  plus the suffix \code{\_PT}.
+\item The type for the signature specification of a primitive definition has
+  the form
+  %
+  \begin{quote}
+\begin{alltt}
+([\(\rho\)], \(\rho\))
+\end{alltt}
+  \end{quote}
+  %
+  where $\rho$ is the type of primitive types of the source language.
+\end{itemize}
+
+PDFs obey the following rules:
+%
+\begin{itemize}
+\item They do only import the kind definition module for their kind (no other
+  module is imported).
+\item For each primitive defined by a PDF, there is a function definition in
+  the PDF, which has exactly the name of the primitive. The
+  result of the function is the translated form of the defined primitive.
+\item The types of all functions that define a primitive are have form
+  %
+  \begin{quote}
+\begin{alltt}
+[\(\tau\)] -> \(\sigma\)      
+\end{alltt}
+  \end{quote}
+  %
+  where $\tau$ is uniform argument type of primitive definitions and $\sigma$
+  is the result that they produce---usually a fragment of a structure tree in
+  the target language. 
+\end{itemize}
+
+The module \code{Primitives} imports all PDFs that are used in the compiler and
+exports the interface to the primitives to the rest of the
+compiler. \code{Primitives} exports a \code{FiniteMap} that maps the
+identifiers of the primitives to a pair of signature and primitive definition.
+
+\chapter{Auxilliary Modules}
+\label{cha:aux}
+
+\section{Error Handling}
+
+The module \code{Errors} contains the basic error handling routines. It
+discriminates two kinds of errors, errors in the implementation of the toolkit
+and errors in the compiled/executed program. 
+
+\subsection{Internal Errors and Implementation Restrictions}
+
+The function
+%
+\begin{quote}
+\begin{verbatim}
+interr :: String -> a
+\end{verbatim}
+\end{quote}
+%
+is used in the case of an internal error to terminate the toolkit
+immediately. The argument should specify the name of the module and the name of
+the function where the error was discovered together with a short statement of
+the cause of the error. The message delivered to the user looks like
+%
+\begin{quote}
+\begin{verbatim}
+INTERNAL COMPILER ERROR:
+  KCTypes: typeOfConstrOrFun: Illegal kind of object!
+\end{verbatim}
+\end{quote}
+%
+The description of the cause of the error should be short. It is not intended
+for the user, but for the system implementor.
+
+In a similar way the function
+%
+\begin{quote}
+\begin{verbatim}
+todo :: String -> a
+\end{verbatim}
+\end{quote}
+%
+is used to report the use of an not yet implemented feature. The message seen
+by the user looks like
+%
+\begin{quote}
+\begin{verbatim}
+Feature not yet implemented:
+  KCTypes: typeOfVarOrVal: Primitives missing!
+\end{verbatim}
+\end{quote}
+
+The function
+%
+\begin{quote}
+\begin{verbatim}
+assert :: Bool -> String -> a -> a
+\end{verbatim}
+\end{quote}
+%
+uses \code{interr} with its second argument when the first argument evaluates
+to \code{False}; otherwise, it behaves as its third argument. The variable
+\code{assertEnabled} from module \code{Config} allows to switch of all checks
+made by calls to \code{assert}---due to lazy evaluation the first argument is
+never evaluated in this case.
+
+\begin{designrule}
+  All internal consistency checks that induce some extra costs should be made
+  with \code{assert}. Explicit calls to \code{interr} should only be used when
+  the test for the error condition comes for free---e.g., is just another
+  alternative in a \code{case}.
+\end{designrule}
+
+
+\subsection{Errors in the Compiled Program}
+
+Errors in the compiled/executed program are partitioned into three \emph{error
+levels}: 
+%
+\begin{description}
+\item[Warning.] Suspicious constructs in a program generate a warning. This
+  does not necessarily mean that the code is incorrect and it does not prevent
+  the generation of code or the execution of the program.
+\item[Plain Error.] Notation that is inavlid by the static semantics of the
+  programming language leads to a plain error. A single such error prevents 
+  code generation, but the remainder of the program can still be analyzed to
+  find further errors.
+\item[Fatal Error.] When the compilation process encounters an error situation
+  that prevents recovering, a fatal error occurs. This ends the compilation of
+  the erroneous compilation unit.
+\end{description}
+
+Internally, an error is characterized by an error level, a source code
+position, and an error message. The source code position identifies the source
+code construct that induces the error. The error message is a list of
+\code{String}s of which the first one is a short description of the error
+(max.\ 35 characters) and the rest constitutes a more detailed description
+(max.\ 60 characters per \code{String}).
+
+
+\section{General Data Structures}
+
+There are finite maps in \code{general/FiniteMaps.hs} and build on those sets
+in \code{general/Sets.hs}.  Difference lists in \code{general/DLists.hs} and
+operations on file names in \code{general/FNameOps.hs}.
+
+
+\section{Command Line Options}
+
+Command line options can be easily analyzed using \code{general/GetOpts.hs}.
+
+
+\bibliographystyle{agsm}
+\bibliography{base}
+
+\end{document}

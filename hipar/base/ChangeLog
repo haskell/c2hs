@@ -1,0 +1,302 @@
+2000-10-05  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* ../configure.in: uses the fptools macro for determining ghc's
+	version number
+
+2000-10-02  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* errors/Errors.hs (showError): special handling of internal positions
+
+	* admin/Common.hs: added internal positions
+
+	* admin/BaseVersion.hs (versnum): 0.22.2
+
+2000-09-15  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* ../configure.in: corrected ghc version number extraction to
+	correctly handle patch levels; added happy - most have gone lost
+	earlier...
+
+2000-09-12  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* syntax/Pretty.hs (<>): debugged
+
+2000-09-11  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* syntax/Pretty.hs (Pretty): type class for pretty printing
+	(infixOp): added
+	(usedWhen): added
+	(punctuate): added
+	(dot): added
+
+	* admin/BaseVersion.hs (versnum): 0.22.1
+
+2000-09-07  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* syntax/Pretty.hs: Revision of the interface; the interface is
+	now 90% compatible to SimonPJ's `Pretty' module; debugging
+	(fullRender): dropping leading '\n's
+	some more combinators
+
+	* admin/BaseVersion.hs (versnum): 0.22.0
+
+2000-09-03  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* admin/Common.hs (tabPos): Roman pointed out that tab stops
+	should be at 1, 9, ... rather than 0, 8, ...
+
+2000-09-02  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* admin/BaseVersion.hs (versnum): 0.21.1
+
+2000-08-18  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* sysdep/Makefile: Moved the posix stuff into an extra module,
+	which can be enabled individually
+
+	* ../configure.in: CygWin support; based on suggestions by Anibal
+	Maffioletti Rodrigues de DEUS <anibaldedeus@email.com>
+
+	* ../configure.in: uses -silent on lndir only if supported (isn't
+	supported before X11R6, says Jan Kort <kort@wins.uva.nl>)
+
+	* admin/BaseVersion.hs (versnum): 0.21.0
+
+2000-08-08  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* syntax/Lexers.hs: Changed the associativity of `quest`, `star`,
+	and `plus`.  This change was suggested by Martin Norbäck
+	<d95mback@dtek.chalmers.se>.
+
+	** WARNING **  This change may break some existing code!!!
+
+2000-06-19  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* admin/BaseVersion.hs (versnum): 0.20.2
+
+2000-04-06  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* ../configure.in: -fasm-x86 is used only if --with-ghc-native is given
+
+	* general/Sets.hs (powerSet): impl
+
+2000-04-05  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* general/Sets.hs: derived Eq and Ord for FMs, which allows sets
+	of sets and added `isSubSet' and `isSuperSet'
+
+	* general/FiniteMaps.hs: derived Eq and Ord for FMs
+
+	* admin/BaseVersion.hs (date): 0.20.1
+
+2000-03-04  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* ../configure.in: fixes re compiler & option selection
+
+2000-03-01  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* ../mk/common.mk: fixed dependency computations
+
+	* ../configure.in: polished; on Linux, uses native code generator
+	when compiling with GHC 4.0x, x >= 7
+
+2000-02-27  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* syntax/Parsers.hs: table handling substantially rewritten to
+	improve the space behaviour
+
+	* general/Utils.hs: `Tag' class
+
+	* admin/BaseVersion.hs (versnum): 0.20.0
+
+2000-02-23  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* ../mk/config.mk.in: set correct access modes in INSTALL_DATA
+
+1999-12-06  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* graphs/Marks.hs: newly implemented
+
+	* admin/BaseVersion.hs (versnum): 0.19.1
+
+1999-12-03  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* syms/Attributes.hs: instance Ord Attrs
+
+1999-12-02  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* sysdep/SysDepNHC1.hs: debugging
+
+1999-12-01  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* ../configure.in,../mk/common.mk: better dependency tool computation
+
+	* syms/Idents.hs: uses `Attributed'
+
+	* syms/Attributes.hs: `Attributed' type class, as suggested by
+ 	Roman Lechtchinsky
+
+	* admin/BaseVersion.hs (versnum): 0.19.0
+
+	* sysdep/SysDepNHC1.hs: Started the system dependent module for
+	nhc98 with assistance from Malcolm Wallace
+
+1999-11-30  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* state/StateTrans.hs: Adapted to new names in mutable variables API
+
+	* general/UNames.hs: Adapted to new names in mutable variables API
+
+	* sysdep/SysDepGHC3.hs: adapted to new names of exported entities
+
+	* sysdep/SysDepGHC4.hs: Cleaned up; no GHC internal stuff is used
+	anymore (some of the names of exported entities changed!)
+
+	* sysdep/Makefile: Added support for nhc98
+
+	* ../configure.in & friends: Added support for nhc98
+
+	* admin/BaseVersion.hs (versnum): 0.18.2
+
+1999-11-17  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* ../mk/config.mk.in: introduced `docdir' and `pkgdocdir'
+	
+	* Make system debianised, according to the suggestions and the
+ 	patches of Michael Weber <michael.weber@Post.RWTH-Aachen.DE>
+
+	* admin/BaseVersion.hs (versnum): 0.18.1
+
+1999-11-07  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* general/FileOps.hs (fileFindIn): debugged
+
+1999-11-06  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* general/FileOps.hs: new module; implemented `fileFindIn'
+
+	* general/FNameOps.hs (addPath): added
+
+	* admin/BaseVersion.hs (versnum): 0.18.0
+
+1999-10-29  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* admin/BaseVersion.hs (versnum): 0.17.17; fully modularised the
+	make system
+
+1999-10-25  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* state/CIO.hs (removeFileCIO): added
+
+	* admin/BaseVersion.hs (versnum): 0.17.16
+
+1999-10-24  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* syms/NameSpaces.hs (nameSpaceToList): added
+
+	* admin/BaseVersion.hs (versnum): 0.17.15
+
+1999-10-21  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* syms/Idents.hs (isLegalIdent): corrected `checkTail' - thanx Sven
+
+1999-10-16  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* syms/NameSpaces.hs (defLocal): uses `defGloal' if there is no
+	local range
+
+	
+Pre GNU-style change log
+------------------------
+
+0.17.13
+~~~~~~~
+09Oct99 Debugging
+
+0.17.12
+~~~~~~~
+27Sep99 `CIO.systemCIO'
+26Sep99 Debugging and some more clean up of `Lexers'
+25Sep99 Some convenience function on `Position's in `Common'
+23Sep99 Added `\v' to the control lexer
+
+0.17.11
+~~~~~~~
+22Sep99 Optimised and extended `Lexers' (meta actions can now return tokens or 
+	error messages); prepared the first separate distribution of CTKlight
+21Sep99 Debugged `Lexers'
+
+0.17.10
+~~~~~~~
+29Aug99 Added `Utils.lookupBy'
+
+0.17.9
+~~~~~~
+22Aug99 Throughly revised `Lexers' (according to SPJ's suggestions)
+12Aug99 Revised `Lexers.execLexer' (returns final state, changed semantics
+	of meta actions slightly, and structure simplified)
+
+0.17.8
+~~~~~~
+30Jul99 Clarified `NameSpaces'
+19Jul99 Using Roman's `Parsers.seplist1'
+
+0.17.7
+~~~~~~
+05Jul99 `Lexers' exports `ctrlLexer'
+
+0.17.6
+~~~~~~
+07Jun99 Small additions to `Idents'
+03Jun99 Small additions to `Attributes'
+
+0.17.5
+~~~~~~
+05Apr99 Configurable makefile variables from common.mk into new config.mk
+02Apr99 Small bug fixes
+31Mar99 `Parsers': Support for parsing prefixes
+30Mar99 Bug fixes (incl. `Parsers.sep')
+
+0.17.4
+~~~~~~
+13Mar99 Added meta actions to `Parsers'
+12Mar99 Revised for GHC 4.02 and Haskell 98
+11Mar99 Extension of parser library with threaded state
+04Mar99 Self-optimizing lexer library for regular expressions
+27Feb99 Self-optimizing LL(1) parser library a la Swierstra/Duponcheel 
+
+0.16.0
+~~~~~~
+11Feb99 `Idents.cloneIdent' & standard attributes in `Attributes'
+
+0.15.0
+~~~~~~
+02Feb99 `Set' module
+
+0.14.2
+~~~~~~
+23Jan99 `Ident' got an instance for `Show'
+
+0.14.1
+~~~~~~
+01Dec98 Extracted mk/dhc.mk and mk/nepal.mk from mk/common.mk
+
+0.14.0
+~~~~~~
+13Nov98 Rewrote `CST' into `PreCST' that provides an extra state (part of the
+	base state) that can be instantiated by an client compiler using the
+	Toolkit.  As a consequence, `state/Switches' can be moved into DHC.
+
+0.13.0
+~~~~~~
+10Nov98 admin/Version.hs
+
+0.12.0
+~~~~~~
+19Oct98 Added Sven Panne's `GetOpt' to general/
+
+0.11.1
+~~~~~~
+23Sep98	Completely overhauled Makefile system.
+
+29Jul98	Finished extraction from what was originally called the HiPar toolkit.

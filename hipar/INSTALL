@@ -1,0 +1,86 @@
+Prerequisites							     -*-text-*-
+~~~~~~~~~~~~~
+
+You need a Haskell 98 compiler.  Currently, this has to be Glasgow Haskell
+Compilation system (GHC) 3.x or 4.x.  If you are planning to build the
+developer release of the Nepal Compiler, you also need the parser generator
+Happy.  If you are building C->Haskell or Nepal, you need GHC 4.x (more
+details on the exact versions below).  For the Haskell compiler and the
+Haskell parser generator, see
+
+  http://haskell.org/
+
+
+Simple install procedure
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+  % gzip -cd <package>.tar.gz | tar xvf -  # unpack the sources
+  % cd <package>			   # change to the toplevel directory
+  % ./configure				   # run the `configure' script
+  % make				   # build everything
+  [ Become root if necessary ]
+  % make install			   # install all compilers
+
+
+The Nitty-Gritty
+~~~~~~~~~~~~~~~~
+
+The 'configure' script can be given a number of options to enable
+and disable various features. For a complete list, type:
+
+  ./configure --help
+
+A few of the more important ones:
+
+*  --prefix=PREFIX         install architecture-independent files in PREFIX
+                           [ Defaults to /usr/local ]
+
+*  --exec-prefix=EPREFIX   install architecture-dependent files in EPREFIX
+                           [ Defaults to the value given to --prefix ]
+
+*  --enable-prof           enable profiling support
+
+This option is useless in the 4.x series up to, and including, 4.04 of GHC, as
+profiling support is broken in these versions.
+
+*  --with-hc=HC            use Haskell compiler HC
+
+This needs to be the full path to the compiler executable.
+
+*  --with-hcflags=HCFLAGS  specify flags for the Haskell compiler
+
+*  --with-ghc-native	   use GHC native code generator (if available)
+
+This option works currently only with GHC 4.07 upwards and only on x86
+hardware.
+
+*  --with-efence           link with efence malloc debugger
+
+This option is only meant for debugging.  It reduces the efficiency of the
+generated code substantially.
+
+
+Documentation of the Compiler Toolkit
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+A slightly outdated description of the Compiler Toolkit and the build process
+is contained in `doc/base/base.tex'.
+
+
+Supported Systems and Porting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Glasgow Haskell Compilation System, Version 3.x (only for CTK)
+	   "			  , Version 4.x; x >= 02
+
+The Compiler Toolkit should build with Haskell 1.4 and Haskell 98 systems, but
+C->Haskell and the Nepal compiler require Haskell 98.  All
+(compilation) system-dependent code is contained in `base/sysdep/', ie, by
+porting the `SysDep' module, other systems should also work.  In case of
+problems, contact <chak@cse.unsw.edu.au>.
+
+Restrictions
+~~~~~~~~~~~~
+The module `base/syntax/Parsers.hs' builds only with GHC 4.x (x >= 06) - if
+a version 3.x system is selected, the make process automatically avoids
+compiling this module. 
+
+IMPORTANT NOTE: C->Haskell requires the `Parsers.hs' module!

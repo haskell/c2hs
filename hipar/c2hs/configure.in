@@ -1,0 +1,201 @@
+dnl IDL->CHS - This is not an IDL Compiler
+dnl Copyright (c) 1999 Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
+dnl 
+dnl This library is free software; you can redistribute it and/or
+dnl modify it under the terms of the GNU Library General Public
+dnl License as published by the Free Software Foundation; either
+dnl version 2 of the License, or (at your option) any later version.
+dnl 
+dnl This library is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+dnl Library General Public License for more details.
+dnl 
+dnl You should have received a copy of the GNU Library General Public
+dnl License along with this library (COPYING.LIB); if not, write to the Free
+dnl Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, 
+dnl MA  02111-1307  USA
+
+dnl ######################################################################
+dnl Process this file with autoconf to produce a configure script.
+dnl ######################################################################
+
+
+dnl Initialise.
+AC_INIT(toplevel/Version.hs)
+
+dnl Select a specific Haskell compiler and/or flags.
+AC_ARG_WITH(hc, 
+            [  --with-hc=HC            use Haskell compiler HC (full path required)],
+	    [HC=$withval])
+AC_ARG_WITH(hcflags, 
+            [  --with-hcflags=HCFLAGS  specify flags for Haskell compiler],
+	    [HCFLAGS=$withval])
+
+dnl Link with electric fence?
+AC_ARG_WITH(efence, 
+	    [  --with-efence           link with efence malloc debugger],
+	    [efence=$withval])
+
+dnl Check for OS and set dynamic library suffix.
+DLSUFFIX=".so"
+AC_CYGWIN
+if test -n "$CYGWIN"; then
+  DLSUFFIX=".dll"
+fi
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_CPP
+AC_PATH_PROG(BASENAME,basename)
+AC_PATH_PROG(EXPR,expr)
+AC_PATH_PROG(GREP,grep)
+AC_PATH_PROG(HEAD,head)
+AC_PATH_PROG(SED,sed)
+
+dnl This is far from elegant, but works for extracting the plain version number
+C2HS_VERSION=`$GREP '^versnum' toplevel/Version.hs\
+	      | $SED '-e s/versnum.* "//' '-e s/"//'`
+
+dnl Haskell compiler; currently only GHC 4.06 upwards and nhc98 1.0 have the 
+dnl required FFI and existentially quantified variables correctly working.
+dnl (The next command is not executed, if $HC is already set.)
+AC_PATH_PROGS(HC, ghc nhc98)
+if test -z "$HC"; then
+ AC_MSG_ERROR([Could not find a Haskell compiler!
+Currently supported are ghc 4.06 upwards & nhc98 1.0.
+** Check \"http://haskell.org\". **])
+fi
+dnl The following can happen if a wrong --with-hc=HC option is given.
+if test ! -x "$HC"; then
+ AC_MSG_ERROR([File not found: $HC])
+fi
+
+dnl Determine basic compiler name.
+case `$BASENAME $HC` in
+  ghc*) hc_base=ghc;;
+  nhc98) hc_base=nhc98;;
+esac
+
+dnl Check ghc's details.
+if test $hc_base = ghc; then
+  CTK_GHC_VERSION(hc_maj_vers,hc_min_vers)
+  if test $hc_maj_vers -ne 4 -o $hc_min_vers -lt 6; then
+   AC_MSG_ERROR([You need version 4.06 upwards of ghc!
+  ** Check \"http://haskell.org/ghc/\". **])
+  fi
+  dnl Determine compilation system identifier.
+  SYS=ghc$hc_maj_vers
+fi
+
+dnl Check nhc98's details.
+if test $hc_base = nhc98; then
+  AC_CACHE_CHECK([nhc98 version], ctk_cv_prog_nhc98_version, [
+    ctk_cv_prog_nhc98_version=`$HC --version 2>&1 | $HEAD -n 1 | $SED -e 's/.*v\([[0-9]]\)\.\([[0-9]]*\).*/\1.\2/'`
+  ])
+  hc_maj_vers=`echo $ctk_cv_prog_nhc98_version | $SED -e 's/\([[0-9]]\)\.[[0-9]]*/\1/'`
+  hc_min_vers=`echo $ctk_cv_prog_nhc98_version | $SED -e 's/[[0-9]]\.\([[0-9]]\)*/\1/'`
+  if test $hc_maj_vers -lt 1 -o $hc_min_vers -lt 0; then
+   AC_MSG_ERROR([You need version 1.0 upwards of nhc98!
+  ** Check \"http://haskell.org/\". **])
+  fi
+  dnl Determine compilation system identifier.
+  SYS=nhc$hc_maj_vers
+fi
+
+dnl Extra flags for the Haskell compiler that are c2hs-specific.
+dnl
+dnl * Do not optimise lib/ with one of the buggy ghcs (4.03 - 4.06).
+dnl
+AC_MSG_CHECKING([for buggy readXXXOffAddr])
+if test $hc_maj_vers = 4 -a $hc_min_vers -ge 3 -a $hc_min_vers -le 6 ; then
+  LIB_HCFLAGS=-Onot
+  AC_MSG_RESULT([yes (optimisation switched off in lib/)])
+else
+  AC_MSG_RESULT([no])
+fi
+
+dnl C compiler characteristics.
+
+dnl We need to know all this, to be able to compute offsets in structs.
+dnl (In C, the size and alignment of char is by definition 1 - hi Sven.)
+dnl
+dnl * If the C compiler does not support `long long' or `long double', the
+dnl   size of these types will be set to 0.
+dnl
+AC_C_CHAR_UNSIGNED
+C2HS_CHECK_SIZEOF(int,4)
+C2HS_CHECK_ALIGNOF(int)
+C2HS_CHECK_SIZEOF(short int,2)
+C2HS_CHECK_ALIGNOF(short int)
+C2HS_CHECK_SIZEOF(long int,4)
+C2HS_CHECK_ALIGNOF(long int)
+C2HS_CHECK_SIZEOF(long long int,8)
+C2HS_CHECK_ALIGNOF(long long int)
+C2HS_CHECK_SIZEOF(unsigned int,4)
+C2HS_CHECK_ALIGNOF(unsigned int)
+C2HS_CHECK_SIZEOF(unsigned short int,2)
+C2HS_CHECK_ALIGNOF(unsigned short int)
+C2HS_CHECK_SIZEOF(unsigned long int,4)
+C2HS_CHECK_ALIGNOF(unsigned long int)
+C2HS_CHECK_SIZEOF(unsigned long long int,8)
+C2HS_CHECK_ALIGNOF(unsigned long long int)
+C2HS_CHECK_SIZEOF(float,4)
+C2HS_CHECK_ALIGNOF(float)
+C2HS_CHECK_SIZEOF(double,8)
+C2HS_CHECK_ALIGNOF(double)
+C2HS_CHECK_SIZEOF(long double,12)
+C2HS_CHECK_ALIGNOF(long double,)
+C2HS_CHECK_SIZEOF(void *,4)
+C2HS_CHECK_ALIGNOF(void *)
+
+dnl Translate C types to Haskell types.
+if test "`echo ${ac_cv_c_char_unsigned+set}`" = set; then
+  HS_TYPEOF_CHAR=Char
+else
+  HS_TYPEOF_CHAR=Int8
+fi
+HS_TYPEOF_INT=Int`$EXPR $SIZEOF_INT '*' 8`
+HS_TYPEOF_SHORT_INT=Int`$EXPR $SIZEOF_SHORT_INT '*' 8`
+HS_TYPEOF_LONG_INT=Int`$EXPR $SIZEOF_LONG_INT '*' 8`
+HS_TYPEOF_LONG_LONG_INT=Int`$EXPR $SIZEOF_LONG_LONG_INT '*' 8`
+HS_TYPEOF_UNSIGNED_INT=Word`$EXPR $SIZEOF_UNSIGNED_INT '*' 8`
+HS_TYPEOF_UNSIGNED_SHORT_INT=Word`$EXPR $SIZEOF_UNSIGNED_SHORT_INT '*' 8`
+HS_TYPEOF_UNSIGNED_LONG_INT=Word`$EXPR $SIZEOF_UNSIGNED_LONG_INT '*' 8`
+HS_TYPEOF_UNSIGNED_LONG_LONG_INT=Word`$EXPR $SIZEOF_UNSIGNED_LONG_LONG_INT '*' 8`
+dnl The following two need to be improved - difficult with current FFI.
+HS_TYPEOF_FLOAT=Float
+HS_TYPEOF_DOUBLE=Double
+dnl There is no support for "long double" in Haskell at the moment.
+HS_TYPEOF_LONG_DOUBLE='()'
+
+dnl Checks for libraries.
+
+dnl Needed substitutions.
+AC_SUBST(DLSUFFIX)
+AC_SUBST(C2HS_VERSION)
+AC_SUBST(HCFLAGS)
+AC_SUBST(LIB_HCFLAGS)
+AC_SUBST(HS_TYPEOF_CHAR)
+AC_SUBST(HS_TYPEOF_UNSIGNED_CHAR)
+AC_SUBST(HS_TYPEOF_SIGNED_CHAR)
+AC_SUBST(HS_TYPEOF_INT)
+AC_SUBST(HS_TYPEOF_SHORT_INT)
+AC_SUBST(HS_TYPEOF_LONG_INT)
+AC_SUBST(HS_TYPEOF_LONG_LONG_INT)
+AC_SUBST(HS_TYPEOF_UNSIGNED_INT)
+AC_SUBST(HS_TYPEOF_UNSIGNED_SHORT_INT)
+AC_SUBST(HS_TYPEOF_UNSIGNED_LONG_INT)
+AC_SUBST(HS_TYPEOF_UNSIGNED_LONG_LONG_INT)
+AC_SUBST(HS_TYPEOF_FLOAT)
+AC_SUBST(HS_TYPEOF_DOUBLE)
+AC_SUBST(HS_TYPEOF_LONG_DOUBLE)
+
+dnl Write the results...
+AC_OUTPUT([
+  toplevel/C2HSConfig.hs
+  lib/C2HSConfig.hs
+  mk/config.mk
+  c2hs-config
+  c2hs.spec
+], [chmod +x c2hs-config])

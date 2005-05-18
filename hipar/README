@@ -1,0 +1,82 @@
+			       Compiler Toolkit                      -*-text-*-
+			       ~~~~~~~~~~~~~~~~
+                       (maybe PART of a full compiler)
+
+The Compiler Toolkit is a support library for compilers in Haskell.  You may
+have obtained it as part of a compiler using the library.  See also
+
+  http://www.score.is.tsukuba.ac.jp/~chak/ctk/
+
+
+Contents:
+
+  AUTHORS	-- Author information
+  COPYING	-- GNU General Public License (GPL)
+  COPYING.LIB	-- GNU Library General Public License (LGPL)
+  ChangeLog	-- Change history
+  INSTALL	-- Help on installing this package
+  Makefile      -- Root makefile
+  README	-- This file
+  base		-- Compiler Toolkit (general purpose compiler modules)
+  build		-- Build area (created during the build process)
+  configure	-- Platform-independent configuration file
+  configure.in	-- Autoconf input used to produce `configure'
+  doc		-- Documentation
+  install-sh	-- Auxiliary shell script required by `configure'
+  mk		-- Common makefiles
+
+Moreover, there may be additional subdirectories (as, for example, `c2hs' and
+`nepal'), which contain compilers using the Compiler Toolkit.  Check the
+README file and other accompanying documentation in these subdirectories for
+details on any compilers that are contained in this package.
+
+Whether or not you obtained the Compiler Toolkit in conjunction with a
+compiler using the toolkit, the modules in `base' are a self-contained set of
+compiler support modules whose use in other compilers is encouraged.
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= INSTALLING =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+See the file `INSTALL'.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- COPYLEFT -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+This system is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This system is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this system; if not, write to the Free Software Foundation, Inc., 675 Mass
+Ave, Cambridge, MA 02139, USA.
+
+NOTE: The code of the Compiler Toolkit is intentionally _not_ released 
+      under the LGPL (Library General Public Lisence), ie, it may only be 
+      used in compilers that are themselves distributed under the GPL.  
+      Keep the code open!  An exception are the modules contained in CTKlight, 
+      they are LGPL and may be used in closed source software.
+
+      HOWEVER, all runtime system code - ie, code required by the output of
+      any of the compilers - is LGPL.  This means that any program that you
+      compile with one of the compilers or any binding that you generate with
+      C->HS is _not_ restricted.  In other words, we do not care what you use
+      these compilers for or to whom you are giving them, but if you modify
+      or improve them, you have to contribute your changes back to us.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- CREDITS -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Authors:
+
+  Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
+  Sven Panne <Sven.Panne@informatik.uni-muenchen.de> wrote `general/GetOpt.hs'
+
+Thanks to Simon L. Peyton Jones <simonpj@microsoft.com> and Roman Lechtchinsky
+<wolfro@cs.tu-berlin.de> for their helpful suggestions that improved the
+design and implementation of the `Lexers' module.  Thanks also to Roman for
+comments on other modules of the Compiler Toolkit.
+
+Maintainer: chak@cse.unsw.edu.au

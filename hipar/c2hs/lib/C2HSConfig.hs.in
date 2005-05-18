@@ -1,0 +1,69 @@
+--								  -*-haskell-*-
+--  ** @configure_input@ **
+--  ===========================================================================
+--  C->Haskell Compiler: Configuration of the marshalling library
+--
+--  Author : Manuel M. T. Chakravarty
+--  Created: 28 August 99
+--
+--  Version $Revision: 1.4 $ from $Date: 2000/04/09 10:15:57 $
+--
+--  Copyright (c) [1999..2000] Manuel M. T. Chakravarty
+--
+--  This library is free software; you can redistribute it and/or
+--  modify it under the terms of the GNU Library General Public
+--  License as published by the Free Software Foundation; either
+--  version 2 of the License, or (at your option) any later version.
+--
+--  This library is distributed in the hope that it will be useful,
+--  but WITHOUT ANY WARRANTY; without even the implied warranty of
+--  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+--  Library General Public License for more details.
+--
+--- DESCRIPTION ---------------------------------------------------------------
+--
+--  This module contains the configuration (mapping of external types to
+--  Haskell types etc) of the C2HS marshaling library.
+--
+--  Definitions largely determined by `configure'.
+--
+--- DOCU ----------------------------------------------------------------------
+--
+--  language: Haskell 98
+--
+--  The details for `char' are hardcoded, because they cannot change.
+--
+--- TODO ----------------------------------------------------------------------
+--
+
+module C2HSConfig (CChar, CUChar, CSChar, CInt, CSInt, CLInt, CLLInt, CUInt,
+		   CUSInt, CULInt, CULLInt, CFloat, CDouble, CLDouble,
+		   sizeofFloat, sizeofDouble, sizeofAddr) 
+where 
+
+import Int
+import Word
+
+-- type mapping of C basic types to Haskell
+--
+type CChar    = @HS_TYPEOF_CHAR@
+type CUChar   = Char			-- this is a bit dangerous (Unicode)
+type CSChar   = Int8
+type CInt     = @HS_TYPEOF_INT@
+type CSInt    = @HS_TYPEOF_SHORT_INT@
+type CLInt    = @HS_TYPEOF_LONG_INT@
+type CLLInt   = @HS_TYPEOF_LONG_LONG_INT@
+type CUInt    = @HS_TYPEOF_UNSIGNED_INT@
+type CUSInt   = @HS_TYPEOF_UNSIGNED_SHORT_INT@
+type CULInt   = @HS_TYPEOF_UNSIGNED_LONG_INT@
+type CULLInt  = @HS_TYPEOF_UNSIGNED_LONG_LONG_INT@
+type CFloat   = @HS_TYPEOF_FLOAT@
+type CDouble  = @HS_TYPEOF_DOUBLE@
+type CLDouble = @HS_TYPEOF_LONG_DOUBLE@
+
+-- size information
+--
+sizeofFloat, sizeofDouble, sizeofAddr :: Int
+sizeofFloat  = @SIZEOF_FLOAT@
+sizeofDouble = @SIZEOF_DOUBLE@
+sizeofAddr   = @SIZEOF_VOID_P@

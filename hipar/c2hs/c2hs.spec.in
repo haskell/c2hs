@@ -1,0 +1,61 @@
+# RPM spec file for C->Haskell
+#
+# Copyright [1999..2000] Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
+
+%define version    @C2HS_VERSION@
+%define release    SNAP
+%define prefix     /usr
+
+Summary: C->Haskell Interface Generator
+Name: c2hs
+Version: %{version}
+Release: %{release}
+Copyright: GPL
+Group: Development/Tools
+Source: http://www.cse.unsw.edu.au/~chak/haskell/c2hs/c2hs-%{version}.tar.gz
+URL: http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
+BuildRoot: /var/tmp/c2hs-%{version}-%{release}-root
+Packager: Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
+Requires: haskell
+Provides: c2hs
+
+%description
+C->Haskell is an interface generator that simplifies the development
+of Haskell bindings to C libraries.  The tool processes existing C
+header files that determine data layout and function signatures on the
+C side in conjunction with Haskell modules that specify Haskell-side
+type signatures and marshaling details.  Hooks embedded in the Haskell
+code signal access to C structures and functions -- they are expanded
+by the interfacing tool in dependence on information from the
+corresponding C header file.
+
+Haskell 98 is "the" standard lazy functional programming language.
+More info plus the language definition is at http://www.haskell.org/.
+
+
+%changelog
+
+* Sun Oct 31 1999 Manuel Chakravarty
+- original version
+
+%prep
+%setup
+
+%build
+./configure --prefix=%{prefix}
+make
+make doc
+
+%install
+make prefix=$RPM_BUILD_ROOT%{prefix} install
+make prefix=$RPM_BUILD_ROOT%{prefix} install-doc
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%doc c2hs/ChangeLog c2hs/todo 
+%doc build/doc/c2hs c2hs/tests c2hs/examples/libghttpHS
+%{prefix}/bin/c2hs
+%{prefix}/bin/c2hs-config
+%{prefix}/lib/c2hs-%{version}/
