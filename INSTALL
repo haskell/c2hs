@@ -20,7 +20,7 @@ Simple install procedure
   [ Become root if necessary ]
   % make install			   # install all compilers
 
-If you are installing from CVS, please read the corresponding section below
+If you are installing from darcs, please read the corresponding section below
 first.
 
 The Nitty-Gritty
@@ -78,13 +78,13 @@ Restrictions
 ~~~~~~~~~~~~
 Currently, none.
 
-Additional Instructions for Building from CVS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you are building from CVS, you have to execute
+Additional Instructions for Building from Darcs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If you are building from darcs, you have to execute
 
   % autoreconf
 
-in the toplevel hipar/ directory before following with the instructions
+in the toplevel directory before following with the instructions
 above.
 
 Solaris Notes
