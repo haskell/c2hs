@@ -46,7 +46,7 @@ MKDEPENDOPTS=
 #
 # * the target `parsers' needs to be defined
 #
-.PHONY: parsers install-conf register-package
+.PHONY: parsers install-conf install-dirs install-c2hsconfig register-package
 parsers:
 
 # build targets
@@ -84,9 +84,8 @@ examples:
 
 # installation
 #
-install: all install-dirs install-conf register-package
+install: all install-dirs install-conf install-c2hsconfig register-package
 	$(INSTALL) -s c2hs $(DESTDIR)$(bindir)/c2hs
-	$(INSTALL_PROGRAM) c2hs-config $(DESTDIR)$(bindir)/c2hs-config
 	$(INSTALL_DATA) lib/libc2hs.a $(DESTDIR)$(pkglibdir)/libc2hs.a
 	@for hi in lib/*.hi; do\
 	  echo $(INSTALL_DATA) $$hi\
@@ -99,6 +98,9 @@ install-dirs:
 	$(INSTALL) -d $(DESTDIR)$(pkglibdir)
 	$(INSTALL) -d $(DESTDIR)$(pkgimportdir)
 
+install-c2hsconfig:
+	$(INSTALL_PROGRAM) c2hs-config $(DESTDIR)$(bindir)/c2hs-config
+
 install-conf:
 ifeq ("$(CABAL)","yes")
 	$(INSTALL_DATA) c2hs.conf.cabal $(DESTDIR)$(pkglibdir)/c2hs.conf
@@ -106,7 +108,7 @@ else
 	$(INSTALL_DATA) c2hs.conf.ghc-pre-6.4 $(DESTDIR)$(pkglibdir)/c2hs.conf
 endif
 
-register-package:
+register-package: install-c2hsconfig
 ifeq ($(ENABLE_ADD_PACKAGE),yes)
 	$(DESTDIR)$(bindir)/c2hs-config --package-conf\
 	| $(GHCPKG) --update-package --auto-ghci-libs
