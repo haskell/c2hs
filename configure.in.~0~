@@ -1,0 +1,59 @@
+dnl C->Haskell
+dnl Copyright (c) [1999..2005] Manuel M T Chakravarty <chak@cse.unsw.edu.au>
+dnl 
+dnl This library is free software; you can redistribute it and/or
+dnl modify it under the terms of the GNU Library General Public
+dnl License as published by the Free Software Foundation; either
+dnl version 2 of the License, or (at your option) any later version.
+dnl 
+dnl This library is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+dnl Library General Public License for more details.
+dnl 
+dnl You should have received a copy of the GNU Library General Public
+dnl License along with this library (COPYING.LIB); if not, write to the Free
+dnl Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  
+dnl 02111-1307  USA
+
+dnl ######################################################################
+dnl Process this file with autoconf to produce a configure script.
+dnl ######################################################################
+
+dnl Initialise.
+AC_INIT(c2hs/toplevel/Main.hs)
+
+dnl Check for OS and set temporary directory.
+TMPDIR="/tmp"
+AC_CYGWIN
+if test "$CYGWIN" = "yes"; then
+  TMPDIR="C:\TMP"
+fi
+
+dnl Checks for programs.
+AC_PROG_CPP
+AC_PATH_PROGS(GREP,egrep grep)
+AC_PATH_PROG(SED,sed)
+
+dnl This is far from elegant, but works for extracting the plain version number
+C2HS_VERSION=`$GREP '^Version:' c2hs.cabal \
+	     | $SED '-e s/Version:[[ 	]]*//'`
+C2HS_NICK=`$GREP '^--Versnick:' c2hs.cabal \
+	  | $SED '-e s/--Versnick:[[ 	]]*//'`
+C2HS_DATE=`$GREP '^--Versdate:' c2hs.cabal \
+	  | $SED '-e s/--Versdate:[[ 	]]*//'`
+C2HS_COPYRIGHT=`$GREP '^Copyright:' c2hs.cabal \
+	  | $SED '-e s/Copyright:[[ 	]]*//'`
+
+dnl Needed substitutions.
+AC_SUBST(C2HS_VERSION)
+AC_SUBST(C2HS_NICK)
+AC_SUBST(C2HS_DATE)
+AC_SUBST(C2HS_COPYRIGHT)
+AC_SUBST(TMPDIR)
+
+dnl write the results...
+AC_OUTPUT([
+  c2hs/toplevel/Version.hs
+  c2hs/toplevel/C2HSConfig.hs
+])

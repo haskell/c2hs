@@ -1,0 +1,126 @@
+#  @configure_input@ -*-makefile-*-
+#  ============================================================================
+#  Compiler Toolkit: Autoconf-mangled makefile configuration
+#
+#  Author : Manuel M. T. Chakravarty
+#  Created: 5 April 1999 (from parts of common.mk)
+#
+#  Version $Revision: 1.19 $ from $Date: 2005/05/18 03:04:04 $
+#
+#  Copyright (c) [1997..1999] Manuel M. T. Chakravarty
+#
+#  This file is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This file is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  = DOCU =====================================================================
+#
+#  This file contains all the variables set by `./configure', which are
+#  relevant for any of the makefiles.
+#
+#  = TODO =====================================================================
+#
+
+# *nix tools
+#
+BASENAME= @BASENAME@
+FIND	= @FIND@
+GREP	= @GREP@
+CP	= @CP@
+INSTALL = @INSTALL@
+HAPPY   = @HAPPY@
+LN	= @LN@
+LNDIR	= @LNDIR@
+MV	= @MV@
+SED	= @SED@
+SHELL   = @SHELL@
+TAR	= @TAR@
+TOUCH	= @TOUCH@
+PWD	= pwd
+
+INSTALL_PROGRAM = $(INSTALL)
+INSTALL_DATA    = $(INSTALL) -m 0644
+
+srcdir     = @srcdir@
+top_srcdir = @top_srcdir@
+prefix     = @prefix@
+exec_prefix= @exec_prefix@
+
+bindir        = @bindir@
+sbindir       = @sbindir@
+libexecdir    = @libexecdir@
+datadir       = @datadir@
+sysconfdir    = @sysconfdir@
+sharedstatedir= @sharedstatedir@
+localstatedir = @localstatedir@
+libdir	      = @libdir@
+infodir	      = @infodir@
+mandir	      = @mandir@
+includedir    = @includedir@
+oldincludedir = /usr/include
+
+docdir = $(datadir)/doc
+
+DESTDIR =
+
+# the $(PACKAGE) variable is set by the toplevel Makefile in each compiler
+# package
+#
+pkgdatadir    = $(datadir)/$(PACKAGE)-$(PCKVERSION)
+pkgdocdir     = $(docdir)/$(PACKAGE)-$(PCKVERSION)
+pkglibdir     = $(libdir)/$(PACKAGE)-$(PCKVERSION)/$(SYS)
+pkgimportdir  = $(pkglibdir)/import
+
+
+# Haskell compiler: for details in the supported systems check 
+#		    `../configure.in'
+#
+# The variable $(SYS) specifies the compilation system, whereas $(HC) 
+# references the compiler executable.  The variable $(SYS) is used to select 
+# the system specific code (see `../base/sysdep').
+#
+HC          = @HC@
+SYS	    = @SYS@
+HCFLAGS     = $(addprefix -package , @PACKAGES@) @HCFLAGS@
+GHCPKG	    = @GHCPKG@
+GHC_MAJOR_VERSION	= @GHC_MAJOR_VERSION@
+GHC_MINOR_VERSION	= @GHC_MINOR_VERSION@
+
+# option for specifying additional .hi directories
+#
+HIDIROPT    = @HIDIROPT@
+
+# Profiling options
+#
+# * if not empty, it is assumed that profiling code is generated
+#
+PROF	    = @PROF@
+
+# Utility programs
+#
+MKDEPENDHS  = @MKDEPENDHS@
+HSTAGS      = @HSTAGS@
+
+# System features
+#
+SYSFEATURES = @SYSFEATURES@
+HASPKG	    = @HASPKG@
+CABAL	    = @CABAL@
+
+# Installation options
+#
+# * `== yes' when enabled
+#
+ENABLE_ADD_PACKAGE = @ENABLE_ADD_PACKAGE@
+
+
+# Mac OS X uses '-all_load' instead '--whole-archive' as a linker flag.
+# This holds the correct flag for the correct platform.
+WHOLE_ARCHIVE_FLAG=@WHOLE_ARCHIVE_FLAG@
+
