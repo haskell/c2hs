@@ -1,0 +1,77 @@
+Name:		c2hs
+Version:	1.0.0
+--Versnick:	"The Point of No Return"
+--Versdate:	"13 Jul 2005"
+License:	GPL
+License-File:	COPYING
+Copyright:	Copyright (c) [1999..2005] Manuel M T Chakravarty
+Author:		Manuel M T Chakravarty
+Maintainer:	chak@cse.unsw.edu.au
+Stability:	Stable
+Homepage:	http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
+Package-URL:	http://www.cse.unsw.edu.au/~chak/haskell/c2hs/c2hs-1.0.0.tar.gz
+Synopsis:	C->Haskell Interface Generator
+Description:	C->Haskell assists in the development of Haskell bindings to C
+	libraries.  It extracts C interface information from vanilla header 
+	files and generates marshaling and signature code in Haskell.
+Category:       Development tool
+
+Executable:     c2hs
+Hs-Source-Dirs:	base/admin 
+		base/errors
+		base/general 
+		base/graphs
+		base/state
+		base/syms
+		base/syntax
+		c2hs/c
+		c2hs/chs
+		c2hs/gen
+		c2hs/state
+		c2hs/toplevel
+Main-Is:        Main.hs
+Other-Modules:	BaseVersion
+		Common
+		Config
+		Errors
+		DLists
+		FileOps
+		FiniteMaps
+		FNameOps
+		GetOpt
+		Sets
+		UNames
+		Utils
+		Marks
+		CIO
+		DynArrays
+		StateBase
+		State
+		StateTrans
+		Attributes
+		Idents
+		NameSpaces
+		Lexers
+		ParserMonad
+		Parsers
+		Pretty
+		CAST
+		CAttrs
+		CBuiltin
+		C
+		CLexer
+		CNames
+		CParser
+		CPretty
+		CTrav
+		CHS
+		CHSLexer
+		CInfo
+		GBMonad
+		GenBind
+		GenHeader
+		C2HSState
+		Switches
+		C2HSConfig
+		Version
+Extensions:	ForeignFunctionInterface

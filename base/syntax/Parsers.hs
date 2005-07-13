@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fglasgow-exts #-}
+
 --  Compiler Toolkit: Self-optimizing LL(1) parser combinators
 --
 --  Author : Manuel M T Chakravarty

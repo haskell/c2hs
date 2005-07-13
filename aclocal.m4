@@ -1,38 +1,5 @@
 dnl CTK - Additional macros for `autoconf'
 
-dnl ######################################################################
-dnl This was stolen from Sven Panne's <Sven.Panne@informatik.uni-muenchen.de>
-dnl HOpenGL library.
-dnl ######################################################################
-dnl GHC syslib versionitis
-dnl
-dnl CTK_LIB_SYSLIB(Foo, bar baz bing) tests in which of
-dnl the packages bar, baz, and bing the module Foo resides and
-dnl calls AC_SUBST(syslib_Foo) on it.
-dnl ######################################################################
-
-AC_DEFUN(CTK_LIB_SYSLIB, [
-dnl The syslib variable name.
-define(CTK_SYSLIB_NAME, syslib_$1)dnl
-dnl The cache variable name.
-define(CTK_CV_NAME, ctk_cv_syslib_$1)dnl
-AC_CACHE_CHECK(syslib for $1, CTK_CV_NAME, [
-for ctk_syslib in $2 not-found ; do
-rm -rf conftest*
-cat > conftest.hs <<EOF
-import $1
-EOF
-$HC -M -optdep-f -optdepconftest.dep -package [$]ctk_syslib conftest.hs  > /dev/null 2> /dev/null && break
-done
-rm -rf conftest*
-CTK_CV_NAME=[$]ctk_syslib
-])
-CTK_SYSLIB_NAME=$CTK_CV_NAME
-AC_SUBST(CTK_SYSLIB_NAME)dnl
-undefine([CTK_CV_NAME])dnl
-undefine([CTK_SYSLIB_NAME])dnl
-])
-
 dnl -- Pinched back from FPTOOLS/GHC
 dnl
 dnl CTK_GHC_VERSION(version)

@@ -1,5 +1,5 @@
-dnl CTK - Compiler Toolkit
-dnl Copyright (c) [1999..2002] Manuel M T Chakravarty <chak@cse.unsw.edu.au>
+dnl C->Haskell
+dnl Copyright (c) [1999..2005] Manuel M T Chakravarty <chak@cse.unsw.edu.au>
 dnl 
 dnl This library is free software; you can redistribute it and/or
 dnl modify it under the terms of the GNU Library General Public
@@ -20,299 +20,40 @@ dnl ######################################################################
 dnl Process this file with autoconf to produce a configure script.
 dnl ######################################################################
 
-dnl DOCU ======================================================================
-dnl
-dnl SYSFEATURES - list of feature tags (like `posix') indicating the features 
-dnl 		  available on the target system; used by the Makefile in 
-dnl               sysdep/
+dnl Initialise.
+AC_INIT(c2hs/toplevel/Main.hs)
 
-dnl Initialise and specify the subdirectories containing additional 
-dnl `configure' scripts.
-AC_INIT(base/admin/BaseVersion.hs)
-AC_CONFIG_SUBDIRS(c2hs)
-AC_CONFIG_SUBDIRS(idl2chs)
-
-dnl Where are we?
-TOP=`pwd`
-
-dnl Select whether to enable profiling support.
-AC_ARG_ENABLE(prof,
-	      [  --enable-prof           enable profiling support],
-	      [ENABLE_PROF=$enableval])
-if test x$ENABLE_PROF = xyes; then
-dnl  PROF="-prof -auto"
-  PROF="-prof"
-fi
-
-dnl Select whether to use --add-package during installation.
-AC_ARG_ENABLE(add_package,
-	      [  --enable-add-package    register package during installation],
-	      [ENABLE_ADD_PACKAGE=$enableval])
-
-dnl Select a specific Haskell compiler and/or flags.
-AC_ARG_WITH(hc, 
-            [  --with-hc=HC            use Haskell compiler HC],
-	    [HC=$withval])
-AC_ARG_WITH(hcflags, 
-            [  --with-hcflags=HCFLAGS  specify flags for the Haskell compiler],
-	    [HCFLAGS=$withval])
-AC_ARG_WITH(ghcnative, 
-            [  --with-ghc-native       use GHC native code generator (if available)],
-	    [ghc_native=$withval], [ghc_native=no])
-
-dnl Select a specific version of hmake.
-AC_ARG_WITH(hmake, 
-            [  --with-hmake=HC         use hmake version HMAKE (full path required)],
-	    [HMAKE=$withval])
-
-dnl Link with electric fence?
-AC_ARG_WITH(efence, 
-	    [  --with-efence           link with efence malloc debugger],
-	    [efence=$withval])
-
-dnl Check system type.
-AC_CANONICAL_SYSTEM
+dnl Check for OS and set temporary directory.
+TMPDIR="/tmp"
 AC_CYGWIN
-
-dnl Check whether we are running on Mac OS X.
-HostPlatform=`/bin/sh $TOP/config.sub $host` || exit 1
-
-WHOLE_ARCHIVE_FLAG="--whole-archive"
-case $HostPlatform in
-powerpc-apple-darwin*)
-  WHOLE_ARCHIVE_FLAG="-all_load"
-esac;
+if test "$CYGWIN" = "yes"; then
+  TMPDIR="C:\TMP"
+fi
 
 dnl Checks for programs.
-AC_PROG_CC
-AC_PROG_INSTALL
-AC_PATH_PROG(AR,ar)
-AC_PATH_PROG(BASENAME,basename)
-AC_PATH_PROG(CP,cp)
-AC_PATH_PROG(DIRNAME,dirname)
-AC_PATH_PROG(FIND,find)
+AC_PROG_CPP
 AC_PATH_PROGS(GREP,egrep grep)
-AC_PATH_PROG(HEAD,head)
-AC_PATH_PROG(HAPPY,happy)
-AC_PATH_PROG(HSTAGS,hstags,no-hstags-available)
-AC_PATH_PROG(LN,ln)
-AC_PATH_PROG(LNDIR,lndir)
-AC_PATH_PROG(MV,mv)
 AC_PATH_PROG(SED,sed)
-AC_PATH_PROG(SHELL,sh)
-AC_PATH_PROG(TAR,tar)
-AC_PATH_PROG(TOUCH,touch)
-AC_PATH_PROG(UNAME,uname)
 
 dnl This is far from elegant, but works for extracting the plain version number
-CTK_VERSION=`$GREP '^versnum' base/admin/BaseVersion.hs\
-	     | $SED '-e s/versnum.* "//' '-e s/"//'`
-
-dnl if lndir understands -silent, use it
-dnl (greps through the usage info - not very nice...)
-$LNDIR 2>&1 | $GREP silent >/dev/null && LNDIR="$LNDIR -silent"
-
-dnl Haskell compiler; currently ghc 4.08 upwards & nhc98 1.14
-AC_PATH_PROGS(HC, $HC ghc nhc98)
-if test -z "$HC"; then
- AC_MSG_ERROR([Could not find a Haskell compiler!
-Currently supported are ghc 4.08 upwards & nhc98 1.14.
-** Check \"http://haskell.org\". **])
-fi
-dnl The following can happen if a wrong --with-hc=HC option is given.
-if test ! -x "$HC"; then
- AC_MSG_ERROR([File not found: $HC])
-fi
-
-dnl Determine basic compiler name.
-case `$BASENAME $HC` in
-  ghc*) hc_base=ghc;;
-  nhc98*) hc_base=nhc98;;
-esac
-
-dnl Check ghc's details.
-if test $hc_base = ghc; then
-  dnl set GHC, as this is what the following command inspects
-  GHC=$HC
-  CTK_GHC_VERSION(hc_vers,hc_maj_vers,hc_min_vers,hc_pl)
-  CTK_PROG_CHECK_VERSION($hc_vers, -lt, 4.08, [
-    AC_MSG_ERROR([We need to have version 4.08 upwards of ghc!
-** Check \"http://haskell.org\". **])])
-  dnl Determine compilation system identifier and option for adding .hi 
-  dnl directories.
-  SYS=ghc$hc_maj_vers
-  HIDIROPT=-i
-
-  GHC_MAJOR_VERSION="$hc_maj_vers"
-  GHC_MINOR_VERSION="$hc_min_vers"
-fi
-
-dnl Check nhc98's details.
-if test $hc_base = nhc98; then
-  AC_CACHE_CHECK([nhc98 version], ctk_cv_prog_nhc98_version, [
-    ctk_cv_prog_nhc98_version=`$HC --version 2>&1 | $HEAD -n 1 | $SED -e 's/.*v\([[0-9]]\)\.\([[0-9]]*\).*/\1.\2/'`
-  ])
-  hc_maj_vers=`echo $ctk_cv_prog_nhc98_version | $SED -e 's/\([[0-9]]\)\.[[0-9]]*/\1/'`
-  hc_min_vers=`echo $ctk_cv_prog_nhc98_version | $SED -e 's/[[0-9]]\.\([[0-9]]*\)/\1/'`
-  if test $hc_maj_vers -lt 1 -o $hc_min_vers -lt 14; then
-   AC_MSG_ERROR([You need version 1.14 upwards of nhc98!
-  ** Check \"http://haskell.org/\". **])
-  fi
-  dnl Determine compilation system identifier and option for adding .hi 
-  dnl directories.
-  SYS=nhc$hc_maj_vers
-  HIDIROPT=-I
-fi
-
-dnl Check for ghc-pkg command (GHC 6.4 and above only)
-AC_ARG_WITH(ghc-pkg,
-  [  --with-ghc-pkg=GHCPKG   command to run ghc-pkg, if using GHC >= 6.4],
-  [GHCPKG="$withval"])
-
-if test -n "$GHCPKG"; then
-  AC_SUBST(GHCPKG)
-  true
-else
-  AC_CHECK_TOOL(GHCPKG, ghc-pkg, ghc-pkg)
-fi
-
-dnl GHC 6.4 is based on the Haskell Cabal.
-CTK_PROG_CHECK_VERSION($hc_vers, -lt, 6.4, CABAL=no, CABAL=yes)
-AC_SUBST(CABAL)
-
-dnl Optimise Haskell by default (and add some not really needed options).
-dnl
-dnl GHC: The option `-recomp' stops the compilation of a file if ghc can figure
-dnl      out that nothing will changes compared to the last compile - it does
-dnl      so by inspecting the version information in the .hi files.
-if test -z "$HCFLAGS"; then
-  HCFLAGS=-O
-  if test $hc_base = ghc; then
-    HCFLAGS="$HCFLAGS -recomp -fno-warn-incomplete-patterns"
-  fi
-  if test $ghc_native = yes; then
-    HCFLAGS="$HCFLAGS -fasm"
-  fi
-fi
-
-dnl System-specific flags that may not be omitted.
-dnl
-dnl ghc: The packages `lang' and `posix' are required by 
-dnl      `sysdep/SysDepGHC3.hs' and `sysdep/SysDepGHC4.hs', and 
-dnl      thus, transitively for the compilation of some other modules. 
-dnl
-dnl Notes: 
-dnl - We check for the availability of `posix' as we don't have it on some 
-dnl   systems (eg, mingw32).
-dnl
-PACKAGES=""
-SYSFEATURES=""
-if test $hc_base = ghc; then
-  dnl Check in which system library we find the basic Haskell 98 stuff.
-  CTK_LIB_SYSLIB(List, haskell98)
-  if test $syslib_List = not-found; then
-    AC_MSG_ERROR([Could not find Haskell 98 moduled (tried "List").])
-  fi
-  PACKAGES="$PACKAGES $syslib_List"
-  CTK_LIB_SYSLIB(Posix, posix)
-  if test $syslib_Posix != not-found; then
-    PACKAGES="$PACKAGES posix"
-    SYSFEATURES="$SYSFEATURES posix"
-  fi
-  dnl Check in which system library we find the module IOExts.
-  CTK_LIB_SYSLIB(IOExts, lang exts)
-  if test $syslib_IOExts = not-found; then
-    AC_MSG_ERROR([Could not find module "IOExts".])
-  fi
-  PACKAGES="$PACKAGES $syslib_IOExts"
-  HASPKG=yes
-fi
-if test $hc_base = nhc98; then
-  HASPKG=no
-fi
-
-dnl Select a dependency computation tool.
-dnl
-if test $hc_base = ghc; then
-  MKDEPENDHS="$HC -M"
-fi
-if test $SYS = nhc1; then
-  dnl (The next command is not executed, if $HC is already set.)
-  AC_PATH_PROGS(HMAKE, hmake)
-  if test -z "$HMAKE"; then
- AC_MSG_ERROR([Could not find the tool hmake (needed for use with nhc98)!
-** Check \"http://www.cs.york.ac.uk/fp/nhc98/hmake/hmake.html\". **])
-  fi
-  MKDEPENDHS="$HMAKE -n -M -nhc98"
-fi
-AC_MSG_RESULT([selecting mkdependHS... $MKDEPENDHS])
-
-if test "$ENABLE_ADD_PACKAGE" = "yes" -a "$HASPKG" = "no"; then
- AC_MSG_ERROR([System $SYS doesn't support package management; can't use
-"--add-package".])
-fi
-
-dnl Checks for libraries.
-
-dnl check for Electric Fence Malloc Debugger Library, if requested
-if test x$efence = xyes; then
-  AC_CHECK_LIB(efence, malloc,
-	       [],
-	       [AC_MSG_ERROR([No Electric Fence library found!])])
-fi
-
-dnl Misc
-
-dnl Settings for the build time package configuration of the `base'/`ctk' 
-dnl package
-PACKAGES_STRINGS=""
-for pkg_name in $PACKAGES; do
-  if test -z "$PACKAGES_STRINGS"; then
-    PACKAGES_STRINGS="\"$pkg_name\""
-  else
-    PACKAGES_STRINGS="$PACKAGES_STRINGS, \"$pkg_name\""
-  fi
-done
-IMPORT_DIRS=""
-for dir in base/*; do
-  if test -d $dir && test `basename $dir` != CVS ; then
-    if test -z "$IMPORT_DIRS"; then
-      IMPORT_DIRS="\"$TOP/$dir\""
-    else
-      IMPORT_DIRS="$IMPORT_DIRS, \"$TOP/$dir\""
-    fi
-  fi
-done
-LIBRARY_DIRS="\"$TOP/base\""
+C2HS_VERSION=`$GREP '^Version:' c2hs.cabal \
+	     | $SED '-e s/Version:[[ 	]]*//'`
+C2HS_NICK=`$GREP '^--Versnick:' c2hs.cabal \
+	  | $SED '-e s/--Versnick:[[ 	]]*//'`
+C2HS_DATE=`$GREP '^--Versdate:' c2hs.cabal \
+	  | $SED '-e s/--Versdate:[[ 	]]*//'`
+C2HS_COPYRIGHT=`$GREP '^Copyright:' c2hs.cabal \
+	  | $SED '-e s/Copyright:[[ 	]]*//'`
 
 dnl Needed substitutions.
-AC_SUBST(CTK_VERSION)
-AC_SUBST(TOP)
-AC_SUBST(SYS)
-AC_SUBST(HCFLAGS)
-AC_SUBST(GHC_MAJOR_VERSION)
-AC_SUBST(GHC_MINOR_VERSION)
-AC_SUBST(HIDIROPT)
-AC_SUBST(PROF)
-AC_SUBST(MKDEPENDHS)
-AC_SUBST(SYSFEATURES)
-AC_SUBST(ENABLE_ADD_PACKAGE)
-AC_SUBST(HASPKG)
-AC_SUBST(PACKAGES)
-AC_SUBST(PACKAGES_STRINGS)
-AC_SUBST(IMPORT_DIRS)
-AC_SUBST(LIBRARY_DIRS)
-AC_SUBST(WHOLE_ARCHIVE_FLAG)
+AC_SUBST(C2HS_VERSION)
+AC_SUBST(C2HS_NICK)
+AC_SUBST(C2HS_DATE)
+AC_SUBST(C2HS_COPYRIGHT)
+AC_SUBST(TMPDIR)
 
 dnl write the results...
 AC_OUTPUT([
-  mk/config.mk
-  base/base.build.conf.cabal
-  base/base.build.conf.ghc-pre-6.4
+  c2hs/toplevel/Version.hs
+  c2hs/toplevel/C2HSConfig.hs
 ])
-
-dnl ...and chat with the user
-echo "********************************************"
-echo "Configuration completed successfully." 
-echo "Now do \"make\" and get a cup of green tea ;-)"
-echo "********************************************"

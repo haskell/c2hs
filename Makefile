@@ -1,11 +1,11 @@
-#  Compiler Toolkit Toplevel: root makefile 
+#  C->Haskell: root makefile 
 #
 #  Author : Manuel M T Chakravarty
 #  Created: 24 July 1998 (derived from HiPar root makefile)
 #
 #  Version $Revision: 1.68 $ from $Date: 2005/05/18 03:04:02 $
 #
-#  Copyright (c) [1995..2002] Manuel M T Chakravarty
+#  Copyright (c) [1995..2005] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -18,35 +18,6 @@
 #  GNU General Public License for more details.
 #
 #  = DOCU =====================================================================
-#
-#  * This makefile handles the toplevel commands of the Compiler Toolkit.  
-#    A new compiler can be dropped in by setting up a `<mycomp>' source 
-#    directory plus a `<mycomp>/mk/<mycomp>.pck.mk' makefile.  The makefile 
-#    contains compiler-specific definitions for the various `make' targets and
-#    the source directory contains the complete set of compiler-specific 
-#    source files.
-#
-#    It is important that the variables and targets defined in 
-#    `<mycomp>/mk/<mycomp>.pck.mk' are prefixed with a compiler-specific 
-#    prefix.  This allows to have multiple compiler in a single Compiler 
-#    Toolkit tree without conflicts.
-#
-#    The main build target and the tar target of a package are defined 
-#    `<mycomp>/mk/<mycomp>.pck.mk'.
-#
-#  * A build is performed below `build' in a directory named by the basename of
-#    the used compiler (as given by $(HC)).  In this directory, shadow 
-#    directories of the source trees are created.
-#
-#  * Before anything can be build, a `make config' has to be executed.  
-#    Whenever the compiler $(HC) or system $(SYS) used for the build changes, 
-#    `make config' has to be executed again.  It also has to be re-executed
-#    when files are added, deleted, or moved in a source tree.
-#
-#  * GNU make is required: The makefiles use conditionals and various makefile
-#    functions.
-#
-#  = TODO =====================================================================
 #
 
 #  ***************************************
