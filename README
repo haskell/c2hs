@@ -63,13 +63,12 @@ You should have received a copy of the GNU General Public License along with
 this system; if not, write to the Free Software Foundation, Inc., 675 Mass
 Ave, Cambridge, MA 02139, USA.
 
-NOTE: HOWEVER, all runtime system code - ie, code required by the output
-      of the interface generator - is LGPL (see the file COPYING.LIB for
-      details).  This means that generated interfaces can use any license that
-      the author of the interface sees fit (including closed proprietary
-      licenses).  In other words, I do not care what you use C->Haskell for or
-      to whom you are giving C->Haskell or any interfaces generated with
-      C->Haskell, but if you modify or improve C->Haskell, you have to
+NOTE: HOWEVER, all code included into generated bindings is under a BSD-style
+      license that does not place any restrictions on the license of the
+      inteface produced with C->Haskell (ie, closed proprietary licenses are
+      possible, too).  In other words, I do not care what you use C->Haskell
+      for or to whom you are giving C->Haskell or any interfaces generated with
+      C->Haskell, only if you modify or improve C->Haskell itself, you have to
       contribute your changes back to the community.  Nevertheless, I will of
       course be particularly delighted if you choose to make your work freely
       available.

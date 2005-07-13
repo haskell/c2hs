@@ -1,7 +1,7 @@
-include ../../mk/config.mk
+HC=ghc
 
-HCFLAGS= -package lang -fglasgow-exts -i../lib -L../lib -lc2hs
-C2HS   = ../c2hs
+HCFLAGS= -ffi # -i../lib -L../lib -lc2hs
+C2HS   = ../../dist/build/c2hs/c2hs
 
 PRGMS = simple calls enums pointer structs marsh cpp
 
