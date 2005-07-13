@@ -1,3 +1,13 @@
+2005-07-13  Duncan Coutts  <duncan.coutts@worc.ox.ac.uk>
+
+	* Remove old C lexer & parser and replace them with new ones using
+	alex and happy
+
+2005-07-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* Cabal-ised the build system
+	* c2hs.cabal (Version): 0.14.0
+
 2005-05-18  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* toplevel/Version.hs (versnum): 0.13.6
