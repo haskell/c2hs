@@ -75,3 +75,5 @@ Other-Modules:	BaseVersion
 		C2HSConfig
 		Version
 Extensions:	ForeignFunctionInterface
+Ghc-Options:	-O
+C-Sources:	c2hs/toplevel/c2hs_config.c
