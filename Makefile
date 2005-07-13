@@ -3,8 +3,6 @@
 #  Author : Manuel M T Chakravarty
 #  Created: 24 July 1998 (derived from HiPar root makefile)
 #
-#  Version $Revision: 1.68 $ from $Date: 2005/05/18 03:04:02 $
-#
 #  Copyright (c) [1995..2005] Manuel M T Chakravarty
 #
 #  This file is free software; you can redistribute it and/or modify
@@ -29,9 +27,11 @@
 # ==============
 # 
 .PHONY: default
-default: all
-
-include mk/common.mk
+default:
+	echo "This is a Cabal-ised Haskell package."
+	echo "Configure, build, and install with"
+	echo "   `runhaskell Setup.hs {configure,build,install}' "
+	echo "Also see the file `INSTALL'."
 
 TMPDIR=/tmp
 
@@ -40,16 +40,15 @@ TMPDIR=/tmp
 # * need the `wildcard' in `BASEPARTSFILES', as the following `filter-out' 
 #   wouldn't work otherwise
 #
-BASEPARTSFILES=$(wildcard base/*/Makefile base/*/*.hs\
+BASEPARTSFILES=$(wildcard base/*/*.hs\
 			  base/*/tests/Makefile base/*/tests/*.hs)
-BASEFILES =AUTHORS COPYING COPYING.LIB INSTALL Makefile README README.CTKlight\
+BASEFILES =AUTHORS ChangeLog COPYING COPYING.LIB INSTALL Makefile\
+	   README README.CTKlight Setup.hs\
 	   aclocal.m4 configure configure.in config.sub config.guess\
 	   install-sh\
-	   mk/common.mk mk/config.mk.in\
-	   base/ChangeLog base/Makefile \
-	   base/base.build.conf.cabal.in base/base.build.conf.ghc-pre-6.4.in \
+	   base/ChangeLog\
+	   c2hs.cabal c2hs.spec\
 	   base/TODO\
-	   $(filter-out %/SysDep.hs %/SysDepPosix.hs, $(BASEPARTSFILES))\
 	   doc/base/Makefile doc/base/base.tex doc/base/base.bib
 CTKLFILES =AUTHORS COPYING.LIB README.CTKlight\
 	   base/admin/BaseVersion.hs\
@@ -65,15 +64,32 @@ CTKLFILES =AUTHORS COPYING.LIB README.CTKlight\
 	   base/syntax/Lexers.hs\
 	   base/syntax/Parsers.hs\
 	   base/syntax/Pretty.hs
+C2HSFILES =doc/c2hs/Makefile doc/c2hs/c2hs.sgml doc/c2hs/man1/*.in\
+	   doc/c2hs/lib\
+	   $(addprefix c2hs/c/,tests/*.hs tests/*.i *.hs)\
+	   $(addprefix c2hs/chs/,*.hs)\
+	   $(addprefix c2hs/gen/,*.hs)\
+	   $(addprefix c2hs/state/,*.hs)\
+	   $(addprefix c2hs/toplevel/,C2HSConfig.hs.in Main.hs\
+				      Version.hs c2hs_config.c c2hs_config.h)\
+	   $(addprefix c2hs/tests/,Makefile *.chs *.h *.c)\
+	   $(filter-out %/C2HSConfig.hs %/CError.hs %/NewStablePtr.hs\
+			%/NewStorable.hs,\
+	     $(wildcard $(addprefix c2hs/lib/,Makefile *.hs *.in)))
+# FIXME: not including examples/ currently; the example has to be fixed and we
+#	 need more/others
 
-# file that contain a `versnum = "x.y.z"' line
+# Files containing version information
 #
-BASEVERSFILE =base/admin/BaseVersion.hs
+BASEVERSFILE= base/admin/BaseVersion.hs
+CABALCONF   = c2hs.cabal
 
 # this is far from elegant, but works for extracting the plain version number
 #
 BASEVERSION =$(shell $(GREP) '^versnum' $(BASEVERSFILE)\
 		     | sed '-e s/versnum.* "//' '-e s/"//')
+C2HSVERSION =$(shell $(GREP) '^Version' $(CABALCONF)\
+		     | sed '-e s/Version:[[ 	]]*//')
 
 # base directory for tar balls and exclude patterns
 #
@@ -81,79 +97,16 @@ TARBASE=ctk
 TAREXCL=--exclude='*CVS' --exclude='*~' --exclude='.\#*'\
 	--exclude=config.log --exclude=config.status
 
-
-# help target
-# ===========
-# 
-
-help:
-	@echo "*** Usage:"
-	@echo "***   \`make prep'       -- generate parsers and compute dependencies"
-	@echo "***   \`make base'       -- build Compiler Toolkit"
-	@echo "***   \`make <mycomp>'   -- build compiler below <mycomp>"
-	@echo "***   \`make all'        -- `prep', build, and all compilers"
-	@echo "***   \`make showconfig' -- print current configuration"
-
-
-# system configuration (has to be executed before building)
-# ====================
-#
-.PHONY: config showconfig
-
-config:
-	@echo "*** Selecting system-dependent code..."
-	$(MAKE) -C base/sysdep $(MFLAGS) $@
-	$(MAKE) -C base $(MFLAGS) $@
-	@echo "*** Configuration successfully finished."
-
-showconfig:
-	@echo "*** Current configuration:"
-	@echo "  Compiler         : $(HC)"
-	@echo "  System           : $(SYS)"
-	@echo "  Parser generator : $(HAPPY)"
-	@echo "  Mkdepend         : $(MKDEPENDHS)"
-	@echo "  Compiler packages: $(PCKS)"
-
-
-# preparations (run parser generators and compute dependencies)
-# ============
-#
-.PHONY: prep parsers depend
-
-prep: config parsers depend
-
-# Generate parsers
-#
-parsers:
-	@echo "*** Checking for the need to run a parser generator..."
-	@for pck in $(PCKS); do\
-	  $(MAKE) -C $$pck $(MFLAGS) $@;\
-	done
-
-# Compute dependcies within each package
-#
-depend:
-	@echo "*** Building dependency databases..."
-	@for pck in base $(PCKS); do\
-	  $(MAKE) -C $$pck $(MFLAGS) $@;\
-	done
-
+C2HSTARBASE=c2hs
+C2HSTAREXCL=$(TAREXCL)
 
 # building things
 # ===============
 #
-.PHONY: all build base doc
-
-all: prep build
-
-build: base $(PCKS)
-
-base:
-	$(MAKE) -C base $(MFLAGS) all
-
+.PHONY: doc
 doc:
 	@echo "*** Building documentation..."
-	@for dir in base $(PCKS); do\
+	@for dir in base c2hs; do\
 	  $(MAKE) -C doc/$$dir $(MFLAGS) all;\
 	done
 
@@ -161,14 +114,7 @@ doc:
 # installation
 # ============
 #
-.PHONY: install install-doc
-
-install:
-	@echo "*** Installing packages..."
-	@for pck in $(PCKS); do\
-	  $(MAKE) -C $$pck $(MFLAGS) $@;\
-	done
-
+.PHONY: install-doc
 install-doc:
 	@echo "*** Installing documentation..."
 	@for pck in base $(PCKS); do\
@@ -180,44 +126,21 @@ install-doc:
 # ==================
 #
 
-.PHONY: clean cleanhi spotless distclean
+.PHONY: clean spotless distclean tar tar-ctkl tar-c2hs
 
-# Remove generated objects and executables
+# Remove generated files
 #
 clean:
-	@for pck in base $(PCKS); do\
-	  $(MAKE) -C $$pck $(MFLAGS) $@;\
-	  $(MAKE) -C doc/$$pck $(MFLAGS) $@;\
-	done
-
-# Remove generated interface files
-#
-cleanhi:
-	@for pck in base $(PCKS); do\
-	  $(MAKE) -C $$pck $(MFLAGS) $@;\
-	done
+	./Setup.hs clean
 
 # Remove all traces of a build
 #
-spotless:
-	-$(RM) -rf config.cache
-
-# Remove everything that is not in the source tar
-#
-distclean: spotless
-	-$(RM) config.status config.log config.cache
-	-$(FIND) . -name \*.in | $(SED) -e 's/\.in$$//;/\/configure$$/d'\
-	         | xargs -r $(RM)
+spotless: clean
+	-$(RM) config.cache
 
 # tar various packages
 #
 TARCMD=$(TAR) -c -z $(TAREXCL) -h -f
-tar-base:
-	-ln -s . $(TARBASE)-$(BASEVERSION)
-	$(TARCMD) $(TARBASE)-$(BASEVERSION).tar.gz\
-	  $(addprefix $(TARBASE)-$(BASEVERSION)/,$(BASEFILES))
-	-$(RM) $(TARBASE)-$(BASEVERSION)
-tar-ctk: tar-base
 tar-ctkl: 
 	@[ ! -e $(TMPDIR)/ctkl-$(BASEVERSION) ]\
 	 || (echo "Temp file $(TMPDIR)/ctkl-$(BASEVERSION) already exsits."\
@@ -227,3 +150,11 @@ tar-ctkl:
 	cd $(TMPDIR); $(TARCMD) $(shell pwd)/ctkl-$(BASEVERSION)-src.tar.gz\
 	  ctkl-$(BASEVERSION)
 	$(RM) -r $(TMPDIR)/ctkl-$(BASEVERSION)
+
+C2HSTARCMD=$(TAR) -c -z $(C2HSTAREXCL) -h -f
+tar:
+tar-c2hs:
+	-ln -s . $(C2HSTARBASE)-$(C2HSVERSION)
+	$(C2HSTARCMD) $(C2HSTARBASE)-$(C2HSVERSION).tar.gz\
+	  $(addprefix $(C2HSTARBASE)-$(C2HSVERSION)/,$(BASEFILES) $(C2HSFILES))
+	-$(RM) $(C2HSTARBASE)-$(C2HSVERSION)
