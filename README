@@ -13,7 +13,7 @@ information is at
 
   http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
 
-Also see the tutorial in `../doc/c2hs/'.
+Also see the tutorial in `doc/c2hs/'.
 
 
 Contents:
@@ -21,21 +21,27 @@ Contents:
   AUTHORS	-- Author information
   COPYING	-- GNU General Public License (GPL)
   ChangeLog	-- Change history
+  INSTALL	-- Help on installing this package
   Makefile      -- Package makefile
   README	-- This file
+  Setup.hs	-- Cabal build script
   TODO		-- Open problems, bugs, and ideas for future extensions
   aclocal.m4	-- Autoconf macros
+  base		-- Compiler Toolkit sources
   c		-- Frontend for parsing and analying C header files
+  c2hs		-- Main program sources
+  c2hs.cabal	-- Cabal package specification
+  c2hs.spec	-- RPM build specification
   chs		-- Frontend for parsing and analying Haskell binding modules
   configure	-- Platform-independent configuration file
   configure.in	-- Autoconf input used to produce `configure'
-  examples	-- Examples library bindings
+  doc		-- Documentation
   gen		-- Routines for the Haskell interface generation
+  install-sh	-- Auxiliary shell script required by `configure'
   lib		-- Library used by generated bindings
   state		-- State management
   test		-- Small test cases
   toplevel	-- Compilation driver
-  mk		-- Common makefiles
 
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-= INSTALLING =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -70,23 +76,4 @@ NOTE: HOWEVER, all runtime system code - ie, code required by the output
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- CREDITS -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
-
-with contributions from (alphabetical order)
-
-Ian Lynagh		 <igloo@earth.li>
-André Pang		 <ozone@algorithm.com.au>
-Jens-Ulrik Petersen	 <petersen@haskell.org>
-Armin Sander		 <armin@mindwalker.org>
-Sean Seefried		 <sseefried@cse.unsw.edu.au>
-Axel Simon               <A.Simon@ukc.ac.uk>
-Michael Weber		 <michaelw@debian.org>
-
-Thanks for comments and suggestions to 
-
-Jan Kort		 <kort@science.uva.nl>
-Seth Kurtzberg		 <seth@cql.com>
-Simon Marlow		 <simonmar@microsoft.com>
-Matthias Neubauer	 <neubauer@informatik.uni-freiburg.de>
-Sven Panne		 <Sven.Panne@informatik.uni-muenchen.de>
-Volker Wysk		 <post@volker-wysk.de>
+See the file `AUTHORS'.
