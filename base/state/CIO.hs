@@ -5,7 +5,7 @@
 --
 --  Version $Revision: 1.29 $ from $Date: 2003/02/12 09:38:35 $
 --
---  Copyright (c) [1995...2003] Manuel M T Chakravarty
+--  Copyright (c) [1995...2005] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -65,10 +65,6 @@ module CIO (-- (verbatim) re-exports
 	    --
 	    ExitCode(..), exitWithCIO, getArgsCIO, getProgNameCIO, systemCIO,
 	    --
-	    -- Posix-based stuff
-	    --
-	    ProcessID, runPipedCIO,
-	    --
 	    -- CTK general stuff
 	    --
 	    fileFindInCIO, mktempCIO)
@@ -80,7 +76,6 @@ import System
 
 import FileOps	 (fileFindIn, mktemp)
 import StateBase (PreCST, liftIO)
-import SysDep    (ProcessID, runPiped)
 
 
 -- file handling
@@ -162,28 +157,6 @@ getProgNameCIO  = liftIO getProgName
 
 systemCIO :: String -> PreCST e s ExitCode
 systemCIO  = liftIO . system
-
-
--- Posix stuff
--- -----------
-
--- run the given command in a child process whose stdin and stdout are
--- connected with pipes to the current processes (EXPORTED)
---
--- * the command is executed via a `/bin/sh -c' and receives the given
---   arguments and environment
--- * a working directory for the sub process may be specified
--- * the child's PID is returned together with a pipe from the child's stdout
---   and another pipe to the child's stdin
---
-runPipedCIO :: FilePath			         -- command
-            -> [String]			         -- arguments
-            -> Maybe [(String, String)]	         -- environment
-            -> Maybe FilePath		         -- working directory    
-            -> PreCST e s (ProcessID,		 -- child PID
-			   Handle,		 -- output from child
-			   Handle)		 -- input to child
-runPipedCIO fname args env wd = liftIO (runPiped fname args env wd)
 
 
 -- general IO routines defined in CTK

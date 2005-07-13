@@ -76,22 +76,25 @@ module StateTrans (-- the monad and the generic operations
 		   --
 		   -- mutable variables and arrays
 		   --
-		   MVar, newMV, readMV, assignMV, 
-		   MArr, newMA, readMA, writeMA, boundsMA)
+		   MVar, newMV, readMV, assignMV)
+		   -- Not used in c2hs:
+		   -- MArr, newMA, readMA, writeMA, boundsMA)
 where
 
-import Ix     (Ix)
-import Monad  (liftM)
-import SysDep (ioError,
-	       fixIO,
-	       --
-	       -- mutable variables and arrays (in IO)
-	       --
-	       IORef, newIORef, readIORef, writeIORef,
-	       IOArray, newIOArray, boundsIOArray, readIOArray,
-	       writeIOArray)
+-- standard libraries
+import Ix         (Ix)
+import Monad      (liftM)
+import System.IO  (fixIO)
+import Data.IORef (IORef, newIORef, readIORef, writeIORef)
+{-
+import IOExts (IOArray, newIOArray, boundsIOArray, readIOArray,
+		      writeIOArray)
+ -}
+
+-- CTK libraries
 import Common (assert)
 import Errors (interr)
+
 
 infixr 1 +>=, +>
 
@@ -355,7 +358,7 @@ fatalsHandledBy m handler  =
 -- ------------------------------------------------------------------
 
 type MVar a   = IORef a
-type MArr i a = IOArray i a
+-- type MArr i a = IOArray i a  -- not used in c2hs
 
 newMV   :: a -> STB bs gs (MVar a)
 newMV x  = liftIO (newIORef x)
@@ -366,6 +369,7 @@ readMV mv  = liftIO (readIORef mv)
 assignMV      :: MVar a -> a -> STB bs gs ()
 assignMV mv x  = liftIO (writeIORef mv x)
 
+{- not used in c2hs:
 newMA        :: Ix i => (i, i) -> a -> STB bs gs (MArr i a)
 newMA bnds x  = liftIO (newIOArray bnds x)
 
@@ -377,3 +381,4 @@ readMA ma i  = liftIO (readIOArray ma i)
 
 writeMA        :: Ix i => MArr i a -> i -> a -> STB bs gs ()
 writeMA ma i x  = liftIO (writeIOArray ma i x)
+ -}

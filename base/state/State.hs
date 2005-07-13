@@ -43,9 +43,9 @@ module State (-- the PreCST monad
 	      nop, yield, (+>=), (+>), fixCST,             -- reexport
 	      throwExc, fatal, catchExc, fatalsHandledBy,  -- reexport lifted
 	      readCST, writeCST, transCST, run, runCST, 
-	      StateTrans.MVar, StateTrans.MArr,		   -- reexport
-	      newMV, readMV, assignMV, newMA, readMA,	   -- reexport lifted
-	      writeMA, StateTrans.boundsMA,		   -- reexport lifted
+	      StateTrans.MVar, {-StateTrans.MArr, -}		   -- reexport
+	      newMV, readMV, assignMV, {-newMA, readMA,	   -- reexport lifted
+	      writeMA, StateTrans.boundsMA, -}		   -- reexport lifted
 	      --
 	      -- reexport compiler I/O
 	      --
@@ -83,8 +83,8 @@ import StateTrans  (STB,
 		    readBase, transBase, runSTB)
 import qualified
        StateTrans  (interleave, throwExc, fatal, catchExc, fatalsHandledBy, 
-		    MVar, MArr,
-		    newMV, readMV, assignMV, newMA, readMA, writeMA, boundsMA)
+		    MVar, {-MArr,-}
+		    newMV, readMV, assignMV{-, newMA, readMA, writeMA, boundsMA-})
 import StateBase   (PreCST(..), ErrorState(..), BaseState(..),
 		    nop, yield, (+>=), (+>), fixCST,
 		    unpackCST, readCST, writeCST, transCST,
@@ -199,6 +199,7 @@ readMV  = CST . StateTrans.readMV
 assignMV     :: StateTrans.MVar a -> a -> PreCST e s ()
 assignMV m a  = CST $ StateTrans.assignMV m a
 
+{- not used in c2hs:
 newMA     :: Ix i => (i, i) -> a -> PreCST e s (StateTrans.MArr i a)
 newMA b a  = CST $ StateTrans.newMA b a
 
@@ -207,6 +208,7 @@ readMA  m i  = CST $ StateTrans.readMA m i
 
 writeMA       :: Ix i => StateTrans.MArr i a -> i -> a -> PreCST e s ()
 writeMA m i a  = CST $ StateTrans.writeMA m i a
+ -}
 
 
 -- read identification

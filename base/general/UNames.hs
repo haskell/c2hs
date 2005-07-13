@@ -55,7 +55,8 @@ module UNames (NameSupply, Name,
 where
 
 import Ix
-import SysDep (IORef, unsafeNewIntRef, unsafeReadAndIncIntRef)
+import System.IO.Unsafe (unsafePerformIO)
+import Data.IORef       (IORef, newIORef, readIORef, writeIORef)
 
 
 -- Name supply definition (EXPORTED ABSTRACTLY)
@@ -110,3 +111,28 @@ names (NameSupply s)  =
   theNames s
   where
     theNames s = Name (unsafeReadAndIncIntRef s) : theNames s
+
+
+-- UNSAFE mutable variables
+-- ------------------------
+
+-- WARNING: The following does not exist, or at least, it belongs to another
+--	    world.  And if you believe into the lambda calculus, you don't
+--	    want to know about this other world.
+--
+--		   *** DON'T TOUCH NOR USE THIS STUFF *** 
+--              (unless you really know what you are doing!)
+
+-- UNSAFELY create a mutable integer (EXPORTED)
+--
+unsafeNewIntRef   :: Int -> IORef Int
+unsafeNewIntRef i  = unsafePerformIO (newIORef i)
+
+-- UNSAFELY increment a mutable integer and yield its value before the
+-- increment (EXPORTED)
+--
+unsafeReadAndIncIntRef    :: IORef Int -> Int
+unsafeReadAndIncIntRef mv  = unsafePerformIO $ do
+			       v <- readIORef mv
+			       writeIORef mv (v + 1)
+			       return v

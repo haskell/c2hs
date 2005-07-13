@@ -38,7 +38,6 @@ import IO	 (Handle, IOMode(..), openFile)
 import Monad	 (liftM)
 import Random    (newStdGen, randomRs)
 
-import SysDep	 (ioError)
 import FNameOps  (dirname, stripDirname, addPath)
 
 
