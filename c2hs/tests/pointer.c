@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "pointer.h"
 
 string concat (string str1, string str2)

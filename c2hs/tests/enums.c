@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "enums.h"
 
 enum colour colourOfSide (side aside)

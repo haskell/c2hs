@@ -1,7 +1,7 @@
 HC=ghc
 
 HCFLAGS= -ffi
-C2HS   = ../c2hs-inplace --copy-library
+C2HS   = ../c2hs-inplace
 
 PRGMS = simple calls enums pointer structs marsh cpp
 
@@ -9,39 +9,44 @@ default: tests
 
 # builds
 
-simple: Simple.chs simple.h simple.c
+C2HS.o: ../lib/C2HS.hs
+	$(C2HS) --copy-library
+	$(HC) -c C2HS.hs
+
+simple: C2HS.o Simple.chs simple.h simple.c
 	$(C2HS) simple.h Simple.chs
 	$(HC) -c -o Simple.o Simple.hs $(HCFLAGS)
 	$(CC) -c simple.c
-	$(HC) -o simple simple.o Simple.o
+	$(HC) -o simple simple.o Simple.o C2HS.o
 
-calls: Calls.chs calls.h
+calls: C2HS.o Calls.chs calls.h
 	$(C2HS) calls.h Calls.chs
 	$(HC) -c -o Calls.o Calls.hs -#include\"calls.h\" $(HCFLAGS)
 
-enums: Enums.chs enums.h
+enums: C2HS.o Enums.chs enums.h
 	$(C2HS) enums.h Enums.chs
 	$(CC) -c enums.c
-	$(HC) -o enums enums.o Enums.hs -#include\"enums.h\" $(HCFLAGS)
+	$(HC) -o enums enums.o Enums.hs -#include\"enums.h\" $(HCFLAGS) C2HS.o
 
-pointer: Pointer.chs pointer.h pointer.c
+pointer: C2HS.o Pointer.chs pointer.h pointer.c
 	$(C2HS) pointer.h Pointer.chs
 	$(CC) -c pointer.c
-	$(HC) -o pointer pointer.o Pointer.hs -#include\"pointer.h\" $(HCFLAGS)
+	$(HC) -o pointer pointer.o Pointer.hs -#include\"pointer.h\"\
+	  $(HCFLAGS) C2HS.o
 
-structs: Structs.chs structs.h structs.c
+structs: C2HS.o Structs.chs structs.h structs.c
 	$(C2HS) structs.h Structs.chs
 	$(HC) -c -o Structs.o Structs.hs -#include\"structs.h\" $(HCFLAGS)
 	$(CC) -c structs.c
-	$(HC) -o structs structs.o Structs.o $(HCFLAGS)
+	$(HC) -o structs structs.o Structs.o $(HCFLAGS) C2HS.o
 
-marsh: Marsh.chs marsh.h
+marsh: C2HS.o Marsh.chs marsh.h
 	$(C2HS) marsh.h Marsh.chs
-	$(HC) -o marsh Marsh.hs -#include\"marsh.h\" $(HCFLAGS)
+	$(HC) -o marsh Marsh.hs -#include\"marsh.h\" $(HCFLAGS) C2HS.o
 
-cpp: Cpp.chs cpp.h
+cpp: C2HS.o Cpp.chs cpp.h
 	$(C2HS) Cpp.chs
-	$(HC) -c -o Cpp.o Cpp.hs -#include\"Cpp.h\" $(HCFLAGS)
+	$(HC) -c -o Cpp.o Cpp.hs -#include\"Cpp.h\" $(HCFLAGS) C2HS.o
 
 # runs
 

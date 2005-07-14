@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "structs.h"
 
 point make_point (int x, int y)
