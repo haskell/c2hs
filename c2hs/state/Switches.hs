@@ -32,9 +32,6 @@
 --
 --  * The cpp filename gives the name of the executable of the C preprocessor.
 --
---  * The `hpaths' switch lists all directories that should be considered when
---    searching for a header file.
---
 --  * The `keep' flag says whether the intermediate file produced by the C
 --    pre-processor should be retained or not.
 --
@@ -65,15 +62,13 @@ module Switches (
 data SwitchBoard = SwitchBoard {
 		     cppOptsSB :: String,	-- cpp options
 		     cppSB     :: FilePath,	-- cpp executable
-		     hpathsSB  :: [FilePath],	-- header file directories
-		       -- since 0.11.1 `hpathsSB' isn't really needed anymore..
-		       -- ..remove from 0.12 series
+		     dataSB    :: FilePath,	-- data directory
 		     keepSB    :: Bool,		-- keep intermediate file
+		     librarySB :: Bool,		-- copy library in
 		     tracesSB  :: Traces,	-- trace flags
 		     outputSB  :: FilePath,	-- basename of generated files
 		     outDirSB  :: FilePath,	-- dir where generated files go
 		     headerSB  :: FilePath,	-- generated header file
-		     oldFFI    :: Bool,		-- GHC 4.XX compatible code
 		     chiPathSB :: [FilePath]	-- .chi file directories
 		   }
 
@@ -83,13 +78,13 @@ initialSwitchBoard :: SwitchBoard
 initialSwitchBoard  = SwitchBoard {
 			cppOptsSB = "",
 			cppSB     = "cpp",
-			hpathsSB  = [],
+			dataSB	  = "",
 			keepSB	  = False,
+			librarySB = False,
 		        tracesSB  = initialTraces,
 			outputSB  = "",
 			outDirSB  = "",
 			headerSB  = "",
-			oldFFI	  = False,
 			chiPathSB = ["."]
 		      }
 

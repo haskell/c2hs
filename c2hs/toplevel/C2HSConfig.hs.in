@@ -31,7 +31,7 @@ module C2HSConfig (
   --
   -- programs and paths
   --
-  cpp, cppopts, hpaths, dlsuffix, tmpdir,
+  cpp, cppopts, datadir, libfname, hpaths, dlsuffix, tmpdir,
   --
   -- Some FFI stuff for legacy reasons
   --
@@ -52,12 +52,12 @@ import CForeign (CInt)
 -- program settings
 -- ----------------
 
--- C preprocessor executable (EXPORTED)
+-- |C preprocessor executable
 --
 cpp :: FilePath
 cpp  = "@CPP@"
 
--- C preprocessor options (EXPORTED)
+-- |C preprocessor options
 --
 -- * `-x c' forces CPP to regard the input as C code; this option seems to be
 --   understood at least on Linux, FreeBSD, and Solaris and seems to make a
@@ -68,7 +68,17 @@ cpp  = "@CPP@"
 cppopts :: String
 cppopts  = "-x c"
 
--- standard system search paths for header files (EXPORTED)
+-- |Default data directory
+--
+datadir :: FilePath
+datadir  = "/usr/share/c2hs"
+
+-- |C2HS Library file name
+--
+libfname :: FilePath
+libfname  = "C2HS.hs"
+
+-- |Standard system search paths for header files
 --
 hpaths :: [FilePath]
 hpaths  = [".", "/usr/include", "/usr/local/include"]
@@ -78,7 +88,7 @@ hpaths  = [".", "/usr/include", "/usr/local/include"]
 dlsuffix :: String
 dlsuffix  = ""  -- !!!TODO: remove all references
 
--- possibly system-dependent location for temporary files
+-- |Possibly system-dependent location for temporary files
 --
 tmpdir :: String
 tmpdir = "@TMPDIR@"

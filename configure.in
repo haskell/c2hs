@@ -23,6 +23,9 @@ dnl ######################################################################
 dnl Initialise.
 AC_INIT(c2hs/toplevel/Main.hs)
 
+dnl Get toplevel directory.
+TOP=`pwd`
+
 dnl Check for OS and set temporary directory.
 TMPDIR="/tmp"
 AC_CYGWIN
@@ -46,6 +49,7 @@ C2HS_COPYRIGHT=`$GREP '^Copyright:' c2hs.cabal \
 	  | $SED '-e s/Copyright:[[ 	]]*//'`
 
 dnl Needed substitutions.
+AC_SUBST(TOP)
 AC_SUBST(C2HS_VERSION)
 AC_SUBST(C2HS_NICK)
 AC_SUBST(C2HS_DATE)
@@ -56,4 +60,5 @@ dnl write the results...
 AC_OUTPUT([
   c2hs/toplevel/Version.hs
   c2hs/toplevel/C2HSConfig.hs
-])
+  c2hs/c2hs-inplace
+], [chmod +x c2hs/c2hs-inplace])

@@ -1,11 +1,6 @@
---  C -> Haskell Compiler: main module
+--  C->Haskell Compiler: main module
 --
---  Author : Manuel M T Chakravarty
---  Derived: 12 August 99
---
---  Version $Revision: 1.21 $ from $Date: 2005/05/17 08:03:27 $
---
---  Copyright (c) [1999..2004] Manuel M T Chakravarty
+--  Copyright (c) [1999..2005] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -17,16 +12,12 @@
 --  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 --  GNU General Public License for more details.
 --
---- DESCRIPTION ---------------------------------------------------------------
+--- Description ---------------------------------------------------------------
+--
+--  Language: Haskell 98
 --
 --  This is the main module of the compiler.  It sets the version, processes
 --  the command line arguments, and controls the compilation process.
---
---  Originally, derived from `Main.hs' of the Nepal Compiler.
---
---- DOCU ----------------------------------------------------------------------
---
---  language: Haskell 98
 --
 --  Usage:
 --  ------
@@ -62,6 +53,9 @@
 --
 --        In the case of repeated occurences, the last takes effect.
 --
+--  --data=DIR
+--        Directory of data files.  (Usually only used by the wrapper script.)
+--
 --  -d TYPE
 --  --dump=TYPE
 --        Dump intermediate representation:
@@ -85,6 +79,11 @@
 --  --keep
 --        Keep the intermediate file that contains the pre-processed C header
 --        (it carries the suffix `.i').
+--
+--  -l
+--  --copy-library
+--        Copies the library module `C2HS' into the same directory where the
+--        generated code from the binding file is placed.
 --
 --  -o FILE
 --  --output=FILE
@@ -110,12 +109,6 @@
 --        Print (on standard error output) the version and copyright
 --	  information of the compiler (before doing anything else).
 --
---
---  --old-ffi [=yes|=no]
---	  Generate hooks using pre-standard FFI libraries.  This currently
---	  affects only call hooks where instead of `Addr' types 
---	  `Ptr <someOtherType>' is used.
---
 --- TODO ----------------------------------------------------------------------
 --
 
@@ -129,8 +122,8 @@ import Monad      (when, unless, mapM)
 
 -- base libraries
 import Common     (errorCodeFatal)
-import System.Console.GetOpt     (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo,
-		   getOpt)
+import System.Console.GetOpt     
+		  (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo, getOpt)
 import FNameOps   (suffix, basename, dirname, stripSuffix, addPath)
 import Errors	  (interr)
 
@@ -140,6 +133,7 @@ import C2HSState  (CST, nop, runC2HS, fatal, fatalsHandledBy, getId,
 		   hPutStrLnCIO, exitWithCIO, getArgsCIO, getProgNameCIO,
 		   ioeGetErrorString, ioeGetFileName, removeFileCIO,
 		   systemCIO, fileFindInCIO, mktempCIO, openFileCIO, hCloseCIO,
+		   readFileCIO, writeFileCIO,
 		   SwitchBoard(..), Traces(..), setTraces,
 		   traceSet, setSwitch, getSwitch, putTraceStr)
 import C	  (AttrC, hsuffix, isuffix, loadAttrC)
@@ -147,7 +141,7 @@ import CHS	  (CHSModule, loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
 import GenHeader  (genHeader)
 import GenBind	  (expandHooks)
 import Version    (version, copyright, disclaimer)
-import C2HSConfig (cpp, cppopts, hpaths, tmpdir)
+import C2HSConfig (cpp, cppopts, datadir, libfname, tmpdir)
 
 
 -- wrapper running the compiler
@@ -183,9 +177,11 @@ errTrailer = "Try the option `--help' on its own for more information.\n"
 --
 data Flag = CPPOpts String      -- additional options for C preprocessor
 	  | CPP     String      -- program name of C preprocessor
+	  | Data    String      -- Data directory
 	  | Dump    DumpType    -- dump internal information
 	  | Help	        -- print brief usage information
 	  | Keep	        -- keep the .i file
+	  | Library	        -- copy library module `C2HS'
 	  | Include String	-- list of directories to search .chi files
 	  | Output  String      -- file where the generated file should go
 	  | OutDir  String      -- directory where generates files should go
@@ -211,6 +207,10 @@ options  = [
 	 ["cpp"] 
 	 (ReqArg CPP "CPP") 
 	 "use executable CPP to invoke C preprocessor",
+  Option [] 
+	 ["data"] 
+	 (ReqArg Data "DIR") 
+	 "data directory (set by wrapper script)",
   Option ['d'] 
 	 ["dump"] 
 	 (ReqArg dumpArg "TYPE") 
@@ -227,6 +227,10 @@ options  = [
 	 ["keep"] 
 	 (NoArg Keep) 
 	 "keep pre-processed C header",
+  Option ['l'] 
+	 ["copy-library"] 
+	 (NoArg Library) 
+	 "copy `C2HS' library module in",
   Option ['o'] 
 	 ["output"] 
 	 (ReqArg Output "FILE") 
@@ -260,13 +264,29 @@ compile  =
     setup
     cmdLine <- getArgsCIO
     case getOpt RequireOrder options cmdLine of
-      ([Help]   , []  , []) -> doExecute [Help]    []
-      ([Version], []  , []) -> doExecute [Version] []
       (opts     , args, []) 
+        | noCompOpts opts &&
+	  null args       -> doExecute opts []
         | properArgs args -> doExecute opts args
         | otherwise       -> raiseErrs [wrongNoOfArgsErr]
       (_   , _   , errs)  -> raiseErrs errs
   where
+    -- These options can be used without specifying a binding module.  Then,
+    -- the corresponding action is executed without any compilation to take
+    -- place.  (There can be --data and --output-dir (-t) options in addition
+    -- to the action.)
+    --
+    aloneOptions = [Help, Version, Library]
+    --
+    noCompOpts opts = let nonDataOpts = filter nonDataOrDir opts
+		      in
+		      (not . null) nonDataOpts &&
+		      all (`elem` aloneOptions) nonDataOpts
+      where
+        nonDataOrDir (Data   _) = False
+        nonDataOrDir (OutDir _) = False
+	nonDataOrDir _	        = True
+    --
     properArgs [bnd]         = suffix bnd == chssuffix 
     properArgs [header, bnd] = suffix header == hsuffix 
 			       && suffix bnd == chssuffix 
@@ -297,8 +317,8 @@ compile  =
 setup :: CST s ()
 setup  = do
 	   setCPP     cpp
+	   setData    datadir
 	   addCPPOpts cppopts
-	   addHPaths  hpaths
 
 -- output error message
 --
@@ -325,22 +345,28 @@ execute opts args | Help `elem` opts = help
     let vs      = filter (== Version) opts
 	opts'   = filter (/= Version) opts
     mapM_ processOpt (atMostOne vs ++ opts')
-    when (length args `elem` [1, 2]) $
-      let (headerFile, bndFile) = case args of
-				    [       bfile] -> (""   , bfile)
-				    [hfile, bfile] -> (hfile, bfile)
-          bndFileWithoutSuffix  = stripSuffix bndFile
-      in do
-      computeOutputName bndFileWithoutSuffix
-      process headerFile bndFileWithoutSuffix
-	`fatalsHandledBy` 
-	  \ioerr -> do
-		      name <- getProgNameCIO
-		      putStrCIO $
-		        name ++ ": " ++ ioeGetErrorString ioerr ++ "\n"
-		      exitWithCIO $ ExitFailure 1
+    if length args > 0 
+      then
+	let (headerFile, bndFile) = case args of
+				      [       bfile] -> (""   , bfile)
+				      [hfile, bfile] -> (hfile, bfile)
+	    bndFileWithoutSuffix  = stripSuffix bndFile
+	in do
+	computeOutputName bndFileWithoutSuffix
+	process headerFile bndFileWithoutSuffix
+	  `fatalsHandledBy` die
+      else
+	computeOutputName "."	-- we need the output name for library copying
+    copyLibrary
+      `fatalsHandledBy` die
   where
     atMostOne = (foldl (\_ x -> [x]) [])
+    --
+    die ioerr = 
+      do
+        name <- getProgNameCIO
+	putStrCIO $ name ++ ": " ++ ioeGetErrorString ioerr ++ "\n"
+	exitWithCIO $ ExitFailure 1
 
 -- emit help message
 --
@@ -357,8 +383,10 @@ help  = do
 processOpt                   :: Flag -> CST s ()
 processOpt (CPPOpts cppopts)  = addCPPOpts cppopts
 processOpt (CPP     cpp    )  = setCPP     cpp
+processOpt (Data    dir    )  = setData    dir
 processOpt (Dump    dt     )  = setDump    dt
 processOpt (Keep           )  = setKeep
+processOpt (Library        )  = setLibrary
 processOpt (Include dirs   )  = setInclude dirs
 processOpt (Output  fname  )  = setOutput  fname
 processOpt (OutDir  fname  )  = setOutDir  fname
@@ -395,20 +423,28 @@ computeOutputName bndFileNoSuffix =
 			 outDirSB = dir
 		       }
 
+-- Copy the C2HS library if requested
+--
+copyLibrary =
+  do
+    outdir  <- getSwitch outDirSB
+    library <- getSwitch librarySB
+    datadir <- getSwitch dataSB
+    let libFullName = datadir `addPath` libfname
+	libDestName = outdir  `addPath` libfname
+    when library $
+      readFileCIO libFullName >>= writeFileCIO libDestName
+
 
 -- set switches
 -- ------------
 
 -- set the options for the C proprocessor
 --
--- * any header search path that is set with `-IDIR' is also added to
---   `hpathsSB'
---
 addCPPOpts      :: String -> CST s ()
 addCPPOpts opts  = 
   do
     let iopts = [opt | opt <- words opts, "-I" `isPrefixOf` opt, "-I-" /= opt]
-    addHPaths . map (drop 2) $ iopts
     addOpts opts
   where
     addOpts opts  = setSwitch $ 
@@ -419,10 +455,10 @@ addCPPOpts opts  =
 setCPP       :: FilePath -> CST s ()
 setCPP fname  = setSwitch $ \sb -> sb {cppSB = fname}
 
--- add header file search paths
+-- set the data directory
 --
-addHPaths       :: [FilePath] -> CST s ()
-addHPaths paths  = setSwitch $ \sb -> sb {hpathsSB = paths ++ hpathsSB sb}
+setData :: FilePath -> CST s ()
+setData dir = setSwitch $ \sb -> sb {dataSB = dir}
 
 -- set the given dump option
 --
@@ -436,6 +472,11 @@ setDump CHS      = setTraces $ \ts -> ts {dumpCHSSW	 = True}
 --
 setKeep :: CST s ()
 setKeep  = setSwitch $ \sb -> sb {keepSB = True}
+
+-- set flag to copy library module in
+--
+setLibrary :: CST s ()
+setLibrary  = setSwitch $ \sb -> sb {librarySB = True}
 
 -- set the search directories for .chi files
 --

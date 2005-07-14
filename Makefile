@@ -28,10 +28,10 @@
 # 
 .PHONY: default
 default:
-	echo "This is a Cabal-ised Haskell package."
-	echo "Configure, build, and install with"
-	echo "   `runhaskell Setup.hs {configure,build,install}' "
-	echo "Also see the file `INSTALL'."
+	@echo "This is a Cabal-ised Haskell package. \
+	      Configure, build, and install with"
+	@echo "  \`runhaskell Setup.hs {configure,build,install}' "
+	@echo "Also see the file \`INSTALL'."
 
 TMPDIR=/tmp
 
@@ -66,6 +66,7 @@ CTKLFILES =AUTHORS COPYING.LIB README.CTKlight\
 	   base/syntax/Pretty.hs
 C2HSFILES =doc/c2hs/Makefile doc/c2hs/c2hs.sgml doc/c2hs/man1/*.in\
 	   doc/c2hs/lib\
+	   c2hs/c2hs-inplace.in\
 	   $(addprefix c2hs/c/,tests/*.hs tests/*.i *.hs)\
 	   $(addprefix c2hs/chs/,*.hs)\
 	   $(addprefix c2hs/gen/,*.hs)\

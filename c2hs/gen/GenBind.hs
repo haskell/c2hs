@@ -1,10 +1,5 @@
 --  C->Haskell Compiler: binding generator
 --
---  Author : Manuel M T Chakravarty
---  Created: 17 August 99
---
---  Version $Revision: 1.54 $ from $Date: 2005/03/14 00:26:58 $
---
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
@@ -17,13 +12,11 @@
 --  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 --  GNU General Public License for more details.
 --
---- DESCRIPTION ---------------------------------------------------------------
+--- Description ---------------------------------------------------------------
+--
+--  Language: Haskell 98
 --
 --  Module implementing the expansion of the binding hooks.
---
---- DOCU ----------------------------------------------------------------------
---
---  language: Haskell 98
 --
 --  * If there is an error in one binding hook, it is skipped and the next one 
 --    is processed (to collect as many errors as possible).  However, if at
@@ -91,7 +84,7 @@
 --  another identifier casts a shadow that matches.  If so, that identifier is
 --  taken instead of the original one.
 --
---- TODO ----------------------------------------------------------------------
+--- ToDo ----------------------------------------------------------------------
 --
 --  * A function prototype that uses a defined type on its left hand side may
 --    declare a function, while that is not obvious from the declaration
@@ -1075,10 +1068,7 @@ pointerDef :: Bool		-- explicit `*' in pointer hook
 	   -> GB String
 pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun =
   do
-    keepOld <- getSwitch oldFFI
-    let ptrArg  = if keepOld 
-		  then "()"		-- legacy FFI interface
-		  else if isNewtype 
+    let ptrArg  = if isNewtype 
 		  then hsName		-- abstract type
 		  else hsType		-- concrete type
         ptrCon  = case ptrKind of
@@ -1415,14 +1405,8 @@ extractCompType isResult cdecl@(CDecl specs declrs ats)  =
     ptrAlias (repr1, repr2) = 
       returnX $ DefinedET cdecl (if isResult then repr2 else repr1)
     --
-    -- wrap an `ExtType' into a `CompType' and convert parametrised pointers
-    -- to `Addr' if needed
+    -- wrap an `ExtType' into a `CompType'
     --
-    returnX retval@(PtrET et) = do
-				  keepOld <- getSwitch oldFFI
-				  if keepOld 
-				    then return $ ExtType (PrimET CPtrPT)
-				    else return $ ExtType retval
     returnX retval            = return $ ExtType retval
     --
     tracePtrType = traceGenBind $ "extractCompType: explicit pointer type\n"
