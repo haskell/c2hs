@@ -71,7 +71,7 @@ cppopts  = "-x c"
 -- |Default data directory
 --
 datadir :: FilePath
-datadir  = "/usr/share/c2hs"
+datadir  = "/usr/lib/c2hs"
 
 -- |C2HS Library file name
 --

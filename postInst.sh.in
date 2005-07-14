@@ -1,0 +1,14 @@
+#!/bin/sh
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+libdir=@libdir@/c2hs-@C2HS_VERSION@
+
+echo "Moving executable into $libdir/"
+/bin/sh install-sh -d $libdir
+/bin/sh install-sh -s -m 755 $bindir/c2hs $libdir/
+
+echo "Installing wrapper and C2HS.hs"
+/bin/sh install-sh -c -m 755 c2hs/c2hs $bindir/
+/bin/sh install-sh -c -m 644 c2hs/lib/C2HS.hs $libdir/

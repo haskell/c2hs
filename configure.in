@@ -1,5 +1,5 @@
 dnl C->Haskell
-dnl Copyright (c) [1999..2005] Manuel M T Chakravarty <chak@cse.unsw.edu.au>
+dnl Copyright (c) 2005 Manuel M T Chakravarty <chak@cse.unsw.edu.au>
 dnl 
 dnl This library is free software; you can redistribute it and/or
 dnl modify it under the terms of the GNU Library General Public
@@ -61,4 +61,6 @@ AC_OUTPUT([
   c2hs/toplevel/Version.hs
   c2hs/toplevel/C2HSConfig.hs
   c2hs/c2hs-inplace
-], [chmod +x c2hs/c2hs-inplace])
+  c2hs/c2hs
+  postInst.sh
+], [chmod +x c2hs/c2hs-inplace postInst.sh])
