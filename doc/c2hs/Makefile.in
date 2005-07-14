@@ -18,36 +18,29 @@
 #  GNU General Public License for more details.
 #
 #  = DOCU =====================================================================
+#
+#  * The man page isn't installed anymore as it is too much out of date.
 
-PACKAGE    = c2hs
-PCKVERSION = $(C2HSVERSION)
+INSTALL=/bin/sh ../../install-sh
+INSTALL_DATA=/bin/sh ../../install-sh -c
 
 # must be first
 #
 default: all
 
-# slurp in the common definitions (the TOP definition is not nice yet)
-#
-TOP=../..
-
-include $(TOP)/mk/config.mk $(TOP)/c2hs/mk/c2hs.pck.mk
-
-# man pages in `man1' subdirectory
-#
-MANPAGES:=$(patsubst man1/%.in,man1/%,$(wildcard man1/*.in))
-
 # install dirs
 #
-MANDIR =$(mandir)
-SGMLDIR=$(pkgdocdir)/sgml
-HTMLDIR=$(pkgdocdir)/html
-TXTDIR =$(pkgdocdir)/txt
+prefix=@prefix@
+datadir=@datadir@
+SGMLDIR=$(datadir)/doc/c2hs-@C2HS_VERSION@/sgml
+HTMLDIR=$(datadir)/doc/c2hs-@C2HS_VERSION@/html
+TXTDIR =$(datadir)/doc/c2hs-@C2HS_VERSION@/txt
 
 # build targets
 #
 
 .PHONY: all
-all: $(MANPAGES) c2hs.html c2hs.txt
+all: c2hs.html c2hs.txt
 
 c2hs.html: c2hs.sgml
 	sgml2html c2hs.sgml
@@ -55,16 +48,11 @@ c2hs.html: c2hs.sgml
 c2hs.txt: c2hs.sgml
 	sgml2txt c2hs.sgml
 
-$(MANPAGES): %: %.in
-	sed -e "s%@DOCDIR@%$(docdir)%g;\
-	        s%@VERSION@%$(C2HSVERSION)%g"\
-	    < $< > $@
-
-# install target (man pages, sgml, html & txt)
+# install target (sgml, html & txt)
 #
 
 .PHONY: install
-install:
+install: all
 	@for f in $(MANPAGES); do\
 	  echo $(INSTALL) -d `dirname $(MANDIR)/$$f`;\
 	  $(INSTALL) -d `dirname $(MANDIR)/$$f`;\
@@ -94,5 +82,4 @@ install:
 #
 .PHONY: clean
 clean:
-	-$(RM) $(MANPAGES)
 	-$(RM) *.html *.txt

@@ -15,22 +15,9 @@ Next: - Especially with function hooks, it is not sufficient to emit line
           The only sensible solution seems to be to copy the first line of the
           .chs file on top if it starts with the string "{-# OPTIONS".
 
-      - We really should integrate c2hs' lib with the generated code and not
-        require that c2hs is installed when using a program that happens to
-        include c2hs generated code.
-
       - Ian requests {#const SYM#} where SYM is a pre-preprocessor symbol to 
         evaluate to the C value of SYM.  Main problem is that the value might
         be of various C types.
-
-      - --enable-prof doesn't work at the moment.  GHC doesn't generate
-        interface files with an .p_hi suffix when -prof is given, but package
-        management seems to expect those, which breaks as soon as compilation
-        of c2hs proper needs an interface file from base/.  Besides, the
-        option as it is now doesn't make much sense anyway.  We need to
-        distinguish between building c2hs for profiling c2hs and building c2hs'
-        marshalling library to profile programs including c2hs generated
-        code.
 
       - now that our frontend can do all of C (including function bodies),
         inline C can include code and we can actually compile it and hence put
@@ -38,23 +25,11 @@ Next: - Especially with function hooks, it is not sufficient to emit line
 
       - Tutorial
 
-      - check building with latest nhc; issues with 1.14 were:
-	- problems in `Parsers' (Malcolm suggests that it might be an
-	  interaction of type classes with existential types)
-	- exports FFI libraries from `FFI' instead of `Foreign' and `CForeign'
-
-      - Bug exposed in Glade.chs where the `init' function gets the wrong name
-
       - GenBind.setGet: How is it justified that `bitsPerField' is
         fixed to the size of `CInt'?  Does the C def guarantee
 	that bitfields types are of the same size?
 
-      - check profiling; also make sure all .p_hi, .p_o etc files are removed
-        when cleaning
-
       Next Major feature to be added: structure marshalling.
-
-      - Separate CTK from C->Haskell and use new CVS repository.
 
       - the `hsverb' should be normalised with respect to white space and
         parenthesis 

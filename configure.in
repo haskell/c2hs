@@ -63,4 +63,5 @@ AC_OUTPUT([
   c2hs/c2hs-inplace
   c2hs/c2hs
   postInst.sh
+  doc/c2hs/Makefile
 ], [chmod +x c2hs/c2hs-inplace postInst.sh])

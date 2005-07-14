@@ -1,102 +1,92 @@
-Prerequisites							     -*-text-*-
+		     C->Haskell Installation Instructions	     -*-text-*-
+		     ------------------------------------
+
+Prerequisites
 ~~~~~~~~~~~~~
 
-You need a Haskell 98 compiler.  Currently, this has to be GHC 4.08 upwards or
-NHC98 1.0.  To get a Haskell compiler check
+You need a Haskell 98 compiler.  Currently, this has to be GHC 6.0 upwards,
+which you can get from
 
-  http://haskell.org/
+  http://haskell.org/ghc
+
+Moreover, you need to have at least version 1.0.1 of the Haskell packaging
+system Cabal installed.  
+
+IMPORTANT NOTE: GHC 6.04 includes Cabal 1.0, which is NOT sufficient.  You
+  need to install 1.0.1.  (Sorry, I couldn't avoid this.)
 
 I am developing and testing under GNU/Linux.  If you intend to install on a
 Solaris or Win32 machine, please see the information under the heading
 "Solaris Notes" and "Win32 Notes", respectively.
+
 
 Simple install procedure
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
   % gzip -cd <package>.tar.gz | tar xvf -  # unpack the sources
   % cd <package>			   # change to the toplevel directory
-  % ./configure				   # run the `configure' script
-  % make				   # build everything
+  % ./Setup.hs configure		   # configure the build system
+  % ./Setup.hs build			   # build everything
   [ Become root if necessary ]
-  % make install			   # install all compilers
+  % ./Setup.hs install			   # install c2hs
 
 If you are installing from darcs, please read the corresponding section below
 first.
 
+
 The Nitty-Gritty
 ~~~~~~~~~~~~~~~~
 
-The 'configure' script can be given a number of options to enable
-and disable various features. For a complete list, type:
-
-  ./configure --help
-
-A few of the more important ones:
+The './Setup.hs configure' command understands the following options:
 
 *  --prefix=PREFIX         install architecture-independent files in PREFIX
                            [ Defaults to /usr/local ]
 
-*  --exec-prefix=EPREFIX   install architecture-dependent files in EPREFIX
-                           [ Defaults to the value given to --prefix ]
-
-*  --enable-prof           enable profiling support
-
-*  --enable-add-package    resgister any generated libraries as a package with
-			   the Haskell compiler (currently, a GHC only feature)
-
-*  --with-hc=HC            use Haskell compiler HC
+*  --with-compiler=HC      use Haskell compiler HC
 
 This needs to be the full path to the compiler executable.
 
-*  --with-hcflags=HCFLAGS  specify flags for the Haskell compiler
+*  --with-happy=HAPPY      ditto for parser generator Happy
 
-*  --with-ghc-native	   use GHC native code generator (if available)
+*  --with-alex=ALEX        ditto for lexer generator Alex
 
-This option works for hardware for which GHC supports native code generation.
+*  --user                  allow the use of packages from user database
 
-*  --with-efence           link with efence malloc debugger
-
-This option is only meant for debugging.  It reduces the efficiency of the
-generated code substantially.
+*  --global                only allow packages from the global database
 
 
-Documentation of the Compiler Toolkit
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-A slightly outdated description of the Compiler Toolkit and the build process
-is contained in `doc/base/base.tex'.
+Documentation
+~~~~~~~~~~~~~
+Documentation can be formatted with
+
+  % make doc
+
+and be installed with
+
+  # make install-doc
 
 
 Supported Systems and Porting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Glasgow Haskell Compilation System, Version 4.08 upwards
+Tested with Glasgow Haskell Compilation System, Version 6.4, but should in
+principle work with any 6.x version.  The actual c2hs sources might also
+compile with nhc98, but Cabal currently doesn't fully support nhc98.
 
-All (compilation) system-dependent code is contained in `base/sysdep/', ie, by
-porting the `SysDep' module, other systems should also work.  In case of
-problems, contact <chak@cse.unsw.edu.au>.
-
-Restrictions
-~~~~~~~~~~~~
-Currently, none.
 
 Additional Instructions for Building from Darcs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you are building from darcs, you have to execute
 
-  % autoreconf
+  % autoconf
 
-in the toplevel directory before following with the instructions
-above.
+in the toplevel directory before following the build instructions above.
+
 
 Solaris Notes
 ~~~~~~~~~~~~~
-* The standard Solaris `grep' does not understand the `-e' option; please use
-  `/usr/xpg4/bin/grep'.
+None.
 
-* gmake 3.77 does not work properly; please use 3.78.1 or higher.
 
 Win32 Notes
 ~~~~~~~~~~~
-The building process uses a tool called `lndir' to construct a build tree from
-the source tree.  Unfortunately, there a different versions of this tool,
-which work in slightly different ways.  It seems that the version of `lndir'
-that is available from the X11-for-Cygwin site works best.
+You should be right as long has you have cygwin or something similar.

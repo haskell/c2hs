@@ -107,7 +107,7 @@ C2HSTAREXCL=$(TAREXCL)
 .PHONY: doc
 doc:
 	@echo "*** Building documentation..."
-	@for dir in base c2hs; do\
+	@for dir in c2hs; do\
 	  $(MAKE) -C doc/$$dir $(MFLAGS) all;\
 	done
 
@@ -118,7 +118,7 @@ doc:
 .PHONY: install-doc
 install-doc:
 	@echo "*** Installing documentation..."
-	@for pck in base $(PCKS); do\
+	@for pck in c2hs; do\
 	  $(MAKE) -C doc/$$pck $(MFLAGS) install;\
 	done
 
