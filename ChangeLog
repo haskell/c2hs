@@ -3,6 +3,11 @@
 	* Remove old C lexer & parser and replace them with new ones using
 	alex and happy
 
+2005-07-14  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* C2HS library as a single file added to the generated binding
+	code
+
 2005-07-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
 	* Cabal-ised the build system
