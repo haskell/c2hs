@@ -1,8 +1,7 @@
 # RPM spec file for C->Haskell                                   -*-rpm-spec-*-
 #
-# Copyright [1999..2002] Manuel M T Chakravarty <chak@cse.unsw.edu.au>
-
-%define ghc_version 6.0.1
+# Copyright [1999..2005] Manuel M T Chakravarty <chak@cse.unsw.edu.au>
+# Copyright 2003         Jens Petersen <petersen@haskell.org>
 
 Summary: C->Haskell Interface Generator
 Name: c2hs
@@ -29,28 +28,6 @@ corresponding C header file.
 Haskell 98 is "the" standard lazy functional programming language.
 More info plus the language definition is at http://www.haskell.org/.
 
-%package ghc%{ghc_version}
-Summary: C->Haskell Interface Generator Libraries
-Group: Development/Languages
-BuildRequires: ghc = %{ghc_version}
-Requires: ghc = %{ghc_version}, c2hs = %{version}
-Requires(post,preun): %{_bindir}/ghc-pkg-%{ghc_version}
-
-%description ghc%{ghc_version}
-C->Haskell is an interface generator that simplifies the development
-of Haskell bindings to C libraries.  The tool processes existing C
-header files that determine data layout and function signatures on the
-C side in conjunction with Haskell modules that specify Haskell-side
-type signatures and marshaling details.  Hooks embedded in the Haskell
-code signal access to C structures and functions -- they are expanded
-by the interfacing tool in dependence on information from the
-corresponding C header file.
-
-Haskell 98 is "the" standard lazy functional programming language.
-More info plus the language definition is at http://www.haskell.org/.
-
-This package contains the libraries compiled for ghc-%{ghc_version}.
-
 %package doc
 Summary: C->Haskell Interface Generator Documentation
 Group: Development/Languages/Haskell
@@ -71,6 +48,10 @@ More info plus the language definition is at http://www.haskell.org/.
 This package contains the c2hs documentation.
 
 %changelog
+* Fri Jul 15 2005 Manuel Chakravarty
+- No separate library
+- New build system
+
 * Wed Oct 15 2003 Jens Petersen <petersen@haskell.org>
 - specify ghc version to build with
 - don't redundantly provide c2hs
@@ -100,37 +81,28 @@ This package contains the c2hs documentation.
 %setup -q
 
 %build
-%configure --with-hc=ghc-%{ghc_version}
-make
+./Setup.hs configure --with-compiler=ghc-%{ghc_version}
+./Setup.hs build
 make doc
 
 %install
 rm -rf %{buildroot}
-%makeinstall install-doc
+./Setup.hs install
+make install-doc
 rm -r %{buildroot}%{_datadir}/doc/c2hs-%{version}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%post ghc%{ghc_version}
-%{_bindir}/c2hs-config --package-conf\
-  | ghc-pkg-%{ghc_version} --update-package --auto-ghci-libs
-
-%postun ghc%{ghc_version}
-ghc-pkg-%{ghc_version} --remove-package=c2hs
-
 %files
 %defattr(-,root,root)
 %{_bindir}/c2hs
-%{_mandir}/man1/c2hs.1*
-
-%files ghc%{ghc_version}
-%{_bindir}/c2hs-config
 %{_libdir}/c2hs-%{version}/
-%{_mandir}/man1/c2hs-config.1*
+# man page is out of date
+# %{_mandir}/man1/c2hs.1*
 
 %files doc
 %defattr(-,root,root)
-%doc c2hs/ChangeLog c2hs/TODO c2hs/COPYING c2hs/COPYING.LIB
+%doc c2hs/ChangeLog c2hs/TODO c2hs/COPYING
 %doc c2hs/README c2hs/AUTHORS
 %doc doc/c2hs/*.html doc/c2hs/*.txt doc/c2hs/lib c2hs/tests

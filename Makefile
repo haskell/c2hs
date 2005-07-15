@@ -22,6 +22,8 @@
 #  !!! This makefile requires GNU make !!!
 #  ***************************************
 
+GREP=grep
+TAR=tar
 
 # default target (must be first)
 # ==============
@@ -37,19 +39,15 @@ TMPDIR=/tmp
 
 # files lists
 #
-# * need the `wildcard' in `BASEPARTSFILES', as the following `filter-out' 
-#   wouldn't work otherwise
-#
-BASEPARTSFILES=$(wildcard base/*/*.hs\
-			  base/*/tests/Makefile base/*/tests/*.hs)
-BASEFILES =AUTHORS ChangeLog COPYING COPYING.LIB INSTALL Makefile\
-	   README README.CTKlight Setup.hs\
+BASEFILES =AUTHORS ChangeLog COPYING INSTALL Makefile\
+	   README README.CTKlight Setup.hs postInst.sh.in\
 	   aclocal.m4 configure configure.in config.sub config.guess\
 	   install-sh\
 	   base/ChangeLog\
-	   c2hs.cabal c2hs.spec\
+	   c2hs.cabal c2hs.spec c2hs.spec.in\
 	   base/TODO\
-	   doc/base/Makefile doc/base/base.tex doc/base/base.bib
+	   doc/base/Makefile doc/base/base.tex doc/base/base.bib\
+	   base/*/*.hs base/*/tests/*.hs
 CTKLFILES =AUTHORS COPYING.LIB README.CTKlight\
 	   base/admin/BaseVersion.hs\
 	   base/admin/Config.hs\
@@ -64,15 +62,15 @@ CTKLFILES =AUTHORS COPYING.LIB README.CTKlight\
 	   base/syntax/Lexers.hs\
 	   base/syntax/Parsers.hs\
 	   base/syntax/Pretty.hs
-C2HSFILES =doc/c2hs/Makefile doc/c2hs/c2hs.sgml doc/c2hs/man1/*.in\
+C2HSFILES =doc/c2hs/Makefile.in doc/c2hs/c2hs.sgml doc/c2hs/man1/*.in\
 	   doc/c2hs/lib\
-	   c2hs/c2hs-inplace.in\
+	   c2hs/c2hs.in c2hs/c2hs-inplace.in\
 	   $(addprefix c2hs/c/,tests/*.hs tests/*.i *.hs)\
 	   $(addprefix c2hs/chs/,*.hs)\
 	   $(addprefix c2hs/gen/,*.hs)\
 	   $(addprefix c2hs/state/,*.hs)\
 	   $(addprefix c2hs/toplevel/,C2HSConfig.hs.in Main.hs\
-				      Version.hs c2hs_config.c c2hs_config.h)\
+				      Version.hs.in c2hs_config.c c2hs_config.h)\
 	   $(addprefix c2hs/tests/,Makefile *.chs *.h *.c)\
 	   $(filter-out %/C2HSConfig.hs %/CError.hs %/NewStablePtr.hs\
 			%/NewStorable.hs,\
@@ -87,9 +85,9 @@ CABALCONF   = c2hs.cabal
 
 # this is far from elegant, but works for extracting the plain version number
 #
-BASEVERSION =$(shell $(GREP) '^versnum' $(BASEVERSFILE)\
+BASEVERSION =$(shell $(grep) '^versnum' $(BASEVERSFILE)\
 		     | sed '-e s/versnum.* "//' '-e s/"//')
-C2HSVERSION =$(shell $(GREP) '^Version' $(CABALCONF)\
+C2HSVERSION =$(shell $(GREP) '^Version:' $(CABALCONF)\
 		     | sed '-e s/Version:[[ 	]]*//')
 
 # base directory for tar balls and exclude patterns
@@ -156,7 +154,7 @@ tar-ctkl:
 	$(RM) -r $(TMPDIR)/ctkl-$(BASEVERSION)
 
 C2HSTARCMD=$(TAR) -c -z $(C2HSTAREXCL) -h -f
-tar:
+tar: tar-c2hs
 tar-c2hs:
 	-ln -s . $(C2HSTARBASE)-$(C2HSVERSION)
 	$(C2HSTARCMD) $(C2HSTARBASE)-$(C2HSVERSION).tar.gz\

@@ -838,7 +838,9 @@ documented in the following.
 <sect1>Version 0.14.0 "Travelling Lightly"
 <p>
 <itemize>
-<item>No separately installed marshaling library anymore
+<item>No separately installed marshaling library anymore; as a result binary
+C-&gt;Haskell packages and installations are now independent of the targeted
+Haskell system
 <item>New lexer and parser generated with Alex and Happy (contributed by 
 Duncan Coutts)
 <item>Cabal build system
