@@ -78,6 +78,7 @@ Additional Instructions for Building from Darcs
 If you are building from darcs, you have to execute
 
   % autoconf
+  % chmod +x Setup.hs
 
 in the toplevel directory before following the build instructions above.
 

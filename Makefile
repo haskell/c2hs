@@ -133,6 +133,9 @@ install-doc:
 #
 clean:
 	./Setup.hs clean
+	-$(RM) c2hs/c2hs c2hs/c2hs-inplace
+	$(MAKE) -C c2hs/tests clean
+	$(MAKE) -C doc/c2hs clean
 
 # Remove all traces of a build
 #
