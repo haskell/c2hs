@@ -23,6 +23,7 @@ doc/c2hs/Makefile$
 doc/c2hs/.*\.html$
 doc/c2hs/.*\.txt$
 doc/c2hs/man1/c2hs.1
+postInst\.sh
 #
 # Boring file regexps:
 \.hi$
