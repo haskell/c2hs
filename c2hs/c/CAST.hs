@@ -67,14 +67,18 @@ instance Eq CHeader where
 --
 data CExtDecl = CDeclExt CDecl
 	      | CFDefExt CFunDef
+	      | CAsmExt  Attrs		-- a chunk of assembly code (which is
+					-- not itself recorded)
 
 instance Pos CExtDecl where
   posOf (CDeclExt decl) = posOf decl
   posOf (CFDefExt fdef) = posOf fdef
+  posOf (CAsmExt at)	= posOf at
 
 instance Eq CExtDecl where
   CDeclExt decl1 == CDeclExt decl2 = decl1 == decl2
   CFDefExt fdef1 == CFDefExt fdef2 = fdef1 == fdef2
+  CAsmExt at1    == CAsmExt at2    =   at1 == at2
 
 -- C function definition (K&R A10.1) (EXPORTED)
 --
@@ -136,6 +140,8 @@ data CStat = CLabel    Ident		-- label
 	   | CBreak    Attrs		-- break statement
 	   | CReturn   (Maybe CExpr)
 		       Attrs
+	   | CAsm      Attrs		-- a chunk of assembly code (which is
+	   				-- not itself recorded)
 
 instance Pos CStat where
   posOf (CLabel    _ _     at) = posOf at
@@ -151,6 +157,7 @@ instance Pos CStat where
   posOf (CCont     	   at) = posOf at
   posOf (CBreak    	   at) = posOf at
   posOf (CReturn   _   	   at) = posOf at
+  posOf (CAsm              at) = posOf at
 
 instance Eq CStat where
   (CLabel    _ _     at1) == (CLabel    _ _     at2) = at1 == at2
@@ -166,6 +173,7 @@ instance Eq CStat where
   (CCont	     at1) == (CCont		at2) = at1 == at2
   (CBreak	     at1) == (CBreak		at2) = at1 == at2
   (CReturn   _	     at1) == (CReturn   _	at2) = at1 == at2
+  (CAsm              at1) == (CAsm              at2) = at1 == at2
 
 -- C declaration (K&R A8), structure declaration (K&R A8.3), parameter
 -- declaration (K&R A8.6.3), and type name (K&R A8.8) (EXPORTED) 

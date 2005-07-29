@@ -162,6 +162,7 @@ import CBuiltin   (builtinTypeNames)
 '}'		{ CTokRBrace	_ }	-- 45
 "..."		{ CTokEllipsis	_ }	-- 46
 alignof		{ CTokAlignof	_ }	-- 47
+asm		{ CTokAsm	_ }
 auto		{ CTokAuto	_ }	-- 48
 break		{ CTokBreak	_ }	-- 49
 case		{ CTokCase	_ }	-- 50
@@ -222,6 +223,8 @@ translation_unit :: { [CExtDecl] }
 translation_unit
   : {- empty -}					{ [] }
   | translation_unit external_declaration	{ $2 : $1 }
+  | translation_unit asm '(' expression ')' ';'
+	{% withAttrs $2 $ \at -> CAsmExt at : $1 }
 
 
 -- parse external C declaration (K&R A10)
@@ -253,6 +256,7 @@ statement
   | selection_statement			{ $1 }
   | iteration_statement			{ $1 }
   | jump_statement			{ $1 }
+  | asm_statement			{ $1 }
 
 
 statement_list :: { [CStat] }
@@ -334,6 +338,52 @@ jump_statement
   | return expression ';'		{% withAttrs $1 $ CReturn (Just $2) }
 
 
+-- parse GNU C __asm__ (...) statement (recording only a place holder result)
+--
+asm_statement :: { CStat }
+asm_statement
+  : asm maybe_type_qualifier '(' expression ')' ';'
+  	{% withAttrs $1 CAsm }
+  | asm maybe_type_qualifier '(' expression ':' asm_operands ')' ';'
+  	{% withAttrs $1 CAsm }
+  | asm maybe_type_qualifier '(' expression ':' asm_operands
+					    ':' asm_operands ')' ';'
+  	{% withAttrs $1 CAsm }
+  | asm maybe_type_qualifier '(' expression ':' asm_operands ':' asm_operands
+					    ':' asm_clobbers ')' ';'
+  	{% withAttrs $1 CAsm }
+
+maybe_type_qualifier :: { () }
+maybe_type_qualifier
+  : {- empty -}		{ () }
+  | type_qualifier	{ () }
+
+
+asm_operands :: { () }
+asm_operands
+  : {- empty -}				{ () }
+  | nonnull_asm_operands		{ () }
+
+
+nonnull_asm_operands :: { () }
+nonnull_asm_operands
+  : asm_operand					{ () }
+  | nonnull_asm_operands ',' asm_operand	{ () }
+
+
+asm_operand :: { () }
+asm_operand
+  : string '(' expression ')'			{ () }
+  | '[' ident ']' string '(' expression ')'	{ () }
+  | '[' tyident ']' string '(' expression ')'	{ () }
+
+
+asm_clobbers :: { () }
+asm_clobbers
+  : string			{ () }
+  | asm_clobbers ',' string	{ () }
+
+
 -- parse C declaration (K&R A8)
 --
 -- * We allow the GNU C extension keyword before a declaration and GNU C
@@ -394,8 +444,14 @@ declaration_specifiers_
 --
 init_declarator :: { (CDeclr, Maybe CInit) }
 init_declarator
-  : declarator				{ ($1, Nothing) }
-  | declarator '=' initializer		{ ($1, Just $3) }
+  : declarator maybe_asm				{ ($1, Nothing) }
+  | declarator maybe_asm '=' initializer		{ ($1, Just $4) }
+
+
+maybe_asm :: { () }
+maybe_asm
+  : {- empty -}		{ () }
+  | asm '(' string ')'	{ () }
 
 
 init_declarator_list :: { [(CDeclr, Maybe CInit)] }
@@ -988,7 +1044,23 @@ literal_expression
   : cint	{% withAttrs $1 $ case $1 of CTokILit _ i -> CIntConst i }
   | cchar	{% withAttrs $1 $ case $1 of CTokCLit _ c -> CCharConst c }
   | cfloat	{% withAttrs $1 $ case $1 of CTokFLit _ f -> CFloatConst f }
-  | cstr	{% withAttrs $1 $ case $1 of CTokSLit _ s -> CStrConst s }
+  | string	{% withAttrs $1 $ CStrConst (unL $1) }
+
+
+-- deal with C string liternal concatination
+--
+string :: { Located String }
+string
+  : cstr		{ case $1 of CTokSLit _ s -> L s (posOf $1) }
+  | cstr string_	{ case $1 of CTokSLit _ s ->
+                                       let s' = concat (s : reverse $2)
+				        in L s' (posOf $1) }
+
+
+string_ :: { [String] }
+string_
+  : cstr		{ case $1 of CTokSLit _ s -> [s] }
+  | string_ cstr	{ case $2 of CTokSLit _ s -> s : $1 }
 
 
 -- parse GNU C __extension__ annotation (junking the result)

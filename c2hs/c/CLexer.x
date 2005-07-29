@@ -282,6 +282,9 @@ data CToken = CTokLParen   Position		-- `('
 	    | CTokAlignof  Position		-- `alignof' 
 						-- (or `__alignof', 
 						-- `__alignof__')
+	    | CTokAsm      Position		-- `asm'
+	    					-- (or `__asm',
+						-- `__asm__')
 	    | CTokAuto     Position		-- `auto'
 	    | CTokBreak    Position		-- `break'
 	    | CTokCase     Position		-- `case'
@@ -389,6 +392,7 @@ instance Pos CToken where
   posOf (CTokRBrace   pos  ) = pos
   posOf (CTokEllipsis pos  ) = pos
   posOf (CTokAlignof  pos  ) = pos
+  posOf (CTokAsm      pos  ) = pos
   posOf (CTokAuto     pos  ) = pos
   posOf (CTokBreak    pos  ) = pos
   posOf (CTokCase     pos  ) = pos
@@ -479,6 +483,7 @@ instance Show CToken where
   showsPrec _ (CTokRBrace   _  ) = showString "}"
   showsPrec _ (CTokEllipsis _  ) = showString "..."
   showsPrec _ (CTokAlignof  _  ) = showString "alignof"
+  showsPrec _ (CTokAsm      _  ) = showString "asm"
   showsPrec _ (CTokAuto     _  ) = showString "auto"
   showsPrec _ (CTokBreak    _  ) = showString "break"
   showsPrec _ (CTokCase     _  ) = showString "case"
@@ -532,6 +537,9 @@ idkwtok :: String -> Position -> P CToken
 idkwtok ('a':'l':'i':'g':'n':'o':'f':[])		     = tok CTokAlignof
 idkwtok ('_':'_':'a':'l':'i':'g':'n':'o':'f':[])	     = tok CTokAlignof
 idkwtok ('_':'_':'a':'l':'i':'g':'n':'o':'f':'_':'_':[])     = tok CTokAlignof
+idkwtok ('a':'s':'m':[])				     = tok CTokAsm
+idkwtok ('_':'_':'a':'s':'m':[])			     = tok CTokAsm
+idkwtok ('_':'_':'a':'s':'m':'_':'_':[])		     = tok CTokAsm
 idkwtok ('a':'u':'t':'o':[])				     = tok CTokAuto
 idkwtok ('b':'r':'e':'a':'k':[])			     = tok CTokBreak
 idkwtok ('c':'a':'s':'e':[])				     = tok CTokCase

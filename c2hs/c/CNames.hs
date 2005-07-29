@@ -94,6 +94,7 @@ naCExtDecl :: CExtDecl -> NA ()
 naCExtDecl (CDeclExt decl                        ) = naCDecl decl
 naCExtDecl (CFDefExt (CFunDef specs declr _ _ at)) = 
   naCDecl $ CDecl specs [(Just declr, Nothing, Nothing)] at
+naCExtDecl (CAsmExt at                           ) = return ()
 
 naCDecl :: CDecl -> NA ()
 naCDecl decl@(CDecl specs decls _) =
