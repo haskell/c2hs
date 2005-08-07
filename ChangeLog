@@ -1,3 +1,13 @@
+2005-08-08  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs.cabal: 0.14.3
+
+2005-08-08  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs.cabal: 0.14.2
+	* Support asm construct (Duncon Coutts)
+	* Hierachical modules  (Duncon Coutts)
+
 2005-07-13  Duncan Coutts  <duncan.coutts@worc.ox.ac.uk>
 
 	* Remove old C lexer & parser and replace them with new ones using
