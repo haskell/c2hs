@@ -2,4 +2,4 @@
 
 top=@TOP@
 
-exec $top/dist/build/c2hs/c2hs --data=$top/c2hs/lib $*
+exec $top/dist/build/c2hs/c2hs --data=$top/c2hs/lib ${1+"$@"}

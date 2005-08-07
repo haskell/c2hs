@@ -4,4 +4,4 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 libdir=@libdir@/c2hs-@C2HS_VERSION@
 
-exec $libdir/c2hs --data=$libdir $*
+exec $libdir/c2hs --data=$libdir ${1+"$@"}
