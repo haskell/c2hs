@@ -5,7 +5,7 @@
 --
 --  Version $Revision: 1.13 $ from $Date: 2004/10/17 08:31:08 $
 --
---  Copyright (c) [1999..2004] Manuel M T Chakravarty
+--  Copyright (c) [1999..2005] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -35,6 +35,10 @@
 --  * The `keep' flag says whether the intermediate file produced by the C
 --    pre-processor should be retained or not.
 --
+--  * `platformSB' specifies the implementation-dependent parameters of the
+--    targeted C compiler (as far as they are relevant to c2hs); this includes
+--    especially the conventions for the memory layout of bitfields
+--
 --  * Traces specify which trace information should be output by the compiler.
 --    Currently the following trace information is supported:
 --
@@ -53,6 +57,8 @@ module Switches (
   SwitchBoard(..), Traces(..), initialSwitchBoard
 ) where
 
+import C2HSConfig (PlatformSpec, defaultPlatformSpec)
+
 
 -- the switch board contains all toolkit switches
 -- ----------------------------------------------
@@ -68,6 +74,7 @@ data SwitchBoard = SwitchBoard {
 		     tracesSB  :: Traces,	-- trace flags
 		     outputSB  :: FilePath,	-- basename of generated files
 		     outDirSB  :: FilePath,	-- dir where generated files go
+		     platformSB:: PlatformSpec,	-- target platform spec.
 		     headerSB  :: FilePath,	-- generated header file
 		     chiPathSB :: [FilePath]	-- .chi file directories
 		   }
@@ -76,16 +83,17 @@ data SwitchBoard = SwitchBoard {
 --
 initialSwitchBoard :: SwitchBoard
 initialSwitchBoard  = SwitchBoard {
-			cppOptsSB = "",
-			cppSB     = "cpp",
-			dataSB	  = "",
-			keepSB	  = False,
-			librarySB = False,
-		        tracesSB  = initialTraces,
-			outputSB  = "",
-			outDirSB  = "",
-			headerSB  = "",
-			chiPathSB = ["."]
+			cppOptsSB  = "",
+			cppSB      = "cpp",
+			dataSB	   = "",
+			keepSB	   = False,
+			librarySB  = False,
+		        tracesSB   = initialTraces,
+			outputSB   = "",
+			outDirSB   = "",
+			platformSB = defaultPlatformSpec,
+			headerSB   = "",
+			chiPathSB  = ["."]
 		      }
 
 

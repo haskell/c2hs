@@ -96,6 +96,11 @@
 --	  C->Haskell interface file.  All generated files also share the
 --	  basename. 
 --
+--  -p PLATFORM
+--  --platform=PLATFORM
+--        Generate output for the given PLATFORM.  By default we generate
+--        output for the platform that c2hs executes on.
+--
 --  -t PATH
 --  --output-dir=PATH
 --        Place generated files in the directory PATH.
@@ -116,7 +121,7 @@ module Main (main)
 where
 
 -- standard libraries
-import List	  (isPrefixOf)
+import List	  (isPrefixOf, intersperse)
 import IO	  ()
 import Monad      (when, unless, mapM)
 
@@ -129,7 +134,8 @@ import Errors	  (interr)
 
 -- c2hs modules
 import C2HSState  (CST, nop, runC2HS, fatal, fatalsHandledBy, getId,
-		   ExitCode(..), stderr, IOMode(..), putStrCIO, hPutStrCIO,
+		   ExitCode(..), stderr, IOMode(..), putStrCIO, putStrLnCIO,
+		   hPutStrCIO, printCIO,
 		   hPutStrLnCIO, exitWithCIO, getArgsCIO, getProgNameCIO,
 		   ioeGetErrorString, ioeGetFileName, removeFileCIO,
 		   systemCIO, fileFindInCIO, mktempCIO, openFileCIO, hCloseCIO,
@@ -141,7 +147,8 @@ import CHS	  (CHSModule, loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
 import GenHeader  (genHeader)
 import GenBind	  (expandHooks)
 import Version    (version, copyright, disclaimer)
-import C2HSConfig (cpp, cppopts, datadir, libfname, tmpdir)
+import C2HSConfig (cpp, cppopts, datadir, libfname, tmpdir, PlatformSpec(..),
+		   defaultPlatformSpec, platformSpecDB)
 
 
 -- wrapper running the compiler
@@ -175,18 +182,19 @@ errTrailer = "Try the option `--help' on its own for more information.\n"
 
 -- supported option types
 --
-data Flag = CPPOpts String      -- additional options for C preprocessor
-	  | CPP     String      -- program name of C preprocessor
-	  | Data    String      -- Data directory
-	  | Dump    DumpType    -- dump internal information
+data Flag = CPPOpts  String     -- additional options for C preprocessor
+	  | CPP      String     -- program name of C preprocessor
+	  | Data     String     -- Data directory
+	  | Dump     DumpType   -- dump internal information
 	  | Help	        -- print brief usage information
 	  | Keep	        -- keep the .i file
 	  | Library	        -- copy library module `C2HS'
-	  | Include String	-- list of directories to search .chi files
-	  | Output  String      -- file where the generated file should go
-	  | OutDir  String      -- directory where generates files should go
+	  | Include  String	-- list of directories to search .chi files
+	  | Output   String     -- file where the generated file should go
+	  | Platform String     -- target platform to generate code for
+	  | OutDir   String     -- directory where generates files should go
 	  | Version	        -- print version information on stderr
-	  | Error   String      -- error occured during processing of options
+	  | Error    String     -- error occured during processing of options
 	  deriving Eq
 
 data DumpType = Trace	      -- compiler trace
@@ -235,6 +243,10 @@ options  = [
 	 ["output"] 
 	 (ReqArg Output "FILE") 
 	 "output result to FILE (should end in .hs)",
+  Option ['p'] 
+	 ["platform"] 
+	 (ReqArg Platform "PLATFORM") 
+	 "platform to use for cross compilation",
   Option ['t'] 
 	 ["output-dir"] 
 	 (ReqArg OutDir "PATH") 
@@ -371,29 +383,38 @@ execute opts args | Help `elem` opts = help
 -- emit help message
 --
 help :: CST s ()
-help  = do
-	  (version, copyright, disclaimer) <- getId
-	  putStrCIO (usageInfo (header version copyright disclaimer) options)
-	  putStrCIO trailer
+help = 
+  do
+    (version, copyright, disclaimer) <- getId
+    putStrCIO (usageInfo (header version copyright disclaimer) options)
+    putStrCIO trailer
+    putStrCIO $ "PLATFORM can be " ++ hosts ++ "\n"
+    putStrCIO $ "  (default is " ++ identPS defaultPlatformSpec ++ ")\n"
+  where
+    hosts = (concat . intersperse ", " . map identPS) platformSpecDB
 
 -- process an option
 --
 -- * `Help' cannot occur 
 --
-processOpt                   :: Flag -> CST s ()
-processOpt (CPPOpts cppopts)  = addCPPOpts cppopts
-processOpt (CPP     cpp    )  = setCPP     cpp
-processOpt (Data    dir    )  = setData    dir
-processOpt (Dump    dt     )  = setDump    dt
-processOpt (Keep           )  = setKeep
-processOpt (Library        )  = setLibrary
-processOpt (Include dirs   )  = setInclude dirs
-processOpt (Output  fname  )  = setOutput  fname
-processOpt (OutDir  fname  )  = setOutDir  fname
+processOpt :: Flag -> CST s ()
+processOpt (CPPOpts  cppopts) = addCPPOpts  cppopts
+processOpt (CPP      cpp    ) = setCPP      cpp
+processOpt (Data     dir    ) = setData     dir
+processOpt (Dump     dt     ) = setDump     dt
+processOpt (Keep            ) = setKeep
+processOpt (Library         ) = setLibrary
+processOpt (Include  dirs   ) = setInclude  dirs
+processOpt (Output   fname  ) = setOutput   fname
+processOpt (Platform fname  ) = setPlatform fname
+processOpt (OutDir   fname  ) = setOutDir   fname
 processOpt Version            = do
 			          (version, _, _) <- getId 
-			          putStrCIO (version ++ "\n")
-processOpt (Error   msg    )  = abort      msg
+			          putStrLnCIO version
+				  platform <- getSwitch platformSB
+				  putStrCIO "  build platform is "
+				  printCIO platform
+processOpt (Error    msg    ) = abort msg
 
 -- emit error message and raise an error
 --
@@ -506,6 +527,16 @@ setOutput fname  = do
 		     when (suffix fname /= hssuffix) $
 		       raiseErrs ["Output file should end in .hs!\n"]
 		     setSwitch $ \sb -> sb {outputSB = stripSuffix fname}
+
+-- set platform
+--
+setPlatform :: String -> CST s ()
+setPlatform platform = 
+  case lookup platform platformAL of
+    Nothing -> raiseErrs ["Unknown platform `" ++ platform ++ "'\n"]
+    Just p  -> setSwitch $ \sb -> sb {platformSB = p}
+  where
+    platformAL = [(identPS p, p) | p <- platformSpecDB]
 
 -- set the output directory
 --

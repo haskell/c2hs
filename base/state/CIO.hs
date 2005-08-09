@@ -52,10 +52,9 @@ module CIO (-- (verbatim) re-exports
 	    --
 	    -- text I/O
 	    --
-	    putCharCIO, putStrCIO, hPutStrCIO, hPutStrLnCIO, writeFileCIO,
-	    readFileCIO, printCIO, getCharCIO, hFlushCIO,  hPutCharCIO,
-	    hSetBufferingCIO, hGetBufferingCIO, 
-	    newlineCIO, 
+	    putCharCIO, putStrCIO, putStrLnCIO, hPutStrCIO, hPutStrLnCIO,
+	    writeFileCIO, readFileCIO, printCIO, getCharCIO, hFlushCIO,
+	    hPutCharCIO, hSetBufferingCIO, hGetBufferingCIO, newlineCIO,
 	    --
 	    -- `Directory'
 	    --
@@ -95,6 +94,9 @@ putCharCIO c  = liftIO (putChar c)
 
 putStrCIO   :: String -> PreCST e s ()
 putStrCIO s  = liftIO (putStr s)
+
+putStrLnCIO   :: String -> PreCST e s ()
+putStrLnCIO s  = liftIO (putStrLn s)
 
 hPutStrCIO     :: Handle -> String -> PreCST e s ()
 hPutStrCIO h s  = liftIO (hPutStr h s)

@@ -7,7 +7,7 @@
 
 <title>The Binding Generator C->Haskell
 <author>Manuel M. T. Chakravarty, <tt/chak@cse.unsw.edu.au/
-<date>v0.20, 15 July 2005
+<date>v0.21, 9 August 2005
 <abstract>
 C-&gt;Haskell is an interface generator that simplifies the development of
 <htmlurl url="http://haskell.org" name="Haskell"> bindings to C libraries.  The
@@ -131,17 +131,18 @@ The executable <tt/c2hs/ has a couple more options:
 <tscreen><verb>
 Usage: c2hs [ option... ] [header-file] binding-file
 
-  -C CPPOPTS  --cppopts=CPPOPTS  pass CPPOPTS to the C preprocessor
-  -c CPP      --cpp=CPP          use executable CPP to invoke C preprocessor
-              --data=DIR         data directory (set by wrapper script)
-  -d TYPE     --dump=TYPE        dump internal information (for debugging)
-  -h, -?      --help             brief help (the present message)
-  -i INCLUDE  --include=INCLUDE  include paths for .chi files
-  -k          --keep             keep pre-processed C header
-  -l          --copy-library     copy `C2HS' library module in
-  -o FILE     --output=FILE      output result to FILE (should end in .hs)
-  -t PATH     --output-dir=PATH  place generated files in PATH
-  -v          --version          show version information
+  -C CPPOPTS   --cppopts=CPPOPTS    pass CPPOPTS to the C preprocessor
+  -c CPP       --cpp=CPP            use executable CPP to invoke C preprocessor
+               --data=DIR           data directory (set by wrapper script)
+  -d TYPE      --dump=TYPE          dump internal information (for debugging)
+  -h, -?       --help               brief help (the present message)
+  -i INCLUDE   --include=INCLUDE    include paths for .chi files
+  -k           --keep               keep pre-processed C header
+  -l           --copy-library       copy `C2HS' library module in
+  -o FILE      --output=FILE        output result to FILE (should end in .hs)
+  -p PLATFORM  --platform=PLATFORM  platform to use for cross compilation
+  -t PATH      --output-dir=PATH    place generated files in PATH
+  -v           --version            show version information
 
 The header file must be a C header file matching the given binding file.
 The dump TYPE can be
@@ -149,6 +150,7 @@ The dump TYPE can be
   genbind -- trace binding generation
   ctrav   -- trace C declaration traversal
   chs     -- dump the binding file (adds `.dump' to the name)
+PLATFORM can be i686-pc-linux-gnu, m68k-palmos
 </verb></tscreen>
 <p>
 The most useful of these is probably <tt/--cppopts=/ (or <tt/-C/).  If the C
@@ -835,9 +837,13 @@ The GNU Free Documentation License is available at
 Important changes (especially those affecting the semantics of the tool) are
 documented in the following.
 
-<sect1>Version 0.14.0 "Travelling Lightly"
+<sect1>Version 0.14.3 "Travelling Lightly"
 <p>
 <itemize>
+<item>Cross-compiling with <tt/--platform/ flag
+<item>Gcc's <tt/asm/ construct is supported (contributed by 
+Duncan Coutts)
+<item>Hierarchical modules syntax in <tt/import/ hooks supported
 <item>No separately installed marshaling library anymore; as a result binary
 C-&gt;Haskell packages and installations are now independent of the targeted
 Haskell system

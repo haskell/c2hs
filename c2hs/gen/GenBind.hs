@@ -118,7 +118,7 @@ import Idents     (Ident, identToLexeme, onlyPosIdent)
 import Attributes (newAttrsOnlyPos)
 
 -- C->Haskell
-import C2HSConfig (dlsuffix)
+import C2HSConfig (PlatformSpec(..))
 import C2HSState  (CST, nop, errorsPresent, showErrors, fatal,
 		   SwitchBoard(..), Traces(..), putTraceStr, getSwitch,
 		   printCIO)
@@ -143,8 +143,7 @@ import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 		   CHSParm(..), CHSArg(..), CHSAccess(..), CHSAPath(..),
 		   CHSPtrType(..), showCHSParm) 
-import CInfo      (CPrimType(..), size, alignment, bitfieldIntSigned,
-		   bitfieldAlignment)
+import CInfo      (CPrimType(..), size, alignment, getPlatform)
 import GBMonad    (TransFun, transTabToTransFun, HsObject(..), GB,
 		   initialGBState, setContext, getPrefix, 
 		   delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
@@ -1515,6 +1514,7 @@ specType cpos specs osize =
     bitfieldSpec :: [CTypeSpec] -> ExtType -> Maybe CExpr -> GB CompType
     bitfieldSpec tspecs et (Just sizeExpr) =  -- never called with `Nothing'
       do
+        PlatformSpec {bitfieldIntSignedPS = bitfieldIntSigned} <- getPlatform
         let pos = posOf sizeExpr
 	sizeResult <- evalConstCExpr sizeExpr
 	case sizeResult of
@@ -1581,9 +1581,10 @@ offsetInStruct                :: [CDecl] -> CDecl -> CStructTag -> GB BitSize
 offsetInStruct []    _    _    = return $ BitSize 0 0
 offsetInStruct decls decl tag  = 
   do
+    PlatformSpec {bitfieldAlignmentPS = bitfieldAlignment} <- getPlatform
     (offset, _) <- sizeAlignOfStruct decls tag
     (_, align)  <- sizeAlignOf decl
-    return $ alignOffset offset align
+    return $ alignOffset offset align bitfieldAlignment
 
 -- compute the size and alignment (no padding at the end) of a set of
 -- declarators from a struct
@@ -1592,14 +1593,17 @@ sizeAlignOfStruct :: [CDecl] -> CStructTag -> GB (BitSize, Int)
 sizeAlignOfStruct []    _           = return (BitSize 0 0, 1)
 sizeAlignOfStruct decls CStructTag  = 
   do
+    PlatformSpec {bitfieldAlignmentPS = bitfieldAlignment} <- getPlatform
     (offset, preAlign) <- sizeAlignOfStruct (init decls) CStructTag
     (size, align)      <- sizeAlignOf       (last decls)
-    let sizeOfStruct  = alignOffset offset align `addBitSize` size
+    let sizeOfStruct  = alignOffset offset align bitfieldAlignment
+			`addBitSize` size
 	align'	      = if align > 0 then align else bitfieldAlignment
 	alignOfStruct = preAlign `max` align'
     return (sizeOfStruct, alignOfStruct)
 sizeAlignOfStruct decls CUnionTag   =
   do
+    PlatformSpec {bitfieldAlignmentPS = bitfieldAlignment} <- getPlatform
     (sizes, aligns) <- mapAndUnzipM sizeAlignOf decls
     let aligns' = [if align > 0 then align else bitfieldAlignment
 		  | align <- aligns]
@@ -1612,8 +1616,9 @@ sizeAlignOfStruct decls CUnionTag   =
 sizeAlignOfStructPad :: [CDecl] -> CStructTag -> GB (BitSize, Int)
 sizeAlignOfStructPad decls tag =
   do
+    PlatformSpec {bitfieldAlignmentPS = bitfieldAlignment} <- getPlatform
     (size, align) <- sizeAlignOfStruct decls tag
-    return (alignOffset size align, align)
+    return (alignOffset size align bitfieldAlignment, align)
 
 -- compute the size and alignment constraint of a given C declaration
 --
@@ -1626,16 +1631,24 @@ sizeAlignOf cdecl  =
   do
     ct <- extractCompType False cdecl
     case ct of
-      ExtType (FunET _ _        ) -> return (bitSize CFunPtrPT, 
-					     alignment CFunPtrPT)
+      ExtType (FunET _ _        ) -> do
+				       align <-	alignment CFunPtrPT
+				       return (bitSize CFunPtrPT, align)
       ExtType (IOET  _          ) -> interr "GenBind.sizeof: Illegal IO type!"
       ExtType (PtrET t          ) 
-        | isFunExtType t          -> return (bitSize CFunPtrPT, 
-					     alignment CFunPtrPT)
-        | otherwise		  -> return (bitSize CPtrPT, alignment CPtrPT)
-      ExtType (DefinedET _ _    ) -> return (bitSize CPtrPT, alignment CPtrPT)
+        | isFunExtType t          -> do
+				       align <-	alignment CFunPtrPT
+				       return (bitSize CFunPtrPT, align)
+        | otherwise		  -> do
+				       align <- alignment CPtrPT
+				       return (bitSize CPtrPT, align)
+      ExtType (DefinedET _ _    ) -> do
+				       align <- alignment CPtrPT
+				       return (bitSize CPtrPT, align)
         -- FIXME: The defined type could be a function pointer!!!
-      ExtType (PrimET pt        ) -> return (bitSize pt, alignment pt)
+      ExtType (PrimET pt        ) -> do
+				       align <- alignment pt
+				       return (bitSize pt, align)
       ExtType UnitET              -> voidFieldErr (posOf cdecl)
       SUType su                   -> 
         do
@@ -1662,15 +1675,18 @@ sizeAlignOf cdecl  =
 -- * if the alignment constraint is negative or zero, it is the alignment
 --   constraint for a bitfield
 --
-alignOffset :: BitSize -> Int -> BitSize
-alignOffset offset@(BitSize octetOffset bitOffset) align 
+-- * the third argument gives the platform-specific bitfield alignment
+--
+alignOffset :: BitSize -> Int -> Int -> BitSize
+alignOffset offset@(BitSize octetOffset bitOffset) align bitfieldAlignment
   | align > 0 && bitOffset /= 0 =		-- close bitfield first
-    alignOffset (BitSize (octetOffset + (bitOffset + 7) `div` 8) 0) align
+    alignOffset (BitSize (octetOffset + (bitOffset + 7) `div` 8) 0) align 
+		bitfieldAlignment
   | align > 0 && bitOffset == 0 =	        -- no bitfields involved
     BitSize (((octetOffset - 1) `div` align + 1) * align) 0
   | bitOffset == 0 	        	        -- start a bitfield
     || overflowingBitfield	=		-- .. or overflowing bitfield
-    alignOffset offset bitfieldAlignment
+    alignOffset offset bitfieldAlignment bitfieldAlignment
   | otherwise			=		-- stays in current bitfield
     offset
   where

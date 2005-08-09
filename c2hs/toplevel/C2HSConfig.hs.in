@@ -8,7 +8,7 @@
 --
 --  Version $Revision: 1.15 $ from $Date: 2003/10/20 08:00:45 $
 --
---  Copyright (c) [1999..2003] Manuel M T Chakravarty
+--  Copyright (c) [1999..2005] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -31,21 +31,17 @@ module C2HSConfig (
   --
   -- programs and paths
   --
-  cpp, cppopts, datadir, libfname, hpaths, dlsuffix, tmpdir,
-  --
-  -- Some FFI stuff for legacy reasons
-  --
-  Ptr, FunPtr, Storable(sizeOf, alignment),
+  cpp, cppopts, datadir, libfname, hpaths, tmpdir,
   --
   -- parameters of the targeted C compiler
   --
-  bitfieldDirection, bitfieldPadding, bitfieldIntSigned, bitfieldAlignment
+  PlatformSpec(..), defaultPlatformSpec, platformSpecDB
 ) where
 
 import Ix    (Ix)
 import Array (Array, array)
 
-import Foreign  (Ptr, FunPtr, Storable(sizeOf, alignment), toBool)
+import Foreign  (toBool)
 import CForeign (CInt)
 
 
@@ -83,11 +79,6 @@ libfname  = "C2HS.hs"
 hpaths :: [FilePath]
 hpaths  = [".", "/usr/include", "/usr/local/include"]
 
--- OS-dependent suffix for dynamic libraries
---
-dlsuffix :: String
-dlsuffix  = ""  -- !!!TODO: remove all references
-
 -- |Possibly system-dependent location for temporary files
 --
 tmpdir :: String
@@ -96,6 +87,56 @@ tmpdir = "@TMPDIR@"
 
 -- parameters of the targeted C compiler
 -- -------------------------------------
+
+-- Parameters that characterise implementation-dependent features of the
+-- targeted C compiler
+--
+data PlatformSpec = PlatformSpec {
+		      identPS             :: String,  -- platform identifier
+		      bitfieldDirectionPS :: Int,     -- to fill bitfields
+		      bitfieldPaddingPS   :: Bool,    -- padding or split?
+		      bitfieldIntSignedPS :: Bool,    -- `int' signed bitf.?
+		      bitfieldAlignmentPS :: Int      -- alignment constraint
+		    }
+
+instance Show PlatformSpec where
+  show (PlatformSpec ident dir pad intSig align) =
+    show ident ++ " <" ++ show dir ++ ", " ++ show pad ++ ", " ++ 
+    show intSig ++ ", " ++ show align ++ ">"
+
+-- Platform specification for the C compiler used to compile c2hs (which is
+-- the default target).
+--
+defaultPlatformSpec :: PlatformSpec
+defaultPlatformSpec = PlatformSpec {
+		        identPS             = "@host@",
+			bitfieldDirectionPS = bitfieldDirection,
+			bitfieldPaddingPS   = bitfieldPadding,
+			bitfieldIntSignedPS = bitfieldIntSigned,
+			bitfieldAlignmentPS = bitfieldAlignment
+		      }
+
+-- The set of platform specification that may be choosen for cross compiling
+-- bindings.
+--
+platformSpecDB :: [PlatformSpec]
+platformSpecDB =
+  [
+    PlatformSpec {
+      identPS             = "i686-pc-linux-gnu",
+      bitfieldDirectionPS = 1,
+      bitfieldPaddingPS   = True,
+      bitfieldIntSignedPS = True,
+      bitfieldAlignmentPS = 1
+    },
+    PlatformSpec {
+      identPS             = "m68k-palmos",
+      bitfieldDirectionPS = -1,
+      bitfieldPaddingPS   = True,
+      bitfieldIntSignedPS = True,
+      bitfieldAlignmentPS = 1
+    }
+  ]
 
 -- indicates in which direction the C compiler fills bitfields (EXPORTED)
 --

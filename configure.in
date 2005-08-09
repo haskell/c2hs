@@ -27,6 +27,7 @@ dnl Get toplevel directory.
 TOP=`pwd`
 
 dnl Check for OS and set temporary directory.
+AC_CANONICAL_HOST
 TMPDIR="/tmp"
 AC_CYGWIN
 if test "$CYGWIN" = "yes"; then

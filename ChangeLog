@@ -1,4 +1,10 @@
+2005-08-09  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs/gen/CInfo.hs: exports `getPlatform'
+
 2005-08-08  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs/toplevel/Main.hs: Added --platform switch for cross compilation
 
 	* c2hs.cabal: 0.14.3
 
