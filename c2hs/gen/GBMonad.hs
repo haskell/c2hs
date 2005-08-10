@@ -5,7 +5,7 @@
 --
 --  Version $Revision: 1.4 $ from $Date: 2003/10/19 10:46:10 $
 --
---  Copyright (c) [2002..2003] Manuel M T Chakravarty
+--  Copyright (c) [2002..2005] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -33,9 +33,9 @@
 --  enumerator is done.  If that doesn't match and the prefix can be removed
 --  from the identifier, a second lookup on the identifier without the prefix
 --  is performed.  If this also doesn't match, the identifier without prefix
---  (possible after underscoreToCase translation is returned).  If there is a
---  match, the translation (without any further stripping of prefix) is
---  returned.  
+--  (possible after underscoreToCase or similar translation is returned).  If
+--  there is a match, the translation (without any further stripping of
+--  prefix) is returned.
 --
 --  Pointer map
 --  -----------
@@ -88,7 +88,8 @@ import C	  (CT, readCT, transCT, raiseErrorCTExc)
 
 -- friends
 import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
-		   CHSAccess(..), CHSAPath(..), CHSPtrType(..))
+		   CHSChangeCase(..), CHSAccess(..), CHSAPath(..),
+		   CHSPtrType(..))
 
 
 -- translation tables
@@ -101,35 +102,51 @@ type TransFun = Ident -> String
 
 -- translation function for the `underscoreToCase' flag
 --
-underscoreToCase     :: TransFun
-underscoreToCase ide  = let lexeme = identToLexeme ide
-			    ps	   = filter (not . null) . parts $ lexeme
-			in
-			concat . map adjustCase $ ps
-			where
-			  parts s = let (l, s') = break (== '_') s
-				    in  
-				    l : case s' of
-					  []      -> []
-					  (_:s'') -> parts s''
-			  
-			  adjustCase (c:cs) = toUpper c : map toLower cs
+underscoreToCase :: String -> String
+underscoreToCase lexeme = 
+  let 
+    ps = filter (not . null) . parts $ lexeme
+  in
+  concat . map adjustCase $ ps
+  where
+    parts s = let (l, s') = break (== '_') s
+	      in  
+	      l : case s' of
+		    []      -> []
+		    (_:s'') -> parts s''
+
+    adjustCase (c:cs) = toUpper c : map toLower cs
+
+-- translation function for the `upcaseFirstLetter' flag
+--
+upcaseFirstLetter :: String -> String
+upcaseFirstLetter ""     = ""
+upcaseFirstLetter (c:cs) = toUpper c : cs
+
+-- translation function for the `downcaseFirstLetter' flag
+--
+downcaseFirstLetter :: String -> String
+downcaseFirstLetter ""     = ""
+downcaseFirstLetter (c:cs) = toLower c : cs
 
 -- takes an identifier association table to a translation function
 --
 -- * if first argument is `True', identifiers that are not found in the
---   translation table are subjected to `underscoreToCase'
+--   translation table are subjected to `underscoreToCase' and friends
 --
 -- * the details of handling the prefix are given in the DOCU section at the
 --   beginning of this file
 --
 transTabToTransFun :: String -> CHSTrans -> TransFun
-transTabToTransFun prefix (CHSTrans _2Case table) =
+transTabToTransFun prefix (CHSTrans _2Case chgCase table) =
   \ide -> let 
+            caseTrafo = (if _2Case then underscoreToCase else id) .
+			(case chgCase of
+			   CHSSameCase -> id
+			   CHSUpCase   -> upcaseFirstLetter
+			   CHSDownCase -> downcaseFirstLetter)
 	    lexeme = identToLexeme ide
-	    dft    = if _2Case			-- default uses maybe the...
-		     then underscoreToCase ide  -- ..._2case transformed...
-		     else lexeme		-- ...lexeme
+	    dft    = caseTrafo lexeme             -- default uses case trafo
 	  in
 	  case lookup ide table of		    -- lookup original ident
 	    Just ide' -> identToLexeme ide'	    -- original ident matches
@@ -139,9 +156,7 @@ transTabToTransFun prefix (CHSTrans _2Case table) =
 	        Just eatenLexeme -> 
 		  let 
 		    eatenIde = onlyPosIdent (posOf ide) eatenLexeme
-		    eatenDft = if _2Case 
-			       then underscoreToCase eatenIde 
-			       else eatenLexeme
+		    eatenDft = caseTrafo eatenLexeme 
 		  in
 		  case lookup eatenIde table of     -- lookup without prefix
 		    Nothing   -> eatenDft	    -- orig ide without prefix

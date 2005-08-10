@@ -309,11 +309,14 @@ are added to the deriving clause of the Haskell type.
 <p>
 By default, the names of the C enumeration are used for the constructors in
 Haskell.  If <it/alias1/ is <tt/underscoreToCase/, the original C names are
-capitalised and the use of underscores is rewritten to caps.  Moreover,
-<it/alias1/ to <it/aliasn/ may be aliases of the form <it/cid/ <tt/as/
-<it/hsid/, which map individual C names to Haskell names.  Instead of the
-global prefix introduced by a context hook, a local prefix <it/pref/ can
-optionally be specified.
+capitalised and the use of underscores is rewritten to caps.  If it is
+<tt/upcaseFirstLetter/ or <tt/downcaseFirstLetter/, the first letter of the
+original C name changes case correspondingly.  It is also possible to combine
+<tt/underscoreToCase/ with one of <tt/upcaseFirstLetter/ or
+<tt/downcaseFirstLetter/.  Moreover, <it/alias1/ to <it/aliasn/ may be aliases
+of the form <it/cid/ <tt/as/ <it/hsid/, which map individual C names to
+Haskell names.  Instead of the global prefix introduced by a context hook, a
+local prefix <it/pref/ can optionally be specified.
 <p>
 As an example, consider
 <p>
@@ -729,7 +732,7 @@ apath    -> ident
           | apath `.' ident
           | apath `->' ident
 trans    -> `{' alias_1 `,' ... `,' alias_n `}'
-alias    -> `underscoreToCase'
+alias    -> `underscoreToCase' | `upcaseFirstLetter' | `downcaseFirstLetter'
           | ident `as' ident
 ptrkind  -> [`foreign' | `stable'] ['newtype' | '->' ident]
 </verb>
@@ -840,6 +843,7 @@ documented in the following.
 <sect1>Version 0.14.3 "Travelling Lightly"
 <p>
 <itemize>
+<item><tt/upcaseFirstLetter/ and <tt/downcaseFirstLetter/
 <item>Cross-compiling with <tt/--platform/ flag
 <item>Gcc's <tt/asm/ construct is supported (contributed by 
 Duncan Coutts)

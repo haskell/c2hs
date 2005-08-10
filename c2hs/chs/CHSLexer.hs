@@ -92,9 +92,10 @@
 --		     | `\'' letter (letter | digit)* `\''
 --      reservedid  -> `as' | `call' | `class' | `context' | `deriving' 
 --		     | `enum' | `foreign' | `fun' | `get' | `lib' 
+--		     | `downcaseFirstLetter'
 --		     | `newtype' | `pointer' | `prefix' | `pure' | `set'
 --		     | `sizeof' | `stable' | `type' | `underscoreToCase' 
---		     | `unsafe' | `with'
+--		     | `upcaseFirstLetter' | `unsafe' | `with'
 --      reservedsym -> `{#' | `#}' | `{' | `}' | `,' | `.' | `->' | `=' 
 --		     | `=>' | '-' | `*' | `&' | `^'
 --      string      -> `"' instr* `"'
@@ -208,6 +209,7 @@ data CHSToken = CHSTokArrow   Position		-- `->'
 	      | CHSTokClass   Position		-- `class'
 	      | CHSTokContext Position		-- `context'
 	      | CHSTokDerive  Position		-- `deriving'
+	      | CHSTokDown    Position		-- `downcaseFirstLetter'
 	      | CHSTokEnum    Position		-- `enum'
 	      | CHSTokForeign Position          -- `foreign'
 	      | CHSTokFun     Position		-- `fun'
@@ -225,6 +227,7 @@ data CHSToken = CHSTokArrow   Position		-- `->'
 	      | CHSTokType    Position		-- `type'
 	      | CHSTok_2Case  Position		-- `underscoreToCase'
 	      | CHSTokUnsafe  Position		-- `unsafe'
+	      | CHSTokUpper   Position		-- `upcaseFirstLetter'
 	      | CHSTokWith    Position		-- `with'
 	      | CHSTokString  Position String	-- string 
 	      | CHSTokHSVerb  Position String	-- verbatim Haskell (`...')
@@ -254,6 +257,7 @@ instance Pos CHSToken where
   posOf (CHSTokClass   pos  ) = pos
   posOf (CHSTokContext pos  ) = pos
   posOf (CHSTokDerive  pos  ) = pos
+  posOf (CHSTokDown    pos  ) = pos
   posOf (CHSTokEnum    pos  ) = pos
   posOf (CHSTokForeign pos  ) = pos
   posOf (CHSTokFun     pos  ) = pos
@@ -271,6 +275,7 @@ instance Pos CHSToken where
   posOf (CHSTokType    pos  ) = pos
   posOf (CHSTok_2Case  pos  ) = pos
   posOf (CHSTokUnsafe  pos  ) = pos
+  posOf (CHSTokUpper   pos  ) = pos
   posOf (CHSTokWith    pos  ) = pos
   posOf (CHSTokString  pos _) = pos
   posOf (CHSTokHSVerb  pos _) = pos
@@ -300,6 +305,7 @@ instance Eq CHSToken where
   (CHSTokClass    _  ) == (CHSTokClass    _  ) = True
   (CHSTokContext  _  ) == (CHSTokContext  _  ) = True
   (CHSTokDerive   _  ) == (CHSTokDerive   _  ) = True
+  (CHSTokDown     _  ) == (CHSTokDown     _  ) = True
   (CHSTokEnum     _  ) == (CHSTokEnum     _  ) = True
   (CHSTokForeign  _  ) == (CHSTokForeign  _  ) = True
   (CHSTokFun      _  ) == (CHSTokFun      _  ) = True
@@ -317,6 +323,7 @@ instance Eq CHSToken where
   (CHSTokType     _  ) == (CHSTokType     _  ) = True
   (CHSTok_2Case   _  ) == (CHSTok_2Case   _  ) = True
   (CHSTokUnsafe   _  ) == (CHSTokUnsafe   _  ) = True
+  (CHSTokUpper    _  ) == (CHSTokUpper    _  ) = True
   (CHSTokWith     _  ) == (CHSTokWith     _  ) = True
   (CHSTokString   _ _) == (CHSTokString   _ _) = True
   (CHSTokHSVerb   _ _) == (CHSTokHSVerb   _ _) = True
@@ -347,6 +354,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokClass   _  ) = showString "class"
   showsPrec _ (CHSTokContext _  ) = showString "context"
   showsPrec _ (CHSTokDerive  _  ) = showString "deriving"
+  showsPrec _ (CHSTokDown    _  ) = showString "downcaseFirstLetter"
   showsPrec _ (CHSTokEnum    _  ) = showString "enum"
   showsPrec _ (CHSTokForeign _  ) = showString "foreign"
   showsPrec _ (CHSTokFun     _  ) = showString "fun"
@@ -364,6 +372,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokType    _  ) = showString "type"
   showsPrec _ (CHSTok_2Case  _  ) = showString "underscoreToCase"
   showsPrec _ (CHSTokUnsafe  _  ) = showString "unsafe"
+  showsPrec _ (CHSTokUpper   _  ) = showString "upcaseFirstLetter"
   showsPrec _ (CHSTokWith    _  ) = showString "with"
   showsPrec _ (CHSTokString  _ s) = showString ("\"" ++ s ++ "\"")
   showsPrec _ (CHSTokHSVerb  _ s) = showString ("`" ++ s ++ "'")
@@ -646,6 +655,7 @@ identOrKW  =
     idkwtok pos "class"            _    = CHSTokClass   pos
     idkwtok pos "context"          _    = CHSTokContext pos
     idkwtok pos "deriving"	   _	= CHSTokDerive  pos
+    idkwtok pos "downcaseFirstLetter" _ = CHSTokDown    pos
     idkwtok pos "enum"             _    = CHSTokEnum    pos
     idkwtok pos "foreign"	   _	= CHSTokForeign pos
     idkwtok pos "fun"              _    = CHSTokFun     pos
@@ -663,6 +673,7 @@ identOrKW  =
     idkwtok pos "type"             _    = CHSTokType    pos
     idkwtok pos "underscoreToCase" _    = CHSTok_2Case  pos
     idkwtok pos "unsafe"           _    = CHSTokUnsafe  pos
+    idkwtok pos "upcaseFirstLetter"_    = CHSTokUpper   pos
     idkwtok pos "with"             _    = CHSTokWith    pos
     idkwtok pos cs                 name = mkid pos cs name
     --

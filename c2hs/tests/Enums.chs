@@ -4,7 +4,7 @@ import C2HS
 
 {#context prefix="enums"#}
 
-{#enum colour as Colour {underscoreToCase}#}
+{#enum colour as Colour {upcaseFirstLetter}#}
 
 {#enum weird as Weird {underscoreToCase}#}
 

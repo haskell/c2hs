@@ -4,14 +4,14 @@
 #define STOP -1
 
 enum colour {
-  RED,
-  GREEN,
-  BLUE
+  red,
+  green,
+  blue
 };
 
 enum weird {
   NUL,
-  EINS = RED + 1,		/* refers to other enum */
+  EINS = red + 1,		/* refers to other enum */
   FIVE = 5,
   SIX,
   MINUS_ONE = STOP

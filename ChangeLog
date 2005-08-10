@@ -1,3 +1,10 @@
+2005-08-10  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs/gen/GBMonad.hs: apply `upcaseFirstLetter' and
+	`downcaseFirstLetter' if specified
+
+	* c2hs/chs/CHS.hs: added `upcaseFirstLetter' and `downcaseFirstLetter'
+
 2005-08-09  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* c2hs/gen/CInfo.hs: exports `getPlatform'

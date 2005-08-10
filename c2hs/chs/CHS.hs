@@ -5,7 +5,7 @@
 --
 --  Version $Revision: 1.27 $ from $Date: 2005/03/14 00:26:58 $
 --
---  Copyright (c) [1999..2004] Manuel M T Chakravarty
+--  Copyright (c) [1999..2005] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -71,12 +71,14 @@
 --	      | apath `.' ident
 --	      | apath `->' ident
 --  trans    -> `{' alias_1 `,' ... `,' alias_n `}'
---  alias    -> `underscoreToCase'
+--  alias    -> `underscoreToCase' | `upcaseFirstLetter' 
+--	      | `downcaseFirstLetter'
 --	      | ident `as' ident
 --  ptrkind  -> [`foreign' | `stable'] ['newtype' | '->' ident]
 --  
---  If `underscoreToCase' occurs in a translation table, it must be the first
---  entry.
+--  If `underscoreToCase', `upcaseFirstLetter', or `downcaseFirstLetter'
+--  occurs in a translation table, it must be the first entry, or if two of
+--  them occur the first two entries.
 --
 --  Remark: Optional Haskell names are normalised during structure tree
 --	    construction, ie, associations that associated a name with itself
@@ -86,10 +88,11 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..), CHSParm(..),
-	    CHSArg(..), CHSAccess(..), CHSAPath(..), CHSPtrType(..),
-	    loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI,
-	    chisuffix, showCHSParm)
+module CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
+	    CHSChangeCase(..), CHSParm(..), CHSArg(..), CHSAccess(..),
+	    CHSAPath(..), CHSPtrType(..), 
+	    loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI, chisuffix,
+	    showCHSParm)
 where 
 
 -- standard libraries
@@ -243,7 +246,13 @@ instance Eq CHSHook where
 -- translation table (EXPORTED)
 --
 data CHSTrans = CHSTrans Bool			-- underscore to case?
+			 CHSChangeCase		-- upcase or downcase?
 			 [(Ident, Ident)]	-- alias list
+
+data CHSChangeCase = CHSSameCase 
+		   | CHSUpCase 
+		   | CHSDownCase
+		   deriving Eq
 
 -- marshalling descriptor for function hooks (EXPORTED)
 --
@@ -536,10 +545,11 @@ showCHSParm (CHSParm oimMarsh hsTyStr twoCVals oomMarsh _)  =
     --
     showHsVerb str = showChar '`' . showString str . showChar '\''
 
-showCHSTrans                          :: CHSTrans -> ShowS
-showCHSTrans (CHSTrans _2Case assocs)  =   
+showCHSTrans :: CHSTrans -> ShowS
+showCHSTrans (CHSTrans _2Case chgCase assocs)  =   
     showString "{"
   . (if _2Case then showString ("underscoreToCase" ++ maybeComma) else id)
+  . showCHSChangeCase chgCase
   . foldr (.) id (intersperse (showString ", ") (map showAssoc assocs))
   . showString "}"
   where
@@ -549,6 +559,11 @@ showCHSTrans (CHSTrans _2Case assocs)  =
 	showCHSIdent ide1
       . showString " as "
       . showCHSIdent ide2
+
+showCHSChangeCase :: CHSChangeCase -> ShowS
+showCHSChangeCase CHSSameCase = id
+showCHSChangeCase CHSUpCase   = showString "upcaseFirstLetter"
+showCHSChangeCase CHSDownCase = showString "downcaseFirstLetter"
 
 showCHSAPath :: CHSAPath -> ShowS
 showCHSAPath (CHSRoot ide) =
@@ -1059,21 +1074,35 @@ parsePath' toks =
 parseTrans :: [CHSToken] -> CST s (CHSTrans, [CHSToken])
 parseTrans (CHSTokLBrace _:toks) =
   do
-    (_2Case, toks' ) <- parse_2Case toks
+    (_2Case, chgCase, toks' ) <- parse_2CaseAndChange toks
     case toks' of
-      (CHSTokRBrace _:toks'') -> return (CHSTrans _2Case [], toks'')
+      (CHSTokRBrace _:toks'') -> return (CHSTrans _2Case chgCase [], toks'')
       _			      ->
         do
 	  -- if there was no `underscoreToCase', we add a comma token to meet
 	  -- the invariant of `parseTranss'
 	  --
-	  (transs, toks'') <- if _2Case 
+	  (transs, toks'') <- if (_2Case || chgCase /= CHSSameCase)
 			      then parseTranss toks'
 			      else parseTranss (CHSTokComma nopos:toks')
-          return (CHSTrans _2Case transs, toks'')
+          return (CHSTrans _2Case chgCase transs, toks'')
   where
-    parse_2Case (CHSTok_2Case _:toks) = return (True, toks)
-    parse_2Case toks		      = return (False, toks)
+    parse_2CaseAndChange (CHSTok_2Case _:CHSTokComma _:CHSTokUpper _:toks) = 
+      return (True, CHSUpCase, toks)
+    parse_2CaseAndChange (CHSTok_2Case _:CHSTokComma _:CHSTokDown _ :toks) = 
+      return (True, CHSDownCase, toks)
+    parse_2CaseAndChange (CHSTok_2Case _                            :toks) = 
+      return (True, CHSSameCase, toks)
+    parse_2CaseAndChange (CHSTokUpper _:CHSTokComma _:CHSTok_2Case _:toks) = 
+      return (True, CHSUpCase, toks)
+    parse_2CaseAndChange (CHSTokUpper _                             :toks) = 
+      return (False, CHSUpCase, toks)
+    parse_2CaseAndChange (CHSTokDown  _:CHSTokComma _:CHSTok_2Case _:toks) = 
+      return (True, CHSDownCase, toks)
+    parse_2CaseAndChange (CHSTokDown  _                             :toks) = 
+      return (False, CHSDownCase, toks)
+    parse_2CaseAndChange toks		                                   = 
+      return (False, CHSSameCase, toks)
     --
     parseTranss (CHSTokRBrace _:toks) = return ([], toks)
     parseTranss (CHSTokComma  _:toks) = do
