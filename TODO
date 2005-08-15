@@ -92,9 +92,6 @@ Next: - Especially with function hooks, it is not sufficient to emit line
       - install the executable (c2hs and c2hs-config) with a version number
         suffix and make a symbolic link for the name without version number
         (makes installing multiple versions easier)
-      - the import path (/usr/lib/c2hs-0.7.5/ghc4/import) has to be more
-	specific and has to also include the minor version number of ghc
-	(as interface file formats change with minor versions :-(
       - #define enum's (see below)
       - intro a safe flag (as opposite to unsafe, but make safe the default)
       - overload stdAddr etc for ForeignObj (stable ptr & cast)
@@ -125,19 +122,6 @@ Next: - Especially with function hooks, it is not sufficient to emit line
 	  Pointer hat, kann man ja mit der ... as ... Methode eigene
 	  Marshalling Funktionen zur Verfügung stellen. Oder habe ich da etwas
 	  grundsätzliches übersehen? 
-      - there are still optimisation related !!! in Parsers.hs
-      - ghttp auskoppeln; extra C->HS library page
-      - what about supporting producing bindings for nhc?  An added problem
-        here is that the library `C2HS' has to be compiled with the compiler
-        that is target with the bindings.  To possible options: (1) Distribute 
-        the source of `C2HS' even in C->HS binary releases and support
-        compiling the library source with other Haskell systems.  (2) Add a
-        `nhc' library-only compilation mode that requires to install the C->HS 
-        binary for GHC first, then get the complete C->HS source, and the
-        special library-only compile and installation.
-      - maybe compilers based on the CTK should add a README.1ST to the root
-	directory when they are tarified
-
 
 Short term
 ~~~~~~~~~~
