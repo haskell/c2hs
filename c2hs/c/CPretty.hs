@@ -36,8 +36,8 @@ module CPretty (
 
 import Common (PrettyPrintMode, dftOutWidth, dftOutRibbon)
 import Idents (Ident, identToLexeme)
-import Pretty (Doc, Pretty(..), empty, text, (<>), (<+>), hsep, hang,
-	       punctuate, comma, semi, parens, brackets, render)
+import Pretty (Doc, Pretty(..), empty, text, (<>), (<+>), sep, hsep, hang, nest,
+	       punctuate, comma, semi, parens, brackets, render, braces, ($$), vcat)
 
 import CAST
 
@@ -79,8 +79,8 @@ instance Pretty CTypeSpec where
   pretty (CDoubleType    _) = text "double"
   pretty (CSignedType    _) = text "signed"
   pretty (CUnsigType     _) = text "unsigned"
-  pretty (CSUType struct _) = text "<<CPretty: CSUType not yet implemented!>>"
-  pretty (CEnumType enum _) = text "<<CPretty: CEnumType not yet implemented!>>"
+  pretty (CSUType struct _) = prettySU struct
+  pretty (CEnumType enum _) = prettyEnum enum
   pretty (CTypeDef ide   _) = ident ide
 
 instance Pretty CTypeQual where
@@ -122,3 +122,22 @@ instance Pretty CExpr where
 
 ident :: Ident -> Doc
 ident  = text . identToLexeme
+
+optName :: (Maybe Ident) -> String
+optName = maybe "" $ (++" ").identToLexeme
+
+prettyEnum :: CEnum -> Doc
+prettyEnum (CEnum name ms _) = header <> if ms == [] then empty else body ms
+       where header = text "enum " <+> maybe empty ident name
+             body :: [(Ident, Maybe CExpr)] -> Doc
+             body = braces.nest 1.sep.punctuate comma.(map p)
+             p :: (Ident, Maybe CExpr) -> Doc
+             p (ide, exp) = ident ide <+> maybe empty ((<+> text "=").pretty) exp
+
+prettySU :: CStructUnion -> Doc
+prettySU (CStruct t name ms _) = header <> if ms == [] then empty else body ms
+    where header = text $ tag t ++ optName name
+          tag CStructTag = "struct "
+          tag CUnionTag = "union "
+          body :: [CDecl] -> Doc
+          body = braces.nest 1.sep.map pretty
