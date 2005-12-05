@@ -75,7 +75,7 @@ module CTrav (CT, readCT, transCT, getCHeaderCT, runCT, throwCTExc, ifCTExc,
 	      declaredDeclr, declaredName, structMembers, expandDecl,
 	      structName, enumName, tagName, isPtrDeclr, dropPtrDeclr,
 	      isPtrDecl, isFunDeclr, structFromDecl, funResultAndArgs,
-	      chaseDecl, findAndChaseDecl, checkForAlias,
+	      chaseDecl, findAndChaseDecl, checkForAlias, checkForOneCUName,
 	      checkForOneAliasName, lookupEnum, lookupStructUnion,
 	      lookupDeclOrTag)
 where
@@ -687,6 +687,12 @@ checkForAlias decl  =
 checkForOneAliasName      :: CDecl -> Maybe Ident
 checkForOneAliasName decl  = fmap fst $ extractAlias decl False
 
+-- given a declaration, find the name of the struct/union type
+checkForOneCUName        :: CDecl -> Maybe Ident
+checkForOneCUName decl@(CDecl specs _ _)  = 
+  case [ts | CTypeSpec ts <- specs] of
+    [CSUType (CStruct _ n _ _) _] -> n
+    _                                  -> Nothing
 
 -- smart lookup
 --

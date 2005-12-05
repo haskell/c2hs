@@ -134,8 +134,8 @@ import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 		   simplifyDecl, declrFromDecl, declrNamed, structMembers,
 		   structName, tagName, declaredName , structFromDecl,
 		   funResultAndArgs, chaseDecl, findAndChaseDecl,
-		   checkForAlias, checkForOneAliasName, lookupEnum,
-		   lookupStructUnion, lookupDeclOrTag, isPtrDeclr,
+		   checkForAlias, checkForOneAliasName, checkForOneCUName, 
+		   lookupEnum, lookupStructUnion, lookupDeclOrTag, isPtrDeclr,
 		   dropPtrDeclr, isPtrDecl, getDeclOf, isFunDeclr,
 		   refersToNewDef, CDef(..))
 
@@ -1307,7 +1307,7 @@ extractSimpleType isResult pos cdecl  =
 --
 -- * the declaration may have at most one declarator
 --
--- * struct/union types are mapped to `()'
+-- * unknown struct/union types are mapped to `()'
 --
 -- * NB: this is by definition not a result type
 --
@@ -1358,7 +1358,9 @@ extractCompType isResult cdecl@(CDecl specs declrs ats)  =
       let declrs' = dropPtrDeclr declr		-- remove indirection
 	  cdecl'  = CDecl specs [(Just declrs', Nothing, Nothing)] ats
           oalias  = checkForOneAliasName cdecl' -- is only an alias remaining?
-      oHsRepr <- case oalias of
+	  osu     = checkForOneCUName cdecl'
+	  oname   = if oalias == Nothing then osu else oalias
+      oHsRepr <- case oname of
 		   Nothing  -> return $ Nothing
 		   Just ide -> queryPtr (True, ide)
       case oHsRepr of
