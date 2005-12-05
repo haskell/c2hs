@@ -1,3 +1,7 @@
+Fri Nov 25 10:54:56 EST 2005  Jelmer Vernooij <jelmer@samba.org>
+
+	* add prettify functions for structs, enums and unions
+
 2005-08-10  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* c2hs/gen/GBMonad.hs: apply `upcaseFirstLetter' and
