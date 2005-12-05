@@ -691,7 +691,11 @@ checkForOneAliasName decl  = fmap fst $ extractAlias decl False
 checkForOneCUName        :: CDecl -> Maybe Ident
 checkForOneCUName decl@(CDecl specs _ _)  = 
   case [ts | CTypeSpec ts <- specs] of
-    [CSUType (CStruct _ n _ _) _] -> n
+    [CSUType (CStruct _ n _ _) _] -> 
+	case declaredDeclr decl of
+	  Nothing			-> n
+          Just (CVarDeclr _ _         ) -> n
+	  Just (CPtrDeclr [_] (CVarDeclr _ _) _) -> Nothing
     _                                  -> Nothing
 
 -- smart lookup

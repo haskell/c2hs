@@ -1,5 +1,10 @@
 2005-12-05	Jelmer Vernooij <jelmer@samba.org>
 
+	* c2hs/c/CTrav.hs: only match in `checkForOneCUName' if there are 
+	no indirections
+
+2005-12-05	Jelmer Vernooij <jelmer@samba.org>
+
 	* c2hs/gen/GenBind.hs: support mapping struct and union names to haskell
 	types
 
