@@ -1,3 +1,10 @@
+2005-12-05	Jelmer Vernooij <jelmer@samba.org>
+
+	* c2hs/gen/GenBind.hs: support mapping struct and union names to haskell
+	types
+
+	* c2hs/c/CTrav.hs: added `checkForOneCUName'
+
 Fri Nov 25 10:54:56 EST 2005  Jelmer Vernooij <jelmer@samba.org>
 
 	* add prettify functions for structs, enums and unions
