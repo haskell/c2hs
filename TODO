@@ -2,7 +2,10 @@
                                 C2HS TODO
                                 =========
 
-Next: - Especially with function hooks, it is not sufficient to emit line
+Next: - enum hooks should define cFromEnum/cToEnum as the default marshallers
+       (see comment at GenBind.lookupDftMarshIn).
+
+      - Especially with function hooks, it is not sufficient to emit line
 	pragmas whenever a new CHS fragment starts.  As some hooks expand to
 	multiple lines of Haskell code, we need to reemit the line number of
 	the hook once for each line of Haskell generated from it.
