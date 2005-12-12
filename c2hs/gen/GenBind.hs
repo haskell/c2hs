@@ -493,6 +493,7 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
 	    Nothing     -> do
 			     cDecl <- chaseDecl cNameFull (not isStar)
 			     et    <- extractPtrType cDecl
+			     traceInfoPtrType et
 			     let et' = adjustPtr isStar et
 			     return (showExtType et', isFunExtType et')
 	    Just hsType -> return (identToLexeme hsType, False)
@@ -515,16 +516,21 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
   where
     -- remove a pointer level if the first argument is `False'
     --
-    adjustPtr True  et         = et
-    adjustPtr False (PtrET et) = et
-    adjustPtr _	    _	       = interr "GenBind.adjustPtr: Where is the Ptr?"
+    adjustPtr True  et                 = et
+    adjustPtr False (PtrET et)         = et
+    adjustPtr False et@(DefinedET _ _) = 
+      interr "GenBind.adjustPtr: Can't adjust defined type"
+    adjustPtr _	    _	               = 
+      interr "GenBind.adjustPtr: Where is the Ptr?"
     --
     traceInfoPointer        = traceGenBind "** Pointer hook:\n"
-    traceInfoCName kind ide = traceGenBind $ 
-      "found C " ++ kind ++ " for `" ++ identToLexeme ide ++ "'\n"
+    traceInfoPtrType et     = traceGenBind $ 
+      "extracted ptr type is `" ++ showExtType et ++ "'\n"
     traceInfoHsType name ty = traceGenBind $ 
       "associated with Haskell entity `" ++ name ++ "'\nhaving type " ++ ty 
       ++ "\n"
+    traceInfoCName kind ide = traceGenBind $ 
+      "found C " ++ kind ++ " for `" ++ identToLexeme ide ++ "'\n"
 expandHook (CHSClass oclassIde classIde typeIde pos) =
   do
     traceInfoClass
@@ -1299,7 +1305,7 @@ extractSimpleType                    :: Bool -> Position -> CDecl -> GB ExtType
 extractSimpleType isResult pos cdecl  =
   do
     traceEnter
-    ct <- extractCompType isResult cdecl
+    ct <- extractCompType isResult True cdecl
     case ct of
       ExtType et -> return et
       SUType  _  -> illegalStructUnionErr (posOf cdecl) pos
@@ -1314,11 +1320,13 @@ extractSimpleType isResult pos cdecl  =
 --
 -- * unknown struct/union types are mapped to `()'
 --
+-- * do *not* take aliases into account
+--
 -- * NB: this is by definition not a result type
 --
-extractPtrType       :: CDecl -> GB ExtType
-extractPtrType cdecl  = do
-  ct <- extractCompType False cdecl
+extractPtrType :: CDecl -> GB ExtType
+extractPtrType cdecl = do
+  ct <- extractCompType False False cdecl
   case ct of
     ExtType et -> return et
     SUType  _  -> return UnitET
@@ -1346,8 +1354,8 @@ extractPtrType cdecl  = do
 --		     `extractCompType' from looking further "into" the
 --		     definition of that pointer.
 --
-extractCompType :: Bool -> CDecl -> GB CompType
-extractCompType isResult cdecl@(CDecl specs declrs ats)  = 
+extractCompType :: Bool -> Bool -> CDecl -> GB CompType
+extractCompType isResult usePtrAliases cdecl@(CDecl specs declrs ats)  = 
   if length declrs > 1 
   then interr "GenBind.extractCompType: Too many declarators!"
   else case declrs of
@@ -1369,9 +1377,9 @@ extractCompType isResult cdecl@(CDecl specs declrs ats)  =
 		   Nothing  -> return $ Nothing
 		   Just ide -> queryPtr (True, ide)
       case oHsRepr of
-        Just repr  -> ptrAlias repr             -- got an alias
-	Nothing    -> do			-- no alias => recurs
-	  ct <- extractCompType False cdecl'
+        Just repr | usePtrAliases  -> ptrAlias repr     -- got an alias
+	_                          -> do		-- no alias => recurs
+	  ct <- extractCompType False usePtrAliases cdecl'
 	  returnX $ case ct of
 		      ExtType et -> PtrET et
 		      SUType  _  -> PtrET UnitET
@@ -1397,14 +1405,15 @@ extractCompType isResult cdecl@(CDecl specs declrs ats)  =
 	  traceAlias ide
 	  oHsRepr <- queryPtr (False, ide) -- check for pointer hook alias     
 	  case oHsRepr of
-	    Nothing   -> do		   -- skip current alias (only one)
-			   cdecl' <- getDeclOf ide
-			   let CDecl specs [(declr, init, _)] at =
-			         ide `simplifyDecl` cdecl'
-                               sdecl = CDecl specs [(declr, init, size)] at
-			       -- propagate `size' down (slightly kludgy)
-			   extractCompType isResult sdecl
-	    Just repr -> ptrAlias repr     -- found a pointer hook alias
+	    Just repr | usePtrAliases 
+               -> ptrAlias repr    -- found a pointer hook alias
+	    _  -> do		   -- skip current alias (only one)
+		    cdecl' <- getDeclOf ide
+		    let CDecl specs [(declr, init, _)] at =
+			  ide `simplifyDecl` cdecl'
+			sdecl = CDecl specs [(declr, init, size)] at
+			-- propagate `size' down (slightly kludgy)
+		    extractCompType isResult usePtrAliases sdecl
     --
     -- compute the result for a pointer alias
     --
@@ -1636,7 +1645,7 @@ sizeAlignOf       :: CDecl -> GB (BitSize, Int)
 --
 sizeAlignOf cdecl  = 
   do
-    ct <- extractCompType False cdecl
+    ct <- extractCompType False False cdecl
     case ct of
       ExtType (FunET _ _        ) -> do
 				       align <-	alignment CFunPtrPT
@@ -1649,10 +1658,14 @@ sizeAlignOf cdecl  =
         | otherwise		  -> do
 				       align <- alignment CPtrPT
 				       return (bitSize CPtrPT, align)
-      ExtType (DefinedET _ _    ) -> do
+      ExtType (DefinedET _ _    ) -> 
+        interr "GenBind.sizeAlignOf: Should never get a defined type"
+{- OLD:
+                                     do
 				       align <- alignment CPtrPT
 				       return (bitSize CPtrPT, align)
         -- FIXME: The defined type could be a function pointer!!!
+ -}
       ExtType (PrimET pt        ) -> do
 				       align <- alignment pt
 				       return (bitSize pt, align)

@@ -1,5 +1,9 @@
 2005-12-12  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
+	* c2hs/gen/GenBind.hs: When translating the target type of a
+	pointer hook into a Haskell type, don't take the pointer hook
+	alias map into account.
+
 	* c2hs.cabal: version 0.14.5
 
 	* c2hs/gen/GenBind.hs: Suppress code generation if requested
