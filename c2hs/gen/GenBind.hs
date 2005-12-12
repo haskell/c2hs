@@ -466,7 +466,8 @@ expandHook (CHSField access path pos) =
 					++ show (length offsets) ++ "\n"
     traceValueType et  = traceGenBind $ 
       "Type of accessed value: " ++ showExtType et ++ "\n"
-expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType pos) =
+expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit 
+	      pos) =
   do
     traceInfoPointer
     let hsIde  = fromMaybe cName oalias
@@ -500,7 +501,7 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType pos) =
 	    --   allow `... -> fun HSTYPE' to explicitly mark function
 	    --   types if this ever becomes important
 	traceInfoHsType hsName hsType
-	pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun
+	pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit
       Right tag -> do			        -- found a tag definition
         let cNameFull = tagName tag
 	traceInfoCName "tag definition" cNameFull
@@ -510,7 +511,7 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType pos) =
 		       Nothing     -> "()"
 		       Just hsType -> identToLexeme hsType
 	traceInfoHsType hsName hsType
-	pointerDef isStar cNameFull hsName ptrKind isNewtype hsType False
+	pointerDef isStar cNameFull hsName ptrKind isNewtype hsType False emit
   where
     -- remove a pointer level if the first argument is `False'
     --
@@ -1064,8 +1065,9 @@ pointerDef :: Bool		-- explicit `*' in pointer hook
 	   -> Bool		-- explicit newtype tag
 	   -> String		-- Haskell type expression of pointer argument
 	   -> Bool		-- do we have a pointer to a function?
+	   -> Bool		-- shall we emit code?
 	   -> GB String
-pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun =
+pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
   do
     let ptrArg  = if isNewtype 
 		  then hsName		-- abstract type
@@ -1080,10 +1082,13 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun =
 					   "Ptr (" ++ ptrArg ++ ")")
       _		    -> thePtr `ptrMapsTo` (hsName, hsName)
     return $
-      if isNewtype 
-      then "newtype " ++ hsName ++ " = " ++ hsName ++ " (" ++ ptrType ++ ")" ++
+      case (emit, isNewtype) of
+        (False, _)     -> ""	-- suppress code generation
+	(True , True)  -> 
+	  "newtype " ++ hsName ++ " = " ++ hsName ++ " (" ++ ptrType ++ ")" ++
 	   withForeignFun
-      else "type "    ++ hsName ++ " = "                   ++ ptrType
+	(True , False) -> 
+	  "type "    ++ hsName ++ " = "                   ++ ptrType
     where
       -- if we have a foreign pointer wrapped into a newtype, provide a
       -- safe unwrapping function automatically

@@ -47,6 +47,9 @@ checkType  = id
 {#pointer *ColourPoint as AColourPoint newtype#}
 {#class APointClass => AColourPointClass AColourPoint#}
 
+-- test suppression of code generation
+{#pointer *Point as APoint2 newtype nocode#}
+
 
 main = putStrLn "This test doesn't compute much; it's all about the generated \
 		\types."

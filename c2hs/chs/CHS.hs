@@ -58,7 +58,7 @@
 --	      | `fun' [`pure'] [`unsafe'] idalias parms
 --	      | `get' apath
 --	      | `set' apath
---	      | `pointer' ['*'] idalias ptrkind
+--	      | `pointer' ['*'] idalias ptrkind ['nocode']
 --	      | `class' [ident `=>'] ident ident
 --  ctxt     -> [`lib' `=' string] [prefix]
 --  idalias  -> ident [`as' (ident | `^')]
@@ -197,6 +197,7 @@ data CHSHook = CHSImport  Bool			-- qualified?
 			  CHSPtrType		-- Ptr, ForeignPtr or StablePtr
 			  Bool			-- create new type?
 			  (Maybe Ident)		-- Haskell type pointed to
+			  Bool			-- emit type decl?
 			  Position
              | CHSClass   (Maybe Ident)		-- superclass
 			  Ident			-- class name
@@ -212,7 +213,7 @@ instance Pos CHSHook where
   posOf (CHSCall    _ _ _ _       pos) = pos
   posOf (CHSFun     _ _ _ _ _ _ _ pos) = pos
   posOf (CHSField   _ _           pos) = pos
-  posOf (CHSPointer _ _ _ _ _ _   pos) = pos
+  posOf (CHSPointer _ _ _ _ _ _ _ pos) = pos
   posOf (CHSClass   _ _ _	  pos) = pos
 
 -- two hooks are equal if they have the same Haskell name and reference the
@@ -236,8 +237,8 @@ instance Eq CHSHook where
     oalias1 == oalias2 && ide1 == ide2
   (CHSField acc1 path1         _) == (CHSField acc2 path2         _) =    
     acc1 == acc2 && path1 == path2
-  (CHSPointer _ ide1 oalias1 _ _ _ _) 
-			          == (CHSPointer _ ide2 oalias2 _ _ _ _) =
+  (CHSPointer _ ide1 oalias1 _ _ _ _ _) 
+			          == (CHSPointer _ ide2 oalias2 _ _ _ _ _) =
     ide1 == ide2 && oalias1 == oalias2
   (CHSClass _ ide1 _           _) == (CHSClass _ ide2 _           _) =
     ide1 == ide2
@@ -490,7 +491,7 @@ showCHSHook (CHSField acc path _) =
        CHSGet -> showString "get "
        CHSSet -> showString "set ")
   . showCHSAPath path
-showCHSHook (CHSPointer star ide oalias ptrType isNewtype oRefType _) =
+showCHSHook (CHSPointer star ide oalias ptrType isNewtype oRefType emit _) =
     showString "pointer "
   . (if star then showString "*" else showString "")
   . showIdAlias ide oalias
@@ -502,6 +503,9 @@ showCHSHook (CHSPointer star ide oalias ptrType isNewtype oRefType _) =
        (True , _       ) -> showString " newtype" 
        (False, Just ide) -> showString " -> " . showCHSIdent ide
        (False, Nothing ) -> showString "")
+  . (case emit of
+       True  -> showString "" 
+       False -> showString " nocode")
 showCHSHook (CHSClass oclassIde classIde typeIde _) =   
     showString "class "
   . (case oclassIde of
@@ -949,11 +953,17 @@ parsePointer pos toks =
 	CHSTokNewtype _                  :toks' -> (True , Nothing , toks' )
 	CHSTokArrow   _:CHSTokIdent _ ide:toks' -> (False, Just ide, toks' )
 	_				        -> (False, Nothing , toks'3)
-    toks'5	                  <- parseEndHook toks'4
-    frags                         <- parseFrags   toks'5
+    let 
+     (emit, toks'5) =
+      case toks'4 of
+	CHSTokNocode _                  :toks' -> (False, toks' )
+	_                                      -> (True , toks'4 )
+    toks'6	                  <- parseEndHook toks'5
+    frags                         <- parseFrags   toks'6
     return $ 
       CHSHook 
-       (CHSPointer isStar ide (norm ide oalias) ptrType isNewtype oRefType pos)
+       (CHSPointer 
+         isStar ide (norm ide oalias) ptrType isNewtype oRefType emit pos)
        : frags
   where
     parsePtrType :: [CHSToken] -> CST s (CHSPtrType, [CHSToken])
