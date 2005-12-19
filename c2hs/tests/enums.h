@@ -41,4 +41,9 @@ enum enums_enums {
   ENUMS_THREE = 3
 };
 
+/* A #define enum
+ */
+#define THIS 1
+#define THAT 2
+
 #endif /* !_ENUMS_H */

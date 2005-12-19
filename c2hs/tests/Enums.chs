@@ -20,6 +20,15 @@ colourOfSide :: Side -> Colour
 colourOfSide  = 
   cToEnum . {#call fun colourOfSide as colourOfSidePrim#} . cFromEnum
 
+#c
+enum ThisThat {
+  This = THIS,
+  That = THAT
+};
+#endc
+{#enum ThisThat {}#}
+
+
 main :: IO () 
 main  = do
 	  const (return ()) discard
