@@ -16,6 +16,8 @@ Description:	C->Haskell assists in the development of Haskell bindings to C
 	files and generates marshaling and signature code in Haskell.
 Category:       Development tool
 Build-Depends:  base, haskell98
+Exposed-Modules: C2HS
+Hs-Source-Dirs: c2hs/lib
 
 Executable:     c2hs
 Hs-Source-Dirs:	base/admin 
