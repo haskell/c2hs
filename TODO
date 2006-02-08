@@ -132,7 +132,7 @@ Short term
        representing  the  values  of  all  the   members   of   the
        enumeration. [...]
 
-  Hence, c2hs has to be a bit more clever about determining the inetgral type
+  Hence, c2hs has to be a bit more clever about determining the integral type
   used to represent an enum.
 
 * The definition of `GenBind.HsObjectMap' doesn't take into account that in
