@@ -92,7 +92,7 @@ $hexdigit = [0-9a-fA-F]
 $inchar   = \0-\255 # [ \\ \' \n \f \r \v ]
 $instr    = \0-\255 # [ \\ \" \n \f \r \v ]
 $anyButNL = \0-\255 # \n
-$infname  = \ -\127 # [ \\ \' \" ]
+$infname  = \ -\127 # [ \\ \" ]
 $visible  = \ -\127
 
 @int = $digitNZ$digit*
@@ -130,7 +130,7 @@ $white+					;
 -- * allows further ints after the file name a la GCC; as the GCC CPP docu
 --   doesn't say how many ints there can be, we allow an unbound number
 --
-\#$space*@int$space*(\"$infname*\"$space*)?(@int$space*)*$eol
+\#$space*@int$space*(\"($infname|@charesc)*\"$space*)?(@int$space*)*$eol
   { \pos len str -> setPos (adjustPos (take len str) pos) >> lexToken }
 
 -- #pragma directive (K&R A12.8)
