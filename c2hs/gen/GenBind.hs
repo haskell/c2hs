@@ -237,6 +237,13 @@ isFloatHsType "Float"  = True
 isFloatHsType "Double" = True
 isFloatHsType _	       = False
 
+isVariadic :: ExtType -> Bool
+isVariadic (FunET s t)  = any isVariadic [s,t]
+isVariadic (IOET t)     = isVariadic t
+isVariadic (PtrET t)    = isVariadic t
+isVariadic (VarFunET _) = True
+isVariadic _            = False
+
 -- check for integral C types
 --
 -- * For marshalling purposes C char's are integral types (see also types
@@ -380,6 +387,7 @@ expandHook (CHSType ide pos) =
     decl <- findAndChaseDecl ide False True	-- no indirection, but shadows
     ty <- extractSimpleType False pos decl
     traceInfoDump decl ty
+    when (isVariadic ty) (variadicErr pos (posOf decl))
     return $ "(" ++ showExtType ty ++ ")"
   where
     traceInfoType         = traceGenBind "** Type hook:\n"
@@ -495,6 +503,8 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
 			     et    <- extractPtrType cDecl
 			     traceInfoPtrType et
 			     let et' = adjustPtr isStar et
+                             when (isVariadic et')
+                                  (variadicErr pos (posOf cDecl))
 			     return (showExtType et', isFunExtType et')
 	    Just hsType -> return (identToLexeme hsType, False)
 	    -- FIXME: it is not possible to determine whether `hsType'
@@ -667,6 +677,7 @@ callImport hook isPure isUns ideLexeme hsLexeme cdecl pos =
     --
     extType <- extractFunType pos cdecl isPure
     header  <- getSwitch headerSB
+    when (isVariadic extType) (variadicErr pos (posOf cdecl))
     delayCode hook (foreignImport header ideLexeme hsLexeme isUns extType)
     traceFunType extType
   where
@@ -1049,6 +1060,7 @@ setGet pos access offsets ty =
     -- check that the type can be marshalled and compute extra operations for
     -- bitfields
     --
+    checkType (VarFunET  _    )          = variadicErr pos pos
     checkType (IOET      _    )          = interr "GenBind.setGet: Illegal \
 						  \type!"
     checkType (UnitET         )          = voidFieldErr pos
@@ -1198,6 +1210,7 @@ data ExtType = FunET     ExtType ExtType	-- function
 	     | DefinedET CDecl String		-- aliased type
 	     | PrimET    CPrimType		-- basic C type
 	     | UnitET				-- void
+             | VarFunET  ExtType                -- variadic function
 
 instance Eq ExtType where
   (FunET     t1 t2) == (FunET     t1' t2') = t1 == t1' && t2 == t2'
@@ -1205,6 +1218,7 @@ instance Eq ExtType where
   (PtrET     t    ) == (PtrET     t'     ) = t == t'
   (DefinedET _  s ) == (DefinedET _   s' ) = s == s'
   (PrimET    t    ) == (PrimET    t'     ) = t == t'
+  (VarFunET  t    ) == (VarFunET  t'     ) = t == t'
   UnitET	    == UnitET		   = True
 
 -- composite C type
@@ -1215,9 +1229,10 @@ data CompType = ExtType  ExtType		-- external type
 -- check whether an external type denotes a function type
 --
 isFunExtType             :: ExtType -> Bool
-isFunExtType (FunET _ _)  = True
-isFunExtType (IOET  _  )  = True
-isFunExtType _            = False
+isFunExtType (FunET    _ _) = True
+isFunExtType (VarFunET _  ) = True
+isFunExtType (IOET     _  ) = True
+isFunExtType _              = False
 
 -- pretty print an external type
 --
@@ -1229,6 +1244,7 @@ showExtType                        :: ExtType -> String
 showExtType (FunET UnitET res)      = showExtType res
 showExtType (FunET arg res)	    = "(" ++ showExtType arg ++ " -> " 
 				      ++ showExtType res ++ ")"
+showExtType (VarFunET res)    	    = "( ... -> " ++ showExtType res ++ ")"
 showExtType (IOET t)		    = "(IO " ++ showExtType t ++ ")"
 showExtType (PtrET t)	            = let ptrCon = if isFunExtType t 
 						   then "FunPtr" else "Ptr"
@@ -1275,15 +1291,16 @@ extractFunType pos cdecl isPure  =
     -- the result
     --
     let (args, resultDecl, variadic) = funResultAndArgs cdecl
-    when variadic $
-      variadicErr pos cpos
     preResultType <- extractSimpleType True pos resultDecl
     --
     -- we can now add the `IO' monad if this is no pure function 
     --
-    let resultType = if isPure 
-		     then      preResultType 
-		     else IOET preResultType
+    let protoResultType = if isPure
+                          then      preResultType
+                          else IOET preResultType
+    let resultType = if variadic 
+                     then VarFunET protoResultType
+                     else          protoResultType
     --
     -- compute function arguments and create a function type (a function
     -- prototype with `void' as its single argument declares a nullary
@@ -1648,6 +1665,9 @@ sizeAlignOf cdecl  =
     ct <- extractCompType False False cdecl
     case ct of
       ExtType (FunET _ _        ) -> do
+				       align <-	alignment CFunPtrPT
+				       return (bitSize CFunPtrPT, align)
+      ExtType (VarFunET _       ) -> do
 				       align <-	alignment CFunPtrPT
 				       return (bitSize CFunPtrPT, align)
       ExtType (IOET  _          ) -> interr "GenBind.sizeof: Illegal IO type!"
