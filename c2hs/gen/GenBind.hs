@@ -484,10 +484,48 @@ expandHook hook@(CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
         cdecl'    = cide `simplifyDecl` cdecl
 	callHook  = CHSCall isPure isUns (CHSRoot cide) (Just fiIde) pos
     callImport callHook isPure isUns (identToLexeme cide) fiLexeme cdecl' pos
-    funDef isPure hsLexeme fiLexeme cdecl' ctxt parms parm pos
+
+    extTy <- extractFunType pos cdecl' True
+    funDef isPure hsLexeme fiLexeme extTy ctxt parms parm pos
   where
     traceEnter = traceGenBind $ 
       "** Fun hook for `" ++ identToLexeme ide ++ "':\n"
+expandHook hook@(CHSFun isPure isUns apath oalias ctxt parms parm pos) =
+  do
+    traceEnter
+
+    (decl, offsets) <- accessPath apath
+    ptrTy <- extractSimpleType False pos decl
+    ty <- case ptrTy of
+        PtrET f@(FunET _ _) -> return f
+        _ -> funPtrExpectedErr pos
+        
+    traceValueType ty
+    set_get <- setGet pos CHSGet offsets ptrTy
+
+    -- get the corresponding C declaration; raises error if not found or not a
+    -- function; we use shadow identifiers, so the returned identifier is used 
+    -- afterwards instead of the original one
+    --
+    -- (ObjCO cdecl, cide) <- findFunObj ide True
+    let ideLexeme = identToLexeme $ apathToIdent apath
+	hsLexeme  = ideLexeme `maybe` identToLexeme $ oalias
+	fiLexeme  = hsLexeme ++ "'_"   -- *Urgh* - probably unqiue...
+	fiIde     = onlyPosIdent nopos fiLexeme
+        -- cdecl'    = cide `simplifyDecl` cdecl
+        args      = concat [ " x" ++ show n | n <- [1..numArgs ty] ]
+	callHook  = CHSCall isPure isUns apath (Just fiIde) pos
+    callImportDyn callHook isPure isUns ideLexeme fiLexeme ty pos
+
+    let parm0 = CHSParm (Just (onlyPosIdent nopos "chs_deref_fun_ptr_", CHSIOArg))
+                        "Ptr ()" False Nothing nopos
+    fun <- funDef isPure hsLexeme fiLexeme (FunET ptrTy ty) ctxt (parm0:parms) parm pos
+    return $ fun ++ "\n  where chs_deref_fun_ptr_ o io = " ++ set_get ++ " o >>= io"
+  where
+    traceEnter = traceGenBind $ 
+      "** Fun hook for `" ++ identToLexeme (apathToIdent apath) ++ "':\n"
+    traceValueType et  = traceGenBind $ 
+      "Type of accessed value: " ++ showExtType et ++ "\n"
 expandHook (CHSField access path pos) =
   do
     traceInfoField
@@ -753,15 +791,16 @@ foreignImportDyn ident hsIdent isUnsafe ty  =
 funDef :: Bool		     -- pure function?
        -> String	     -- name of the new Haskell function
        -> String	     -- Haskell name of the foreign imported C function
-       -> CDecl		     -- simplified declaration of the C function
+       -> ExtType            -- simplified declaration of the C function
        -> Maybe String	     -- type context of the new Haskell function
        -> [CHSParm]	     -- parameter marshalling description
        -> CHSParm	     -- result marshalling description 
        -> Position	     -- source location of the hook
        -> GB String	     -- Haskell code in text form
-funDef isPure hsLexeme fiLexeme cdecl octxt parms parm pos =
+funDef isPure hsLexeme fiLexeme extTy octxt parms parm pos =
   do
-    (parms', parm', isImpure) <- addDftMarshaller pos parms parm cdecl
+    (parms', parm', isImpure) <- addDftMarshaller pos parms parm extTy
+
     traceMarsh parms' parm' isImpure
     let 
       sig       = hsLexeme ++ " :: " ++ funTy parms' parm' ++ "\n"
@@ -872,10 +911,10 @@ funDef isPure hsLexeme fiLexeme cdecl octxt parms parm pos =
 
 -- add default marshallers for "in" and "out" marshalling
 --
-addDftMarshaller :: Position -> [CHSParm] -> CHSParm -> CDecl 
+addDftMarshaller :: Position -> [CHSParm] -> CHSParm -> ExtType
 		 -> GB ([CHSParm], CHSParm, Bool)
-addDftMarshaller pos parms parm cdecl = do
-  (resTy, argTys)     <- splitFunTy `liftM` extractFunType pos cdecl True
+addDftMarshaller pos parms parm extTy = do
+  let (resTy, argTys)  = splitFunTy extTy
   (parm' , isImpure1) <- checkResMarsh parm resTy
   (parms', isImpure2) <- addDft parms argTys
   return (parms', parm', isImpure1 || isImpure2)
