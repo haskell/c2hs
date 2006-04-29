@@ -919,13 +919,16 @@ normAP ide (Just ide') | apathToIdent ide == ide' = Nothing
 		       | otherwise                = Just ide'
 
 
--- FIXME: this "identifier" will be almost useless.  a better idea would
--- be nice
 apathToIdent :: CHSAPath -> Ident
-apathToIdent (CHSRoot ide) = ide
-apathToIdent (CHSDeref apath _) = apathToIdent apath
-apathToIdent (CHSRef apath ide) = ide
-
+apathToIdent (CHSRoot ide) =
+    let lowerFirst (c:cs) = toLower c : cs
+    in onlyPosIdent (posOf ide) (lowerFirst $ identToLexeme ide)
+apathToIdent (CHSDeref apath _) =
+    let ide = apathToIdent apath
+    in onlyPosIdent (posOf ide) (identToLexeme ide ++ "'")
+apathToIdent (CHSRef apath ide') =
+    let ide = apathToIdent apath
+    in onlyPosIdent (posOf ide) (identToLexeme ide ++ identToLexeme ide)
 
 norm :: Ident -> Maybe Ident -> Maybe Ident
 norm ide Nothing                   = Nothing
