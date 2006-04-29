@@ -1,3 +1,6 @@
+*** This change log will not be maintained anymore.
+*** All relevant information can be obtained with `darcs changes'.
+
 2005-12-12  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* c2hs/gen/GenBind.hs: When translating the target type of a

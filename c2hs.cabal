@@ -1,10 +1,10 @@
 Name:		c2hs
-Version:	0.14.5
+Version:	0.14.6
 --Versnick:	"Travelling Lightly"
---Versdate:	"12 Dec 2005"
+--Versdate:	"28 Apr 2006"
 License:	GPL
 License-File:	COPYING
-Copyright:	Copyright (c) [1999..2005] Manuel M T Chakravarty
+Copyright:	Copyright (c) [1999..2006] Manuel M T Chakravarty
 Author:		Manuel M T Chakravarty
 Maintainer:	chak@cse.unsw.edu.au
 Stability:	Stable
