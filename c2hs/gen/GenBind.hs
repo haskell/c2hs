@@ -142,7 +142,7 @@ import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 -- friends
 import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 		   CHSParm(..), CHSArg(..), CHSAccess(..), CHSAPath(..),
-		   CHSPtrType(..), showCHSParm) 
+		   CHSPtrType(..), showCHSParm, apathToIdent) 
 import CInfo      (CPrimType(..), size, alignment, getPlatform)
 import GBMonad    (TransFun, transTabToTransFun, HsObject(..), GB,
 		   initialGBState, setContext, getPrefix, 
@@ -422,7 +422,7 @@ expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
     let trans = transTabToTransFun prefix chsTrans
 	hide  = identToLexeme . fromMaybe cide $ oalias
     enumDef enum hide trans (map identToLexeme derive)
-expandHook hook@(CHSCall isPure isUns ide oalias pos) =
+expandHook hook@(CHSCall isPure isUns (CHSRoot ide) oalias pos) =
   do
     traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
@@ -438,7 +438,38 @@ expandHook hook@(CHSCall isPure isUns ide oalias pos) =
   where
     traceEnter = traceGenBind $ 
       "** Call hook for `" ++ identToLexeme ide ++ "':\n"
-expandHook hook@(CHSFun isPure isUns ide oalias ctxt parms parm pos) =
+expandHook hook@(CHSCall isPure isUns apath oalias pos) =
+  do
+    traceEnter
+    
+    (decl, offsets) <- accessPath apath
+    ptrTy <- extractSimpleType False pos decl
+    ty <- case ptrTy of
+        PtrET f@(FunET _ _) -> return f
+        _ -> funPtrExpectedErr pos
+        
+    traceValueType ty
+    set_get <- setGet pos CHSGet offsets ptrTy
+
+    -- get the corresponding C declaration; raises error if not found or not a
+    -- function; we use shadow identifiers, so the returned identifier is used 
+    -- afterwards instead of the original one
+    --
+    -- (ObjCO cdecl, ide) <- findFunObj ide True
+    let ideLexeme = identToLexeme $ apathToIdent apath
+	hsLexeme  = ideLexeme `maybe` identToLexeme $ oalias
+        -- cdecl'    = ide `simplifyDecl` cdecl
+        args      = concat [ " x" ++ show n | n <- [1..numArgs ty] ]
+
+    callImportDyn hook isPure isUns ideLexeme hsLexeme ty pos
+    return $ "(\\o" ++ args ++ " -> " ++ set_get ++ " o >>= \\f -> "
+             ++ hsLexeme ++ " f" ++ args ++ ")"
+  where
+    traceEnter = traceGenBind $ 
+      "** Indirect call hook for `" ++ identToLexeme (apathToIdent apath) ++ "':\n"
+    traceValueType et  = traceGenBind $ 
+      "Type of accessed value: " ++ showExtType et ++ "\n"
+expandHook hook@(CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
   do
     traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
@@ -451,7 +482,7 @@ expandHook hook@(CHSFun isPure isUns ide oalias ctxt parms parm pos) =
 	fiLexeme  = hsLexeme ++ "'_"   -- *Urgh* - probably unqiue...
 	fiIde     = onlyPosIdent nopos fiLexeme
         cdecl'    = cide `simplifyDecl` cdecl
-	callHook  = CHSCall isPure isUns cide (Just fiIde) pos
+	callHook  = CHSCall isPure isUns (CHSRoot cide) (Just fiIde) pos
     callImport callHook isPure isUns (identToLexeme cide) fiLexeme cdecl' pos
     funDef isPure hsLexeme fiLexeme cdecl' ctxt parms parm pos
   where
@@ -684,12 +715,36 @@ callImport hook isPure isUns ideLexeme hsLexeme cdecl pos =
     traceFunType et = traceGenBind $ 
       "Imported function type: " ++ showExtType et ++ "\n"
 
+callImportDyn :: CHSHook -> Bool -> Bool -> String -> String -> ExtType
+              -> Position -> GB ()
+callImportDyn hook isPure isUns ideLexeme hsLexeme ty pos =
+  do
+    -- compute the external type from the declaration, and delay the foreign
+    -- export declaration
+    --
+    when (isVariadic ty) (variadicErr pos pos) -- huh? (posOf cdecl))
+    delayCode hook (foreignImportDyn ideLexeme hsLexeme isUns ty)
+    traceFunType ty
+  where
+    traceFunType et = traceGenBind $ 
+      "Imported function type: " ++ showExtType et ++ "\n"
+
 -- Haskell code for the foreign import declaration needed by a call hook
 --
 foreignImport :: String -> String -> String -> Bool -> ExtType -> String
 foreignImport header ident hsIdent isUnsafe ty  =
   "foreign import ccall " ++ safety ++ " \"" ++ header ++ " " ++ ident ++ 
   "\"\n  " ++ hsIdent ++ " :: " ++ showExtType ty ++ "\n"
+  where
+    safety = if isUnsafe then "unsafe" else "safe"
+
+-- Haskell code for the foreign import dynamic declaration needed by a call hook
+--
+foreignImportDyn :: String -> String -> Bool -> ExtType -> String
+foreignImportDyn ident hsIdent isUnsafe ty  =
+  "foreign import ccall " ++ safety ++ " \"dynamic\"\n  " ++
+    hsIdent ++ " :: FunPtr( " ++ showExtType ty ++ " ) -> " ++
+    showExtType ty ++ "\n"
   where
     safety = if isUnsafe then "unsafe" else "safe"
 
@@ -1233,6 +1288,10 @@ isFunExtType (FunET    _ _) = True
 isFunExtType (VarFunET _  ) = True
 isFunExtType (IOET     _  ) = True
 isFunExtType _              = False
+
+numArgs                  :: ExtType -> Int
+numArgs (FunET _ f) = 1 + numArgs f
+numArgs _           = 0
 
 -- pretty print an external type
 --
@@ -2020,6 +2079,12 @@ ptrExpectedErr pos  =
     ["Expected a pointer object!",
      "Attempt to dereference a non-pointer object or to use it in a `pointer' \
      \hook."]
+
+funPtrExpectedErr     :: Position -> GB a
+funPtrExpectedErr pos  =
+  raiseErrorCTExc pos
+    ["Expected a pointer-to-function object!",
+     "Attempt to use a non-pointer object in a `call' or `fun' hook."]
 
 illegalStablePtrErr     :: Position -> GB a
 illegalStablePtrErr pos  =

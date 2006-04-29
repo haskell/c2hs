@@ -92,7 +92,7 @@ module CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 	    CHSChangeCase(..), CHSParm(..), CHSArg(..), CHSAccess(..),
 	    CHSAPath(..), CHSPtrType(..), 
 	    loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI, chisuffix,
-	    showCHSParm)
+	    showCHSParm, apathToIdent)
 where 
 
 -- standard libraries
@@ -177,12 +177,12 @@ data CHSHook = CHSImport  Bool			-- qualified?
 			  Position
 	     | CHSCall    Bool			-- is a pure function?
 			  Bool			-- is unsafe?
-			  Ident			-- C function
+			  CHSAPath              -- C function
 			  (Maybe Ident)		-- Haskell name
 			  Position
 	     | CHSFun     Bool			-- is a pure function?
 			  Bool			-- is unsafe?
-			  Ident			-- C function
+			  CHSAPath              -- C function
 			  (Maybe Ident)		-- Haskell name
 			  (Maybe String)	-- type context
 			  [CHSParm]		-- argument marshalling
@@ -285,6 +285,11 @@ data CHSAPath = CHSRoot  Ident			-- root of access path
 	      | CHSDeref CHSAPath Position	-- dereferencing
 	      | CHSRef	 CHSAPath Ident		-- member referencing
 	      deriving (Eq)
+
+instance Pos CHSAPath where
+    posOf (CHSRoot ide)    = posOf ide
+    posOf (CHSDeref _ pos) = pos
+    posOf (CHSRef _ ide)   = posOf ide
 
 -- pointer options (EXPORTED)
 --
@@ -473,12 +478,12 @@ showCHSHook (CHSCall isPure isUns ide oalias _) =
     showString "call "
   . (if isPure then showString "pure " else id)
   . (if isUns then showString "unsafe " else id)
-  . showIdAlias ide oalias
+  . showApAlias ide oalias
 showCHSHook (CHSFun isPure isUns ide oalias octxt parms parm _) =   
     showString "fun "
   . (if isPure then showString "pure " else id)
   . (if isUns then showString "unsafe " else id)
-  . showIdAlias ide oalias
+  . showApAlias ide oalias
   . (case octxt of
        Nothing      -> showChar ' '
        Just ctxtStr -> showString ctxtStr . showString " => ")
@@ -527,6 +532,13 @@ showPrefix (Just prefix) withWith  =   maybeWith
 showIdAlias            :: Ident -> Maybe Ident -> ShowS
 showIdAlias ide oalias  =
     showCHSIdent ide
+  . (case oalias of
+       Nothing  -> id
+       Just ide -> showString " as " . showCHSIdent ide)
+
+showApAlias            :: CHSAPath -> Maybe Ident -> ShowS
+showApAlias apath oalias  =
+    showCHSAPath apath
   . (case oalias of
        Nothing  -> id
        Just ide -> showString " as " . showCHSIdent ide)
@@ -846,20 +858,20 @@ parseCall pos toks  =
   do
     (isPure  , toks'   ) <- parseIsPure          toks
     (isUnsafe, toks''  ) <- parseIsUnsafe        toks'
-    (ide     , toks''' ) <- parseIdent           toks''
-    (oalias  , toks'''') <- parseOptAs ide False toks'''
+    (apath   , toks''' ) <- parsePath            toks''
+    (oalias  , toks'''') <- parseOptAs (apathToIdent apath) False toks'''
     toks'''''		 <- parseEndHook	 toks''''
     frags                <- parseFrags		 toks'''''
     return $ 
-      CHSHook (CHSCall isPure isUnsafe ide (norm ide oalias) pos) : frags
+      CHSHook (CHSCall isPure isUnsafe apath (normAP apath oalias) pos) : frags
 
 parseFun          :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseFun pos toks  = 
   do
     (isPure  , toks' ) <- parseIsPure          toks
     (isUnsafe, toks'2) <- parseIsUnsafe        toks'
-    (ide     , toks'3) <- parseIdent           toks'2
-    (oalias  , toks'4) <- parseOptAs ide False toks'3
+    (apath   , toks'3) <- parsePath            toks'2
+    (oalias  , toks'4) <- parseOptAs (apathToIdent apath) False toks'3
     (octxt   , toks'5) <- parseOptContext      toks'4
     (parms   , toks'6) <- parseParms	       toks'5
     (parm    , toks'7) <- parseParm	       toks'6
@@ -867,7 +879,7 @@ parseFun pos toks  =
     frags              <- parseFrags	       toks'8
     return $ 
       CHSHook 
-        (CHSFun isPure isUnsafe ide (norm ide oalias) octxt parms parm pos) :
+        (CHSFun isPure isUnsafe apath (normAP apath oalias) octxt parms parm pos) :
       frags
   where
     parseOptContext (CHSTokHSVerb _ ctxt:CHSTokDArrow _:toks) =
@@ -900,6 +912,20 @@ parseIsPure toks		= return (False, toks)
 parseIsUnsafe :: [CHSToken] -> CST s (Bool, [CHSToken])
 parseIsUnsafe (CHSTokUnsafe _:toks) = return (True , toks)
 parseIsUnsafe toks		    = return (False, toks)
+
+normAP :: CHSAPath -> Maybe Ident -> Maybe Ident
+normAP ide Nothing                                = Nothing
+normAP ide (Just ide') | apathToIdent ide == ide' = Nothing
+		       | otherwise                = Just ide'
+
+
+-- FIXME: this "identifier" will be almost useless.  a better idea would
+-- be nice
+apathToIdent :: CHSAPath -> Ident
+apathToIdent (CHSRoot ide) = ide
+apathToIdent (CHSDeref apath _) = apathToIdent apath
+apathToIdent (CHSRef apath ide) = ide
+
 
 norm :: Ident -> Maybe Ident -> Maybe Ident
 norm ide Nothing                   = Nothing
@@ -934,7 +960,8 @@ parseField :: Position -> CHSAccess -> [CHSToken] -> CST s [CHSFrag]
 parseField pos access toks =
   do
     (path, toks') <- parsePath  toks
-    frags         <- parseFrags toks'
+    toks''        <- parseEndHook toks'
+    frags         <- parseFrags toks''
     return $ CHSHook (CHSField access path pos) : frags
 
 parsePointer :: Position -> [CHSToken] -> CST s [CHSFrag]
@@ -1077,9 +1104,7 @@ parsePath' (CHSTokArrow pos:CHSTokIdent _ ide:toks) =
 parsePath' (CHSTokArrow _:toks) = 
   syntaxError toks
 parsePath' toks =
-  do
-    toks' <- parseEndHook toks
-    return (id, toks')
+    return (id,toks)
 
 parseTrans :: [CHSToken] -> CST s (CHSTrans, [CHSToken])
 parseTrans (CHSTokLBrace _:toks) =
