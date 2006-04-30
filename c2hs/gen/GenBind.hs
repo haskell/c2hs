@@ -1,4 +1,5 @@
 --  C->Haskell Compiler: binding generator
+--  vim:ts=8:noexpandtab
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --
@@ -519,9 +520,16 @@ expandHook hook@(CHSFun isPure isUns apath oalias ctxt parms parm pos) =
 
     let parm0 = CHSParm (Just (onlyPosIdent nopos "chs_deref_fun_ptr_", CHSIOArg))
                         "Ptr ()" False Nothing nopos
-    fun <- funDef isPure hsLexeme fiLexeme (FunET ptrTy ty) ctxt (parm0:parms) parm pos
+    fun <- funDef isPure hsLexeme fiLexeme (FunET ptrTy $ purify ty)
+                  ctxt (parm0:parms) parm pos
     return $ fun ++ "\n  where chs_deref_fun_ptr_ o io = " ++ set_get ++ " o >>= io"
   where
+    -- remove IO from the result type of a function ExtType.  necessary
+    -- due to an unexpected interaction with the way funDef works
+    purify (FunET a b) = FunET a (purify b)
+    purify (IOET b)    = b
+    purify a           = a
+
     traceEnter = traceGenBind $ 
       "** Fun hook for `" ++ identToLexeme (apathToIdent apath) ++ "':\n"
     traceValueType et  = traceGenBind $ 
@@ -760,7 +768,7 @@ callImportDyn hook isPure isUns ideLexeme hsLexeme ty pos =
     -- compute the external type from the declaration, and delay the foreign
     -- export declaration
     --
-    when (isVariadic ty) (variadicErr pos pos) -- huh? (posOf cdecl))
+    when (isVariadic ty) (variadicErr pos pos) -- FIXME? (posOf cdecl))
     delayCode hook (foreignImportDyn ideLexeme hsLexeme isUns ty)
     traceFunType ty
   where
@@ -1406,8 +1414,6 @@ extractFunType pos cdecl isPure  =
     --
     argTypes <- mapM (extractSimpleType False pos) args
     return $ foldr FunET resultType argTypes
-  where
-    cpos = posOf cdecl
 
 -- compute a non-struct/union type from the given declaration 
 --

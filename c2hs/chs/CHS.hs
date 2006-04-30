@@ -925,10 +925,12 @@ apathToIdent (CHSRoot ide) =
     in onlyPosIdent (posOf ide) (lowerFirst $ identToLexeme ide)
 apathToIdent (CHSDeref apath _) =
     let ide = apathToIdent apath
-    in onlyPosIdent (posOf ide) (identToLexeme ide ++ "'")
+    in onlyPosIdent (posOf ide) (identToLexeme ide ++ "_")
 apathToIdent (CHSRef apath ide') =
     let ide = apathToIdent apath
-    in onlyPosIdent (posOf ide) (identToLexeme ide ++ identToLexeme ide)
+        upperFirst (c:cs) = toLower c : cs
+        sel = upperFirst $ identToLexeme ide'
+    in onlyPosIdent (posOf ide) (identToLexeme ide ++ sel)
 
 norm :: Ident -> Maybe Ident -> Maybe Ident
 norm ide Nothing                   = Nothing
