@@ -1601,6 +1601,16 @@ addBitSize (BitSize o1 b1) (BitSize o2 b2)  = BitSize (o1 + o2 + overflow) rest
     bitsPerBitfield  = size CIntPT * 8
     (overflow, rest) = (b1 + b2) `divMod` bitsPerBitfield
 
+-- multiply a bit size by a constant (gives size of an array)
+--
+-- * not sure if this makes sense if the number of bits is non-zero.
+--
+scaleBitSize                  :: Int -> BitSize -> BitSize
+scaleBitSize n (BitSize o1 b1) = BitSize (n * o1 + overflow) rest
+  where
+    bitsPerBitfield  = size CIntPT * 8
+    (overflow, rest) = (n * b1) `divMod` bitsPerBitfield
+
 -- pad any storage unit that is partially used by a bitfield
 --
 padBits               :: BitSize -> Int
@@ -1656,11 +1666,32 @@ sizeAlignOfStructPad decls tag =
 -- compute the size and alignment constraint of a given C declaration
 --
 sizeAlignOf       :: CDecl -> GB (BitSize, Int)
+sizeAlignOfSingle :: CDecl -> GB (BitSize, Int)
 --
 -- * we make use of the assertion that `extractCompType' can only return a
 --   `DefinedET' when the declaration is a pointer declaration
+-- * for arrays, alignment is the same as for the base type and the size
+--   is the size of the base type multiplied by the number of elements.
+--   FIXME: I'm not sure whether anything of this is guaranteed by ISO C
+--   and I have no idea what happens when an array-of-bitfield is
+--   declared.  At this time I don't care.  -- U.S. 05/2006
 --
-sizeAlignOf cdecl  = 
+sizeAlignOf (CDecl dclspec
+                   [(Just (CArrDeclr declr (Just lexpr) _), init, expr)]
+		   attr) =
+  do
+    (bitsize, align) <- sizeAlignOf (CDecl dclspec
+                                           [(Just declr, init, expr)]
+					   attr)
+    IntResult length <- evalConstCExpr lexpr
+    return (fromIntegral length `scaleBitSize` bitsize, align)
+sizeAlignOf (CDecl _ [(Just (CArrDeclr cdecl Nothing _), _, _)] _) =
+    interr "GenBind.sizeAlignOf: array of undeclared size."
+sizeAlignOf cdecl =
+    sizeAlignOfSingle cdecl
+
+
+sizeAlignOfSingle cdecl  = 
   do
     ct <- extractCompType False False cdecl
     case ct of
