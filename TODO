@@ -22,10 +22,6 @@ Next: - enum hooks should define cFromEnum/cToEnum as the default marshallers
         evaluate to the C value of SYM.  Main problem is that the value might
         be of various C types.
 
-      - now that our frontend can do all of C (including function bodies),
-        inline C can include code and we can actually compile it and hence put
-        auxilliary C code in there instead of into extra C files
-
       - Tutorial
 
       - GenBind.setGet: How is it justified that `bitsPerField' is
@@ -162,23 +158,6 @@ Short term
   (without also considering the `typedef').  This is not understood by
   `GenBind' so far.
 
-* How about using `ForeignObj's instead of `Addr's whenever passing an address 
-  to C?  This is not desirable, for example, in case of an `Addr' obtained by
-  a foreign export dynamic.  Maybe allow to specify that in C types pointer to 
-  certain types mean `ForeignObj's (or default `ForeignObj's and some mean
-  Addr). 
-
-  Actually, the argument in
-  file:/usr/doc/ghc-4.02/docs/libraries/libs-16.html#ss16.6
-  for not using an `Addr' shouldn't apply to FFI calls.  If passing the `Addr'
-  to C land is the last action done with a `ForeignObj' in Haskell, then the
-  finaliser will still be called - so, it doesn't make any difference if we
-  had a function to get the `Addr' out of the `ForeignObj' in Haskell and
-  would pass this to C.  ** Last statement isn't true anymore since the
-  special rule concerning the lifetime of ForeignObjs **
-
-  We definitely want Haskell side ForeignObj, MutableArrays, etc to Addr casts.
-
 * Why is a stable name an `unsigned long' in C land?  How about a `void *' and 
   being able to get the `Addr' also in Haskell land?
 
@@ -186,11 +165,6 @@ Short term
   the tag of a struct, the error message just complains that there is no type
   object for called `t'; it would be more user friendly to report in addition
   that the tag `t' exists, but cannot be used in this expression
-
-* improve C parser in c/
-
-  The space leak got smaller, but there is still too much heap used during
-  parsing. 
 
 * Should it be possible to specify a calling convention in context hook?
   Isn't it a mitake to have explicit calling convention in the FFI?  Shouldn't 
@@ -293,10 +267,6 @@ Release Checklist
         % make install
 
     - Tests in build/ghc?/c2hs/tests/ directory
-
-    - Build libghttp example
-
-    - Build Gtk+HS
 
 (4) Check documentation and add release notes
 
