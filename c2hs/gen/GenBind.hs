@@ -487,7 +487,7 @@ expandHook hook@(CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
     callImport callHook isPure isUns (identToLexeme cide) fiLexeme cdecl' pos
 
     extTy <- extractFunType pos cdecl' True
-    funDef isPure hsLexeme fiLexeme extTy ctxt parms parm pos
+    funDef isPure hsLexeme fiLexeme extTy ctxt parms parm Nothing pos
   where
     traceEnter = traceGenBind $ 
       "** Fun hook for `" ++ identToLexeme ide ++ "':\n"
@@ -502,7 +502,6 @@ expandHook hook@(CHSFun isPure isUns apath oalias ctxt parms parm pos) =
         _ -> funPtrExpectedErr pos
         
     traceValueType ty
-    set_get <- setGet pos CHSGet offsets ptrTy
 
     -- get the corresponding C declaration; raises error if not found or not a
     -- function; we use shadow identifiers, so the returned identifier is used 
@@ -518,11 +517,9 @@ expandHook hook@(CHSFun isPure isUns apath oalias ctxt parms parm pos) =
 	callHook  = CHSCall isPure isUns apath (Just fiIde) pos
     callImportDyn callHook isPure isUns ideLexeme fiLexeme ty pos
 
-    let parm0 = CHSParm (Just (onlyPosIdent nopos "chs_deref_fun_ptr_", CHSIOArg))
-                        "Ptr ()" False Nothing nopos
-    fun <- funDef isPure hsLexeme fiLexeme (FunET ptrTy $ purify ty)
-                  ctxt (parm0:parms) parm pos
-    return $ fun ++ "\n  where chs_deref_fun_ptr_ o io = " ++ set_get ++ " o >>= io"
+    set_get <- setGet pos CHSGet offsets ptrTy
+    funDef isPure hsLexeme fiLexeme (FunET ptrTy $ purify ty)
+                  ctxt parms parm (Just set_get) pos
   where
     -- remove IO from the result type of a function ExtType.  necessary
     -- due to an unexpected interaction with the way funDef works
@@ -796,6 +793,13 @@ foreignImportDyn ident hsIdent isUnsafe ty  =
 
 -- produce a Haskell function definition for a fun hook
 --
+-- * FIXME: There's an ugly special case in here: to support dynamic fun hooks
+--   I had to add a special second marshaller for the first argument,
+--   which, if present, is inserted just before the function call.  This
+--   is probably not the most elegant solution, it's just the only one I
+--   can up with at the moment.  If present, this special marshaller is
+--   an io action (like 'peek' and unlike 'with'). -- US
+
 funDef :: Bool		     -- pure function?
        -> String	     -- name of the new Haskell function
        -> String	     -- Haskell name of the foreign imported C function
@@ -803,9 +807,10 @@ funDef :: Bool		     -- pure function?
        -> Maybe String	     -- type context of the new Haskell function
        -> [CHSParm]	     -- parameter marshalling description
        -> CHSParm	     -- result marshalling description 
+       -> Maybe String       -- optional additional marshaller for first arg
        -> Position	     -- source location of the hook
        -> GB String	     -- Haskell code in text form
-funDef isPure hsLexeme fiLexeme extTy octxt parms parm pos =
+funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
   do
     (parms', parm', isImpure) <- addDftMarshaller pos parms parm extTy
 
@@ -815,14 +820,22 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm pos =
       marshs    = [marshArg i parm | (i, parm) <- zip [1..] parms']
       funArgs   = [funArg   | (funArg, _, _, _, _)   <- marshs, funArg   /= ""]
       marshIns  = [marshIn  | (_, marshIn, _, _, _)  <- marshs]
-      callArgs  = [callArg  | (_, _, callArg, _, _)  <- marshs]
+      callArgs  = [callArg  | (_, _, cs, _, _)  <- marshs, callArg <- cs]
       marshOuts = [marshOut | (_, _, _, marshOut, _) <- marshs, marshOut /= ""]
       retArgs   = [retArg   | (_, _, _, _, retArg)   <- marshs, retArg   /= ""]
       funHead   = hsLexeme ++ join funArgs ++ " =\n" ++
 	          if isPure && isImpure then "  unsafePerformIO $\n" else ""
       call      = if isPure 
-		  then "  let {res = " ++ fiLexeme ++ join callArgs ++ "} in\n"
-		  else "  " ++ fiLexeme ++ join callArgs ++ " >>= \\res ->\n"
+		  then "  let {res = " ++ fiLexeme ++ joinCallArgs ++ "} in\n"
+		  else "  " ++ fiLexeme ++ joinCallArgs ++ " >>= \\res ->\n"
+      joinCallArgs = case marsh2 of
+      			Nothing -> join callArgs
+                        Just _  -> join ("b1'" : drop 1 callArgs)
+      mkMarsh2  = case marsh2 of
+      			Nothing -> ""
+			Just m  -> "  " ++ m ++ " " ++
+			           join (take 1 callArgs) ++
+				   " >>= \\b1' ->\n"
       marshRes  = case parm' of
 	            CHSParm _ _ twoCVal (Just (_    , CHSVoidArg)) _ -> ""
 	            CHSParm _ _ twoCVal (Just (omIde, CHSIOArg  )) _ -> 
@@ -836,6 +849,7 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm pos =
 	            _					   -> "res'":retArgs
       ret       = "(" ++ concat (intersperse ", " retArgs') ++ ")"
       funBody   = joinLines marshIns  ++ 
+		  mkMarsh2            ++
 	          call                ++
 	          joinLines marshOuts ++ 
 		  marshRes            ++ 
@@ -891,10 +905,10 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm pos =
 		     CHSIOArg   -> imApp ++ " $ \\" ++ inBndr ++ " -> "
 		     CHSValArg  -> "let {" ++ inBndr ++ " = " ++ 
 				   imApp ++ "} in "
-	callArg  = if twoCVal 
-		     then "" ++ a ++ "'1 " ++ a ++ "'2"
-		     else a ++ "'"
-	omApp	 = identToLexeme omIde ++ " " ++ callArg
+	callArgs = if twoCVal 
+		     then [a ++ "'1 ", a ++ "'2"]
+		     else [a ++ "'"]
+	omApp	 = identToLexeme omIde ++ join callArgs
 	outBndr  = a ++ "''"
         marshOut = case omArgKind of
 		     CHSVoidArg -> ""
@@ -903,7 +917,7 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm pos =
 				   omApp ++ "} in "
 	retArg   = if omArgKind == CHSVoidArg then "" else outBndr
       in
-      (funArg, marshIn, callArg, marshOut, retArg)
+      (funArg, marshIn, callArgs, marshOut, retArg)
     marshArg _ _ = interr "GenBind.funDef: Missing default?"
     --
     traceMarsh parms parm isImpure = traceGenBind $ 
