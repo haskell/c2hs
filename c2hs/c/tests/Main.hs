@@ -11,16 +11,16 @@ import Monad
 import System
 import CPUTime
 
-import C2HSState
+import State
 import CAST
 import CLexer
 import CParser
 
 
 main :: IO ()
-main  = runC2HS ("C modules test", "", "") doIt
+main  = run ("C modules test", "", "") () doIt
 
-doIt :: CST ()()
+doIt :: PreCST () () ()
 doIt  = do
 	  putStrCIO ("C Modules Test\n")
 	  putStrCIO ("~~~~~~~~~~~~~~\n")
@@ -38,7 +38,7 @@ doIt  = do
 	  let frtime  = timeDiffToMSec (endTime - startTime)
 	  putStrCIO ("  Read time is " ++ show frtime ++ "ms.\n")
 	  --- measure lexing time
-	  putStrCIO ("\n*** Subtest: lexer\n")
+{-	  putStrCIO ("\n*** Subtest: lexer\n")
 	  cs <- readFileCIO fname
 	  startTime <- liftIO getCPUTime
 	  ts <- lexC cs initPos
@@ -57,7 +57,7 @@ doIt  = do
 		     \whitespace-rich input).\n")
 	  --- output lexer errors
 	  errs <- showErrors
-	  putStrCIO errs
+	  putStrCIO errs -}
 	  --- measure parsing time
 	  putStrCIO ("\n*** Subtest: parser\n")
 	  cs <- readFileCIO fname
@@ -72,13 +72,13 @@ doIt  = do
 		      putStrCIO (">>> Parse error!\n" ++ errmsg)
 	  endTime <- liftIO getCPUTime   -- after demand of `decls'
 	  let reqdtime   = timeDiffToMSec (endTime - startTime)
-	      tokpersec1 = (1000 * notoks) `div` reqdtime
-	      tokpersec2 = (1000 * notoks) `div` (reqdtime - frtime)
+--	      tokpersec1 = (1000 * notoks) `div` reqdtime
+--	      tokpersec2 = (1000 * notoks) `div` (reqdtime - frtime)
 	  putStrCIO ("  Required time overall " ++ show reqdtime 
 		     ++ "ms; without file read " ++ show (reqdtime - frtime)
 		     ++ "ms.\n")
-	  putStrCIO ("  Average of overall " ++ show tokpersec1 ++ " and \
-		     \normalized "++ show tokpersec2 ++ " tokens per sec.\n")
+--	  putStrCIO ("  Average of overall " ++ show tokpersec1 ++ " and \
+--		     \normalized "++ show tokpersec2 ++ " tokens per sec.\n")
 
 timeDiffToMSec      :: Integer -> Int
 timeDiffToMSec psec  = fromInteger (psec `div` 1000000000) 
