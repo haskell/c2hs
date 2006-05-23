@@ -93,7 +93,7 @@ import UNames     (Name, NameSupply, names)
 import Idents     (Ident)
 import Attributes (Attrs, newAttrs, newAttrsOnlyPos)
 
-import C2HSState  (CST, raiseFatal, getNameSupply)
+import State      (PreCST, raiseFatal, getNameSupply)
 import CLexer     (CToken(..), GnuCTok(..), lexC,
                    P, execParser, parseError, getNewName, addTypedef)
 import CAST       (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..),
@@ -1152,7 +1152,7 @@ getTypeDefIdents declrs = catMaybes [declrToOptIdent declr | declr <- declrs]
 happyError :: P a
 happyError = parseError
 
-parseC :: String -> Position -> CST s CHeader
+parseC :: String -> Position -> PreCST s s' CHeader
 parseC input initialPosition  = do
   nameSupply <- getNameSupply
   let (n:ns) = names nameSupply
