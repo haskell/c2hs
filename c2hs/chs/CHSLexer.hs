@@ -172,6 +172,7 @@ module CHSLexer (CHSToken(..), lexCHS)
 where 
 
 import List	 ((\\))
+import Char	 (isDigit)
 import Monad	 (liftM)
 import Numeric   (readDec, readOct, readHex)
 
@@ -236,6 +237,7 @@ data CHSToken = CHSTokArrow   Position		-- `->'
 	      | CHSTokIdent   Position Ident	-- identifier
 	      | CHSTokHaskell Position String	-- verbatim Haskell code
 	      | CHSTokCPP     Position String	-- pre-processor directive
+              | CHSTokLine    Position		-- line pragma
 	      | CHSTokC	      Position String	-- verbatim C code
 	      | CHSTokCtrl    Position Char	-- control code
 
@@ -285,6 +287,7 @@ instance Pos CHSToken where
   posOf (CHSTokIdent   pos _) = pos
   posOf (CHSTokHaskell pos _) = pos
   posOf (CHSTokCPP     pos _) = pos
+  posOf (CHSTokLine    pos  ) = pos
   posOf (CHSTokC       pos _) = pos
   posOf (CHSTokCtrl    pos _) = pos
 
@@ -334,6 +337,7 @@ instance Eq CHSToken where
   (CHSTokIdent    _ _) == (CHSTokIdent    _ _) = True
   (CHSTokHaskell  _ _) == (CHSTokHaskell  _ _) = True
   (CHSTokCPP	  _ _) == (CHSTokCPP	  _ _) = True
+  (CHSTokLine     _  ) == (CHSTokLine     _  ) = True
   (CHSTokC	  _ _) == (CHSTokC	  _ _) = True
   (CHSTokCtrl	  _ _) == (CHSTokCtrl	  _ _) = True
   _		       == _		       = False
@@ -384,6 +388,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokIdent   _ i) = (showString . identToLexeme) i
   showsPrec _ (CHSTokHaskell _ s) = showString s
   showsPrec _ (CHSTokCPP     _ s) = showString s
+  showsPrec _ (CHSTokLine    p  ) = id            --TODO show line num?
   showsPrec _ (CHSTokC	     _ s) = showString s
   showsPrec _ (CHSTokCtrl    _ c) = showChar c
 
@@ -581,6 +586,8 @@ hook  = string "{#"
 --
 -- * we lex `#c' as a directive and special case it in the action
 --
+-- * we lex C line number pragmas and special case it in the action
+--
 cpp :: CHSLexer
 cpp = directive
       where
@@ -594,9 +601,28 @@ cpp = directive
                  -- a #c may be followed by whitespace
 	         'c':sp:_ | sp `elem` " \t" ->		-- #c
 		   (Nothing, retPos pos, s, Just cLexer)
+                 ' ':line@(n:_) | isDigit n ->                 -- C line pragma
+                   let pos' = adjustPosByCLinePragma line pos
+                    in (Just $ Right (CHSTokLine pos'), pos', s, Nothing)
                  _                            ->        -- CPP directive
 		   (Just $ Right (CHSTokCPP pos dir), 
 		    retPos pos, s, Nothing)
+
+adjustPosByCLinePragma :: String -> Position -> Position
+adjustPosByCLinePragma str (fname, _, _) = 
+  (fname', row', 0)
+  where
+    str'            = dropWhite str
+    (rowStr, str'') = span isDigit str'
+    row'	    = read rowStr
+    str'''	    = dropWhite str''
+    fnameStr	    = takeWhile (/= '"') . drop 1 $ str'''
+    fname'	    | null str''' || head str''' /= '"'	= fname
+		    -- try and get more sharing of file name strings
+		    | fnameStr == fname			= fname
+		    | otherwise				= fnameStr
+    --
+    dropWhite = dropWhile (\c -> c == ' ' || c == '\t')
 
 -- the binding hook lexer
 --

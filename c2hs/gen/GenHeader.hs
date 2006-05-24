@@ -170,6 +170,8 @@ ghFrag (frag@(CHSVerb  _ _  ) : frags) =
   return (zeroDL, Frag frag, frags)
 ghFrag (frag@(CHSHook  _    ) : frags) =
   return (zeroDL, Frag frag, frags)
+ghFrag (frag@(CHSLine  _    ) : frags) =
+  return (zeroDL, Frag frag, frags)
 ghFrag (     (CHSC    s  _  ) : frags) =
   do
     (header, frag, frags' ) <- ghFrag frags	-- scan for next CHS fragment
