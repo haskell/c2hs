@@ -480,6 +480,8 @@ data CExpr = CComma       [CExpr]	-- comma expression list, n >= 2
 			  Attrs
            | CConst       CConst		-- includes strings
 			  Attrs
+	   | CCompoundLit [CInit]	-- C99 compound literals
+	   		  Attrs
 
 instance Pos CExpr where
   posOf (CComma       _     at) = posOf at
@@ -497,6 +499,7 @@ instance Pos CExpr where
   posOf (CMember      _ _ _ at) = posOf at
   posOf (CVar         _     at) = posOf at
   posOf (CConst       _     at) = posOf at
+  posOf (CCompoundLit _     at) = posOf at
 
 instance Eq CExpr where
   (CComma      	_     at1) == (CComma       _     at2) = at1 == at2
@@ -514,6 +517,7 @@ instance Eq CExpr where
   (CMember     	_ _ _ at1) == (CMember	    _ _ _ at2) = at1 == at2
   (CVar        	_     at1) == (CVar	    _     at2) = at1 == at2
   (CConst      	_     at1) == (CConst	    _	  at2) = at1 == at2
+  (CCompoundLit _     at1) == (CCompoundLit _     at2) = at1 == at2
 
 -- C assignment operators (K&R A7.17) (EXPORTED)
 --

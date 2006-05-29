@@ -800,6 +800,11 @@ postfix_expression
   | postfix_expression "--"
   	{% withAttrs $2 $ CUnary CPostDecOp $1 }
 
+  | '(' type_name ')' '{' initializer_list '}'
+  	{% withAttrs $2 $ CCompoundLit $5 }
+
+  | '(' type_name ')' '{' initializer_list ',' '}'
+  	{% withAttrs $2 $ CCompoundLit $5 }
 
 argument_expression_list :: { [CExpr] }
 argument_expression_list
