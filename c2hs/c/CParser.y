@@ -109,8 +109,9 @@ import CBuiltin   (builtinTypeNames)
 %monad { P } { >>= } { return }
 %lexer { lexC } { CTokEof }
 
--- we have 1 shift/reduce confilict because of the "if then else" syntax.
-%expect 1
+-- precedence to avoid a shift/reduce conflict in the "if then else" syntax.
+%nonassoc if
+%nonassoc else
 
 %token
 
@@ -294,7 +295,7 @@ compound_statement
 --
 selection_statement :: { CStat }
 selection_statement
-  : if '(' expression ')' statement
+  : if '(' expression ')' statement %prec if
 	{% withAttrs $1 $ CIf $3 $5 Nothing }
 
   | if '(' expression ')' statement else statement
