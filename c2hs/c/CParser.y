@@ -232,6 +232,7 @@ external_declaration :: { CExtDecl }
 external_declaration
   : function_definition			{ CFDefExt $1 }
   | declaration ';'			{ CDeclExt $1 }
+  | extension external_declaration	{ $2 }
 
 
 -- parse C function definition (K&R A10.1)
@@ -415,27 +416,22 @@ declaration_list
 --
 declaration_specifiers :: { [CDeclSpec] }
 declaration_specifiers
-  : ignore_extension declaration_specifiers_			{ $2 }
-
-
-declaration_specifiers_ :: { [CDeclSpec] }
-declaration_specifiers_
   : storage_class_specifier gnuc_attrs
   	{ [CStorageSpec $1] }
 
-  | storage_class_specifier gnuc_attrs declaration_specifiers_
+  | storage_class_specifier gnuc_attrs declaration_specifiers
   	{ CStorageSpec $1 : $3 }
 
   | type_specifier gnuc_attrs
   	{ [CTypeSpec $1] }
 
-  | type_specifier gnuc_attrs declaration_specifiers_
+  | type_specifier gnuc_attrs declaration_specifiers
   	{ CTypeSpec $1 : $3 }
 
   | type_qualifier gnuc_attrs
   	{ [CTypeQual $1] }
 
-  | type_qualifier gnuc_attrs declaration_specifiers_
+  | type_qualifier gnuc_attrs declaration_specifiers
   	{ CTypeQual $1 : $3 }
 
 
@@ -545,8 +541,10 @@ struct_declaration_list
 --
 struct_declaration :: { CDecl }
 struct_declaration
-  : ignore_extension specifier_qualifier_list struct_declarator_list ';'
-  	{% withAttrs $2 $ CDecl $2 [(d,Nothing,s) | (d,s) <- reverse $3] }
+  : specifier_qualifier_list struct_declarator_list ';'
+  	{% withAttrs $1 $ CDecl $1 [(d,Nothing,s) | (d,s) <- reverse $2] }
+
+  | extension struct_declaration	{ $2 }
 
 
 -- parse C specifier qualifier (K&R A8.3)
@@ -821,6 +819,7 @@ unary_expression
   : postfix_expression			{ $1 }
   | "++" unary_expression		{% withAttrs $1 $ CUnary CPreIncOp $2 }
   | "--" unary_expression		{% withAttrs $1 $ CUnary CPreDecOp $2 }
+  | extension cast_expression		{ $2 }
   | unary_operator cast_expression	{% withAttrs $1 $ CUnary (unL $1) $2 }
   | sizeof unary_expression		{% withAttrs $1 $ CSizeofExpr $2 }
   | sizeof '(' type_name ')'		{% withAttrs $1 $ CSizeofType $3 }
@@ -1065,14 +1064,6 @@ string_ :: { [String] }
 string_
   : cstr		{ case $1 of CTokSLit _ s -> [s] }
   | string_ cstr	{ case $2 of CTokSLit _ s -> s : $1 }
-
-
--- parse GNU C __extension__ annotation (junking the result)
---
-ignore_extension :: { () }
-ignore_extension
-  : {- empty -}					{ () }
-  | extension					{ () }
 
 
 -- parse GNU C attribute annotation (junking the result)
