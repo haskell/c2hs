@@ -87,7 +87,6 @@ import Monad	  (when)
 import Maybe      (catMaybes)
 
 import Common     (Position, Pos(..), nopos)
-import Data.Set	  (Set, mkSet, union, elementOf)
 import Utils      (Tag(tag))
 import UNames     (Name, NameSupply, names)
 import Idents     (Ident)
