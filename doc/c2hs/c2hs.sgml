@@ -369,7 +369,7 @@ for the function arguments and one <it/parm/ for the function result.  Each
 such specification <it/parm/ has the form
 <p>
 <tscreen>
-[<it/inmarsh/ [* | -]] <it/hsty/ [&] [<it/outmarsh/ [* | -]]
+[<it/inmarsh/ [* | -]] <it/hsty/ [&] [<it/outmarsh/ [*] [-]]
 </tscreen>
 <p>
 where <it/hsty/ is a Haskell code fragment denoting a Haskell type.  The
@@ -383,6 +383,10 @@ specification in which the symbol <tt/&/ follows the Haskell type corresponds
 to two C function arguments; otherwise, it corresponds only to one argument.
 The <it/parm/ following the left arrow <tt/->/ determines the marshalling of
 the result of the C function and may not contain the symbol <tt/&/.
+<p>
+The <tt/*-/ output marshal specification is for monadic actions that
+must be executed but whose results are discarded. This is very useful
+for e.g. checking an error value and throwing an exception if needed.
 <p>
 Both <it/inmarsh/ and <it/outmarsh/ are identifiers of Haskell marshalling
 functions.  By default they are assumed to be pure functions; if they have to
@@ -733,7 +737,7 @@ idalias  -> ident [(`as' ident | `^')]
 prefix   -> `prefix' `=' string
 deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
 parms    -> [verbhs `=>'] `{' parm_1 `,' ... `,' parm_n `}' `->' parm
-parm     -> [ident_1 [`*' | `-']] verbhs [`&'] [ident_2 [`*' | `-']]
+parm     -> [ident_1 [`*' | `-']] verbhs [`&'] [ident_2 [`*'] [`-']]
 apath    -> ident
           | `*' apath
           | apath `.' ident

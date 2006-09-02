@@ -65,7 +65,7 @@
 --  prefix   -> `prefix' `=' string
 --  deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
 --  parms    -> [verbhs `=>'] `{' parm_1 `,' ... `,' parm_n `}' `->' parm
---  parm     -> [ident_1 [`*' | `-']] verbhs [`&'] [ident_2 [`*' | `-']]
+--  parm     -> [ident_1 [`*' | `-']] verbhs [`&'] [ident_2 [`*'] [`-']]
 --  apath    -> ident
 --	      | `*' apath
 --	      | apath `.' ident
@@ -273,6 +273,7 @@ data CHSParm = CHSParm (Maybe (Ident, CHSArg))	-- "in" marshaller
 data CHSArg = CHSValArg				-- plain value argument
 	    | CHSIOArg				-- reference argument
 	    | CHSVoidArg			-- no argument
+            | CHSIOVoidArg                      -- drops argument, but in monad
 	    deriving (Eq)
 
 -- structure member access types (EXPORTED)
@@ -559,9 +560,10 @@ showCHSParm (CHSParm oimMarsh hsTyStr twoCVals oomMarsh _)  =
     showOMarsh Nothing               = id
     showOMarsh (Just (ide, argKind)) =   showCHSIdent ide
 				       . (case argKind of
-					   CHSValArg  -> id
-					   CHSIOArg   -> showString "*"
-					   CHSVoidArg -> showString "-")
+					   CHSValArg    -> id
+					   CHSIOArg     -> showString "*"
+					   CHSVoidArg   -> showString "-"
+                                           CHSIOVoidArg -> showString "*-")
     --
     showHsVerb str = showChar '`' . showString str . showChar '\''
 
@@ -959,6 +961,8 @@ parseParm toks =
     return (CHSParm oimMarsh hsTyStr twoCVals oomMarsh pos, toks'3)
   where
     parseOptMarsh :: [CHSToken] -> CST s (Maybe (Ident, CHSArg), [CHSToken])
+    parseOptMarsh (CHSTokIdent _ ide:CHSTokStar _ :CHSTokMinus _:toks) = 
+      return (Just (ide, CHSIOVoidArg) , toks)
     parseOptMarsh (CHSTokIdent _ ide:CHSTokStar _ :toks) = 
       return (Just (ide, CHSIOArg) , toks)
     parseOptMarsh (CHSTokIdent _ ide:CHSTokMinus _:toks) = 

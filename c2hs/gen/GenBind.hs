@@ -839,6 +839,8 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
 				   " >>= \\b1' ->\n"
       marshRes  = case parm' of
 	            CHSParm _ _ twoCVal (Just (_    , CHSVoidArg)) _ -> ""
+	            CHSParm _ _ twoCVal (Just (omIde, CHSIOVoidArg)) _ ->
+	              "  " ++ identToLexeme omIde ++ " res >> \n"
 	            CHSParm _ _ twoCVal (Just (omIde, CHSIOArg  )) _ -> 
 	              "  " ++ identToLexeme omIde ++ " res >>= \\res' ->\n"
 	            CHSParm _ _ twoCVal (Just (omIde, CHSValArg )) _ -> 
@@ -846,8 +848,9 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
 		    CHSParm _ _ _       Nothing		           _ ->
 		      interr "GenBind.funDef: marshRes: no default?"
       retArgs'  = case parm' of
-	            CHSParm _ _ _ (Just (_, CHSVoidArg)) _ ->        retArgs
-	            _					   -> "res'":retArgs
+	            CHSParm _ _ _ (Just (_, CHSVoidArg))   _ ->        retArgs
+	            CHSParm _ _ _ (Just (_, CHSIOVoidArg)) _ ->        retArgs
+	            _					     -> "res'":retArgs
       ret       = "(" ++ concat (intersperse ", " retArgs') ++ ")"
       funBody   = joinLines marshIns  ++ 
 		  mkMarsh2            ++
@@ -886,7 +889,7 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
       where
         notVoid Nothing          = interr "GenBind.funDef: \
 					  \No default marshaller?"
-	notVoid (Just (_, kind)) = kind /= CHSVoidArg
+	notVoid (Just (_, kind)) = kind /= CHSVoidArg && kind /= CHSIOVoidArg
     --
     -- for an argument marshaller, generate all "in" and "out" marshalling
     -- code fragments
@@ -912,11 +915,12 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
 	omApp	 = identToLexeme omIde ++ join callArgs
 	outBndr  = a ++ "''"
         marshOut = case omArgKind of
-		     CHSVoidArg -> ""
-		     CHSIOArg   -> omApp ++ ">>= \\" ++ outBndr ++ " -> "
-		     CHSValArg  -> "let {" ++ outBndr ++ " = " ++ 
+		     CHSVoidArg   -> ""
+		     CHSIOVoidArg -> omApp ++ ">>"
+		     CHSIOArg     -> omApp ++ ">>= \\" ++ outBndr ++ " -> "
+		     CHSValArg    -> "let {" ++ outBndr ++ " = " ++ 
 				   omApp ++ "} in "
-	retArg   = if omArgKind == CHSVoidArg then "" else outBndr
+	retArg   = if omArgKind == CHSVoidArg || omArgKind == CHSIOVoidArg then "" else outBndr
       in
       (funArg, marshIn, callArgs, marshOut, retArg)
     marshArg _ _ = interr "GenBind.funDef: Missing default?"
