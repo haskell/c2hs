@@ -31,6 +31,7 @@ default: all
 # install dirs
 #
 prefix=@prefix@
+datarootdir=@datarootdir@
 datadir=@datadir@
 SGMLDIR=$(datadir)/doc/c2hs-@C2HS_VERSION@/sgml
 HTMLDIR=$(datadir)/doc/c2hs-@C2HS_VERSION@/html
