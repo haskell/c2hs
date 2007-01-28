@@ -239,7 +239,7 @@ the declaration of the textually later import hook dominates.
 </tscreen>
 <p>
 Context hooks define a set of global configuration options.  Currently, there
-are three parameters all of which are strings:
+are two parameters which are both strings
 <itemize>
 <item><em/lib/ is a dynamic library that contains symbols needed by the
 present binding.
@@ -252,7 +252,7 @@ prefix.  In case of a conflict of the abbreviation with an explicitly defined
 identifier, the explicit definition takes preference.
 </itemize>
 <p>
-All three parameters are optional.  An example of a context hook is the
+Both parameters are optional.  An example of a context hook is the
 following:
 <tscreen>
 {#context prefix = "gtk"#}
