@@ -34,7 +34,6 @@ module CPretty (
   -- we are just providing instances to the class `Pretty'
 ) where
 
-import Common (PrettyPrintMode, dftOutWidth, dftOutRibbon)
 import Idents (Ident, identToLexeme)
 import Pretty (Doc, Pretty(..), empty, text, (<>), (<+>), sep, hsep, hang, nest,
 	       punctuate, comma, semi, parens, brackets, render, braces, ($$), vcat)
