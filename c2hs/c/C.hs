@@ -35,10 +35,6 @@ module C (-- interface to KL for all non-KL modules
 	  -- stuff from `Common' (reexported)
 	  --
 	  Pos(posOf), 
-	  --
-	  -- reexported from `FiniteMaps'
-	  --
-	  FiniteMap,
 	  --	      
 	  -- structure tree
 	  --
@@ -71,7 +67,6 @@ module C (-- interface to KL for all non-KL modules
 where
 
 import Common     (Position, Pos(posOf))
-import FiniteMaps (FiniteMap)
 import Idents	  (Ident, lexemeToIdent)
 import Attributes (Attrs, Attr(..))
 
