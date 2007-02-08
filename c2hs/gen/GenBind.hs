@@ -107,7 +107,7 @@ where
 
 -- standard libraries
 import Char	  (toUpper, toLower, isSpace)
-import List       (deleteBy, intersperse, isPrefixOf)
+import List       (deleteBy, intersperse, isPrefixOf, find)
 import Maybe	  (isNothing, isJust, fromJust, fromMaybe)
 import Monad	  (when, unless, liftM, mapAndUnzipM)
 
@@ -381,7 +381,7 @@ expandHook (CHSImport qual ide chi _) =
 expandHook (CHSContext olib oprefix _) =
   do
     setContext olib oprefix		      -- enter context information
-    mapMaybeM applyPrefixToNameSpaces oprefix -- use the prefix on name spaces
+    mapMaybeM_ applyPrefixToNameSpaces oprefix -- use the prefix on name spaces
     return ""
 expandHook (CHSType ide pos) =
   do
@@ -2075,6 +2075,17 @@ noPosIdent  = onlyPosIdent nopos
 --
 traceGenBind :: String -> GB ()
 traceGenBind  = putTraceStr traceGenBindSW
+
+-- generic lookup
+--
+lookupBy      :: (a -> a -> Bool) -> a -> [(a, b)] -> Maybe b
+lookupBy eq x  = fmap snd . find (eq x . fst)
+
+-- maps some monad operation into a `Maybe', discarding the result
+--
+mapMaybeM_ :: Monad m => (a -> m b) -> Maybe a -> m ()
+mapMaybeM_ m Nothing   =        return ()
+mapMaybeM_ m (Just a)  = m a >> return ()
 
 
 -- error messages

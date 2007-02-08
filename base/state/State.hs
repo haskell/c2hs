@@ -72,6 +72,7 @@ where
 
 import Ix
 import Monad       (when)
+import List        (sort)
 
 import BaseVersion (version, copyright, disclaimer)
 import Config	   (errorLimit)
