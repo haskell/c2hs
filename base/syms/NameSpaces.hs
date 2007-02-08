@@ -41,8 +41,8 @@ module NameSpaces (NameSpace, nameSpace, defGlobal, enterNewRange, leaveRange,
 		   defLocal, find, nameSpaceToList)
 where
 
-import Common	  (Position, Pos(posOf))	      -- for importing `Idents'
-import FiniteMaps (FiniteMap, zeroFM, addToFM, lookupFM, toListFM)
+import qualified Data.Map as Map (empty, insert, lookup, toList)
+import Data.Map   (Map)
 import Idents     (Ident)
 import Errors     (interr)
 
@@ -65,13 +65,13 @@ import Errors     (interr)
 --   relatively low number of local definitions together with frequent lookup
 --   of the most recently defined local identifiers
 --
-data NameSpace a = NameSpace (FiniteMap Ident a)  -- defs in global range
+data NameSpace a = NameSpace (Map Ident a)  -- defs in global range
 			     [[(Ident, a)]]       -- stack of local ranges
 
 -- create a name space (EXPORTED)
 --
 nameSpace :: NameSpace a
-nameSpace  = NameSpace zeroFM []
+nameSpace  = NameSpace Map.empty []
 
 -- add global definition (EXPORTED)
 --
@@ -83,8 +83,8 @@ nameSpace  = NameSpace zeroFM []
 --   name space anymore)
 --
 defGlobal :: NameSpace a -> Ident -> a -> (NameSpace a, Maybe a)
-defGlobal (NameSpace gs lss) id def  = (NameSpace (addToFM id def gs) lss, 
-				        lookupFM gs id)
+defGlobal (NameSpace gs lss) id def  = (NameSpace (Map.insert id def gs) lss, 
+				        Map.lookup id gs)
 
 -- add new range (EXPORTED)
 --
@@ -125,7 +125,7 @@ defLocal (NameSpace    gs (ls:lss)) id def =
 --
 find                       :: NameSpace a -> Ident -> Maybe a
 find (NameSpace gs lss) id  = case (lookup lss) of
-			        Nothing  -> lookupFM gs id
+			        Nothing  -> Map.lookup id gs
 			        Just def -> Just def
 			      where
 			        lookup []       = Nothing
@@ -143,4 +143,4 @@ find (NameSpace gs lss) id  = case (lookup lss) of
 -- * local ranges are concatenated
 --
 nameSpaceToList                    :: NameSpace a -> [(Ident, a)]
-nameSpaceToList (NameSpace gs lss)  = toListFM gs ++ concat lss
+nameSpaceToList (NameSpace gs lss)  = Map.toList gs ++ concat lss

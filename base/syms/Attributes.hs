@@ -95,7 +95,8 @@ import Common     (Position, Pos(posOf), nopos, isNopos, dontCarePos,
 import Errors     (interr)
 import UNames	  (NameSupply, Name,
 		   rootSupply, splitSupply, names)
-import FiniteMaps (FiniteMap, listToFM, toListFM, addToFM, lookupDftFM, zeroFM)
+import qualified Data.Map as Map (fromList, toList, insert, findWithDefault, empty)
+import Data.Map (Map)
 
 
 -- attribute management data structures and operations
@@ -204,7 +205,7 @@ data Attr a =>
      AttrTable a = -- for all attribute identifiers not contained in the 
 		   -- finite map the value is `undef'
 		   --
-		   SoftTable (FiniteMap Name a)   -- updated attr.s
+		   SoftTable (Map Name a)   -- updated attr.s
 			     String		  -- desc of the table
 
 		   -- the array contains `undef' attributes for the undefined
@@ -222,7 +223,7 @@ data Attr a =>
 -- (internal errors); a	table is initially soft
 --
 newAttrTable      :: Attr a => String -> AttrTable a
-newAttrTable desc  = SoftTable zeroFM desc
+newAttrTable desc  = SoftTable Map.empty desc
 
 -- get the value of an attribute from the given attribute table (EXPORTED)
 --
@@ -230,7 +231,7 @@ getAttr                      :: Attr a => AttrTable a -> Attrs -> a
 getAttr at (OnlyPos pos    )  = onlyPosErr "getAttr" at pos
 getAttr at (Attrs   _   aid)  = 
   case at of
-    (SoftTable   fm  _) -> lookupDftFM fm undef aid
+    (SoftTable   fm  _) -> Map.findWithDefault undef aid fm
     (FrozenTable arr _) -> let (lbd, ubd) = bounds arr
 			   in
 			   if (aid < lbd || aid > ubd) then undef else arr!aid
@@ -255,7 +256,7 @@ updAttr :: Attr a => AttrTable a -> Attrs -> a -> AttrTable a
 updAttr at (OnlyPos pos    ) av = onlyPosErr "updAttr" at pos
 updAttr at (Attrs   pos aid) av = 
   case at of
-    (SoftTable   fm  desc) -> SoftTable (addToFM aid av fm) desc
+    (SoftTable   fm  desc) -> SoftTable (Map.insert aid av fm) desc
     (FrozenTable arr _)    -> interr $ "Attributes.updAttr: Tried to\
 				       \ update frozen attribute in\n"
 				       ++ errLoc at pos
@@ -291,7 +292,7 @@ errLoc at pos  = "  table `" ++ tableDesc at ++ "' for construct at\n\
 --
 freezeAttrTable			       :: Attr a => AttrTable a -> AttrTable a
 freezeAttrTable (SoftTable   fm  desc)  = 
-  let contents = toListFM fm
+  let contents = Map.toList fm
       keys     = map fst contents
       lbd      = minimum keys
       ubd      = maximum keys
@@ -310,7 +311,7 @@ softenAttrTable (SoftTable   fm  desc)  =
   interr ("Attributes.softenAttrTable: Attempt to soften the already \
 	  \softened\n  table `" ++ desc ++ "'!")
 softenAttrTable (FrozenTable arr desc)  = 
-  SoftTable (listToFM . assocs $ arr) desc
+  SoftTable (Map.fromList . assocs $ arr) desc
 
 
 -- standard attributes
