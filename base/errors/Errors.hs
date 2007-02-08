@@ -42,7 +42,7 @@ module Errors (
 ) where
 
 import Config (assertEnabled)
-import Common (Position, isInternalPos)
+import Position (Position, isInternalPos)
 import Utils  (indentMultilineString)
 
 

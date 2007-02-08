@@ -64,7 +64,7 @@ module Idents (Ident, noARNum, isLegalIdent, lexemeToIdent, internalIdent,
 where
 
 import Char
-import Common     (Position, Pos(posOf), nopos)
+import Position   (Position, Pos(posOf), nopos)
 import UNames     (Name)
 import Errors     (interr)
 import Attributes (Attrs, newAttrsOnlyPos, newAttrs,

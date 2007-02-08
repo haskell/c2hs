@@ -112,7 +112,7 @@ import Maybe	  (isNothing, isJust, fromJust, fromMaybe)
 import Monad	  (when, unless, liftM, mapAndUnzipM)
 
 -- Compiler Toolkit
-import Common     (Position, Pos(posOf), nopos, builtinPos)
+import Position   (Position, Pos(posOf), nopos, builtinPos)
 import Utils	  (lookupBy, mapMaybeM)
 import Errors	  (interr, todo)
 import Idents     (Ident, identToLexeme, onlyPosIdent)

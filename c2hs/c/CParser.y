@@ -86,7 +86,7 @@ module CParser (parseC) where
 import Monad	  (when)
 import Maybe      (catMaybes)
 
-import Common     (Position, Pos(..), nopos)
+import Position   (Position, Pos(..), nopos)
 import Utils      (Tag(tag))
 import UNames     (Name, NameSupply, names)
 import Idents     (Ident)

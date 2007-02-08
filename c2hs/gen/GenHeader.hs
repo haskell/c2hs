@@ -51,7 +51,7 @@ module GenHeader (
 import Monad     (when)
 
 -- Compiler Toolkit
-import Common    (Position, Pos(..), nopos)
+import Position  (Position, Pos(..), nopos)
 import DLists	 (DList, openDL, closeDL, zeroDL, unitDL, joinDL, snocDL)
 import Errors	 (interr)
 import Idents	 (onlyPosIdent)

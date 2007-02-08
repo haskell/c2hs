@@ -4,7 +4,7 @@
 module Main
 where
 
-import Common
+import Position
 import UNames
 import Errors
 import Attributes

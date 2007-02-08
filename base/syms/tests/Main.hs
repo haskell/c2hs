@@ -24,7 +24,7 @@
 module Main
 where
 
-import Common
+import Position
 import Errors
 import UNames
 import NameSpaces

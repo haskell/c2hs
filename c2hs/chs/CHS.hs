@@ -101,7 +101,7 @@ import List	 (intersperse)
 import Monad	 (when)
 
 -- Compiler Toolkit
-import Common    (Position, Pos(posOf), nopos, isBuiltinPos)
+import Position  (Position, Pos(posOf), nopos, isBuiltinPos)
 import Errors	 (interr)
 import Idents    (Ident, identToLexeme, onlyPosIdent)
 

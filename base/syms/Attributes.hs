@@ -90,7 +90,7 @@ where
 
 import Array
 import Control.Exception (assert)
-import Common     (Position, Pos(posOf), nopos, isNopos, dontCarePos, 
+import Position   (Position, Pos(posOf), nopos, isNopos, dontCarePos, 
 		   isDontCarePos)
 import Errors     (interr)
 import UNames	  (NameSupply, Name,

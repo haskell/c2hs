@@ -75,7 +75,7 @@ import Monad       (when)
 
 import BaseVersion (version, copyright, disclaimer)
 import Config	   (errorLimit)
-import Common      (Position)
+import Position    (Position)
 import Utils	   (sort)
 import UNames      (NameSupply,
 	            rootSupply, splitSupply)

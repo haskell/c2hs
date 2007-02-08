@@ -85,7 +85,7 @@ import Maybe	  (fromMaybe)
 import Monad	  (liftM)
 import Control.Exception (assert)
 
-import Common	  (Position, Pos(..), nopos)
+import Position   (Position, Pos(..), nopos)
 import Errors	  (interr)
 import Idents	  (Ident, dumpIdent, identToLexeme)
 import Attributes (Attr(..), newAttrsOnlyPos)

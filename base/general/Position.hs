@@ -31,45 +31,18 @@
 --- TODO ----------------------------------------------------------------------
 --
  
-module Common (
-  -- error code
-  --
-  errorCodeError, errorCodeFatal,
+module Position (
   --
   -- source text positions
   --
-  Position, Pos (posOf), nopos, isNopos, dontCarePos,  isDontCarePos,
-  builtinPos, isBuiltinPos, internalPos, isInternalPos,
+  Position, Pos (posOf),
+  nopos, isNopos,
+  dontCarePos,  isDontCarePos,
+  builtinPos, isBuiltinPos,
+  internalPos, isInternalPos,
   incPos, tabPos, retPos,
-  --
-  -- pretty printing
-  --
-  PrettyPrintMode(..), dftOutWidth, dftOutRibbon,
-  --
-  -- support for debugging
-  --
-  assert
 ) where
 
-import Config      (assertEnabled)
-
-
--- error codes
--- -----------
-
--- error code when a compilation spotted program errors (EXPORTED)
---
-errorCodeError :: Int
-errorCodeError  = 1
-
--- error code for fatal errors aborting the run of the toolkit (EXPORTED)
---
-errorCodeFatal :: Int
-errorCodeFatal  = 2
-
-
--- Miscellaneous stuff for parsing
--- -------------------------------
 
 -- uniform representation of source file positions; the order of the arguments
 -- is important as it leads to the desired ordering of source positions
@@ -135,41 +108,3 @@ tabPos (fname, row, col)  = (fname, row, (col + 8 - (col - 1) `mod` 8))
 --
 retPos                   :: Position -> Position
 retPos (fname, row, col)  = (fname, row + 1, 1)
-
-
--- Miscellaneous stuff for pretty printing 
--- ---------------------------------------
-
--- pretty printing modes (EXPORTED)
---
-data PrettyPrintMode = PPMRaw		-- display raw structure only
-		     | PPMVerbose	-- display all available info
-
--- default parameters used for pretty printing (EXPORTED)
---
-
-dftOutWidth :: Int
-dftOutWidth  = 79
-
-dftOutRibbon :: Int
-dftOutRibbon  = 50
-
-
--- support for debugging
--- ---------------------
-
--- assert is used to catch internal inconsistencies and raises a fatal internal
--- error if such an inconsistency is spotted (EXPORTED)
---
--- an inconsistency occured when the first argument to `assert' is `False'; in
--- a distribution version, the checks can be disabled by setting
--- `assertEnabled' to `False'---to favour speed
---
-assert         :: Bool -> String -> a -> a
-assert p msg v  = if assertEnabled
-		  then
-		    if p then v else error (premsg ++ msg ++ "\n")
-		  else
-		    v
-		  where
-		    premsg = "INTERNAL COMPILER ERROR: Assertion failed:\n"

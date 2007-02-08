@@ -77,7 +77,7 @@ import List       (find)
 import Maybe	  (fromMaybe)
 
 -- Compiler Toolkit
-import Common     (Position, Pos(posOf), nopos, builtinPos)
+import Position   (Position, Pos(posOf), nopos, builtinPos)
 import Errors	  (interr)
 import Idents     (Ident, identToLexeme, onlyPosIdent)
 import qualified Data.Map as Map (empty, insert, lookup, union, toList, fromList)

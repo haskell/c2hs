@@ -39,7 +39,7 @@ where
 
 import Monad	 (when, mapM_)
 
-import Common	 (Position, posOf)
+import Position  (Position, posOf)
 import Utils     (mapMaybeM_)
 import Idents	 (Ident, identToLexeme)
 

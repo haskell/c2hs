@@ -3,7 +3,7 @@
 module Main(main)
 where
 
-import Common
+import Position
 import Errors
 import Lexers
 

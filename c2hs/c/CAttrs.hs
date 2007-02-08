@@ -72,7 +72,7 @@ import Char	  (toUpper)
 import List       (isPrefixOf)
 import Maybe	  (mapMaybe)
 
-import Common     (Position, Pos(posOf), nopos, dontCarePos, builtinPos)
+import Position   (Position, Pos(posOf), nopos, dontCarePos, builtinPos)
 import Errors     (interr)
 import Idents	  (Ident, getIdentAttrs, identToLexeme, onlyPosIdent)
 import Attributes (Attr(..), AttrTable, getAttr, setAttr, updAttr,

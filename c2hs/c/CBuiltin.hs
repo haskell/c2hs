@@ -35,7 +35,7 @@ module CBuiltin (
   builtinTypeNames
 ) where
 
-import Common (Position, Pos(..), builtinPos)
+import Position (Position, Pos(..), builtinPos)
 import Idents (Ident, onlyPosIdent)
 
 import CAttrs (CObj(BuiltinCO))

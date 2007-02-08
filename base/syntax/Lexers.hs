@@ -137,7 +137,7 @@ where
 import Maybe  (fromMaybe, isNothing)
 import Array  (Ix(..), Array, array, (!), assocs, accumArray)
 
-import Common (Position, Pos (posOf), nopos, incPos, tabPos, retPos)
+import Position (Position, Pos (posOf), nopos, incPos, tabPos, retPos)
 import DLists (DList, openDL, zeroDL, unitDL, snocDL, joinDL, closeDL)
 import Errors (interr, ErrorLvl(..), Error, makeError)
 
