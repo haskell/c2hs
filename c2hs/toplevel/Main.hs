@@ -126,7 +126,6 @@ import IO	  ()
 import Monad      (when, unless, mapM)
 
 -- base libraries
-import Common     (errorCodeFatal)
 import System.Console.GetOpt     
 		  (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo, getOpt)
 import FNameOps   (suffix, basename, dirname, stripSuffix, addPath)

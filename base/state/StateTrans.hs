@@ -92,7 +92,6 @@ import IOExts (IOArray, newIOArray, boundsIOArray, readIOArray,
  -}
 
 -- CTK libraries
-import Common (assert)
 import Errors (interr)
 
 

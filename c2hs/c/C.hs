@@ -66,7 +66,7 @@ module C (-- interface to KL for all non-KL modules
 	  csuffix, hsuffix, isuffix)
 where
 
-import Common     (Position, Pos(posOf))
+import Position   (Position, Pos(posOf))
 import Idents	  (Ident, lexemeToIdent)
 import Attributes (Attrs, Attr(..))
 
