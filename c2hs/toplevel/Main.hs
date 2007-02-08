@@ -138,7 +138,7 @@ import C2HSState  (CST, nop, runC2HS, fatal, fatalsHandledBy, getId,
 		   hPutStrCIO, printCIO,
 		   hPutStrLnCIO, exitWithCIO, getArgsCIO, getProgNameCIO,
 		   ioeGetErrorString, ioeGetFileName, removeFileCIO,
-		   systemCIO, fileFindInCIO, mktempCIO, openFileCIO, hCloseCIO,
+		   systemCIO, openFileCIO, hCloseCIO,
 		   readFileCIO, writeFileCIO,
 		   SwitchBoard(..), Traces(..), setTraces,
 		   traceSet, setSwitch, getSwitch, putTraceStr)

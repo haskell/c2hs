@@ -63,17 +63,13 @@ module CIO (-- (verbatim) re-exports
 	    -- `System'
 	    --
 	    ExitCode(..), exitWithCIO, getArgsCIO, getProgNameCIO, systemCIO,
-	    --
-	    -- CTK general stuff
-	    --
-	    fileFindInCIO, mktempCIO)
+	    )
 where
 
 import IO
 import Directory
 import System
 
-import FileOps	 (fileFindIn, mktemp)
 import StateBase (PreCST, liftIO)
 
 
@@ -159,13 +155,3 @@ getProgNameCIO  = liftIO getProgName
 
 systemCIO :: String -> PreCST e s ExitCode
 systemCIO  = liftIO . system
-
-
--- general IO routines defined in CTK
--- ----------------------------------
-
-fileFindInCIO            :: FilePath -> [FilePath] -> PreCST e s FilePath
-fileFindInCIO file paths  = liftIO $ file `fileFindIn` paths
-
-mktempCIO :: FilePath -> FilePath -> PreCST e s (Handle, FilePath)
-mktempCIO pre post = liftIO $ mktemp pre post
