@@ -75,7 +75,7 @@ import Monad       (when)
 
 import BaseVersion (version, copyright, disclaimer)
 import Config	   (errorLimit)
-import Common      (Position, errorCodeFatal)
+import Common      (Position)
 import Utils	   (sort)
 import UNames      (NameSupply,
 	            rootSupply, splitSupply)
@@ -126,7 +126,7 @@ run vcd es cst  = runSTB m (initialBaseState vcd es) ()
 	  cst
 	  `fatalsHandledBy` \err ->
 	    putStrCIO ("Uncaught fatal error: " ++ show err)	>>
-	    exitWithCIO (ExitFailure errorCodeFatal)
+	    exitWithCIO (ExitFailure 1)
 	)
 
 -- run a PreCST in the context of another PreCST (EXPORTED)
