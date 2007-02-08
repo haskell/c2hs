@@ -89,8 +89,9 @@ module Attributes (-- attribute management
 where
 
 import Array
+import Control.Exception (assert)
 import Common     (Position, Pos(posOf), nopos, isNopos, dontCarePos, 
-		   isDontCarePos, assert)
+		   isDontCarePos)
 import Errors     (interr)
 import UNames	  (NameSupply, Name,
 		   rootSupply, splitSupply, names)
@@ -241,13 +242,10 @@ setAttr :: Attr a => AttrTable a -> Attrs -> a -> AttrTable a
 setAttr at (OnlyPos pos    ) av = onlyPosErr "setAttr" at pos
 setAttr at (Attrs   pos aid) av = 
   case at of
-    (SoftTable fm desc) -> assert (isUndef (lookupDftFM fm undef aid)) 
-				  alreadySetErr $  
-			     SoftTable (addToFM aid av fm) desc
+    (SoftTable fm desc) -> assert (isUndef (Map.findWithDefault undef aid fm)) $
+			     SoftTable (Map.insert aid av fm) desc
     (FrozenTable arr _) -> interr frozenErr 
   where
-    alreadySetErr = "Attributes.setAttr: Attempt to set *already* set \
-		    \attribute in\n" ++ errLoc at pos
     frozenErr     = "Attributes.setAttr: Tried to write frozen attribute in\n"
 		    ++ errLoc at pos
 
@@ -268,14 +266,11 @@ updAttr at (Attrs   pos aid) av =
 --
 copyAttr :: Attr a => AttrTable a -> Attrs -> Attrs -> AttrTable a
 copyAttr at ats ats' 
-  | isUndef av = assert (isUndef (getAttr at ats')) alreadySetErr $
+  | isUndef av = assert (isUndef (getAttr at ats'))
 		   at
   | otherwise  = updAttr at ats' av
   where
     av = getAttr at ats
-    --
-    alreadySetErr = "Attributes.copyAttr: Attempt to set *already* set \
-		    \attribute in\n" ++ errLoc at (posOf ats')
 
 -- auxiliary functions for error messages
 --
@@ -302,8 +297,6 @@ freezeAttrTable (SoftTable   fm  desc)  =
       ubd      = maximum keys
   in
   assert (length keys < 1000 || (length . range) (lbd, ubd) > 3 * length keys)
-	 ("Attributes.freezeAttrTable: Attempt to freeze a table with less\n\
-	  \than 33% density (`" ++ desc ++ "'!")
   (FrozenTable (array (lbd, ubd) contents) desc)
 freezeAttrTable (FrozenTable arr desc)  = 
   interr ("Attributes.freezeAttrTable: Attempt to freeze the already frozen\n\

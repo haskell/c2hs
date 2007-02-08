@@ -83,8 +83,9 @@ where
 import List       (find)
 import Maybe	  (fromMaybe)
 import Monad	  (liftM)
+import Control.Exception (assert)
 
-import Common	  (Position, Pos(..), nopos, assert)
+import Common	  (Position, Pos(..), nopos)
 import Errors	  (interr)
 import Idents	  (Ident, dumpIdent, identToLexeme)
 import Attributes (Attr(..), newAttrsOnlyPos)
@@ -312,11 +313,8 @@ applyPrefixToNameSpaces prefix  =
 getDefOf     :: Ident -> CT s CDef
 getDefOf ide  = do
 		  def <- readAttrCCT $ \ac -> getDefOfIdentC ac ide
-		  assert (not . isUndef $ def) err $
+		  assert (not . isUndef $ def) $
 		    return def
-		where
-		  err = "CTrav.getDefOf: Undefined object!\n\
-			\Object associated with " ++ dumpIdent ide
 
 -- set the definition of an identifier (EXPORTED) 
 --
