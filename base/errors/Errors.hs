@@ -41,7 +41,6 @@ module Errors (
   ErrorLvl(..), Error, makeError, errorLvl, showError, errorAtPos
 ) where
 
-import Config (assertEnabled)
 import Position (Position, isInternalPos)
 import Utils  (indentMultilineString)
 

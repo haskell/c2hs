@@ -32,11 +32,7 @@
 
 module Config (-- limits
 	       --
-	       errorLimit,
-	       --
-	       -- debuging
-	       --
-	       assertEnabled)
+	       errorLimit)
 where
 
 -- compilation aborts with a fatal error, when the given number of errors
@@ -44,9 +40,3 @@ where
 --
 errorLimit :: Int
 errorLimit  = 20
-
--- specifies whether the internal consistency checks with `assert' should be
--- made
---
-assertEnabled :: Bool
-assertEnabled  = True
