@@ -82,14 +82,9 @@ module StateTrans (-- the monad and the generic operations
 where
 
 -- standard libraries
-import Ix         (Ix)
 import Monad      (liftM)
 import System.IO  (fixIO)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
-{-
-import IOExts (IOArray, newIOArray, boundsIOArray, readIOArray,
-		      writeIOArray)
- -}
 
 -- CTK libraries
 import Errors (interr)
@@ -367,17 +362,3 @@ readMV mv  = liftIO (readIORef mv)
 
 assignMV      :: MVar a -> a -> STB bs gs ()
 assignMV mv x  = liftIO (writeIORef mv x)
-
-{- not used in c2hs:
-newMA        :: Ix i => (i, i) -> a -> STB bs gs (MArr i a)
-newMA bnds x  = liftIO (newIOArray bnds x)
-
-boundsMA :: Ix i => IOArray i a -> (i, i)
-boundsMA  = boundsIOArray
-
-readMA      :: Ix i => MArr i a -> i -> STB bs gs a
-readMA ma i  = liftIO (readIOArray ma i)
-
-writeMA        :: Ix i => MArr i a -> i -> a -> STB bs gs ()
-writeMA ma i x  = liftIO (writeIOArray ma i x)
- -}

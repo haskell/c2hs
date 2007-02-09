@@ -84,8 +84,7 @@ import StateTrans  (STB,
 		    readBase, transBase, runSTB)
 import qualified
        StateTrans  (interleave, throwExc, fatal, catchExc, fatalsHandledBy, 
-		    MVar, {-MArr,-}
-		    newMV, readMV, assignMV{-, newMA, readMA, writeMA, boundsMA-})
+		    MVar, newMV, readMV, assignMV)
 import StateBase   (PreCST(..), ErrorState(..), BaseState(..),
 		    nop, yield, (+>=), (+>), fixCST,
 		    unpackCST, readCST, writeCST, transCST,
