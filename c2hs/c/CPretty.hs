@@ -35,8 +35,7 @@ module CPretty (
 ) where
 
 import Idents (Ident, identToLexeme)
-import Pretty (Doc, Pretty(..), empty, text, (<>), (<+>), sep, hsep, hang, nest,
-	       punctuate, comma, semi, parens, brackets, render, braces, ($$), vcat)
+import Text.PrettyPrint.HughesPJ
 
 import CAST
 
@@ -46,6 +45,15 @@ import CAST
 
 instance Show CDecl where
   showsPrec _ = showString . render . pretty
+
+-- overloaded pretty-printing function (EXPORTED)
+--
+class Pretty a where
+  pretty     :: a -> Doc
+  prettyPrec :: Int -> a -> Doc
+
+  pretty       = prettyPrec 0
+  prettyPrec _ = pretty
 
 
 -- actual structure tree traversals
