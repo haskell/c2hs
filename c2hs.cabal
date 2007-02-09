@@ -12,8 +12,8 @@ Homepage:	http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
 Package-URL:	http://www.cse.unsw.edu.au/~chak/haskell/c2hs/c2hs-1.0.0.tar.gz
 Synopsis:	C->Haskell Interface Generator
 Description:	C->Haskell assists in the development of Haskell bindings to C
-	libraries.  It extracts C interface information from vanilla header 
-	files and generates marshaling and signature code in Haskell.
+		libraries.  It extracts C interface information from vanilla header
+		files and generates marshaling and signature code in Haskell.
 Category:       Development tool
 Build-Depends:  base, haskell98
 --TODO: Cabal should allow 'Data-Files' in the executable stanza
@@ -23,7 +23,6 @@ Executable:     c2hs
 Hs-Source-Dirs:	base/admin 
 		base/errors
 		base/general 
-		base/graphs
 		base/state
 		base/syms
 		base/syntax
