@@ -146,7 +146,7 @@ import CHS	  (CHSModule, loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
 import GenHeader  (genHeader)
 import GenBind	  (expandHooks)
 import Version    (version, copyright, disclaimer)
-import C2HSConfig (cpp, cppopts, datadir, libfname, tmpdir, PlatformSpec(..),
+import C2HSConfig (cpp, cppopts, datadir, libfname, PlatformSpec(..),
 		   defaultPlatformSpec, platformSpecDB)
 
 

@@ -31,7 +31,7 @@ module C2HSConfig (
   --
   -- programs and paths
   --
-  cpp, cppopts, datadir, libfname, hpaths, tmpdir,
+  cpp, cppopts, datadir, libfname, hpaths,
   --
   -- parameters of the targeted C compiler
   --
@@ -78,12 +78,6 @@ libfname  = "C2HS.hs"
 --
 hpaths :: [FilePath]
 hpaths  = [".", "/usr/include", "/usr/local/include"]
-
--- |Possibly system-dependent location for temporary files
---
-tmpdir :: String
-tmpdir = "@TMPDIR@"
-
 
 -- parameters of the targeted C compiler
 -- -------------------------------------
