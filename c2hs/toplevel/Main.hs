@@ -53,9 +53,6 @@
 --
 --        In the case of repeated occurences, the last takes effect.
 --
---  --data=DIR
---        Directory of data files.  (Usually only used by the wrapper script.)
---
 --  -d TYPE
 --  --dump=TYPE
 --        Dump intermediate representation:
@@ -147,7 +144,7 @@ import CHS	  (CHSModule, loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
 import GenHeader  (genHeader)
 import GenBind	  (expandHooks)
 import Version    (version, copyright, disclaimer)
-import C2HSConfig (cpp, cppopts, datadir, libfname, PlatformSpec(..),
+import C2HSConfig (cpp, cppopts, libfname, PlatformSpec(..),
 		   defaultPlatformSpec, platformSpecDB)
 import Paths_c2hs (getDataDir)
 

@@ -1,15 +1,15 @@
 module Version (version, copyright, disclaimer)		       -- -*-haskell-*-
 where
 
--- version number is major.minor.patchlvl; don't change the format of the
--- `versnum' line as it is `grep'ed for by a Makefile
---
+import qualified Paths_c2hs (version)
+import Data.Version (Version(versionBranch), showVersion)
+
 name       = "C->Haskell Compiler"
-versnum    = "@C2HS_VERSION@"
-versnick   = @C2HS_NICK@
-date	   = @C2HS_DATE@
+versnum    = showVersion Paths_c2hs.version
+versnick   = "Travelling Lightly"
+date	   = "28 Apr 2006"
 version    = name ++ ", version " ++ versnum ++ " " ++ versnick ++ ", " ++ date
-copyright  = "@C2HS_COPYRIGHT@"
+copyright  = "Copyright (c) [1999..2006] Manuel M T Chakravarty"
 disclaimer = "This software is distributed under the \
 	     \terms of the GNU Public Licence.\n\
 	     \NO WARRANTY WHATSOEVER IS PROVIDED. \

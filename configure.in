@@ -28,11 +28,6 @@ TOP=`pwd`
 
 dnl Check for OS and set temporary directory.
 AC_CANONICAL_HOST
-TMPDIR="/tmp"
-AC_CYGWIN
-if test "$CYGWIN" = "yes"; then
-  TMPDIR="C:\TMP"
-fi
 
 dnl Checks for programs.
 AC_PROG_CPP
@@ -55,15 +50,9 @@ AC_SUBST(C2HS_VERSION)
 AC_SUBST(C2HS_NICK)
 AC_SUBST(C2HS_DATE)
 AC_SUBST(C2HS_COPYRIGHT)
-AC_SUBST(TMPDIR)
 
 dnl write the results...
 AC_OUTPUT([
-  c2hs/toplevel/Version.hs
-  c2hs/toplevel/C2HSConfig.hs
-  c2hs/c2hs-inplace
-  c2hs/c2hs
-  postInst.sh
   c2hs.spec
   doc/c2hs/Makefile
-], [chmod +x c2hs/c2hs-inplace postInst.sh])
+], [])

@@ -31,19 +31,16 @@ module C2HSConfig (
   --
   -- programs and paths
   --
-  cpp, cppopts, datadir, libfname, hpaths,
+  cpp, cppopts, libfname, hpaths,
   --
   -- parameters of the targeted C compiler
   --
   PlatformSpec(..), defaultPlatformSpec, platformSpecDB
 ) where
 
-import Ix    (Ix)
-import Array (Array, array)
-
 import Foreign  (toBool)
-import CForeign (CInt)
-
+import Foreign.C (CInt)
+import System.Info (arch, os)
 
 -- program settings
 -- ----------------
@@ -51,7 +48,7 @@ import CForeign (CInt)
 -- |C preprocessor executable
 --
 cpp :: FilePath
-cpp  = "@CPP@"
+cpp  = "cpp"
 
 -- |C preprocessor options
 --
@@ -63,11 +60,6 @@ cpp  = "@CPP@"
 --
 cppopts :: String
 cppopts  = "-x c"
-
--- |Default data directory
---
-datadir :: FilePath
-datadir  = "/usr/lib/c2hs"
 
 -- |C2HS Library file name
 --
@@ -103,7 +95,7 @@ instance Show PlatformSpec where
 --
 defaultPlatformSpec :: PlatformSpec
 defaultPlatformSpec = PlatformSpec {
-		        identPS             = "@host@",
+		        identPS             = arch ++ "-" ++ os,
 			bitfieldDirectionPS = bitfieldDirection,
 			bitfieldPaddingPS   = bitfieldPadding,
 			bitfieldIntSignedPS = bitfieldIntSigned,
@@ -117,7 +109,14 @@ platformSpecDB :: [PlatformSpec]
 platformSpecDB =
   [
     PlatformSpec {
-      identPS             = "i686-pc-linux-gnu",
+      identPS             = "x86_64-linux",
+      bitfieldDirectionPS = 1,
+      bitfieldPaddingPS   = True,
+      bitfieldIntSignedPS = True,
+      bitfieldAlignmentPS = 1
+   },
+    PlatformSpec {
+      identPS             = "i686-linux",
       bitfieldDirectionPS = 1,
       bitfieldPaddingPS   = True,
       bitfieldIntSignedPS = True,
