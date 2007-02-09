@@ -77,7 +77,6 @@ import List        (sort)
 import BaseVersion (version, copyright, disclaimer)
 import Config	   (errorLimit)
 import Position    (Position)
-import Utils	   (sort)
 import UNames      (NameSupply,
 	            rootSupply, splitSupply)
 import StateTrans  (STB,

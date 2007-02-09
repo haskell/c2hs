@@ -37,10 +37,9 @@
 module CNames (nameAnalysis)
 where
 
-import Monad	 (when, mapM_)
+import Monad	 (mapM_)
 
 import Position  (Position, posOf)
-import Utils     (mapMaybeM_)
 import Idents	 (Ident, identToLexeme)
 
 import C2HSState (CST, nop)

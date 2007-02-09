@@ -42,7 +42,6 @@ module Errors (
 ) where
 
 import Position (Position, isInternalPos)
-import Utils  (indentMultilineString)
 
 
 -- internal errors

@@ -113,7 +113,6 @@ import Monad	  (when, unless, liftM, mapAndUnzipM)
 
 -- Compiler Toolkit
 import Position   (Position, Pos(posOf), nopos, builtinPos)
-import Utils	  (lookupBy, mapMaybeM)
 import Errors	  (interr, todo)
 import Idents     (Ident, identToLexeme, onlyPosIdent)
 import Attributes (newAttrsOnlyPos)

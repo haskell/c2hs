@@ -87,7 +87,6 @@ import Monad	  (when)
 import Maybe      (catMaybes)
 
 import Position   (Position, Pos(..), nopos)
-import Utils      (Tag(tag))
 import UNames     (Name, NameSupply, names)
 import Idents     (Ident)
 import Attributes (Attrs, newAttrs, newAttrsOnlyPos)
