@@ -32,30 +32,19 @@ Hs-Source-Dirs:	base/admin
 		c2hs/toplevel
 Main-Is:        Main.hs
 Other-Modules:	BaseVersion
-		Common
 		Config
 		Errors
 		DLists
-		FileOps
-		FiniteMaps
-		FNameOps
-		GetOpt
-		Sets
 		UNames
-		Utils
-		Marks
 		CIO
-		DynArrays
 		StateBase
 		State
 		StateTrans
+		Position
 		Attributes
 		Idents
 		NameSpaces
 		Lexers
-		ParserMonad
-		Parsers
-		Pretty
 		CAST
 		CAttrs
 		CBuiltin
