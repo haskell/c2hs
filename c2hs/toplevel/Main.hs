@@ -130,6 +130,7 @@ import System.Console.GetOpt
 		  (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo, getOpt)
 import FNameOps   (suffix, basename, dirname, stripSuffix, addPath)
 import Errors	  (interr)
+import StateBase  (liftIO)
 
 -- c2hs modules
 import C2HSState  (CST, nop, runC2HS, fatal, fatalsHandledBy, getId,
@@ -148,6 +149,7 @@ import GenBind	  (expandHooks)
 import Version    (version, copyright, disclaimer)
 import C2HSConfig (cpp, cppopts, datadir, libfname, PlatformSpec(..),
 		   defaultPlatformSpec, platformSpecDB)
+import Paths_c2hs (getDataDir)
 
 
 -- wrapper running the compiler
@@ -183,7 +185,6 @@ errTrailer = "Try the option `--help' on its own for more information.\n"
 --
 data Flag = CPPOpts  String     -- additional options for C preprocessor
 	  | CPP      String     -- program name of C preprocessor
-	  | Data     String     -- Data directory
 	  | Dump     DumpType   -- dump internal information
 	  | Help	        -- print brief usage information
 	  | Keep	        -- keep the .i file
@@ -214,10 +215,6 @@ options  = [
 	 ["cpp"] 
 	 (ReqArg CPP "CPP") 
 	 "use executable CPP to invoke C preprocessor",
-  Option [] 
-	 ["data"] 
-	 (ReqArg Data "DIR") 
-	 "data directory (set by wrapper script)",
   Option ['d'] 
 	 ["dump"] 
 	 (ReqArg dumpArg "TYPE") 
@@ -294,7 +291,6 @@ compile  =
 		      (not . null) nonDataOpts &&
 		      all (`elem` aloneOptions) nonDataOpts
       where
-        nonDataOrDir (Data   _) = False
         nonDataOrDir (OutDir _) = False
 	nonDataOrDir _	        = True
     --
@@ -328,7 +324,6 @@ compile  =
 setup :: CST s ()
 setup  = do
 	   setCPP     cpp
-	   setData    datadir
 	   addCPPOpts cppopts
 
 -- output error message
@@ -399,7 +394,6 @@ help =
 processOpt :: Flag -> CST s ()
 processOpt (CPPOpts  cppopts) = addCPPOpts  cppopts
 processOpt (CPP      cpp    ) = setCPP      cpp
-processOpt (Data     dir    ) = setData     dir
 processOpt (Dump     dt     ) = setDump     dt
 processOpt (Keep            ) = setKeep
 processOpt (Library         ) = setLibrary
@@ -449,7 +443,7 @@ copyLibrary =
   do
     outdir  <- getSwitch outDirSB
     library <- getSwitch librarySB
-    datadir <- getSwitch dataSB
+    datadir <- liftIO getDataDir
     let libFullName = datadir `addPath` libfname
 	libDestName = outdir  `addPath` libfname
     when library $
@@ -474,11 +468,6 @@ addCPPOpts opts  =
 --
 setCPP       :: FilePath -> CST s ()
 setCPP fname  = setSwitch $ \sb -> sb {cppSB = fname}
-
--- set the data directory
---
-setData :: FilePath -> CST s ()
-setData dir = setSwitch $ \sb -> sb {dataSB = dir}
 
 -- set the given dump option
 --
