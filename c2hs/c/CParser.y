@@ -114,96 +114,96 @@ import CBuiltin   (builtinTypeNames)
 
 %token
 
-'('		{ CTokLParen	_ }	-- 1
-')'		{ CTokRParen	_ }	-- 2
-'['		{ CTokLBracket	_ }	-- 3
-']'		{ CTokRBracket	_ }	-- 4
-"->"		{ CTokArrow	_ }	-- 5
-'.'		{ CTokDot	_ }	-- 6
-'!'		{ CTokExclam	_ }	-- 7
-'~'		{ CTokTilde	_ }	-- 8
-"++"		{ CTokInc	_ }	-- 9
-"--"		{ CTokDec	_ }	-- 10
-'+'		{ CTokPlus	_ }	-- 11
-'-'		{ CTokMinus	_ }	-- 12
-'*'		{ CTokStar	_ }	-- 13
-'/'		{ CTokSlash	_ }	-- 14
-'%'		{ CTokPercent	_ }	-- 15
-'&'		{ CTokAmper	_ }	-- 16
-"<<"		{ CTokShiftL	_ }	-- 17
-">>"		{ CTokShiftR	_ }	-- 18
-'<'		{ CTokLess	_ }	-- 19
-"<="		{ CTokLessEq	_ }	-- 20
-'>'		{ CTokHigh	_ }	-- 21
-">="		{ CTokHighEq	_ }	-- 22
-"=="		{ CTokEqual	_ }	-- 23
-"!="		{ CTokUnequal	_ }	-- 24
-'^'		{ CTokHat	_ }	-- 25
-'|'		{ CTokBar	_ }	-- 26
-"&&"		{ CTokAnd	_ }	-- 27
-"||"		{ CTokOr	_ }	-- 28
-'?'		{ CTokQuest	_ }	-- 29
-':'		{ CTokColon	_ }	-- 30
-'='		{ CTokAssign	_ }	-- 31
-"+="		{ CTokPlusAss	_ }	-- 32
-"-="		{ CTokMinusAss	_ }	-- 33
-"*="		{ CTokStarAss	_ }	-- 34
-"/="		{ CTokSlashAss	_ }	-- 35
-"%="		{ CTokPercAss	_ }	-- 36
-"&="		{ CTokAmpAss	_ }	-- 37
-"^="		{ CTokHatAss	_ }	-- 38
-"|="		{ CTokBarAss	_ }	-- 39
-"<<="		{ CTokSLAss	_ }	-- 40
-">>="		{ CTokSRAss	_ }	-- 41
-','		{ CTokComma	_ }	-- 42
-';'		{ CTokSemic	_ }	-- 43
-'{'		{ CTokLBrace	_ }	-- 44
-'}'		{ CTokRBrace	_ }	-- 45
-"..."		{ CTokEllipsis	_ }	-- 46
-alignof		{ CTokAlignof	_ }	-- 47
+'('		{ CTokLParen	_ }
+')'		{ CTokRParen	_ }
+'['		{ CTokLBracket	_ }
+']'		{ CTokRBracket	_ }
+"->"		{ CTokArrow	_ }
+'.'		{ CTokDot	_ }
+'!'		{ CTokExclam	_ }
+'~'		{ CTokTilde	_ }
+"++"		{ CTokInc	_ }
+"--"		{ CTokDec	_ }
+'+'		{ CTokPlus	_ }
+'-'		{ CTokMinus	_ }
+'*'		{ CTokStar	_ }
+'/'		{ CTokSlash	_ }
+'%'		{ CTokPercent	_ }
+'&'		{ CTokAmper	_ }
+"<<"		{ CTokShiftL	_ }
+">>"		{ CTokShiftR	_ }
+'<'		{ CTokLess	_ }
+"<="		{ CTokLessEq	_ }
+'>'		{ CTokHigh	_ }
+">="		{ CTokHighEq	_ }
+"=="		{ CTokEqual	_ }
+"!="		{ CTokUnequal	_ }
+'^'		{ CTokHat	_ }
+'|'		{ CTokBar	_ }
+"&&"		{ CTokAnd	_ }
+"||"		{ CTokOr	_ }
+'?'		{ CTokQuest	_ }
+':'		{ CTokColon	_ }
+'='		{ CTokAssign	_ }
+"+="		{ CTokPlusAss	_ }
+"-="		{ CTokMinusAss	_ }
+"*="		{ CTokStarAss	_ }
+"/="		{ CTokSlashAss	_ }
+"%="		{ CTokPercAss	_ }
+"&="		{ CTokAmpAss	_ }
+"^="		{ CTokHatAss	_ }
+"|="		{ CTokBarAss	_ }
+"<<="		{ CTokSLAss	_ }
+">>="		{ CTokSRAss	_ }
+','		{ CTokComma	_ }
+';'		{ CTokSemic	_ }
+'{'		{ CTokLBrace	_ }
+'}'		{ CTokRBrace	_ }
+"..."		{ CTokEllipsis	_ }
+alignof		{ CTokAlignof	_ }
 asm		{ CTokAsm	_ }
-auto		{ CTokAuto	_ }	-- 48
-break		{ CTokBreak	_ }	-- 49
-case		{ CTokCase	_ }	-- 50
-char		{ CTokChar	_ }	-- 51
-const		{ CTokConst	_ }	-- 52
-continue	{ CTokContinue	_ }	-- 53
-default		{ CTokDefault	_ }	-- 54
-do		{ CTokDo	_ }	-- 55
-double		{ CTokDouble	_ }	-- 56
-else		{ CTokElse	_ }	-- 57
-enum		{ CTokEnum	_ }	-- 58
-extern		{ CTokExtern	_ }	-- 59
-float		{ CTokFloat	_ }	-- 60
-for		{ CTokFor	_ }	-- 61
-goto		{ CTokGoto	_ }	-- 62
-if		{ CTokIf	_ }	-- 63
-inline		{ CTokInline	_ }	-- 64
-int		{ CTokInt	_ }	-- 65
-long		{ CTokLong	_ }	-- 66
-register	{ CTokRegister	_ }	-- 67
-restrict	{ CTokRestrict	_ }	-- 68
-return		{ CTokReturn	_ }	-- 69
-short		{ CTokShort	_ }	-- 70
-signed		{ CTokSigned	_ }	-- 71
-sizeof		{ CTokSizeof	_ }	-- 72
-static		{ CTokStatic	_ }	-- 73
-struct		{ CTokStruct	_ }	-- 74
-switch		{ CTokSwitch	_ }	-- 75
-typedef		{ CTokTypedef	_ }	-- 76
-union		{ CTokUnion	_ }	-- 77
-unsigned	{ CTokUnsigned	_ }	-- 78
-void		{ CTokVoid	_ }	-- 79
-volatile	{ CTokVolatile	_ }	-- 80
-while		{ CTokWhile	_ }	-- 81
-cchar		{ CTokCLit   _ _ }	-- 82		-- character constant
-cint		{ CTokILit   _ _ }	-- 83		-- integer constant
-cfloat		{ CTokFLit   _ _ }	-- 84		-- float constant
-cstr		{ CTokSLit   _ _ }	-- 85		-- string constant (no escapes)
-ident		{ CTokIdent  _ $$ }	-- 86		-- identifier
-tyident		{ CTokTyIdent _ $$ }	-- 87		-- `typedef-name' identifier
-attribute	{ CTokGnuC GnuCAttrTok _ }		-- special GNU C tokens
-extension	{ CTokGnuC GnuCExtTok  _ }		-- special GNU C tokens
+auto		{ CTokAuto	_ }
+break		{ CTokBreak	_ }
+case		{ CTokCase	_ }
+char		{ CTokChar	_ }
+const		{ CTokConst	_ }
+continue	{ CTokContinue	_ }
+default		{ CTokDefault	_ }
+do		{ CTokDo	_ }
+double		{ CTokDouble	_ }
+else		{ CTokElse	_ }
+enum		{ CTokEnum	_ }
+extern		{ CTokExtern	_ }
+float		{ CTokFloat	_ }
+for		{ CTokFor	_ }
+goto		{ CTokGoto	_ }
+if		{ CTokIf	_ }
+inline		{ CTokInline	_ }
+int		{ CTokInt	_ }
+long		{ CTokLong	_ }
+register	{ CTokRegister	_ }
+restrict	{ CTokRestrict	_ }
+return		{ CTokReturn	_ }
+short		{ CTokShort	_ }
+signed		{ CTokSigned	_ }
+sizeof		{ CTokSizeof	_ }
+static		{ CTokStatic	_ }
+struct		{ CTokStruct	_ }
+switch		{ CTokSwitch	_ }
+typedef		{ CTokTypedef	_ }
+union		{ CTokUnion	_ }
+unsigned	{ CTokUnsigned	_ }
+void		{ CTokVoid	_ }
+volatile	{ CTokVolatile	_ }
+while		{ CTokWhile	_ }
+cchar		{ CTokCLit   _ _ }		-- character constant
+cint		{ CTokILit   _ _ }		-- integer constant
+cfloat		{ CTokFLit   _ _ }		-- float constant
+cstr		{ CTokSLit   _ _ }		-- string constant (no escapes)
+ident		{ CTokIdent  _ $$ }		-- identifier
+tyident		{ CTokTyIdent _ $$ }		-- `typedef-name' identifier
+attribute	{ CTokGnuC GnuCAttrTok _ }	-- special GNU C tokens
+extension	{ CTokGnuC GnuCExtTok  _ }	-- special GNU C tokens
 
 %%
 
