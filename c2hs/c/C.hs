@@ -66,7 +66,7 @@ module C (-- interface to KL for all non-KL modules
 	  csuffix, hsuffix, isuffix)
 where
 
-import Position   (Position, Pos(posOf))
+import Position   (Position(..), Pos(posOf))
 import Idents	  (Ident, lexemeToIdent)
 import Attributes (Attrs, Attr(..))
 
@@ -109,7 +109,7 @@ loadAttrC fname  = do
 		     -- parse
 		     --
 		     traceInfoParse
-		     rawHeader <- parseC contents (fname, 1, 1)
+		     rawHeader <- parseC contents (Position fname 1 1)
 		     let header = attrC rawHeader
 
 		     -- name analysis

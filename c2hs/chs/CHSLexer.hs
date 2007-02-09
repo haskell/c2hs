@@ -176,7 +176,7 @@ import Char	 (isDigit)
 import Monad	 (liftM)
 import Numeric   (readDec, readOct, readHex)
 
-import Position  (Position, Pos(posOf), incPos, retPos, tabPos)
+import Position  (Position(..), Pos(posOf), incPos, retPos, tabPos)
 import Errors    (ErrorLvl(..), Error, makeError)
 import UNames	 (NameSupply, Name, names)
 import Idents    (Ident, lexemeToIdent, identToLexeme)
@@ -609,8 +609,8 @@ cpp = directive
 		    retPos pos, s, Nothing)
 
 adjustPosByCLinePragma :: String -> Position -> Position
-adjustPosByCLinePragma str (fname, _, _) = 
-  (fname', row', 0)
+adjustPosByCLinePragma str (Position fname _ _) = 
+  (Position fname' row' 0)
   where
     str'            = dropWhite str
     (rowStr, str'') = span isDigit str'

@@ -70,7 +70,7 @@ module CLexer (CToken(..), GnuCTok(..), lexC,
 import Char      (isDigit)
 import Numeric   (readDec, readOct, readHex)
 
-import Position  (Position, Pos(posOf))
+import Position  (Position(..), Pos(posOf))
 import Errors    (interr)
 import UNames	 (Name)
 import Idents    (Ident, lexemeToIdent, identToLexeme)
@@ -626,7 +626,7 @@ normalizeEscapes cs = case oneChar cs of
                         (c, cs') -> c : normalizeEscapes cs'
 
 adjustPos :: String -> Position -> Position
-adjustPos str (fname, row, _) = (fname', row', 0)
+adjustPos str (Position fname row _) = Position fname' row' 0
   where
     str'            = dropWhite . drop 1 $ str
     (rowStr, str'') = span isDigit str'
@@ -667,9 +667,9 @@ alexGetChar (p,(c:s))  = let p' = alexMove p c in p' `seq`
                            Just (c, (p', s))
 
 alexMove :: Position -> Char -> Position
-alexMove (f, l, c) '\t' = (f,  l,    (((c+7) `div` 8)*8+1))
-alexMove (f, l, c) '\n' = (f, (l+1),  1)
-alexMove (f, l, c) _    = (f,  l,    (c+1))
+alexMove (Position f l c) '\t' = Position f l     (((c+7) `div` 8)*8+1)
+alexMove (Position f l c) '\n' = Position f (l+1) 1
+alexMove (Position f l c) _    = Position f l     (c+1)
 
 
 -- -----------------------------------------------------------------------------

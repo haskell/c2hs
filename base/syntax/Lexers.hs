@@ -137,7 +137,7 @@ where
 import Maybe  (fromMaybe, isNothing)
 import Array  (Ix(..), Array, array, (!), assocs, accumArray)
 
-import Position (Position, Pos (posOf), nopos, incPos, tabPos, retPos)
+import Position (Position(..), Pos (posOf), nopos, incPos, tabPos, retPos)
 import DLists (DList, openDL, zeroDL, unitDL, snocDL, joinDL, closeDL)
 import Errors (interr, ErrorLvl(..), Error, makeError)
 
@@ -263,22 +263,22 @@ char c  = \l -> Lexer NoAction (Sparse (1, c, c) [(c, l)])
 lexaction      :: Regexp s t -> Action t -> Lexer s t
 lexaction re a  = re `lexmeta` a'
   where
-    a' lexeme pos@(fname, row, col) s = 
+    a' lexeme pos@(Position fname row col) s = 
        let col' = col + length lexeme
        in
        col' `seq` case a lexeme pos of
-		    Nothing -> (Nothing, (fname, row, col'), s, Nothing)
-		    Just t  -> (Just (Right t), (fname, row, col'), s, Nothing)
+		    Nothing -> (Nothing, (Position fname row col'), s, Nothing)
+		    Just t  -> (Just (Right t), (Position fname row col'), s, Nothing)
 
 -- Variant for actions that may returns an error (EXPORTED)
 --
 lexactionErr      :: Regexp s t -> ActionErr t -> Lexer s t
 lexactionErr re a  = re `lexmeta` a'
   where
-     a' lexeme pos@(fname, row, col) s = 
+     a' lexeme pos@(Position fname row col) s = 
        let col' = col + length lexeme
        in
-       col' `seq` (Just (a lexeme pos), (fname, row, col'), s, Nothing)
+       col' `seq` (Just (a lexeme pos), (Position fname row col'), s, Nothing)
 
 -- Close a regular expression with a meta action (EXPORTED)
 --
@@ -464,13 +464,13 @@ execLexer l state            =
         -- the result triple of `lexOne' that signals a lexical error;
         -- the result state is advanced by one character for error correction
         --
-	lexErr = let (cs, pos@(fname, row, col), s) = state
+	lexErr = let (cs, pos@(Position fname row col), s) = state
 	             err = makeError ErrorErr pos
 			     ["Lexical error!", 
 			      "The character " ++ show (head cs) 
 			      ++ " does not fit here; skipping it."]
 		 in
-		 (Just (Left err), l, (tail cs, (fname, row, (col + 1)), s))
+		 (Just (Left err), l, (tail cs, (Position fname row (col + 1)), s))
 
 	-- we take an open list of characters down, where we accumulate the
 	-- lexeme; this function returns maybe a token, the next lexer to use

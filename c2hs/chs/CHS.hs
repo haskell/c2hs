@@ -101,7 +101,7 @@ import List	 (intersperse)
 import Monad	 (when)
 
 -- Compiler Toolkit
-import Position  (Position, Pos(posOf), nopos, isBuiltinPos)
+import Position  (Position(..), Pos(posOf), nopos, isBuiltinPos)
 import Errors	 (interr)
 import Idents    (Ident, identToLexeme, onlyPosIdent)
 
@@ -345,7 +345,7 @@ loadCHS fname  = do
 		   -- parse
 		   --
 		   traceInfoParse
-		   mod <- parseCHSModule (fullname, 1, 1) contents
+		   mod <- parseCHSModule (Position fullname 1 1) contents
 
 		   -- check for errors and finalize
 		   --
@@ -419,7 +419,7 @@ showCHSModule (CHSModule frags) pureHaskell  =
     showFrags _      _     []                           = id
     showFrags pureHs state (CHSVerb s      pos : frags) = 
       let
-	(fname, line, _) = pos
+	(Position fname line _) = pos
 	generated	 = isBuiltinPos pos
 	emitNow		 = state == Emit || 
 			   (state == Wait && not (null s) && head s == '\n')

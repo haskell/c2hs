@@ -35,7 +35,7 @@ module Position (
   --
   -- source text positions
   --
-  Position, Pos (posOf),
+  Position(Position), Pos (posOf),
   nopos, isNopos,
   dontCarePos,  isDontCarePos,
   builtinPos, isBuiltinPos,
@@ -48,45 +48,49 @@ module Position (
 -- is important as it leads to the desired ordering of source positions
 -- (EXPORTED) 
 --
-type Position = (String,	-- file name
-		 Int,		-- row
-		 Int)		-- column
+data Position = Position String		-- file name
+	{-# UNPACK #-}	 !Int		-- row
+	{-# UNPACK #-}	 !Int		-- column
+  deriving (Eq, Ord)
+
+instance Show Position where
+  show (Position fname row col) = show (fname, row, col)
 
 -- no position (for unknown position information) (EXPORTED)
 --
 nopos :: Position
-nopos  = ("<no file>", -1, -1)
+nopos  = Position "<no file>" (-1) (-1)
 
-isNopos	            :: Position -> Bool
-isNopos (_, -1, -1)  = True
-isNopos _	     = False
+isNopos	:: Position -> Bool
+isNopos (Position _ (-1) (-1)) = True
+isNopos _                      = False
 
 -- don't care position (to be used for invalid position information) (EXPORTED)
 --
 dontCarePos :: Position
-dontCarePos  = ("<invalid>", -2, -2)
+dontCarePos = Position "<invalid>" (-2) (-2)
 
-isDontCarePos	          :: Position -> Bool
-isDontCarePos (_, -2, -2)  = True
-isDontCarePos _		   = False
+isDontCarePos  :: Position -> Bool
+isDontCarePos (Position _ (-2) (-2)) = True
+isDontCarePos _	                     = False
 
 -- position attached to objects that are hard-coded into the toolkit (EXPORTED)
 --
 builtinPos :: Position
-builtinPos  = ("<built into the compiler>", -3, -3)
+builtinPos  = Position "<built into the compiler>" (-3) (-3)
 
-isBuiltinPos	         :: Position -> Bool
-isBuiltinPos (_, -3, -3)  = True
-isBuiltinPos _		  = False
+isBuiltinPos :: Position -> Bool
+isBuiltinPos (Position _ (-3) (-3)) = True
+isBuiltinPos _                      = False
 
 -- position used for internal errors (EXPORTED)
 --
 internalPos :: Position
-internalPos  = ("<internal error>", -4, -4)
+internalPos = Position "<internal error>" (-4) (-4)
 
-isInternalPos	          :: Position -> Bool
-isInternalPos (_, -4, -4)  = True
-isInternalPos _		   = False
+isInternalPos :: Position -> Bool
+isInternalPos (Position _ (-4) (-4)) = True
+isInternalPos _                      = False
 
 -- instances of the class `Pos' are associated with some source text position
 -- don't care position (to be used for invalid position information) (EXPORTED)
@@ -96,15 +100,16 @@ class Pos a where
 
 -- advance column
 --
-incPos                     :: Position -> Int -> Position
-incPos (fname, row, col) n  = (fname, row, col + n)
+incPos :: Position -> Int -> Position
+incPos (Position fname row col) n = Position fname row (col + n)
 
 -- advance column to next tab positions (tabs are at every 8th column)
 --
-tabPos                   :: Position -> Position
-tabPos (fname, row, col)  = (fname, row, (col + 8 - (col - 1) `mod` 8))
+tabPos :: Position -> Position
+tabPos (Position fname row col) =
+        Position fname row (col + 8 - (col - 1) `mod` 8)
 
 -- advance to next line
 --
-retPos                   :: Position -> Position
-retPos (fname, row, col)  = (fname, row + 1, 1)
+retPos :: Position -> Position
+retPos (Position fname row col) = Position fname (row + 1) 1

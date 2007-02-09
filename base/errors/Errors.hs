@@ -41,7 +41,7 @@ module Errors (
   ErrorLvl(..), Error, makeError, errorLvl, showError, errorAtPos
 ) where
 
-import Position (Position, isInternalPos)
+import Position (Position(..), isInternalPos)
 
 
 -- internal errors
@@ -126,7 +126,7 @@ showError (Error _   pos               (l:ls))  | isInternalPos pos =
   "INTERNAL ERROR!\n" 
   ++ "  >>> " ++ l ++ "\n"
   ++ (indentMultilineString 2 . unlines) ls  
-showError (Error lvl (fname, row, col) (l:ls))  =
+showError (Error lvl (Position fname row col) (l:ls))  =
   let
     prefix = fname ++ ":" ++ show (row::Int) ++ ": "
 	     ++ "(column " 
