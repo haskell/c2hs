@@ -47,8 +47,8 @@ module CParserMonad (
   getPos,            -- :: P Position
   addTypedef,        -- :: Ident -> P ()
   isTypeIdent,       -- :: Ident -> P Bool
-  getInput,          -- :: P (Position, String)
-  setInput,          -- :: (Position, String) -> P ()
+  getInput,          -- :: P String
+  setInput,          -- :: String -> P ()
   getLastToken,      -- :: P CToken
   setLastToken,      -- :: CToken -> P ()
   ) where
@@ -68,11 +68,11 @@ data ParseResult a
   | PFailed [String] Position	-- The error message and position
 
 data PState = PState { 
-	alex_pos :: !Position,	-- position at current input location
-	alex_inp :: String,	-- the current input
-	alex_last  :: CToken,	-- the previous token
-	alex_names :: [Name],	-- the name unique supply
-	alex_tdefs :: Set Ident	-- the set of typedef'ed identifiers
+        curPos     :: !Position,	-- position at current input location
+        curInput   :: !String,		-- the current input
+        prevToken  ::  CToken,		-- the previous token
+        namesupply :: ![Name],		-- the name unique supply
+        tyidents   :: !(Set Ident),	-- the set of typedef'ed identifiers
      }
 
 newtype P a = P { unP :: PState -> ParseResult a }
@@ -89,11 +89,11 @@ execParser (P parser) input pos builtins names =
     POk _ result -> Left result
     PFailed message pos -> Right (message, pos)
   where initialState = PState {
-          alex_pos = pos,
-	  alex_inp = input,
-	  alex_last = interr "CLexer.execParser: Touched undefined token!",
-	  alex_names = names,
-	  alex_tdefs = Set.fromList builtins
+          curPos = pos,
+          curInput = input,
+          prevToken = interr "CLexer.execParser: Touched undefined token!",
+          namesupply = names,
+          tyidents = Set.fromList builtins
         }
 
 {-# INLINE returnP #-}
@@ -111,30 +111,30 @@ failP :: Position -> [String] -> P a
 failP pos msg = P $ \_ -> PFailed msg pos
 
 getNewName :: P Name
-getNewName = P $ \s@PState{alex_names=(n:ns)} -> POk s{alex_names=ns} n
+getNewName = P $ \s@PState{namesupply=(n:ns)} -> POk s{namesupply=ns} n
 
 setPos :: Position -> P ()
-setPos pos = P $ \s -> POk s{alex_pos=pos} ()
+setPos pos = P $ \s -> POk s{curPos=pos} ()
 
 getPos :: P Position
-getPos = P $ \s@PState{alex_pos=pos} -> POk s pos
+getPos = P $ \s@PState{curPos=pos} -> POk s pos
 
 addTypedef :: Ident -> P ()
-addTypedef ident = (P $ \s@PState{alex_tdefs=tdefs} ->
-                             POk s{alex_tdefs = ident `Set.insert` tdefs} ())
+addTypedef ident = (P $ \s@PState{tyidents=tdefs} ->
+                             POk s{tyidents = ident `Set.insert` tdefs} ())
 
 isTypeIdent :: Ident -> P Bool
-isTypeIdent ident = P $ \s@PState{alex_tdefs=tdefs} ->
+isTypeIdent ident = P $ \s@PState{tyidents=tdefs} ->
                              POk s $! Set.member ident tdefs
 
-getInput :: P (Position, String)
-getInput = P $ \s@PState{alex_pos=p, alex_inp=i} -> POk s (p,i)
+getInput :: P String
+getInput = P $ \s@PState{curInput=i} -> POk s i
 
-setInput :: (Position, String) -> P ()
-setInput (p,i) = P $ \s -> POk s{alex_pos=p, alex_inp=i} ()
+setInput :: String -> P ()
+setInput i = P $ \s -> POk s{curInput=i} ()
 
 getLastToken :: P CToken
-getLastToken = P $ \s@PState{alex_last=tok} -> POk s tok
+getLastToken = P $ \s@PState{prevToken=tok} -> POk s tok
 
 setLastToken :: CToken -> P ()
-setLastToken tok = P $ \s -> POk s{alex_last=tok} ()
+setLastToken tok = P $ \s -> POk s{prevToken=tok} ()

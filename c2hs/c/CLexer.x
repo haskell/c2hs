@@ -64,8 +64,7 @@
 
 {
 
-module CLexer (CToken(..), GnuCTok(..), lexC,
-               P, execParser, parseError, getNewName, addTypedef) where 
+module CLexer (lexC, parseError) where
 
 import Char      (isDigit)
 import Numeric   (readDec, readOct, readHex)
@@ -374,7 +373,8 @@ alexMove (Position f l c) _    = Position f l     (c+1)
 
 lexicalError :: P a
 lexicalError = do
-  (pos, (c:cs)) <- getInput
+  pos <- getPos
+  (c:cs) <- getInput
   failP pos
         ["Lexical error!",
          "The character " ++ show c ++ " does not fit here."]
@@ -388,18 +388,21 @@ parseError = do
 
 lexToken :: P CToken
 lexToken = do
-  inp@(pos, str) <- getInput
-  case alexScan inp 0 of
+  pos <- getPos
+  inp <- getInput
+  case alexScan (pos, inp) 0 of
     AlexEOF -> return CTokEof
     AlexError inp' -> lexicalError
-    AlexSkip  inp' len -> do
-	setInput inp'
+    AlexSkip  (pos', inp') len -> do
+        setPos pos'
+        setInput inp'
 	lexToken
-    AlexToken inp' len action -> do
-	setInput inp'
-	tok <- action pos len str
-	setLastToken tok
-	return tok
+    AlexToken (pos', inp') len action -> do
+        setPos pos'
+        setInput inp'
+        tok <- action pos len inp
+        setLastToken tok
+        return tok
 
 lexC :: (CToken -> P a) -> P a
 lexC cont = do

@@ -92,14 +92,15 @@ import Idents     (Ident)
 import Attributes (Attrs, newAttrs, newAttrsOnlyPos)
 
 import State      (PreCST, raiseFatal, getNameSupply)
-import CLexer     (CToken(..), GnuCTok(..), lexC,
-                   P, execParser, parseError, getNewName, addTypedef)
+import CLexer     (lexC, parseError)
 import CAST       (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..),
 		   CDecl(..), CDeclSpec(..), CStorageSpec(..), CTypeSpec(..),
 		   CTypeQual(..), CStructUnion(..), CStructTag(..), CEnum(..),
 		   CDeclr(..), CInit(..), CExpr(..), CAssignOp(..),
 		   CBinaryOp(..), CUnaryOp(..), CConst (..))
 import CBuiltin   (builtinTypeNames)
+import CTokens    (CToken(..), GnuCTok(..))
+import CParserMonad (P, execParser, getNewName, addTypedef)
 }
 
 %name parseCHeader header
