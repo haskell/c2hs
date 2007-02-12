@@ -51,6 +51,8 @@ module CParserMonad (
   setInput,          -- :: String -> P ()
   getLastToken,      -- :: P CToken
   setLastToken,      -- :: CToken -> P ()
+  enterScope,        -- :: P ()
+  leaveScope,        -- :: P ()
   ) where
 
 import Position  (Position(..), Pos(posOf))
@@ -73,6 +75,7 @@ data PState = PState {
         prevToken  ::  CToken,		-- the previous token
         namesupply :: ![Name],		-- the name unique supply
         tyidents   :: !(Set Ident),	-- the set of typedef'ed identifiers
+        scopes     :: ![Set Ident]	-- the tyident sets for outer scopes
      }
 
 newtype P a = P { unP :: PState -> ParseResult a }
@@ -93,7 +96,8 @@ execParser (P parser) input pos builtins names =
           curInput = input,
           prevToken = interr "CLexer.execParser: Touched undefined token!",
           namesupply = names,
-          tyidents = Set.fromList builtins
+          tyidents = Set.fromList builtins,
+          scopes   = []
         }
 
 {-# INLINE returnP #-}
@@ -126,6 +130,16 @@ addTypedef ident = (P $ \s@PState{tyidents=tdefs} ->
 isTypeIdent :: Ident -> P Bool
 isTypeIdent ident = P $ \s@PState{tyidents=tdefs} ->
                              POk s $! Set.member ident tdefs
+
+enterScope :: P ()
+enterScope = P $ \s@PState{tyidents=tdefs,scopes=ss} ->
+                     POk s{scopes=tdefs:ss} ()
+
+leaveScope :: P ()
+leaveScope = P $ \s@PState{scopes=ss} ->
+                     case ss of
+                       []          -> error "leaveScope: already in global scope"
+                       (tdefs:ss') -> POk s{tyidents=tdefs, scopes=ss'} ()
 
 getInput :: P String
 getInput = P $ \s@PState{curInput=i} -> POk s i
