@@ -43,16 +43,16 @@ module CParserMonad (
   execParser,
   failP,
   getNewName,        -- :: P Name
-  setPos,            -- :: Position -> P ()
-  getPos,            -- :: P Position
   addTypedef,        -- :: Ident -> P ()
   isTypeIdent,       -- :: Ident -> P Bool
+  enterScope,        -- :: P ()
+  leaveScope,        -- :: P ()
+  setPos,            -- :: Position -> P ()
+  getPos,            -- :: P Position
   getInput,          -- :: P String
   setInput,          -- :: String -> P ()
   getLastToken,      -- :: P CToken
   setLastToken,      -- :: CToken -> P ()
-  enterScope,        -- :: P ()
-  leaveScope,        -- :: P ()
   ) where
 
 import Position  (Position(..), Pos(posOf))
@@ -124,22 +124,22 @@ getPos :: P Position
 getPos = P $ \s@PState{curPos=pos} -> POk s pos
 
 addTypedef :: Ident -> P ()
-addTypedef ident = (P $ \s@PState{tyidents=tdefs} ->
-                             POk s{tyidents = ident `Set.insert` tdefs} ())
+addTypedef ident = (P $ \s@PState{tyidents=tyidents} ->
+                             POk s{tyidents = ident `Set.insert` tyidents} ())
 
 isTypeIdent :: Ident -> P Bool
-isTypeIdent ident = P $ \s@PState{tyidents=tdefs} ->
-                             POk s $! Set.member ident tdefs
+isTypeIdent ident = P $ \s@PState{tyidents=tyidents} ->
+                             POk s $! Set.member ident tyidents
 
 enterScope :: P ()
-enterScope = P $ \s@PState{tyidents=tdefs,scopes=ss} ->
-                     POk s{scopes=tdefs:ss} ()
+enterScope = P $ \s@PState{tyidents=tyidents,scopes=ss} ->
+                     POk s{scopes=tyidents:ss} ()
 
 leaveScope :: P ()
 leaveScope = P $ \s@PState{scopes=ss} ->
                      case ss of
-                       []          -> error "leaveScope: already in global scope"
-                       (tdefs:ss') -> POk s{tyidents=tdefs, scopes=ss'} ()
+                       []             -> interr "leaveScope: already in global scope"
+                       (tyidents:ss') -> POk s{tyidents=tyidents, scopes=ss'} ()
 
 getInput :: P String
 getInput = P $ \s@PState{curInput=i} -> POk s i
