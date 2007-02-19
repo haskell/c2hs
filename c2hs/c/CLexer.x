@@ -284,8 +284,10 @@ idkwtok ('v':'o':'l':'a':'t':'i':'l':'e':[])		     = tok CTokVolatile
 idkwtok ('_':'_':'v':'o':'l':'a':'t':'i':'l':'e':[])	     = tok CTokVolatile
 idkwtok ('_':'_':'v':'o':'l':'a':'t':'i':'l':'e':'_':'_':[]) = tok CTokVolatile
 idkwtok ('w':'h':'i':'l':'e':[])			     = tok CTokWhile
-idkwtok ('_':'_':'a':'t':'t':'r':'i':'b':'u':'t':'e':'_':'_':[]) =
-						tok (CTokGnuC GnuCAttrTok)
+idkwtok ('_':'_':'a':'t':'t':'r':'i':'b':'u':'t':'e':[]) = \_ ->
+						ignoreAttribute >> lexToken
+idkwtok ('_':'_':'a':'t':'t':'r':'i':'b':'u':'t':'e':'_':'_':[]) = \_ ->
+						ignoreAttribute >> lexToken
 idkwtok ('_':'_':'e':'x':'t':'e':'n':'s':'i':'o':'n':'_':'_':[]) =
 						tok (CTokGnuC GnuCExtTok)
 idkwtok cs = \pos -> do
@@ -295,6 +297,16 @@ idkwtok cs = \pos -> do
   if tyident
     then return (CTokTyIdent pos ident)
     else return (CTokIdent   pos ident)
+
+ignoreAttribute :: P ()
+ignoreAttribute = skipTokens 0
+  where skipTokens n = do
+          tok <- lexToken
+          case tok of
+            CTokRParen _ | n == 1    -> return ()
+                         | otherwise -> skipTokens (n-1)
+            CTokLParen _             -> skipTokens (n+1)
+            _                        -> skipTokens n
 
 tok :: (Position -> CToken) -> Position -> P CToken
 tok tc pos = return (tc pos)
