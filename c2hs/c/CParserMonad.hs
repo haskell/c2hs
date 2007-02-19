@@ -44,6 +44,7 @@ module CParserMonad (
   failP,
   getNewName,        -- :: P Name
   addTypedef,        -- :: Ident -> P ()
+  shadowTypedef      -- :: Ident -> P ()
   isTypeIdent,       -- :: Ident -> P Bool
   enterScope,        -- :: P ()
   leaveScope,        -- :: P ()
@@ -61,7 +62,7 @@ import UNames	 (Name)
 import Idents    (Ident, lexemeToIdent, identToLexeme)
 
 import Data.Set  (Set)
-import qualified Data.Set as Set (fromList, insert, member)
+import qualified Data.Set as Set (fromList, insert, member, delete)
 
 import CTokens (CToken)
 
@@ -126,6 +127,15 @@ getPos = P $ \s@PState{curPos=pos} -> POk s pos
 addTypedef :: Ident -> P ()
 addTypedef ident = (P $ \s@PState{tyidents=tyidents} ->
                              POk s{tyidents = ident `Set.insert` tyidents} ())
+
+shadowTypedef :: Ident -> P ()
+shadowTypedef ident = (P $ \s@PState{tyidents=tyidents} ->
+                             -- optimisation: mostly the ident will not be in
+                             -- the tyident set so do a member lookup to avoid
+                             --  churn induced by calling delete
+                             POk s{tyidents = if ident `Set.member` tyidents
+                                                then ident `Set.delete` tyidents
+                                                else tyidents } ())
 
 isTypeIdent :: Ident -> P Bool
 isTypeIdent ident = P $ \s@PState{tyidents=tyidents} ->
