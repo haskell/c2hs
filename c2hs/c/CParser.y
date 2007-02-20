@@ -103,7 +103,7 @@ import CTokens    (CToken(..), GnuCTok(..))
 import CParserMonad (P, execParser, getNewName, addTypedef)
 }
 
-%name parseCHeader header
+%name header header
 %tokentype { CToken }
 
 %monad { P } { >>= } { return }
@@ -209,14 +209,11 @@ extension	{ CTokGnuC GnuCExtTok  _ }	-- special GNU C tokens
 %%
 
 
--- parse a complete C header file (K&R A10)
+-- parse a complete C header file
 --
--- * we supply the attr externally for exact compatability with the old parser
---   in terms of use of the unique name supply.
---
-header :: { Attrs -> CHeader }
+header :: { CHeader }
 header
-  : translation_unit				{ CHeader (reverse $1) }
+  : translation_unit	{% withAttrs $1 $ CHeader (reverse $1) }
 
 
 translation_unit :: { [CExtDecl] }
@@ -1151,11 +1148,10 @@ happyError = parseError
 parseC :: String -> Position -> PreCST s s' CHeader
 parseC input initialPosition  = do
   nameSupply <- getNameSupply
-  let (n:ns) = names nameSupply
-      at     = newAttrs initialPosition n
-  case execParser parseCHeader input
+  let ns = names nameSupply
+  case execParser header input
                   initialPosition (map fst builtinTypeNames) ns of
-    Left header -> return (header at)
+    Left header -> return header
     Right (message, position) -> raiseFatal "Error in C header file."
                                             position message
 }
