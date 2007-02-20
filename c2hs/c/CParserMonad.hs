@@ -44,7 +44,7 @@ module CParserMonad (
   failP,
   getNewName,        -- :: P Name
   addTypedef,        -- :: Ident -> P ()
-  shadowTypedef      -- :: Ident -> P ()
+  shadowTypedef,     -- :: Ident -> P ()
   isTypeIdent,       -- :: Ident -> P Bool
   enterScope,        -- :: P ()
   leaveScope,        -- :: P ()
