@@ -414,23 +414,23 @@ declaration_list
 --
 declaration_specifiers :: { [CDeclSpec] }
 declaration_specifiers
-  : storage_class_specifier gnuc_attrs
+  : storage_class_specifier
   	{ [CStorageSpec $1] }
 
-  | storage_class_specifier gnuc_attrs declaration_specifiers
-  	{ CStorageSpec $1 : $3 }
+  | storage_class_specifier declaration_specifiers
+  	{ CStorageSpec $1 : $2 }
 
-  | type_specifier gnuc_attrs
+  | type_specifier
   	{ [CTypeSpec $1] }
 
-  | type_specifier gnuc_attrs declaration_specifiers
-  	{ CTypeSpec $1 : $3 }
+  | type_specifier declaration_specifiers
+  	{ CTypeSpec $1 : $2 }
 
-  | type_qualifier gnuc_attrs
+  | type_qualifier
   	{ [CTypeQual $1] }
 
-  | type_qualifier gnuc_attrs declaration_specifiers
-  	{ CTypeQual $1 : $3 }
+  | type_qualifier declaration_specifiers
+  	{ CTypeQual $1 : $2 }
 
 
 -- parse C init declarator (K&R A8)
@@ -611,13 +611,10 @@ enumerator
 --
 declarator :: { CDeclr }
 declarator
-  : pointer direct_declarator gnuc_attrs
+  : pointer direct_declarator
   	{% withAttrs $1 $ CPtrDeclr (map unL $1) $2 }
 
-  | pointer gnuc_attrs_nonempty direct_declarator gnuc_attrs
-  	{% withAttrs $1 $ CPtrDeclr (map unL $1) $3 }
-
-  | direct_declarator gnuc_attrs
+  | direct_declarator
   	{ $1 }
 
 
@@ -1063,7 +1060,7 @@ string_
   : cstr		{ case $1 of CTokSLit _ s -> [s] }
   | string_ cstr	{ case $2 of CTokSLit _ s -> s : $1 }
 
-
+{-
 -- parse GNU C attribute annotation (junking the result)
 --
 gnuc_attrs ::	{ () }
@@ -1101,7 +1098,7 @@ gnuc_attribute_param_exps :: { () }
 gnuc_attribute_param_exps
   : constant_expression					{ () }
   | gnuc_attribute_param_exps ',' constant_expression	{ () }
-
+-}
 
 {
 
