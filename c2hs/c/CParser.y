@@ -466,7 +466,7 @@ storage_class_specifier
   | register			{% withAttrs $1 $ CRegister }
 
 
--- parse C type specifier (K&R A8.2)
+-- parse C type specifier (C99 6.7.2)
 --
 type_specifier :: { CTypeSpec }
 type_specifier
@@ -545,7 +545,7 @@ struct_declaration
   | extension struct_declaration	{ $2 }
 
 
--- parse C specifier qualifier (K&R A8.3)
+-- parse C specifier qualifier (C99 6.7.2.1)
 --
 specifier_qualifier_list :: { [CDeclSpec] }
 specifier_qualifier_list
@@ -555,7 +555,7 @@ specifier_qualifier_list
   | type_qualifier specifier_qualifier_list	{ CTypeQual $1 : $2 }
 
 
--- parse C structure declarator (K&R A8.3)
+-- parse C structure declarator (C99 6.7.2.1)
 --
 struct_declarator :: { (Maybe CDeclr, Maybe CExpr) }
 struct_declarator
