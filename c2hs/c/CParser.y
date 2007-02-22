@@ -216,6 +216,8 @@ header
   : translation_unit	{% withAttrs $1 $ CHeader (reverse $1) }
 
 
+-- parse a complete C translation unit (C99 6.9)
+--
 translation_unit :: { [CExtDecl] }
 translation_unit
   : {- empty -}					{ [] }
@@ -224,7 +226,7 @@ translation_unit
 	{% withAttrs $2 $ \at -> CAsmExt at : $1 }
 
 
--- parse external C declaration (K&R A10)
+-- parse external C declaration (C99 6.9)
 --
 external_declaration :: { CExtDecl }
 external_declaration
@@ -233,7 +235,7 @@ external_declaration
   | extension external_declaration	{ $2 }
 
 
--- parse C function definition (K&R A10.1)
+-- parse C function definition (C99 6.9.1)
 --
 function_definition :: { CFunDef }
 function_definition
@@ -244,7 +246,7 @@ function_definition
   	{% withAttrs $1 $ CFunDef [] $1 (reverse $2) $3 }
 
 
--- parse C statement (K&R A9)
+-- parse C statement (C99 6.8)
 --
 statement :: { CStat }
 statement
@@ -263,7 +265,7 @@ statement_list
   | statement_list statement	{ $2 : $1 }
 
 
--- parse C labeled statement (K&R A9.1)
+-- parse C labeled statement (C99 6.8.1)
 --
 labeled_statement :: { CStat }
 labeled_statement
@@ -272,7 +274,7 @@ labeled_statement
   | default ':' statement			{% withAttrs $1 $ CDefault $3 }
 
 
--- parse C expression statement (K&R A9.2)
+-- parse C expression statement (C99 6.8.3)
 --
 expression_statement :: { CStat }
 expression_statement
@@ -280,7 +282,7 @@ expression_statement
   | expression ';'		{% withAttrs $1 $ CExpr (Just $1) }
 
 
--- parse C compound statement (K&R A9.3)
+-- parse C compound statement (C99 6.8.2)
 --
 compound_statement :: { CStat }
 compound_statement
@@ -288,7 +290,7 @@ compound_statement
   	{% withAttrs $1 $ CCompound (reverse $2) (reverse $3) }
 
 
--- parse C selection statement (K&R A9.4)
+-- parse C selection statement (C99 6.8.4)
 --
 selection_statement :: { CStat }
 selection_statement
@@ -302,7 +304,7 @@ selection_statement
 	{% withAttrs $1 $ CSwitch $3 $5 }
 
 
--- parse C iteration statement (K&R A9.5)
+-- parse C iteration statement (C99 6.8.5)
 --
 iteration_statement :: { CStat }
 iteration_statement
@@ -325,7 +327,7 @@ iteration_statement
 			        CExpr e4 _ -> CFor e3 e4 (Just $5) $7 }
 
 
--- parse C jump statement (K&R A9.6)
+-- parse C jump statement (C99 6.8.6)
 --
 jump_statement :: { CStat }
 jump_statement
@@ -382,7 +384,7 @@ asm_clobbers
   | asm_clobbers ',' string	{ () }
 
 
--- parse C declaration (K&R A8)
+-- parse C declaration (C99 6.7)
 --
 -- * We allow the GNU C extension keyword before a declaration and GNU C
 --   attribute annotations after declaration specifiers, but they are not
@@ -410,7 +412,7 @@ declaration_list
   | declaration_list declaration ';'		{ $2 : $1 }
 
 
--- parse C declaration specifiers (K&R A8)
+-- parse C declaration specifiers (C99 6.7)
 --
 declaration_specifiers :: { [CDeclSpec] }
 declaration_specifiers
@@ -433,7 +435,7 @@ declaration_specifiers
   	{ CTypeQual $1 : $2 }
 
 
--- parse C init declarator (K&R A8)
+-- parse C init declarator (C99 6.7)
 --
 init_declarator :: { (CDeclr, Maybe CInit) }
 init_declarator
@@ -453,7 +455,7 @@ init_declarator_list
   | init_declarator_list ',' init_declarator		{ $3 : $1 }
 
 
--- parse C storage class specifier (K&R A8.1)
+-- parse C storage class specifier (C99 6.7.1)
 --
 storage_class_specifier :: { CStorageSpec }
 storage_class_specifier
@@ -482,9 +484,7 @@ type_specifier
   | tyident			{% withAttrs $1 $ CTypeDef $1 }
 
 
--- parse C type qualifier (K&R A8.2)
---
--- * plus `restrict' from C99 and `inline'
+-- parse C type qualifier (C99 6.7.3)
 --
 type_qualifier :: { CTypeQual }
 type_qualifier
@@ -494,7 +494,7 @@ type_qualifier
   | inline		{% withAttrs $1 $ CInlinQual }
 
 
--- parse C structure of union declaration (K&R A8.3)
+-- parse C structure of union declaration (C99 6.7.2.1)
 --
 -- * Note: an identifier after a struct tag *may* be a type name; thus, we need
 --	   to use `tyident' as well rather than just `ident'
@@ -532,7 +532,7 @@ struct_declaration_list
   | struct_declaration_list struct_declaration		{ $2 : $1 }
 
 
--- parse C structure declaration (K&R A8.3)
+-- parse C structure declaration (C99 6.7.2.1)
 --
 -- * We allow the GNU C extension keyword before a declaration, but it is
 --   not entered into the structure tree.
@@ -570,7 +570,7 @@ struct_declarator_list
   | struct_declarator_list ',' struct_declarator	{ $3 : $1 }
 
 
--- parse C enumeration declaration (K&R A8.4)
+-- parse C enumeration declaration (C99 6.7.2.2)
 --
 --  * There may be a `,' behind the last element of a enum.
 --
@@ -604,7 +604,7 @@ enumerator
   | ident '=' constant_expression		{ ($1, Just $3) }
 
 
--- parse C declarator (K&R A8.5)
+-- parse C declarator (C99 6.7.5)
 --
 -- * We allow GNU C attribute annotations at the end of a declerator,
 --   but they are not entered into the structure tree.
@@ -665,7 +665,7 @@ parameter_type_list
   | parameter_list ',' "..."		{ (reverse $1, True) }
 
 
--- parse C parameter type list (K&R A8.6.3)
+-- parse C parameter type list (C99 6.7.5)
 --
 parameter_list :: { [CDecl] }
 parameter_list
@@ -685,7 +685,7 @@ parameter_declaration
   	{% withAttrs $1 $ CDecl $1 [] }
 
 
--- parse C initializer (K&R AA8.7)
+-- parse C initializer (C99 6.7.8)
 --
 initializer :: { CInit }
 initializer
@@ -700,7 +700,7 @@ initializer_list
   | initializer_list ',' initializer	{ $3 : $1 }
 
 
--- parse C type name (K&R A8.8)
+-- parse C type name (C99 6.7.6)
 --
 type_name :: { CDecl }
 type_name
@@ -711,7 +711,7 @@ type_name
   	{% withAttrs $1 $ CDecl $1 [(Just $2, Nothing, Nothing)] }
 
 
--- parse C abstract declarator (K&R A8.8)
+-- parse C abstract declarator (C99 6.7.6)
 --
 -- * following K&R, we do not allow old style function types (except empty
 --   argument lists) in abstract declarators; unfortunately, gcc allows them
@@ -754,7 +754,7 @@ direct_abstract_declarator
   	{% withAttrs $2 $ case $3 of (parms, variadic) -> CFunDeclr $1 parms variadic }
 
 
--- parse C primary expression (K&R A7.2)
+-- parse C primary expression (C99 6.5.1)
 --
 -- * contrary to K&R, we regard parsing strings as parsing constants
 --
@@ -765,7 +765,7 @@ primary_expression
   | '(' expression ')'	{ $2 }
 
 
---parse C postfix expression (K&R A7.3)
+--parse C postfix expression (C99 6.5.2)
 --
 postfix_expression :: { CExpr }
 postfix_expression
@@ -805,7 +805,7 @@ argument_expression_list
   | argument_expression_list ',' assignment_expression	{ $3 : $1 }
 
 
--- parse C unary expression (K&R A7.4)
+-- parse C unary expression (C99 6.5.3)
 --
 -- * GNU extension: `alignof'
 --
@@ -832,7 +832,7 @@ unary_operator
   | '!'		{ L CNegOp (posOf $1) }
 
 
--- parse C cast expression (K&R A7.5)
+-- parse C cast expression (C99 6.5.4)
 --
 cast_expression :: { CExpr }
 cast_expression
@@ -840,7 +840,7 @@ cast_expression
   | '(' type_name ')' cast_expression	{% withAttrs $1 $ CCast $2 $4 }
 
 
--- parse C multiplicative expression (K&R A7.6)
+-- parse C multiplicative expression (C99 6.5.5)
 --
 multiplicative_expression :: { CExpr }
 multiplicative_expression
@@ -857,7 +857,7 @@ multiplicative_expression
   	{% withAttrs $2 $ CBinary CRmdOp $1 $3 }
 
 
--- parse C additive expression (K&R A7.7)
+-- parse C additive expression (C99 6.5.6)
 --
 additive_expression :: { CExpr }
 additive_expression
@@ -871,7 +871,7 @@ additive_expression
   	{% withAttrs $2 $ CBinary CSubOp $1 $3 }
 
 
--- parse C shift expression (K&R A7.8)
+-- parse C shift expression (C99 6.5.7)
 --
 shift_expression :: { CExpr }
 shift_expression
@@ -885,7 +885,7 @@ shift_expression
   	{% withAttrs $2 $ CBinary CShrOp $1 $3 }
 
 
--- parse C relational expression (K&R A7.9)
+-- parse C relational expression (C99 6.5.8)
 --
 relational_expression :: { CExpr }
 relational_expression
@@ -905,7 +905,7 @@ relational_expression
   	{% withAttrs $2 $ CBinary CGeqOp $1 $3 }
 
 
--- parse C equality expression (K&R A7.10)
+-- parse C equality expression (C99 6.5.9)
 --
 equality_expression :: { CExpr }
 equality_expression
@@ -919,7 +919,7 @@ equality_expression
   	{% withAttrs $2 $ CBinary CNeqOp $1 $3 }
 
 
--- parse C bitwise and expression (K&R A7.11)
+-- parse C bitwise and expression (C99 6.5.10)
 --
 and_expression :: { CExpr }
 and_expression
@@ -930,7 +930,7 @@ and_expression
   	{% withAttrs $2 $ CBinary CAndOp $1 $3 }
 
 
--- parse C bitwise exclusive or expression (K&R A7.12)
+-- parse C bitwise exclusive or expression (C99 6.5.11)
 --
 exclusive_or_expression :: { CExpr }
 exclusive_or_expression
@@ -941,7 +941,7 @@ exclusive_or_expression
   	{% withAttrs $2 $ CBinary CXorOp $1 $3 }
 
 
--- parse C bitwise or expression (K&R A7.13)
+-- parse C bitwise or expression (C99 6.5.12)
 --
 inclusive_or_expression :: { CExpr }
 inclusive_or_expression
@@ -952,7 +952,7 @@ inclusive_or_expression
   	{% withAttrs $2 $ CBinary COrOp $1 $3 }
 
 
--- parse C logical and expression (K&R A7.14)
+-- parse C logical and expression (C99 6.5.13)
 --
 logical_and_expression :: { CExpr }
 logical_and_expression
@@ -963,7 +963,7 @@ logical_and_expression
   	{% withAttrs $2 $ CBinary CLndOp $1 $3 }
 
 
--- parse C logical or expression (K&R A7.15)
+-- parse C logical or expression (C99 6.5.14)
 --
 logical_or_expression :: { CExpr }
 logical_or_expression
@@ -974,7 +974,7 @@ logical_or_expression
   	{% withAttrs $2 $ CBinary CLorOp $1 $3 }
 
 
--- parse C conditional expression (K&R A7.16)
+-- parse C conditional expression (C99 6.5.15)
 --
 conditional_expression :: { CExpr }
 conditional_expression
@@ -985,7 +985,7 @@ conditional_expression
   	{% withAttrs $2 $ CCond $1 $3 $5 }
 
 
--- parse C assignment expression (K&R A7.17)
+-- parse C assignment expression (C99 6.5.16)
 --
 assignment_expression :: { CExpr }
 assignment_expression
@@ -1011,7 +1011,7 @@ assignment_operator
   | "|="		{ L COrAssOp  (posOf $1) }
 
 
--- parse C expression (K&R A7.18)
+-- parse C expression (C99 6.5.17)
 --
 expression :: { CExpr }
 expression
@@ -1026,7 +1026,7 @@ expression_
   | expression_ ',' assignment_expression	{ $3 : $1 }
 
 
--- parse C constant expression (K&R A7.19)
+-- parse C constant expression (C99 6.6)
 --
 constant_expression :: { CExpr }
 constant_expression
