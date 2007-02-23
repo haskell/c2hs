@@ -564,14 +564,18 @@ struct_declarator_list
 
 -- parse C enumeration declaration (C99 6.7.2.2)
 --
---  * There may be a `,' behind the last element of a enum.
---
 enum_specifier :: { CEnum }
 enum_specifier
   : enum '{' enumerator_list '}'
   	{% withAttrs $1 $ CEnum Nothing   (reverse $3) }
 
+  | enum '{' enumerator_list ',' '}'
+  	{% withAttrs $1 $ CEnum Nothing   (reverse $3) }
+
   | enum ident '{' enumerator_list '}'
+  	{% withAttrs $1 $ CEnum (Just $2) (reverse $4) }
+
+  | enum ident '{' enumerator_list ',' '}'
   	{% withAttrs $1 $ CEnum (Just $2) (reverse $4) }
 
   | enum ident
@@ -580,17 +584,11 @@ enum_specifier
 
 enumerator_list :: { Reversed [(Ident, Maybe CExpr)] }
 enumerator_list
-  : enumerator_list_				{ $1 }
-  | enumerator_list_ ','			{ $1 }
-
-
-enumerator_list_ :: { Reversed [(Ident, Maybe CExpr)] }
-enumerator_list_
   : enumerator					{ singleton $1 }
-  | enumerator_list_ ',' enumerator		{ $1 `snoc` $3 }
+  | enumerator_list ',' enumerator		{ $1 `snoc` $3 }
 
 
-enumerator :: { (Ident,	Maybe CExpr) }
+enumerator :: { (Ident, Maybe CExpr) }
 enumerator
   : ident					{ ($1, Nothing) }
   | ident '=' constant_expression		{ ($1, Just $3) }
