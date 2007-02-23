@@ -316,17 +316,8 @@ iteration_statement
   | do statement while '(' expression ')' ';'
   	{% withAttrs $1 $ CWhile $5 $2 True }
 
-  | for '(' expression_statement expression_statement ')' statement
-  	{% withAttrs $1 $ case $3 of
-	                    CExpr e3 _ ->
-			      case $4 of
-			        CExpr e4 _ -> CFor e3 e4 Nothing $6 }
-
-  | for '(' expression_statement expression_statement expression ')' statement
-  	{% withAttrs $1 $ case $3 of
-	                    CExpr e3 _ ->
-			      case $4 of
-			        CExpr e4 _ -> CFor e3 e4 (Just $5) $7 }
+  | for '(' expression_opt ';' expression_opt ';' expression_opt ')' statement
+	{% withAttrs $1 $ CFor $3 $5 $7 $9 }
 
 
 -- parse C jump statement (C99 6.8.6)
@@ -336,8 +327,7 @@ jump_statement
   : goto ident ';'			{% withAttrs $1 $ CGoto $2 }
   | continue ';'			{% withAttrs $1 $ CCont }
   | break ';'				{% withAttrs $1 $ CBreak }
-  | return ';'				{% withAttrs $1 $ CReturn Nothing }
-  | return expression ';'		{% withAttrs $1 $ CReturn (Just $2) }
+  | return expression_opt ';'		{% withAttrs $1 $ CReturn $2 }
 
 
 -- parse GNU C __asm__ (...) statement (recording only a place holder result)
@@ -1027,6 +1017,13 @@ comma_expression :: { Reversed [CExpr] }
 comma_expression
   : assignment_expression			{ singleton $1 }
   | comma_expression ',' assignment_expression	{ $1 `snoc` $3 }
+
+
+-- The following was used for clarity
+expression_opt :: { Maybe CExpr }
+expression_opt
+  : {- empty -}		{ Nothing }
+  | expression		{ Just $1 }
 
 
 -- parse C constant expression (C99 6.6)
