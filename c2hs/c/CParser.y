@@ -102,7 +102,8 @@ import CAST       (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..),
 		   CBinaryOp(..), CUnaryOp(..), CConst (..))
 import CBuiltin   (builtinTypeNames)
 import CTokens    (CToken(..), GnuCTok(..))
-import CParserMonad (P, execParser, getNewName, addTypedef)
+import CParserMonad (P, execParser, getNewName, addTypedef, shadowTypedef,
+                     enterScope, leaveScope )
 }
 
 %name header header
@@ -261,12 +262,6 @@ statement
   | asm_statement			{ $1 }
 
 
-statement_list :: { Reversed [CStat] }
-statement_list
-  : {- empty -}			{ empty }
-  | statement_list statement	{ $1 `snoc` $2 }
-
-
 -- parse C labeled statement (C99 6.8.1)
 --
 labeled_statement :: { CStat }
@@ -276,20 +271,40 @@ labeled_statement
   | default ':' statement			{% withAttrs $1 $ CDefault $3 }
 
 
+-- parse C compound statement (C99 6.8.2)
+--
+compound_statement :: { CStat }
+compound_statement
+  : '{' enter_scope block_item_list leave_scope '}'
+  	{% withAttrs $1 $ CCompound (reverse $3) }
+
+
+-- No syntax for these, just side effecting semantic actions.
+--
+enter_scope :: { () }
+enter_scope : {% enterScope }
+leave_scope :: { () }
+leave_scope : {% leaveScope }
+
+
+block_item_list :: { Reversed [Either CDecl CStat] }
+block_item_list
+  : {- empty -}			{ empty }
+  | block_item_list block_item	{ $1 `snoc` $2 }
+
+
+block_item :: { Either CDecl CStat }
+block_item
+  : declaration ';'		{ Left  $1 }
+  | extension declaration ';'	{ Left  $2 }
+  | statement			{ Right $1 }
+
 -- parse C expression statement (C99 6.8.3)
 --
 expression_statement :: { CStat }
 expression_statement
   : ';'				{% withAttrs $1 $ CExpr Nothing }
   | expression ';'		{% withAttrs $1 $ CExpr (Just $1) }
-
-
--- parse C compound statement (C99 6.8.2)
---
-compound_statement :: { CStat }
-compound_statement
-  : '{' declaration_list statement_list '}'
-  	{% withAttrs $1 $ CCompound (reverse $2) (reverse $3) }
 
 
 -- parse C selection statement (C99 6.8.4)
