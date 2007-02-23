@@ -1017,15 +1017,17 @@ assignment_operator
 --
 expression :: { CExpr }
 expression
-  : expression_				{% case $1 of
-					   Reversed [e] -> return e
-					   _   -> let es = reverse $1 
-					          in withAttrs es $ CComma es }
+  : assignment_expression
+  	{ $1 }
 
-expression_ :: { Reversed [CExpr] }
-expression_
+  | assignment_expression ',' comma_expression
+  	{% let es = reverse $3 in withAttrs es $ CComma ($1:es) }
+
+
+comma_expression :: { Reversed [CExpr] }
+comma_expression
   : assignment_expression			{ singleton $1 }
-  | expression_ ',' assignment_expression	{ $1 `snoc` $3 }
+  | comma_expression ',' assignment_expression	{ $1 `snoc` $3 }
 
 
 -- parse C constant expression (C99 6.6)
