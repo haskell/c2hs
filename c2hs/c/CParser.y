@@ -375,15 +375,15 @@ nonnull_asm_operands
 
 asm_operand :: { () }
 asm_operand
-  : string '(' expression ')'			{ () }
-  | '[' ident ']' string '(' expression ')'	{ () }
-  | '[' tyident ']' string '(' expression ')'	{ () }
+  : string_literal '(' expression ')'			{ () }
+  | '[' ident ']' string_literal '(' expression ')'	{ () }
+  | '[' tyident ']' string_literal '(' expression ')'	{ () }
 
 
 asm_clobbers :: { () }
 asm_clobbers
-  : string			{ () }
-  | asm_clobbers ',' string	{ () }
+  : string_literal			{ () }
+  | asm_clobbers ',' string_literal	{ () }
 
 
 -- parse C declaration (C99 6.7)
@@ -447,8 +447,8 @@ init_declarator
 
 maybe_asm :: { () }
 maybe_asm
-  : {- empty -}		{ () }
-  | asm '(' string ')'	{ () }
+  : {- empty -}			{ () }
+  | asm '(' string_literal ')'	{ () }
 
 
 init_declarator_list :: { Reversed [(CDeclr, Maybe CInit)] }
@@ -758,12 +758,11 @@ direct_abstract_declarator
 
 -- parse C primary expression (C99 6.5.1)
 --
--- * contrary to K&R, we regard parsing strings as parsing constants
---
 primary_expression :: { CExpr }
 primary_expression
   : ident		{% withAttrs $1 $ CVar $1 }
-  | literal_expression	{% withAttrs $1 $ CConst $1 }
+  | constant	  	{% withAttrs $1 $ CConst $1 }
+  | string_literal	{% withAttrs $1 $ CConst $1 }
   | '(' expression ')'	{ $2 }
 
 
@@ -1039,30 +1038,27 @@ constant_expression
 
 -- parse C constants
 --
--- * we include strings in constants
---
-literal_expression :: { CConst }
-literal_expression
+constant :: { CConst }
+constant
   : cint	{% withAttrs $1 $ case $1 of CTokILit _ i -> CIntConst i }
   | cchar	{% withAttrs $1 $ case $1 of CTokCLit _ c -> CCharConst c }
   | cfloat	{% withAttrs $1 $ case $1 of CTokFLit _ f -> CFloatConst f }
-  | string	{% withAttrs $1 $ CStrConst (unL $1) }
 
 
--- deal with C string liternal concatination
---
-string :: { Located String }
-string
-  : cstr		{ case $1 of CTokSLit _ s -> L s (posOf $1) }
-  | cstr string_	{ case $1 of CTokSLit _ s ->
-                                       let s' = concat (s : reverse $2)
-				        in L s' (posOf $1) }
+string_literal :: { CConst }
+string_literal
+  : cstr
+  	{% withAttrs $1 $ case $1 of CTokSLit _ s -> CStrConst s }
+
+  | cstr string_literal_list
+  	{% withAttrs $1 $ case $1 of CTokSLit _ s -> CStrConst (concat (s : reverse $2)) }
 
 
-string_ :: { Reversed [String] }
-string_
-  : cstr		{ case $1 of CTokSLit _ s -> singleton s }
-  | string_ cstr	{ case $2 of CTokSLit _ s -> $1 `snoc` s }
+string_literal_list :: { Reversed [String] }
+string_literal_list
+  : cstr			{ case $1 of CTokSLit _ s -> singleton s }
+  | string_literal_list cstr	{ case $2 of CTokSLit _ s -> $1 `snoc` s }
+
 
 {-
 -- parse GNU C attribute annotation (junking the result)
