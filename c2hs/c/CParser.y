@@ -83,6 +83,8 @@
 {
 module CParser (parseC) where
 
+import Prelude    hiding (reverse)
+import qualified Data.List as List
 import Monad	  (when)
 import Maybe      (catMaybes)
 
@@ -218,12 +220,12 @@ header
 
 -- parse a complete C translation unit (C99 6.9)
 --
-translation_unit :: { [CExtDecl] }
+translation_unit :: { Reversed [CExtDecl] }
 translation_unit
-  : {- empty -}					{ [] }
-  | translation_unit external_declaration	{ $2 : $1 }
+  : {- empty -}					{ empty }
+  | translation_unit external_declaration	{ $1 `snoc` $2 }
   | translation_unit asm '(' expression ')' ';'
-	{% withAttrs $2 $ \at -> CAsmExt at : $1 }
+	{% withAttrs $2 $ \at -> $1 `snoc` CAsmExt at }
 
 
 -- parse external C declaration (C99 6.9)
@@ -259,10 +261,10 @@ statement
   | asm_statement			{ $1 }
 
 
-statement_list :: { [CStat] }
+statement_list :: { Reversed [CStat] }
 statement_list
-  : {- empty -}			{ [] }
-  | statement_list statement	{ $2 : $1 }
+  : {- empty -}			{ empty }
+  | statement_list statement	{ $1 `snoc` $2 }
 
 
 -- parse C labeled statement (C99 6.8.1)
@@ -406,10 +408,10 @@ declaration
 	           return (CDecl $1 declrs' attrs) }
 
 
-declaration_list :: { [CDecl] }
+declaration_list :: { Reversed [CDecl] }
 declaration_list
-  : {- empty -}					{ [] }
-  | declaration_list declaration ';'		{ $2 : $1 }
+  : {- empty -}					{ empty }
+  | declaration_list declaration ';'		{ $1 `snoc` $2 }
 
 
 -- parse C declaration specifiers (C99 6.7)
@@ -449,10 +451,10 @@ maybe_asm
   | asm '(' string ')'	{ () }
 
 
-init_declarator_list :: { [(CDeclr, Maybe CInit)] }
+init_declarator_list :: { Reversed [(CDeclr, Maybe CInit)] }
 init_declarator_list
-  : init_declarator					{ [$1] }
-  | init_declarator_list ',' init_declarator		{ $3 : $1 }
+  : init_declarator					{ singleton $1 }
+  | init_declarator_list ',' init_declarator		{ $1 `snoc` $3 }
 
 
 -- parse C storage class specifier (C99 6.7.1)
@@ -526,10 +528,10 @@ struct_or_union
   | union			{ L CUnionTag (posOf $1) }
 
 
-struct_declaration_list :: { [CDecl] }
+struct_declaration_list :: { Reversed [CDecl] }
 struct_declaration_list
-  : {- empty -}						{ [] }
-  | struct_declaration_list struct_declaration		{ $2 : $1 }
+  : {- empty -}						{ empty }
+  | struct_declaration_list struct_declaration		{ $1 `snoc` $2 }
 
 
 -- parse C structure declaration (C99 6.7.2.1)
@@ -564,10 +566,10 @@ struct_declarator
   | declarator ':' constant_expression		{ (Just $1, Just $3) }
 
 
-struct_declarator_list :: { [(Maybe CDeclr, Maybe CExpr)] }
+struct_declarator_list :: { Reversed [(Maybe CDeclr, Maybe CExpr)] }
 struct_declarator_list
-  : struct_declarator					{ [$1] }
-  | struct_declarator_list ',' struct_declarator	{ $3 : $1 }
+  : struct_declarator					{ singleton $1 }
+  | struct_declarator_list ',' struct_declarator	{ $1 `snoc` $3 }
 
 
 -- parse C enumeration declaration (C99 6.7.2.2)
@@ -586,16 +588,16 @@ enum_specifier
   	{% withAttrs $1 $ CEnum (Just $2) []           }
 
 
-enumerator_list :: { [(Ident,	Maybe CExpr)] }
+enumerator_list :: { Reversed [(Ident, Maybe CExpr)] }
 enumerator_list
   : enumerator_list_				{ $1 }
   | enumerator_list_ ','			{ $1 }
 
 
-enumerator_list_ :: { [(Ident,	Maybe CExpr)] }
+enumerator_list_ :: { Reversed [(Ident, Maybe CExpr)] }
 enumerator_list_
-  : enumerator					{ [$1] }
-  | enumerator_list_ ',' enumerator		{ $3 : $1 }
+  : enumerator					{ singleton $1 }
+  | enumerator_list_ ',' enumerator		{ $1 `snoc` $3 }
 
 
 enumerator :: { (Ident,	Maybe CExpr) }
@@ -652,10 +654,10 @@ pointer
   | '*' type_qualifier_list pointer	{  L (reverse $2) (posOf $1) : $3 }
 
 
-type_qualifier_list :: { [CTypeQual] }
+type_qualifier_list :: { Reversed [CTypeQual] }
 type_qualifier_list
-  : {- empty -}				{ [] }
-  | type_qualifier_list type_qualifier	{ $2 : $1 }
+  : {- empty -}				{ empty }
+  | type_qualifier_list type_qualifier	{ $1 `snoc` $2 }
 
 
 parameter_type_list :: { ([CDecl], Bool) }
@@ -667,10 +669,10 @@ parameter_type_list
 
 -- parse C parameter type list (C99 6.7.5)
 --
-parameter_list :: { [CDecl] }
+parameter_list :: { Reversed [CDecl] }
 parameter_list
-  : parameter_declaration			{ [$1] }
-  | parameter_list ',' parameter_declaration	{ $3 : $1 }
+  : parameter_declaration			{ singleton $1 }
+  | parameter_list ',' parameter_declaration	{ $1 `snoc` $3 }
 
 
 parameter_declaration :: { CDecl }
@@ -690,14 +692,14 @@ parameter_declaration
 initializer :: { CInit }
 initializer
   : assignment_expression		{% withAttrs $1 $ CInitExpr $1 }
-  | '{' initializer_list '}'		{% withAttrs $1 $ CInitList $2 }
-  | '{' initializer_list ',' '}'	{% withAttrs $1 $ CInitList $2 }
+  | '{' initializer_list '}'		{% withAttrs $1 $ CInitList (reverse $2) }
+  | '{' initializer_list ',' '}'	{% withAttrs $1 $ CInitList (reverse $2) }
 
 
-initializer_list :: { [CInit] }
+initializer_list :: { Reversed [CInit] }
 initializer_list
-  : initializer				{ [$1] }
-  | initializer_list ',' initializer	{ $3 : $1 }
+  : initializer				{ singleton $1 }
+  | initializer_list ',' initializer	{ $1 `snoc` $3 }
 
 
 -- parse C type name (C99 6.7.6)
@@ -794,15 +796,15 @@ postfix_expression
   	{% withAttrs $2 $ CUnary CPostDecOp $1 }
 
   | '(' type_name ')' '{' initializer_list '}'
-  	{% withAttrs $2 $ CCompoundLit $5 }
+  	{% withAttrs $2 $ CCompoundLit (reverse $5) }
 
   | '(' type_name ')' '{' initializer_list ',' '}'
-  	{% withAttrs $2 $ CCompoundLit $5 }
+  	{% withAttrs $2 $ CCompoundLit (reverse $5) }
 
-argument_expression_list :: { [CExpr] }
+argument_expression_list :: { Reversed [CExpr] }
 argument_expression_list
-  : assignment_expression				{ [$1] }
-  | argument_expression_list ',' assignment_expression	{ $3 : $1 }
+  : assignment_expression				{ singleton $1 }
+  | argument_expression_list ',' assignment_expression	{ $1 `snoc` $3 }
 
 
 -- parse C unary expression (C99 6.5.3)
@@ -1016,14 +1018,14 @@ assignment_operator
 expression :: { CExpr }
 expression
   : expression_				{% case $1 of
-					   [e] -> return e
+					   Reversed [e] -> return e
 					   _   -> let es = reverse $1 
 					          in withAttrs es $ CComma es }
 
-expression_ :: { [CExpr] }
+expression_ :: { Reversed [CExpr] }
 expression_
-  : assignment_expression			{ [$1] }
-  | expression_ ',' assignment_expression	{ $3 : $1 }
+  : assignment_expression			{ singleton $1 }
+  | expression_ ',' assignment_expression	{ $1 `snoc` $3 }
 
 
 -- parse C constant expression (C99 6.6)
@@ -1055,10 +1057,10 @@ string
 				        in L s' (posOf $1) }
 
 
-string_ :: { [String] }
+string_ :: { Reversed [String] }
 string_
-  : cstr		{ case $1 of CTokSLit _ s -> [s] }
-  | string_ cstr	{ case $2 of CTokSLit _ s -> s : $1 }
+  : cstr		{ case $1 of CTokSLit _ s -> singleton s }
+  | string_ cstr	{ case $2 of CTokSLit _ s -> $1 `snoc` s }
 
 {-
 -- parse GNU C attribute annotation (junking the result)
@@ -1102,6 +1104,32 @@ gnuc_attribute_param_exps
 
 {
 
+infixr 5 `snoc`
+
+-- Due to the way the grammar is constructed we very often have to build lists
+-- in reverse. To make sure we do this consistently and correctly we have a
+-- newtype to wrap the reversed style of list:
+--
+newtype Reversed a = Reversed a
+
+empty :: Reversed [a]
+empty = Reversed []
+
+singleton :: a -> Reversed [a]
+singleton x = Reversed [x]
+
+snoc :: Reversed [a] -> a -> Reversed [a]
+snoc (Reversed xs) x = Reversed (x : xs)
+
+rmap :: (a -> b) -> Reversed [a] -> Reversed [b]
+rmap f (Reversed xs) = Reversed (map f xs)
+
+reverse :: Reversed [a] -> [a]
+reverse (Reversed xs) = List.reverse xs
+
+-- We occasionally need things to have a location when they don't naturally
+-- have one built in as tokens and most AST elements do.
+--
 data Located a = L !a !Position
 
 unL :: Located a -> a
@@ -1122,6 +1150,9 @@ withAttrs node mkAttributedNode = do
 --
 instance Pos a => Pos [a] where
   posOf (x:_) = posOf x
+
+instance Pos a => Pos (Reversed a) where
+  posOf (Reversed x) = posOf x
 
 emptyDeclr = CVarDeclr Nothing (newAttrsOnlyPos nopos)
 
