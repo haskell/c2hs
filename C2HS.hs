@@ -79,11 +79,11 @@ peekCStringLenIntConv (s, n) = peekCStringLen (s, cIntConv n)
 
 withIntConv   :: (Storable b, Integral a, Integral b) 
 	      => a -> (Ptr b -> IO c) -> IO c
-withIntConv    = withObject . cIntConv
+withIntConv    = with . cIntConv
 
 withFloatConv :: (Storable b, RealFloat a, RealFloat b) 
 	      => a -> (Ptr b -> IO c) -> IO c
-withFloatConv  = withObject . cFloatConv
+withFloatConv  = with . cFloatConv
 
 peekIntConv   :: (Storable a, Integral a, Integral b) 
 	      => Ptr a -> IO b
@@ -97,7 +97,7 @@ peekFloatConv  = liftM cFloatConv . peek
 --
 
 withBool :: (Integral a, Storable a) => Bool -> (Ptr a -> IO b) -> IO b
-withBool  = withObject . fromBool
+withBool  = with . fromBool
 
 peekBool :: (Integral a, Storable a) => Ptr a -> IO Bool
 peekBool  = liftM toBool . peek
@@ -107,7 +107,7 @@ peekBool  = liftM toBool . peek
 --
 
 withEnum :: (Enum a, Integral b, Storable b) => a -> (Ptr b -> IO c) -> IO c
-withEnum  = withObject . cFromEnum
+withEnum  = with . cFromEnum
 
 peekEnum :: (Enum a, Integral b, Storable b) => Ptr b -> IO a
 peekEnum  = liftM cToEnum . peek
