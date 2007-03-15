@@ -351,14 +351,17 @@ asm_statement :: { CStat }
 asm_statement
   : asm maybe_type_qualifier '(' expression ')' ';'
   	{% withAttrs $1 CAsm }
+
   | asm maybe_type_qualifier '(' expression ':' asm_operands ')' ';'
   	{% withAttrs $1 CAsm }
+
   | asm maybe_type_qualifier '(' expression ':' asm_operands
 					    ':' asm_operands ')' ';'
   	{% withAttrs $1 CAsm }
   | asm maybe_type_qualifier '(' expression ':' asm_operands ':' asm_operands
 					    ':' asm_clobbers ')' ';'
   	{% withAttrs $1 CAsm }
+
 
 maybe_type_qualifier :: { () }
 maybe_type_qualifier
@@ -803,6 +806,7 @@ postfix_expression
   | '(' type_name ')' '{' initializer_list ',' '}'
   	{% withAttrs $2 $ CCompoundLit (reverse $5) }
 
+
 argument_expression_list :: { Reversed [CExpr] }
 argument_expression_list
   : assignment_expression				{ singleton $1 }
@@ -828,12 +832,12 @@ unary_expression
 
 unary_operator :: { Located CUnaryOp }
 unary_operator
-  : '&'		{ L CAdrOp (posOf $1) }
-  | '*'		{ L CIndOp (posOf $1) }
+  : '&'		{ L CAdrOp  (posOf $1) }
+  | '*'		{ L CIndOp  (posOf $1) }
   | '+'		{ L CPlusOp (posOf $1) }
-  | '-'		{ L CMinOp (posOf $1) }
+  | '-'		{ L CMinOp  (posOf $1) }
   | '~'		{ L CCompOp (posOf $1) }
-  | '!'		{ L CNegOp (posOf $1) }
+  | '!'		{ L CNegOp  (posOf $1) }
 
 
 -- parse C cast expression (C99 6.5.4)
