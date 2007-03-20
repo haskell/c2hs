@@ -448,14 +448,8 @@ declaration_specifiers
 --
 init_declarator :: { (CDeclr, Maybe CInit) }
 init_declarator
-  : declarator maybe_asm				{ ($1, Nothing) }
-  | declarator maybe_asm '=' initializer		{ ($1, Just $4) }
-
-
-maybe_asm :: { () }
-maybe_asm
-  : {- empty -}			{ () }
-  | asm '(' string_literal ')'	{ () }
+  : declarator					{ ($1, Nothing) }
+  | declarator  '=' initializer			{ ($1, Just $3) }
 
 
 init_declarator_list :: { Reversed [(CDeclr, Maybe CInit)] }
@@ -612,11 +606,19 @@ type_qualifier
 --
 declarator :: { CDeclr }
 declarator
-  : pointer direct_declarator
+  : pointer direct_declarator maybe_asm
   	{% withAttrs $1 $ CPtrDeclr (map unL $1) $2 }
 
-  | direct_declarator
+  | direct_declarator maybe_asm
   	{ $1 }
+
+
+-- Parse GNU C's asm annotations
+--
+maybe_asm :: { () }
+maybe_asm
+  : {- empty -}				{ () }
+  | asm '(' string_literal_list ')'	{ () }
 
 
 direct_declarator :: { CDeclr }
