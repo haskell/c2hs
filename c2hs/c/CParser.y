@@ -232,7 +232,7 @@ translation_unit
 external_declaration :: { CExtDecl }
 external_declaration
   : function_definition			{ CFDefExt $1 }
-  | declaration ';'			{ CDeclExt $1 }
+  | declaration				{ CDeclExt $1 }
   | extension external_declaration	{ $2 }
   | asm '(' string_literal ')' ';'	{% withAttrs $2 CAsmExt }
 
@@ -251,7 +251,7 @@ function_definition
 declaration_list :: { Reversed [CDecl] }
 declaration_list
   : {- empty -}					{ empty }
-  | declaration_list declaration ';'		{ $1 `snoc` $2 }
+  | declaration_list declaration		{ $1 `snoc` $2 }
 
 
 -- parse C statement (C99 6.8)
@@ -300,8 +300,8 @@ block_item_list
 
 block_item :: { Either CDecl CStat }
 block_item
-  : declaration ';'		{ Left  $1 }
-  | extension declaration ';'	{ Left  $2 }
+  : declaration			{ Left  $1 }
+  | extension declaration	{ Left  $2 }
   | statement			{ Right $1 }
 
 -- parse C expression statement (C99 6.8.3)
@@ -407,10 +407,10 @@ asm_clobbers
 --
 declaration :: { CDecl }
 declaration
-  : declaration_specifiers
+  : declaration_specifiers ';'
   	{% withAttrs $1 $ CDecl $1 [] }
 
-  | declaration_specifiers init_declarator_list
+  | declaration_specifiers init_declarator_list ';'
 	{% let declrs = reverse $2
 	    in when (isTypeDef $1)
 	            (mapM_ addTypedef (getTypeDefIdents (map fst declrs)))
