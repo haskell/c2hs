@@ -249,6 +249,12 @@ function_definition
   	{% withAttrs $1 $ CFunDef [] $1 (reverse $2) $3 }
 
 
+declaration_list :: { Reversed [CDecl] }
+declaration_list
+  : {- empty -}					{ empty }
+  | declaration_list declaration ';'		{ $1 `snoc` $2 }
+
+
 -- parse C statement (C99 6.8)
 --
 statement :: { CStat }
@@ -416,12 +422,6 @@ declaration
 	           return (CDecl $1 declrs' attrs) }
 
 
-declaration_list :: { Reversed [CDecl] }
-declaration_list
-  : {- empty -}					{ empty }
-  | declaration_list declaration ';'		{ $1 `snoc` $2 }
-
-
 -- parse C declaration specifiers (C99 6.7)
 --
 declaration_specifiers :: { [CDeclSpec] }
@@ -492,16 +492,6 @@ type_specifier
   | struct_or_union_specifier	{% withAttrs $1 $ CSUType $1 }
   | enum_specifier		{% withAttrs $1 $ CEnumType $1 }
   | tyident			{% withAttrs $1 $ CTypeDef $1 }
-
-
--- parse C type qualifier (C99 6.7.3)
---
-type_qualifier :: { CTypeQual }
-type_qualifier
-  : const		{% withAttrs $1 $ CConstQual }
-  | volatile		{% withAttrs $1 $ CVolatQual }
-  | restrict		{% withAttrs $1 $ CRestrQual }
-  | inline		{% withAttrs $1 $ CInlinQual }
 
 
 -- parse C structure of union declaration (C99 6.7.2.1)
@@ -612,6 +602,16 @@ enumerator
   | ident '=' constant_expression		{ ($1, Just $3) }
 
 
+-- parse C type qualifier (C99 6.7.3)
+--
+type_qualifier :: { CTypeQual }
+type_qualifier
+  : const		{% withAttrs $1 $ CConstQual }
+  | volatile		{% withAttrs $1 $ CVolatQual }
+  | restrict		{% withAttrs $1 $ CRestrQual }
+  | inline		{% withAttrs $1 $ CInlinQual }
+
+
 -- parse C declarator (C99 6.7.5)
 --
 -- * We allow GNU C attribute annotations at the end of a declerator,
@@ -646,12 +646,6 @@ direct_declarator
 
   | direct_declarator '(' identifier_list ')'
   	{% withAttrs $2 $ CFunDeclr $1 [] False }
-
-
-identifier_list :: { () }
-identifier_list
-  : ident				{ () }
-  | identifier_list ',' ident		{ () }
 
 
 pointer :: { [Located [CTypeQual]] }
@@ -693,19 +687,10 @@ parameter_declaration
   	{% withAttrs $1 $ CDecl $1 [] }
 
 
--- parse C initializer (C99 6.7.8)
---
-initializer :: { CInit }
-initializer
-  : assignment_expression		{% withAttrs $1 $ CInitExpr $1 }
-  | '{' initializer_list '}'		{% withAttrs $1 $ CInitList (reverse $2) }
-  | '{' initializer_list ',' '}'	{% withAttrs $1 $ CInitList (reverse $2) }
-
-
-initializer_list :: { Reversed [CInit] }
-initializer_list
-  : initializer				{ singleton $1 }
-  | initializer_list ',' initializer	{ $1 `snoc` $3 }
+identifier_list :: { () }
+identifier_list
+  : ident				{ () }
+  | identifier_list ',' ident		{ () }
 
 
 -- parse C type name (C99 6.7.6)
@@ -760,6 +745,21 @@ direct_abstract_declarator
 
   | direct_abstract_declarator '(' parameter_type_list ')'
   	{% withAttrs $2 $ case $3 of (parms, variadic) -> CFunDeclr $1 parms variadic }
+
+
+-- parse C initializer (C99 6.7.8)
+--
+initializer :: { CInit }
+initializer
+  : assignment_expression		{% withAttrs $1 $ CInitExpr $1 }
+  | '{' initializer_list '}'		{% withAttrs $1 $ CInitList (reverse $2) }
+  | '{' initializer_list ',' '}'	{% withAttrs $1 $ CInitList (reverse $2) }
+
+
+initializer_list :: { Reversed [CInit] }
+initializer_list
+  : initializer				{ singleton $1 }
+  | initializer_list ',' initializer	{ $1 `snoc` $3 }
 
 
 -- parse C primary expression (C99 6.5.1)
