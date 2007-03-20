@@ -225,8 +225,6 @@ translation_unit :: { Reversed [CExtDecl] }
 translation_unit
   : {- empty -}					{ empty }
   | translation_unit external_declaration	{ $1 `snoc` $2 }
-  | translation_unit asm '(' expression ')' ';'
-	{% withAttrs $2 $ \at -> $1 `snoc` CAsmExt at }
 
 
 -- parse external C declaration (C99 6.9)
@@ -236,6 +234,7 @@ external_declaration
   : function_definition			{ CFDefExt $1 }
   | declaration ';'			{ CDeclExt $1 }
   | extension external_declaration	{ $2 }
+  | asm '(' string_literal ')' ';'	{% withAttrs $2 CAsmExt }
 
 
 -- parse C function definition (C99 6.9.1)
