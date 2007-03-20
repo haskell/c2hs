@@ -271,7 +271,7 @@ statement
 --
 labeled_statement :: { CStat }
 labeled_statement
-  : ident ':' statement				{% withAttrs $2 $ CLabel $1 $3}
+  : identifier ':' statement			{% withAttrs $2 $ CLabel $1 $3}
   | case constant_expression ':' statement	{% withAttrs $1 $ CCase $2 $4 }
   | default ':' statement			{% withAttrs $1 $ CDefault $3 }
 
@@ -344,7 +344,7 @@ iteration_statement
 --
 jump_statement :: { CStat }
 jump_statement
-  : goto ident ';'			{% withAttrs $1 $ CGoto $2 }
+  : goto identifier ';'			{% withAttrs $1 $ CGoto $2 }
   | continue ';'			{% withAttrs $1 $ CCont }
   | break ';'				{% withAttrs $1 $ CBreak }
   | return expression_opt ';'		{% withAttrs $1 $ CReturn $2 }
@@ -503,19 +503,13 @@ type_specifier
 --
 struct_or_union_specifier :: { CStructUnion }
 struct_or_union_specifier
-  : struct_or_union ident '{' struct_declaration_list '}'
-  	{% withAttrs $1 $ CStruct (unL $1) (Just $2) (reverse $4) }
-
-  | struct_or_union tyident '{' struct_declaration_list '}'
+  : struct_or_union identifier '{' struct_declaration_list '}'
   	{% withAttrs $1 $ CStruct (unL $1) (Just $2) (reverse $4) }
 
   | struct_or_union '{' struct_declaration_list '}'
   	{% withAttrs $1 $ CStruct (unL $1) Nothing   (reverse $3) }
 
-  | struct_or_union ident
-  	{% withAttrs $1 $ CStruct (unL $1) (Just $2) [] }
-
-  | struct_or_union tyident
+  | struct_or_union identifier
   	{% withAttrs $1 $ CStruct (unL $1) (Just $2) [] }
 
 
@@ -579,13 +573,13 @@ enum_specifier
   | enum '{' enumerator_list ',' '}'
   	{% withAttrs $1 $ CEnum Nothing   (reverse $3) }
 
-  | enum ident '{' enumerator_list '}'
+  | enum identifier '{' enumerator_list '}'
   	{% withAttrs $1 $ CEnum (Just $2) (reverse $4) }
 
-  | enum ident '{' enumerator_list ',' '}'
+  | enum identifier '{' enumerator_list ',' '}'
   	{% withAttrs $1 $ CEnum (Just $2) (reverse $4) }
 
-  | enum ident
+  | enum identifier
   	{% withAttrs $1 $ CEnum (Just $2) []           }
 
 
@@ -597,8 +591,8 @@ enumerator_list
 
 enumerator :: { (Ident, Maybe CExpr) }
 enumerator
-  : ident					{ ($1, Nothing) }
-  | ident '=' constant_expression		{ ($1, Just $3) }
+  : identifier					{ ($1, Nothing) }
+  | identifier '=' constant_expression		{ ($1, Just $3) }
 
 
 -- parse C type qualifier (C99 6.7.3)
@@ -787,10 +781,10 @@ postfix_expression
   | postfix_expression '(' argument_expression_list ')'
   	{% withAttrs $2 $ CCall $1 (reverse $3) }
 
-  | postfix_expression '.' ident
+  | postfix_expression '.' identifier
   	{% withAttrs $2 $ CMember $1 $3 False }
 
-  | postfix_expression "->" ident
+  | postfix_expression "->" identifier
   	{% withAttrs $2 $ CMember $1 $3 True }
 
   | postfix_expression "++"
@@ -1071,6 +1065,12 @@ string_literal_list :: { Reversed [String] }
 string_literal_list
   : cstr			{ case $1 of CTokSLit _ s -> singleton s }
   | string_literal_list cstr	{ case $2 of CTokSLit _ s -> $1 `snoc` s }
+
+
+identifier :: { Ident }
+identifier
+  : ident		{ $1 }
+  | tyident		{ $1 }
 
 
 {-
