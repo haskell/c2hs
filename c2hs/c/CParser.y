@@ -487,7 +487,7 @@ type_specifier
   | tyident			{% withAttrs $1 $ CTypeDef $1 }
 
 
--- parse C structure of union declaration (C99 6.7.2.1)
+-- parse C structure or union declaration (C99 6.7.2.1)
 --
 -- * Note: an identifier after a struct tag *may* be a type name; thus, we need
 --	   to use `tyident' as well rather than just `ident'
@@ -655,6 +655,8 @@ type_qualifier_list
   | type_qualifier_list type_qualifier	{ $1 `snoc` $2 }
 
 
+-- parse C parameter type list (C99 6.7.5)
+--
 parameter_type_list :: { ([CDecl], Bool) }
 parameter_type_list
   : {- empty -}				{ ([], False)}
@@ -662,8 +664,6 @@ parameter_type_list
   | parameter_list ',' "..."		{ (reverse $1, True) }
 
 
--- parse C parameter type list (C99 6.7.5)
---
 parameter_list :: { Reversed [CDecl] }
 parameter_list
   : parameter_declaration			{ singleton $1 }
@@ -682,10 +682,10 @@ parameter_declaration
   	{% withAttrs $1 $ CDecl $1 [] }
 
 
-identifier_list :: { () }
+identifier_list :: { Reversed [Ident] }
 identifier_list
-  : ident				{ () }
-  | identifier_list ',' ident		{ () }
+  : ident				{ singleton $1 }
+  | identifier_list ',' ident		{ $1 `snoc` $3 }
 
 
 -- parse C type name (C99 6.7.6)
