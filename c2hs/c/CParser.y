@@ -425,10 +425,10 @@ declaration
 --
 declaration_specifiers :: { [CDeclSpec] }
 declaration_specifiers
-  : storage_class_specifier
+  : storage_class
   	{ [CStorageSpec $1] }
 
-  | storage_class_specifier declaration_specifiers
+  | storage_class declaration_specifiers
   	{ CStorageSpec $1 : $2 }
 
   | type_specifier
@@ -460,8 +460,8 @@ init_declarator_list
 
 -- parse C storage class specifier (C99 6.7.1)
 --
-storage_class_specifier :: { CStorageSpec }
-storage_class_specifier
+storage_class :: { CStorageSpec }
+storage_class
   : typedef			{% withAttrs $1 $ CTypedef }
   | extern			{% withAttrs $1 $ CExtern }
   | static			{% withAttrs $1 $ CStatic }
