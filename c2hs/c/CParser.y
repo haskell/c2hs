@@ -21,32 +21,66 @@
 --
 --- DESCRIPTION ---------------------------------------------------------------
 --
---  Parser for C header files, which have already been run through the C
+--  Parser for C translation units, which have already been run through the C
 --  preprocessor.  
 --
 --- DOCU ----------------------------------------------------------------------
 --
 --  language: Haskell 98
 --
---  The parser recognizes all of ANCI C.  The parser combinators follow K&R
---  Appendix A, but we make use of the richer grammar constructs provided by
---  `Parsers'.  It supports the C99 `restrict' extension and `inline'.  The
---  parser is rather permissive with respect to the formation of declarators
---  in function definitions (it doesn't enforce strict function syntax).
---  Non-complying definitions need to be detected by subsequent passes if
---  strict checking is required.
+--  The parser recognizes all of ISO C 99 and many common GNU C extensions.
+--
+--  With C99 we refer to the ISO C99 standard, specifically the section numbers
+--  used below refer to this report:
+--
+--    http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1124.pdf
+--
+--
+--  Since some of the grammar productions are quite difficult to read
+--  (especially those involved with the decleration syntax) we document them
+--  with an extended syntax that allows a more consise representation:
+--
+--  Ordinary rules
+--
+--   foo      named terminal or non-terminal
+--
+--   'c'      terminal, literal character token
+--
+--   A B      concatenation
+--
+--   A | B    alternation
+--
+--   (A)      grouping
+--
+--  Extended rules
+--
+--   A?       optional, short hand for (A|) or [A]{ 0==A || 1==A }
+--
+--   ...      stands for some part of the grammar omitted for clarity
+--
+--   [A]      represents sequences, 0 or more.
+--
+--   [A]{C}   sequences with some constraint, usually on the number of
+--            terminals or non-terminals appearing in the sequence.
+--
+--  Constraints on sequences
+--
+--   n==t     terminal or non-terminal t must appear exactly n times
+--
+--   n>=t     terminal or non-terminal t must appear at least n times
+--
+--   C1 && C1 conjunction of constraints
+--
+--   C1 || C2 disjunction of constraints
+--
+--   C1 |x| C2 exclusive disjunction of constraints
+--
 --
 --  Comments:
 --
 --  * Subtrees representing empty declarators of the form `CVarDeclr Nothing
 --    at' have *no* valid attribute handle in `at' (only a `newAttrsOnlyPos
 --    nopos').
---
---  * Details on the C99 restrict extension are at:
---    <http://www.lysator.liu.se/c/restrict.html>.
---
---  With K&R we refer to ``The C Programming Language'', second edition, Brain
---  W. Kernighan and Dennis M. Ritchie, Prentice Hall, 1988.
 --
 --  Supported GNU C extensions:
 --
@@ -222,6 +256,9 @@ header
 
 -- parse a complete C translation unit (C99 6.9)
 --
+-- * GNU extensions:
+--     allow empty translation_unit
+--
 translation_unit :: { Reversed [CExtDecl] }
 translation_unit
   : {- empty -}					{ empty }
@@ -229,6 +266,10 @@ translation_unit
 
 
 -- parse external C declaration (C99 6.9)
+--
+-- * GNU extensions:
+--     allow extension keyword before external declaration
+--     asm definitions
 --
 external_declaration :: { CExtDecl }
 external_declaration
@@ -286,6 +327,8 @@ declaration_list
 
 
 -- parse C statement (C99 6.8)
+--
+-- * GNU extension: ' __asm__ (...); ' statements
 --
 statement :: { CStat }
 statement
@@ -484,7 +527,7 @@ declaring_list
   | type_specifier declarator {-{}-} initializer_opt
   	{% doDeclIdent $1 $2
         >> (withAttrs $1 $ CDecl $1 [(Just $2, $3, Nothing)]) }
-  
+
   | declaring_list ',' declarator {-{}-} initializer_opt
   	{% case $1 of
              CDecl declspecs dies attr -> do
@@ -494,6 +537,15 @@ declaring_list
 
 -- parse C declaration specifiers (C99 6.7)
 --
+-- * summary:
+--   [ type_qualifier | storage_class
+--   | basic_type_name | elaborated_type_name | tyident ]{
+--     (    1 >= basic_type_name
+--      |x| 1 == elaborated_type_name
+--      |x| 1 == tyident
+--     ) && 1 >= storage_class
+--   }
+--
 declaration_specifier :: { [CDeclSpec] }
 declaration_specifier
   : basic_declaration_specifier		{ reverse $1 }	-- Arithmetic or void
@@ -501,6 +553,15 @@ declaration_specifier
   | typedef_declaration_specifier	{ reverse $1 }	-- Typedef
 
 
+-- A mixture of type qualifiers and storage class specifiers in any order, but
+-- containing at least one storage class specifier.
+--
+-- * summary:
+--   [type_qualifier | storage_class]{ 1 >= storage_class }
+--
+-- * detail:
+--   [type_qualifier] storage_class [type_qualifier | storage_class]
+--
 declaration_qualifier_list :: { Reversed [CDeclSpec] }
 declaration_qualifier_list
   : storage_class
@@ -535,6 +596,13 @@ storage_class
 -- This recignises a whole list of type specifiers rather than just one
 -- as in the C99 grammar.
 --
+-- * summary:
+--   [type_qualifier | basic_type_name | elaborated_type_name | tyident]{
+--         1 >= basic_type_name
+--     |x| 1 == elaborated_type_name
+--     |x| 1 == tyident
+--   }
+--
 type_specifier :: { [CDeclSpec] }
 type_specifier
   : basic_type_specifier		{ reverse $1 }	-- Arithmetic or void
@@ -555,6 +623,15 @@ basic_type_name
   | unsigned			{% withAttrs $1 $ CUnsigType }
 
 
+-- A mixture of type qualifiers, storage class and basic type names in any
+-- order, but containing at least one basic type name and at least one storage
+-- class specifier.
+--
+-- * summary:
+--   [type_qualifier | storage_class | basic_type_name]{
+--     1 >= storage_class && 1 >= basic_type_name
+--   }
+--
 basic_declaration_specifier :: { Reversed [CDeclSpec] }
 basic_declaration_specifier
   : declaration_qualifier_list basic_type_name
@@ -570,6 +647,12 @@ basic_declaration_specifier
   	{ $1 `snoc` CTypeSpec $2 }
 
 
+-- A mixture of type qualifiers and basic type names in any order, but
+-- containing at least one basic type name.
+--
+-- * summary:
+--   [type_qualifier | basic_type_name]{ 1 >= basic_type_name }
+--
 basic_type_specifier :: { Reversed [CDeclSpec] }
 basic_type_specifier
   -- Arithmetic or void
@@ -586,6 +669,14 @@ basic_type_specifier
   	{ $1 `snoc` CTypeSpec $2 }
 
 
+-- A named or anonymous struct, union or enum type along with at least one
+-- storage class and any mix of type qualifiers.
+-- 
+-- * summary:
+--   [type_qualifier | storage_class | elaborated_type_name]{ 
+--     1 == elaborated_type_name && 1 >= storage_class
+--   }
+--
 sue_declaration_specifier :: { Reversed [CDeclSpec] }
 sue_declaration_specifier
   : declaration_qualifier_list elaborated_type_name
@@ -597,6 +688,13 @@ sue_declaration_specifier
   | sue_declaration_specifier declaration_qualifier
   	{ $1 `snoc` $2 }
 
+
+-- A struct, union or enum type (named or anonymous) with optional leading and
+-- trailing type qualifiers.
+--
+-- * summary:
+--   [type_qualifier] elaborated_type_name [type_qualifier]
+--
 sue_type_specifier :: { Reversed [CDeclSpec] }
 sue_type_specifier
   -- struct/union/enum
@@ -610,6 +708,14 @@ sue_type_specifier
   	{ $1 `snoc` CTypeQual $2 }
 
 
+-- A typedef'ed type identifier with at least one storage qualifier and any
+-- number of type qualifiers
+--
+-- * Summary:
+--   [type_qualifier | storage_class | tyident]{
+--     1 == tyident && 1 >= storage_class
+--   }
+--
 typedef_declaration_specifier :: { Reversed [CDeclSpec] }
 typedef_declaration_specifier
   : typedef_type_specifier storage_class
@@ -622,6 +728,11 @@ typedef_declaration_specifier
   	{ $1 `snoc` $2 }
 
 
+-- typedef'ed type identifier with optional leading and trailing type qualifiers
+--
+-- * Summary:
+--   [type_qualifier] tyident [type_qualifier]
+--
 typedef_type_specifier :: { Reversed [CDeclSpec] }
 typedef_type_specifier
   : tyident
@@ -634,6 +745,11 @@ typedef_type_specifier
   	{ $1 `snoc` CTypeQual $2 }
 
 
+-- A named or anonymous struct, union or enum type.
+--
+-- * summary:
+--   (struct|union|enum) (identifier? '{' ... '}' | identifier)
+--
 elaborated_type_name :: { CTypeSpec }
 elaborated_type_name
   : struct_or_union_specifier	{% withAttrs $1 $ CSUType $1 }
@@ -641,6 +757,9 @@ elaborated_type_name
 
 
 -- parse C structure or union declaration (C99 6.7.2.1)
+--
+-- * summary:
+--   (struct|union) (identifier? '{' ... '}' | identifier)
 --
 struct_or_union_specifier :: { CStructUnion }
 struct_or_union_specifier
@@ -667,9 +786,6 @@ struct_declaration_list
 
 
 -- parse C structure declaration (C99 6.7.2.1)
---
--- * We allow the GNU C extension keyword before a declaration, but it is
---   not entered into the structure tree.
 --
 struct_declaration :: { CDecl }
 struct_declaration
@@ -724,6 +840,9 @@ struct_identifier_declarator
 
 
 -- parse C enumeration declaration (C99 6.7.2.2)
+--
+-- * summary:
+--   enum (identifier? '{' ... '}' | identifier)
 --
 enum_specifier :: { CEnum }
 enum_specifier
@@ -1112,6 +1231,8 @@ initializer_list
 
 -- parse C primary expression (C99 6.5.1)
 --
+-- We cannot use a typedef name as a variable
+--
 primary_expression :: { CExpr }
 primary_expression
   : ident		{% withAttrs $1 $ CVar $1 }
@@ -1163,7 +1284,7 @@ argument_expression_list
 
 -- parse C unary expression (C99 6.5.3)
 --
--- * GNU extension: `alignof'
+-- * GNU extension: 'alignof' and '__extension__'
 --
 unary_expression :: { CExpr }
 unary_expression
@@ -1550,10 +1671,10 @@ doDeclIdent declspecs declr =
 
   where isTypeDef (CStorageSpec (CTypedef _)) = True
         isTypeDef _                           = False
-        
+
 doFuncParamDeclIdent :: CDeclr -> P ()
 doFuncParamDeclIdent (CFunDeclr _ params _ _) =
-  sequence_ 
+  sequence_
     [ case getCDeclrIdent declr of
         Nothing -> return ()
         Just ident -> shadowTypedef ident
