@@ -120,11 +120,9 @@ module CParser (parseC) where
 
 import Prelude    hiding (reverse)
 import qualified Data.List as List
-import Monad	  (when)
-import Maybe      (catMaybes)
 
 import Position   (Position, Pos(..), nopos)
-import UNames     (Name, NameSupply, names)
+import UNames     (names)
 import Idents     (Ident)
 import Attributes (Attrs, newAttrs, newAttrsOnlyPos)
 
