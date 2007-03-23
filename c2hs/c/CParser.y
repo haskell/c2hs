@@ -810,6 +810,9 @@ struct_default_declaring_list
                 (d,s) -> CDecl declspecs ((d,Nothing,s) : dies) attr }
 
 
+-- * GNU extensions:
+--     allow anonymous nested structures and unions
+--
 struct_declaring_list :: { CDecl }
 struct_declaring_list
   : type_specifier struct_declarator
@@ -820,6 +823,22 @@ struct_declaring_list
             CDecl declspecs dies attr ->
               case $3 of
                 (d,s) -> CDecl declspecs ((d,Nothing,s) : dies) attr }
+
+  -- This one is a bit akward because normally it's a deeply nested production
+  -- it's essentially a special case of the first production, that is a special
+  -- case of a type_specifier but without a following struct_declarator.
+  --
+  | struct_or_union '{' struct_declaration_list '}'
+  	{% getNewName >>= \name1 ->
+           getNewName >>= \name2 ->
+           getNewName >>= \name3 ->
+           let attr1 = newAttrs (posOf $1) name1
+               attr2 = newAttrs (posOf $1) name2
+               attr3 = newAttrs (posOf $1) name3
+               struct = CStruct (unL $1) Nothing (reverse $3) attr1
+               tyspec = CSUType struct attr2
+               decl   = CDecl [CTypeSpec tyspec] [] attr3
+            in return decl }
 
 
 -- parse C structure declarator (C99 6.7.2.1)
