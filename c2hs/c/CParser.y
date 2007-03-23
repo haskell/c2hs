@@ -254,10 +254,12 @@ header
 --
 -- * GNU extensions:
 --     allow empty translation_unit
+--     allow redundant ';'
 --
 translation_unit :: { Reversed [CExtDecl] }
 translation_unit
   : {- empty -}					{ empty }
+  | translation_unit ';'			{ $1 }
   | translation_unit external_declaration	{ $1 `snoc` $2 }
 
 
@@ -778,6 +780,7 @@ struct_or_union
 struct_declaration_list :: { Reversed [CDecl] }
 struct_declaration_list
   : {- empty -}						{ empty }
+  | struct_declaration_list ';'				{ $1 }
   | struct_declaration_list struct_declaration		{ $1 `snoc` $2 }
 
 
