@@ -145,9 +145,7 @@ import CParserMonad (P, execParser, getNewName, addTypedef, shadowTypedef,
 %monad { P } { >>= } { return }
 %lexer { lexC } { CTokEof }
 
--- precedence to avoid a shift/reduce conflict in the "if then else" syntax.
-%nonassoc if
-%nonassoc else
+%expect 1
 
 %token
 
@@ -388,7 +386,7 @@ expression_statement
 --
 selection_statement :: { CStat }
 selection_statement
-  : if '(' expression ')' statement %prec if
+  : if '(' expression ')' statement
 	{% withAttrs $1 $ CIf $3 $5 Nothing }
 
   | if '(' expression ')' statement else statement
