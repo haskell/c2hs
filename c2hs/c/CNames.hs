@@ -161,7 +161,7 @@ naCInit (CInitList inits _) = mapM_ (naCInit . snd) inits
 naCExpr :: CExpr -> NA ()
 naCExpr (CComma      exprs             _) = mapM_ naCExpr exprs
 naCExpr (CAssign     _ expr1 expr2     _) = naCExpr expr1 >> naCExpr expr2
-naCExpr (CCond       expr1 expr2 expr3 _) = naCExpr expr1 >> naCExpr expr2
+naCExpr (CCond       expr1 expr2 expr3 _) = naCExpr expr1 >> mapMaybeM_ naCExpr expr2
 					    >> naCExpr expr3
 naCExpr (CBinary     _ expr1 expr2     _) = naCExpr expr1 >> naCExpr expr2
 naCExpr (CCast       decl expr	       _) = naCDecl decl >> naCExpr expr

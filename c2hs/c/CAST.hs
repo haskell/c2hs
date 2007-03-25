@@ -496,7 +496,7 @@ data CExpr = CComma       [CExpr]	-- comma expression list, n >= 2
 		          CExpr		-- r-value
 		          Attrs
 	   | CCond        CExpr		-- conditional
-		          CExpr		-- true-expression
+		   (Maybe CExpr)	-- true-expression (GNU allows omitting)
 		          CExpr		-- false-expression
 		          Attrs
 	   | CBinary      CBinaryOp	-- binary operator

@@ -1567,13 +1567,19 @@ logical_or_expression
 
 -- parse C conditional expression (C99 6.5.15)
 --
+-- * GNU extensions:
+--     omitting the `then' part
+--
 conditional_expression :: { CExpr }
 conditional_expression
   : logical_or_expression
   	{ $1 }
 
   | logical_or_expression '?' expression ':' conditional_expression
-  	{% withAttrs $2 $ CCond $1 $3 $5 }
+  	{% withAttrs $2 $ CCond $1 (Just $3) $5 }
+
+  | logical_or_expression '?' ':' conditional_expression
+  	{% withAttrs $2 $ CCond $1 Nothing $4 }
 
 
 -- parse C assignment expression (C99 6.5.16)
