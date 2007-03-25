@@ -1335,12 +1335,17 @@ array_designator
 --
 -- We cannot use a typedef name as a variable
 --
+-- * GNU extensions:
+--     allow a compound statement as an expression
+--
 primary_expression :: { CExpr }
 primary_expression
   : ident		{% withAttrs $1 $ CVar $1 }
   | constant	  	{% withAttrs $1 $ CConst $1 }
   | string_literal	{% withAttrs $1 $ CConst $1 }
   | '(' expression ')'	{ $2 }
+  | '(' compound_statement ')'
+  	{% withAttrs $1 $ CStatExpr $2 }
 
 
 --parse C postfix expression (C99 6.5.2)
