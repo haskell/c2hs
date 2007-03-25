@@ -297,6 +297,11 @@ idkwtok ('_':'_':'a':'t':'t':'r':'i':'b':'u':'t':'e':'_':'_':[]) = \_ ->
 						ignoreAttribute >> lexToken
 idkwtok ('_':'_':'e':'x':'t':'e':'n':'s':'i':'o':'n':'_':'_':[]) =
 						tok (CTokGnuC GnuCExtTok)
+idkwtok ('_':'_':'b':'u':'i':'l':'t':'i':'n':'_':rest)
+        | rest == "va_arg"             = tok (CTokGnuC GnuCVaArg)
+        | rest == "offsetof"           = tok (CTokGnuC GnuCOffsetof)
+        | rest == "types_compatible_p" = tok (CTokGnuC GnuCTyCompat)
+
 idkwtok cs = \pos -> do
   name <- getNewName
   let ident = lexemeToIdent pos cs name

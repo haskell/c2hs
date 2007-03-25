@@ -537,7 +537,8 @@ data CExpr = CComma       [CExpr]	-- comma expression list, n >= 2
 	   | CStatExpr    CStat		-- GNUC compound statement as expr
 	   		  Attrs
            | CLabAddrExpr Ident         -- GNUC address of label
-                          Attrs
+	   		  Attrs
+	   | CBuiltinExpr Attrs		-- place holder for GNUC builtin exprs
 
 instance Pos CExpr where
   posOf (CComma       _     at) = posOf at
@@ -558,6 +559,7 @@ instance Pos CExpr where
   posOf (CCompoundLit _ _   at) = posOf at
   posOf (CStatExpr    _     at) = posOf at
   posOf (CLabAddrExpr _     at) = posOf at
+  posOf (CBuiltinExpr       at) = posOf at
 
 instance Eq CExpr where
   (CComma      	_     at1) == (CComma       _     at2) = at1 == at2
@@ -578,6 +580,7 @@ instance Eq CExpr where
   (CCompoundLit _ _   at1) == (CCompoundLit _ _   at2) = at1 == at2
   (CStatExpr    _     at1) == (CStatExpr    _     at2) = at1 == at2
   (CLabAddrExpr _     at1) == (CLabAddrExpr _     at2) = at1 == at2
+  (CBuiltinExpr       at1) == (CBuiltinExpr       at2) = at1 == at2
 
 -- C assignment operators (K&R A7.17) (EXPORTED)
 --

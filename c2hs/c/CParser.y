@@ -245,6 +245,11 @@ tyident		{ CTokTyIdent _ $$ }		-- `typedef-name' identifier
 attribute	{ CTokGnuC GnuCAttrTok _ }	-- special GNU C tokens
 extension	{ CTokGnuC GnuCExtTok  _ }	-- special GNU C tokens
 
+-- special GNU C builtin 'functions' that actually take types as parameters:
+"__builtin_va_arg"		{ CTokGnuC GnuCVaArg    _ }
+"__builtin_offsetof"		{ CTokGnuC GnuCOffsetof _ }
+"__builtin_types_compatible_p"	{ CTokGnuC GnuCTyCompat _ }
+
 %%
 
 
@@ -1353,6 +1358,7 @@ array_designator
 --
 -- * GNU extensions:
 --     allow a compound statement as an expression
+--     various __builtin_* forms that take type parameters
 --
 primary_expression :: { CExpr }
 primary_expression
@@ -1362,6 +1368,22 @@ primary_expression
   | '(' expression ')'	{ $2 }
   | '(' compound_statement ')'
   	{% withAttrs $1 $ CStatExpr $2 }
+
+  | "__builtin_va_arg" '(' assignment_expression ',' type_name ')'
+  	{% withAttrs $1 CBuiltinExpr }
+
+  | "__builtin_offsetof" '(' type_name ',' offsetof_member_designator ')'
+  	{% withAttrs $1 CBuiltinExpr }
+
+  | "__builtin_types_compatible_p" '(' type_name ',' type_name ')'
+  	{% withAttrs $1 CBuiltinExpr }
+
+
+offsetof_member_designator :: { () }
+offsetof_member_designator
+  : ident						{ () }
+  | offsetof_member_designator '.' ident		{ () }
+  | offsetof_member_designator '[' expression ']'	{ () }
 
 
 --parse C postfix expression (C99 6.5.2)

@@ -149,6 +149,9 @@ data CToken = CTokLParen   !Position		-- `('
 --
 data GnuCTok = GnuCAttrTok		-- `__attribute__'
 	     | GnuCExtTok		-- `__extension__'
+	     | GnuCVaArg		-- `__builtin_va_arg'
+       	     | GnuCOffsetof		-- `__builtin_offsetof'
+	     | GnuCTyCompat		-- `__builtin_types_compatible_p'
 
 instance Pos CToken where
   posOf (CTokLParen   pos  ) = pos
@@ -340,3 +343,6 @@ instance Show CToken where
   showsPrec _ (CTokTyIdent  _ i) = (showString . identToLexeme) i
   showsPrec _ (CTokGnuC GnuCAttrTok _) = showString "__attribute__"
   showsPrec _ (CTokGnuC GnuCExtTok  _) = showString "__extension__"
+  showsPrec _ (CTokGnuC GnuCVaArg    _) = showString "__builtin_va_arg"
+  showsPrec _ (CTokGnuC GnuCOffsetof _) = showString "__builtin_offsetof"
+  showsPrec _ (CTokGnuC GnuCTyCompat _) = showString "__builtin_types_compatible_p"
