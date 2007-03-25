@@ -274,6 +274,8 @@ data CTypeSpec = CVoidType    Attrs
 	       | CDoubleType  Attrs
 	       | CSignedType  Attrs
 	       | CUnsigType   Attrs
+	       | CBoolType    Attrs
+	       | CComplexType Attrs
 	       | CSUType      CStructUnion
 			      Attrs
 	       | CEnumType    CEnum
@@ -291,6 +293,8 @@ instance Pos CTypeSpec where
   posOf (CDoubleType    at) = posOf at
   posOf (CSignedType    at) = posOf at
   posOf (CUnsigType     at) = posOf at
+  posOf (CBoolType      at) = posOf at
+  posOf (CComplexType   at) = posOf at
   posOf (CSUType     _  at) = posOf at
   posOf (CEnumType   _  at) = posOf at
   posOf (CTypeDef    _  at) = posOf at
@@ -305,6 +309,8 @@ instance Eq CTypeSpec where
   (CDoubleType   at1) == (CDoubleType   at2) = at1 == at2
   (CSignedType   at1) == (CSignedType   at2) = at1 == at2
   (CUnsigType    at1) == (CUnsigType    at2) = at1 == at2
+  (CBoolType     at1) == (CBoolType     at2) = at1 == at2
+  (CComplexType  at1) == (CComplexType  at2) = at1 == at2
   (CSUType     _ at1) == (CSUType     _ at2) = at1 == at2
   (CEnumType   _ at1) == (CEnumType   _ at2) = at1 == at2
   (CTypeDef    _ at1) == (CTypeDef    _ at2) = at1 == at2

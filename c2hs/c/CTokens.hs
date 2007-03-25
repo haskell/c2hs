@@ -88,11 +88,13 @@ data CToken = CTokLParen   !Position		-- `('
 						-- `__asm__')
 	    | CTokAuto     !Position		-- `auto'
 	    | CTokBreak    !Position		-- `break'
+	    | CTokBool     !Position		-- `_Bool'
 	    | CTokCase     !Position		-- `case'
 	    | CTokChar     !Position		-- `char'
 	    | CTokConst    !Position		-- `const' 
 						-- (or `__const', `__const__')
 	    | CTokContinue !Position		-- `continue' 
+	    | CTokComplex  !Position		-- `_Complex' 
 	    | CTokDefault  !Position		-- `default'
 	    | CTokDo       !Position		-- `do'
 	    | CTokDouble   !Position		-- `double'
@@ -196,10 +198,12 @@ instance Pos CToken where
   posOf (CTokAsm      pos  ) = pos
   posOf (CTokAuto     pos  ) = pos
   posOf (CTokBreak    pos  ) = pos
+  posOf (CTokBool     pos  ) = pos
   posOf (CTokCase     pos  ) = pos
   posOf (CTokChar     pos  ) = pos
   posOf (CTokConst    pos  ) = pos
   posOf (CTokContinue pos  ) = pos
+  posOf (CTokComplex  pos  ) = pos
   posOf (CTokDefault  pos  ) = pos
   posOf (CTokDo       pos  ) = pos
   posOf (CTokDouble   pos  ) = pos

@@ -199,10 +199,12 @@ alignof		{ CTokAlignof	_ }
 asm		{ CTokAsm	_ }
 auto		{ CTokAuto	_ }
 break		{ CTokBreak	_ }
+"_Bool"		{ CTokBool	_ }
 case		{ CTokCase	_ }
 char		{ CTokChar	_ }
 const		{ CTokConst	_ }
 continue	{ CTokContinue	_ }
+"_Complex"	{ CTokComplex	_ }
 default		{ CTokDefault	_ }
 do		{ CTokDo	_ }
 double		{ CTokDouble	_ }
@@ -619,6 +621,8 @@ basic_type_name
   | double			{% withAttrs $1 $ CDoubleType }
   | signed			{% withAttrs $1 $ CSignedType }
   | unsigned			{% withAttrs $1 $ CUnsigType }
+  | "_Bool"			{% withAttrs $1 $ CBoolType }
+  | "_Complex"			{% withAttrs $1 $ CComplexType }
 
 
 -- A mixture of type qualifiers, storage class and basic type names in any
