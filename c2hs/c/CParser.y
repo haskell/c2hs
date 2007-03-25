@@ -131,8 +131,8 @@ import CLexer     (lexC, parseError)
 import CAST       (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..),
 		   CDecl(..), CDeclSpec(..), CStorageSpec(..), CTypeSpec(..),
 		   CTypeQual(..), CStructUnion(..), CStructTag(..), CEnum(..),
-		   CDeclr(..), CInit(..), CExpr(..), CAssignOp(..),
-		   CBinaryOp(..), CUnaryOp(..), CConst (..))
+		   CDeclr(..), CInit(..), CInitList, CDesignator(..), CExpr(..),
+                   CAssignOp(..), CBinaryOp(..), CUnaryOp(..), CConst (..))
 import CBuiltin   (builtinTypeNames)
 import CTokens    (CToken(..), GnuCTok(..))
 import CParserMonad (P, execParser, getNewName, addTypedef, shadowTypedef,
@@ -1271,10 +1271,32 @@ initializer_opt
   | '=' initializer		{ Just $2 }
 
 
-initializer_list :: { Reversed [CInit] }
+initializer_list :: { Reversed CInitList }
 initializer_list
-  : initializer				{ singleton $1 }
-  | initializer_list ',' initializer	{ $1 `snoc` $3 }
+  : {- empty -}						{ empty }
+  | initializer						{ singleton ([],$1) }
+  | designation initializer				{ singleton ($1,$2) }
+  | initializer_list ',' initializer			{ $1 `snoc` ([],$3) }
+  | initializer_list ',' designation initializer	{ $1 `snoc` ($3,$4) }
+
+
+-- designation
+--
+designation :: { [CDesignator] }
+designation
+  : designator_list '='		{ reverse $1 }
+
+
+designator_list :: { Reversed [CDesignator] }
+designator_list
+ : designator				{ singleton $1 }
+ | designator_list designator		{ $1 `snoc` $2 }
+
+
+designator :: { CDesignator }
+designator
+  : '[' constant_expression ']'		{% withAttrs $1 $ CArrDesig $2 }
+  | '.' identifier			{% withAttrs $1 $ CMemberDesig $2 }
 
 
 -- parse C primary expression (C99 6.5.1)

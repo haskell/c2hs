@@ -43,8 +43,8 @@
 module CAST (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..), CDecl(..),
 	     CDeclSpec(..), CStorageSpec(..), CTypeSpec(..), CTypeQual(..),
 	     CStructUnion(..),  CStructTag(..), CEnum(..), CDeclr(..),
-	     CInit(..), CExpr(..), CAssignOp(..), CBinaryOp(..), CUnaryOp(..),
-	     CConst (..)) 
+             CInit(..), CInitList, CDesignator(..), CExpr(..), CAssignOp(..),
+             CBinaryOp(..), CUnaryOp(..), CConst (..))
 where
 
 import Position   (Position, Pos(posOf), nopos)
@@ -437,8 +437,10 @@ instance Eq CDeclr where
 --
 data CInit = CInitExpr CExpr
 		       Attrs		-- assignment expression
-           | CInitList [CInit]
+           | CInitList CInitList
 		       Attrs
+
+type CInitList = [([CDesignator], CInit)]
 
 instance Pos CInit where
   posOf (CInitExpr _ at) = posOf at
@@ -447,6 +449,21 @@ instance Pos CInit where
 instance Eq CInit where
   (CInitExpr _ at1) == (CInitExpr _ at2) = at1 == at2
   (CInitList _ at1) == (CInitList _ at2) = at1 == at2
+
+-- C initializer designator (EXPORTED)
+--
+data CDesignator = CArrDesig     CExpr
+				 Attrs
+                 | CMemberDesig  Ident
+				 Attrs
+
+instance Pos CDesignator where
+  posOf (CArrDesig     _ at) = posOf at
+  posOf (CMemberDesig  _ at) = posOf at
+
+instance Eq CDesignator where
+  (CArrDesig     _ at1) == (CArrDesig     _ at2) = at1 == at2
+  (CMemberDesig  _ at1) == (CMemberDesig  _ at2) = at1 == at2
 
 -- C expression (K&R A7) (EXPORTED)
 --
@@ -497,7 +514,7 @@ data CExpr = CComma       [CExpr]	-- comma expression list, n >= 2
 			  Attrs
            | CConst       CConst		-- includes strings
 			  Attrs
-	   | CCompoundLit [CInit]	-- C99 compound literals
+	   | CCompoundLit CInitList	-- C99 compound literals
 	   		  Attrs
 
 instance Pos CExpr where
