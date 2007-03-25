@@ -456,14 +456,19 @@ data CDesignator = CArrDesig     CExpr
 				 Attrs
                  | CMemberDesig  Ident
 				 Attrs
+                 | CRangeDesig   CExpr	-- GNUC array range designator
+				 CExpr
+				 Attrs
 
 instance Pos CDesignator where
   posOf (CArrDesig     _ at) = posOf at
   posOf (CMemberDesig  _ at) = posOf at
+  posOf (CRangeDesig _ _ at) = posOf at
 
 instance Eq CDesignator where
   (CArrDesig     _ at1) == (CArrDesig     _ at2) = at1 == at2
   (CMemberDesig  _ at1) == (CMemberDesig  _ at2) = at1 == at2
+  (CRangeDesig _ _ at1) == (CRangeDesig _ _ at2) = at1 == at2
 
 -- C expression (K&R A7) (EXPORTED)
 --

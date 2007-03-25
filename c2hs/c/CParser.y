@@ -1282,9 +1282,15 @@ initializer_list
 
 -- designation
 --
+-- * GNU extensions:
+--     old style member designation: 'ident :'
+--     array range designation
+--
 designation :: { [CDesignator] }
 designation
   : designator_list '='		{ reverse $1 }
+  | identifier ':'		{% withAttrs $1 $ \at -> [CMemberDesig $1 at] }
+  | array_designator		{ [$1] }
 
 
 designator_list :: { Reversed [CDesignator] }
@@ -1297,6 +1303,13 @@ designator :: { CDesignator }
 designator
   : '[' constant_expression ']'		{% withAttrs $1 $ CArrDesig $2 }
   | '.' identifier			{% withAttrs $1 $ CMemberDesig $2 }
+  | array_designator			{ $1 }
+
+
+array_designator :: { CDesignator }
+array_designator
+  : '[' constant_expression "..." constant_expression ']'
+  	{% withAttrs $1 $ CRangeDesig $2 $4 }
 
 
 -- parse C primary expression (C99 6.5.1)
