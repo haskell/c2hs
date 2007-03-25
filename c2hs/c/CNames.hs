@@ -143,7 +143,7 @@ naCDeclr obj (CVarDeclr oide _) =
   mapMaybeM_ (`defObjOrErr` obj) oide
 naCDeclr obj (CPtrDeclr _ declr _   ) =
   naCDeclr obj declr
-naCDeclr obj (CArrDeclr declr oexpr _   ) =
+naCDeclr obj (CArrDeclr declr _ oexpr _   ) =
   do
     naCDeclr obj declr
     mapMaybeM_ naCExpr oexpr

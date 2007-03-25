@@ -108,7 +108,7 @@ instance Pretty CDeclr where
       oneLevel ind = parens . (hsep (map pretty ind) <+>) . (text "*" <>)
     in
     foldr oneLevel (pretty declr) inds
-  pretty (CArrDeclr declr oexpr            _) =
+  pretty (CArrDeclr declr _ oexpr          _) =
     pretty declr <> brackets (maybe empty pretty oexpr)
   pretty (CFunDeclr declr decls isVariadic _) =
     let

@@ -414,6 +414,7 @@ data CDeclr = CVarDeclr (Maybe Ident)		-- declared identifier
 		        CDeclr
 		        Attrs
             | CArrDeclr CDeclr
+                        [CTypeQual]
 			(Maybe CExpr)		-- array size
 			Attrs
 	    | CFunDeclr CDeclr
@@ -424,13 +425,13 @@ data CDeclr = CVarDeclr (Maybe Ident)		-- declared identifier
 instance Pos CDeclr where
   posOf (CVarDeclr _     at) = posOf at
   posOf (CPtrDeclr _ _   at) = posOf at
-  posOf (CArrDeclr _ _   at) = posOf at
+  posOf (CArrDeclr _ _ _ at) = posOf at
   posOf (CFunDeclr _ _ _ at) = posOf at
 
 instance Eq CDeclr where
   (CVarDeclr _     at1) == (CVarDeclr _     at2) = at1 == at2
   (CPtrDeclr _ _   at1) == (CPtrDeclr _ _   at2) = at1 == at2
-  (CArrDeclr _ _   at1) == (CArrDeclr _ _   at2) = at1 == at2
+  (CArrDeclr _ _ _ at1) == (CArrDeclr _ _ _ at2) = at1 == at2
   (CFunDeclr _ _ _ at1) == (CFunDeclr _ _ _ at2) = at1 == at2
 
 -- C initializer (K&R A8.7) (EXPORTED)

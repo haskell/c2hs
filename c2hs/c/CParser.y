@@ -1224,13 +1224,25 @@ array_abstract_declarator
 postfix_array_abstract_declarator :: { CDeclr -> CDeclr }
 postfix_array_abstract_declarator
   : '[' assignment_expression_opt ']'
-  	{% withAttrs $1 $ \attrs declr -> CArrDeclr declr $2 attrs }
+  	{% withAttrs $1 $ \attrs declr -> CArrDeclr declr [] $2 attrs }
+
+  | '[' type_qualifier_list assignment_expression_opt ']'
+  	{% withAttrs $1 $ \attrs declr -> CArrDeclr declr (reverse $2) $3 attrs }
 
   | '[' static assignment_expression ']'
-  	{% withAttrs $1 $ \attrs declr -> CArrDeclr declr (Just $3) attrs }
+  	{% withAttrs $1 $ \attrs declr -> CArrDeclr declr [] (Just $3) attrs }
+
+  | '[' static type_qualifier_list assignment_expression ']'
+  	{% withAttrs $1 $ \attrs declr -> CArrDeclr declr (reverse $3) (Just $4) attrs }
+
+  | '[' type_qualifier_list static assignment_expression ']'
+  	{% withAttrs $1 $ \attrs declr -> CArrDeclr declr (reverse $2) (Just $4) attrs }
 
   | '[' '*' ']'
-  	{% withAttrs $1 $ \attrs declr -> CArrDeclr declr Nothing attrs }
+  	{% withAttrs $1 $ \attrs declr -> CArrDeclr declr [] Nothing attrs }
+
+  | '[' type_qualifier_list '*' ']'
+  	{% withAttrs $1 $ \attrs declr -> CArrDeclr declr (reverse $2) Nothing attrs }
 
 
 unary_abstract_declarator :: { CDeclr }
@@ -1770,7 +1782,7 @@ doFuncParamDeclIdent _ = return ()
 getCDeclrIdent :: CDeclr -> Maybe Ident
 getCDeclrIdent (CVarDeclr optIde    _) = optIde
 getCDeclrIdent (CPtrDeclr _ declr   _) = getCDeclrIdent declr
-getCDeclrIdent (CArrDeclr declr   _ _) = getCDeclrIdent declr
+getCDeclrIdent (CArrDeclr declr _ _ _) = getCDeclrIdent declr
 getCDeclrIdent (CFunDeclr declr _ _ _) = getCDeclrIdent declr
 
 

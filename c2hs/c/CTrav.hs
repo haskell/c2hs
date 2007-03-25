@@ -528,12 +528,12 @@ tagName tag  =
 -- * as far as parameter passing is concerned, arrays are also pointer
 --
 isPtrDeclr                                 :: CDeclr -> Bool
-isPtrDeclr (CPtrDeclr _ (CVarDeclr _ _) _)  = True
-isPtrDeclr (CPtrDeclr _ declr           _)  = isPtrDeclr declr
-isPtrDeclr (CArrDeclr (CVarDeclr _ _) _ _)  = True
-isPtrDeclr (CArrDeclr declr _           _)  = isPtrDeclr declr
-isPtrDeclr (CFunDeclr declr _ _         _)  = isPtrDeclr declr
-isPtrDeclr _                                = False
+isPtrDeclr (CPtrDeclr _ (CVarDeclr _ _)   _)  = True
+isPtrDeclr (CPtrDeclr _ declr             _)  = isPtrDeclr declr
+isPtrDeclr (CArrDeclr (CVarDeclr _ _) _ _ _)  = True
+isPtrDeclr (CArrDeclr declr _ _           _)  = isPtrDeclr declr
+isPtrDeclr (CFunDeclr declr _ _           _)  = isPtrDeclr declr
+isPtrDeclr _                                  = False
 
 -- drops the first pointer level from the given declarator (EXPORTED)
 --
@@ -552,11 +552,11 @@ dropPtrDeclr (CPtrDeclr qs  declr                 ats) =
   let declr' = dropPtrDeclr declr
   in
   CPtrDeclr qs declr' ats
-dropPtrDeclr (CArrDeclr declr@(CVarDeclr _ _) _ _)     = declr
-dropPtrDeclr (CArrDeclr declr                 e ats)   = 
+dropPtrDeclr (CArrDeclr declr@(CVarDeclr _ _) _ _ _)   = declr
+dropPtrDeclr (CArrDeclr declr                tq e ats) =
   let declr' = dropPtrDeclr declr
   in
-  CArrDeclr declr' e ats
+  CArrDeclr declr' tq e ats
 dropPtrDeclr (CFunDeclr declr args vari         ats)   =
   let declr' = dropPtrDeclr declr
   in
@@ -578,7 +578,7 @@ isPtrDecl _				    =
 --
 isFunDeclr                                   :: CDeclr -> Bool
 isFunDeclr (CPtrDeclr _ declr             _)  = isFunDeclr declr
-isFunDeclr (CArrDeclr declr _             _)  = isFunDeclr declr
+isFunDeclr (CArrDeclr declr _ _           _)  = isFunDeclr declr
 isFunDeclr (CFunDeclr (CVarDeclr _ _) _ _ _)  = True
 isFunDeclr (CFunDeclr declr _ _           _)  = isFunDeclr declr
 isFunDeclr _				      = False
@@ -611,10 +611,10 @@ funResultAndArgs (CDecl specs [(Just declr, _, _)] _) =
       let (args, declr', variadic) = funArgs declr
       in
       (args, CPtrDeclr qs declr' at, variadic)
-    funArgs (CArrDeclr declr oe                          at) =
+    funArgs (CArrDeclr declr tqs oe                      at) =
       let (args, declr', variadic) = funArgs declr
       in
-      (args, CArrDeclr declr' oe at, variadic)
+      (args, CArrDeclr declr' tqs oe at, variadic)
     funArgs (CFunDeclr declr args var                    at) =
       let (args, declr', variadic) = funArgs declr
       in
@@ -834,22 +834,22 @@ extractStruct pos (StructUnionCT su)  =
 declrName                          :: CDeclr -> Maybe Ident
 declrName (CVarDeclr oide       _)  = oide
 declrName (CPtrDeclr _ declr    _)  = declrName declr
-declrName (CArrDeclr declr    _ _)  = declrName declr
+declrName (CArrDeclr declr  _ _ _)  = declrName declr
 declrName (CFunDeclr declr  _ _ _)  = declrName declr
 
 -- raise an error if the given declarator does not declare a C function or if
 -- the function is supposed to return an array (the latter is illegal in C)
 --
 assertFunDeclr :: Position -> CDeclr -> CT s ()
-assertFunDeclr pos (CArrDeclr (CFunDeclr (CVarDeclr _ _) _ _ _) _ _) = 
+assertFunDeclr pos (CArrDeclr (CFunDeclr (CVarDeclr _ _) _ _ _) _ _ _) =
   illegalFunResultErr pos
-assertFunDeclr pos            (CFunDeclr (CVarDeclr _ _) _ _ _)      = 
+assertFunDeclr pos            (CFunDeclr (CVarDeclr _ _) _ _ _)        =
   nop -- everything is ok
-assertFunDeclr pos            (CFunDeclr declr           _ _ _)      =
+assertFunDeclr pos            (CFunDeclr declr           _ _ _)        =
   assertFunDeclr pos declr
-assertFunDeclr pos            (CPtrDeclr _ declr             _)      =
+assertFunDeclr pos            (CPtrDeclr _ declr             _)        =
   assertFunDeclr pos declr
-assertFunDeclr pos            (CArrDeclr declr             _ _)      =
+assertFunDeclr pos            (CArrDeclr declr           _ _ _)        =
   assertFunDeclr pos declr
 assertFunDeclr pos _					             = 
   funExpectedErr pos
