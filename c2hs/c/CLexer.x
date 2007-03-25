@@ -101,7 +101,7 @@ $visible  = \ -\127
 --
 -- * also used for strings
 --
-@charesc  = \\([ntvbrfa\\\?\'\"]|$octdigit{1,3}|x$hexdigit+)
+@charesc  = \\([ntvbrfae\\\?\'\"]|$octdigit{1,3}|x$hexdigit+)
 
 -- components of float constants (follows K&R A2.5.3)
 --
@@ -335,6 +335,7 @@ oneChar ('\\':c:cs)  = case c of
 			 'r'  -> ('\r', cs)
 			 'f'  -> ('\f', cs)
 			 'a'  -> ('\a', cs)
+			 'e'  -> ('\ESC', cs)  --GNU C extension
 			 '\\' -> ('\\', cs)
 			 '?'  -> ('?', cs)
 			 '\'' -> ('\'', cs)
