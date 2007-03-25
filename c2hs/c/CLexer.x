@@ -164,7 +164,8 @@ $digitNZ$digit*[uUlL]{0,3}	{ token CTokILit (fst . head . readDec) }
 
 -- character constants (follows K&R A2.5.2)
 --
-\'($inchar|@charesc)\'		{ token CTokCLit (fst . oneChar . tail) }
+\'($inchar|@charesc)\'	{ token CTokCLit (fst . oneChar . tail) }
+L\'($inchar|@charesc)\'	{ token CTokCLit (fst . oneChar . tail . tail) }
 
 -- float constants (follows K&R A2.5.3)
 --
@@ -173,6 +174,7 @@ $digitNZ$digit*[uUlL]{0,3}	{ token CTokILit (fst . head . readDec) }
 -- string literal (follows K&R A2.6)
 --
 \"($instr|@charesc)*\"			{ token CTokSLit normalizeEscapes }
+L\"($instr|@charesc)*\"			{ token CTokSLit (normalizeEscapes . tail) }
 
 
 -- operators and separators
