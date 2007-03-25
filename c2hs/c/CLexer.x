@@ -290,6 +290,7 @@ idkwtok ('v':'o':'l':'a':'t':'i':'l':'e':[])		     = tok CTokVolatile
 idkwtok ('_':'_':'v':'o':'l':'a':'t':'i':'l':'e':[])	     = tok CTokVolatile
 idkwtok ('_':'_':'v':'o':'l':'a':'t':'i':'l':'e':'_':'_':[]) = tok CTokVolatile
 idkwtok ('w':'h':'i':'l':'e':[])			     = tok CTokWhile
+idkwtok ('_':'_':'l':'a':'b':'e':'l':'_':'_':[])             = tok CTokLabel
 idkwtok ('_':'_':'a':'t':'t':'r':'i':'b':'u':'t':'e':[]) = \_ ->
 						ignoreAttribute >> lexToken
 idkwtok ('_':'_':'a':'t':'t':'r':'i':'b':'u':'t':'e':'_':'_':[]) = \_ ->

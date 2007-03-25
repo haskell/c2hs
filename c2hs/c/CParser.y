@@ -218,6 +218,7 @@ if		{ CTokIf	_ }
 inline		{ CTokInline	_ }
 int		{ CTokInt	_ }
 long		{ CTokLong	_ }
+"__label__"	{ CTokLabel	_ }
 register	{ CTokRegister	_ }
 restrict	{ CTokRestrict	_ }
 return		{ CTokReturn	_ }
@@ -358,10 +359,15 @@ labeled_statement
 
 -- parse C compound statement (C99 6.8.2)
 --
+-- * GNU extension: '__label__ ident;' declarations
+--
 compound_statement :: { CStat }
 compound_statement
   : '{' enter_scope block_item_list leave_scope '}'
   	{% withAttrs $1 $ CCompound (reverse $3) }
+
+  | '{' enter_scope label_declarations block_item_list leave_scope '}'
+  	{% withAttrs $1 $ CCompound (reverse $4) }
 
 
 -- No syntax for these, just side effecting semantic actions.
@@ -383,6 +389,13 @@ block_item
   : declaration			{ Left  $1 }
   | extension declaration	{ Left  $2 }
   | statement			{ Right $1 }
+
+
+label_declarations :: { () }
+label_declarations
+  : "__label__" identifier_list ';'			{ () }
+  | label_declarations "__label__" identifier_list ';'	{ () }
+
 
 -- parse C expression statement (C99 6.8.3)
 --
