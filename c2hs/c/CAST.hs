@@ -111,6 +111,10 @@ data CStat = CLabel    Ident		-- label
            | CCase     CExpr		-- constant expression
 		       CStat
 		       Attrs
+           | CCases    CExpr		-- case range
+		       CExpr		-- `case lower .. upper :'
+		       CStat
+		       Attrs
            | CDefault  CStat		-- default case
 		       Attrs
            | CExpr     (Maybe CExpr)	-- expression statement, maybe empty
@@ -146,6 +150,7 @@ data CStat = CLabel    Ident		-- label
 instance Pos CStat where
   posOf (CLabel    _ _     at) = posOf at
   posOf (CCase     _ _     at) = posOf at
+  posOf (CCases    _ _ _   at) = posOf at
   posOf (CDefault  _       at) = posOf at
   posOf (CExpr     _       at) = posOf at
   posOf (CCompound _       at) = posOf at
@@ -162,6 +167,7 @@ instance Pos CStat where
 instance Eq CStat where
   (CLabel    _ _     at1) == (CLabel    _ _     at2) = at1 == at2
   (CCase     _ _     at1) == (CCase     _ _     at2) = at1 == at2
+  (CCases    _ _ _   at1) == (CCases    _ _ _   at2) = at1 == at2
   (CDefault  _       at1) == (CDefault  _       at2) = at1 == at2
   (CExpr     _       at1) == (CExpr     _       at2) = at1 == at2
   (CCompound _       at1) == (CCompound _       at2) = at1 == at2

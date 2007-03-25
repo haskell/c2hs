@@ -345,11 +345,15 @@ statement
 
 -- parse C labeled statement (C99 6.8.1)
 --
+-- * GNU extension: case ranges
+--
 labeled_statement :: { CStat }
 labeled_statement
   : identifier ':' statement			{% withAttrs $2 $ CLabel $1 $3}
   | case constant_expression ':' statement	{% withAttrs $1 $ CCase $2 $4 }
   | default ':' statement			{% withAttrs $1 $ CDefault $3 }
+  | case constant_expression "..." constant_expression ':' statement
+  	{% withAttrs $1 $ CCases $2 $4 $6 }
 
 
 -- parse C compound statement (C99 6.8.2)
