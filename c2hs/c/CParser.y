@@ -1353,10 +1353,10 @@ postfix_expression
   	{% withAttrs $2 $ CUnary CPostDecOp $1 }
 
   | '(' type_name ')' '{' initializer_list '}'
-  	{% withAttrs $2 $ CCompoundLit (reverse $5) }
+  	{% withAttrs $4 $ CCompoundLit $2 (reverse $5) }
 
   | '(' type_name ')' '{' initializer_list ',' '}'
-  	{% withAttrs $2 $ CCompoundLit (reverse $5) }
+  	{% withAttrs $4 $ CCompoundLit $2 (reverse $5) }
 
 
 argument_expression_list :: { Reversed [CExpr] }

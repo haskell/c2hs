@@ -177,7 +177,7 @@ naCExpr (CVar	      ide	       _) = do
 					     (obj, _) <- findValueObj ide False
 					     ide `refersToDef` ObjCD obj
 naCExpr (CConst	      _		       _) = nop
-naCExpr (CCompoundLit inits            _) = mapM_ (naCInit . snd) inits
+naCExpr (CCompoundLit _ inits          _) = mapM_ (naCInit . snd) inits
 
 
 -- auxilliary functions
