@@ -124,6 +124,7 @@ data CToken = CTokLParen   !Position		-- `('
 	    | CTokStruct   !Position		-- `struct'
 	    | CTokSwitch   !Position		-- `switch'
 	    | CTokTypedef  !Position		-- `typedef'
+	    | CTokTypeof   !Position		-- `typeof'
 	    | CTokThread   !Position		-- `__thread'
 	    | CTokUnion    !Position		-- `union'
 	    | CTokUnsigned !Position		-- `unsigned'
@@ -228,6 +229,7 @@ instance Pos CToken where
   posOf (CTokStruct   pos  ) = pos
   posOf (CTokSwitch   pos  ) = pos
   posOf (CTokTypedef  pos  ) = pos
+  posOf (CTokTypeof   pos  ) = pos
   posOf (CTokThread   pos  ) = pos
   posOf (CTokUnion    pos  ) = pos
   posOf (CTokUnsigned pos  ) = pos
@@ -320,6 +322,7 @@ instance Show CToken where
   showsPrec _ (CTokStruct   _  ) = showString "struct"
   showsPrec _ (CTokSwitch   _  ) = showString "switch"
   showsPrec _ (CTokTypedef  _  ) = showString "typedef"
+  showsPrec _ (CTokTypeof   _  ) = showString "typeof"
   showsPrec _ (CTokThread   _  ) = showString "__thread"
   showsPrec _ (CTokUnion    _  ) = showString "union"
   showsPrec _ (CTokUnsigned _  ) = showString "unsigned"

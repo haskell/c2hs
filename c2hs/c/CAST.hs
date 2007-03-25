@@ -285,6 +285,10 @@ data CTypeSpec = CVoidType    Attrs
 			      Attrs
 	       | CTypeDef     Ident		-- typedef name
 			      Attrs
+               | CTypeOfExpr  CExpr
+			      Attrs
+               | CTypeOfType  CDecl
+			      Attrs
 
 instance Pos CTypeSpec where
   posOf (CVoidType      at) = posOf at
@@ -301,6 +305,8 @@ instance Pos CTypeSpec where
   posOf (CSUType     _  at) = posOf at
   posOf (CEnumType   _  at) = posOf at
   posOf (CTypeDef    _  at) = posOf at
+  posOf (CTypeOfExpr _  at) = posOf at
+  posOf (CTypeOfType _  at) = posOf at
 
 instance Eq CTypeSpec where
   (CVoidType     at1) == (CVoidType     at2) = at1 == at2
@@ -317,6 +323,8 @@ instance Eq CTypeSpec where
   (CSUType     _ at1) == (CSUType     _ at2) = at1 == at2
   (CEnumType   _ at1) == (CEnumType   _ at2) = at1 == at2
   (CTypeDef    _ at1) == (CTypeDef    _ at2) = at1 == at2
+  (CTypeOfExpr _ at1) == (CTypeOfExpr _ at2) = at1 == at2
+  (CTypeOfType _ at1) == (CTypeOfType _ at2) = at1 == at2
 
 -- C type qualifier (K&R A8.2) (EXPORTED)
 --

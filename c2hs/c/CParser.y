@@ -228,6 +228,7 @@ static		{ CTokStatic	_ }
 struct		{ CTokStruct	_ }
 switch		{ CTokSwitch	_ }
 typedef		{ CTokTypedef	_ }
+typeof		{ CTokTypeof	_ }
 "__thread"	{ CTokThread	_ }
 union		{ CTokUnion	_ }
 unsigned	{ CTokUnsigned	_ }
@@ -722,6 +723,9 @@ sue_type_specifier
 --     1 == tyident && 1 >= storage_class
 --   }
 --
+-- * Note:
+--   the tyident can also be a: typeof '(' ... ')'
+--
 typedef_declaration_specifier :: { Reversed [CDeclSpec] }
 typedef_declaration_specifier
   : typedef_type_specifier storage_class
@@ -730,6 +734,12 @@ typedef_declaration_specifier
   | declaration_qualifier_list tyident
   	{% withAttrs $1 $ \attr -> $1 `snoc` CTypeSpec (CTypeDef $2 attr) }
 
+  | declaration_qualifier_list typeof '(' expression ')'
+  	{% withAttrs $1 $ \attr -> $1 `snoc` CTypeSpec (CTypeOfExpr $4 attr) }
+
+  | declaration_qualifier_list typeof '(' type_name ')'
+  	{% withAttrs $1 $ \attr -> $1 `snoc` CTypeSpec (CTypeOfType $4 attr) }
+
   | typedef_declaration_specifier declaration_qualifier
   	{ $1 `snoc` $2 }
 
@@ -737,15 +747,27 @@ typedef_declaration_specifier
 -- typedef'ed type identifier with optional leading and trailing type qualifiers
 --
 -- * Summary:
---   [type_qualifier] tyident [type_qualifier]
+--   [type_qualifier] ( tyident | typeof '('...')' ) [type_qualifier]
 --
 typedef_type_specifier :: { Reversed [CDeclSpec] }
 typedef_type_specifier
   : tyident
   	{% withAttrs $1 $ \attr -> singleton (CTypeSpec (CTypeDef $1 attr)) }
 
+  | typeof '(' expression ')'
+  	{% withAttrs $1 $ \attr -> singleton (CTypeSpec (CTypeOfExpr $3 attr)) }
+
+  | typeof '(' type_name ')'
+  	{% withAttrs $1 $ \attr -> singleton (CTypeSpec (CTypeOfType $3 attr)) }
+
   | type_qualifier_list tyident
   	{% withAttrs $2 $ \attr -> rmap CTypeQual $1 `snoc` CTypeSpec (CTypeDef $2 attr) }
+
+  | type_qualifier_list typeof '(' expression ')'
+  	{% withAttrs $2 $ \attr -> rmap CTypeQual $1 `snoc` CTypeSpec (CTypeOfExpr $4 attr) }
+
+  | type_qualifier_list typeof '(' type_name ')'
+  	{% withAttrs $2 $ \attr -> rmap CTypeQual $1 `snoc` CTypeSpec (CTypeOfType $4 attr) }
 
   | typedef_type_specifier type_qualifier
   	{ $1 `snoc` CTypeQual $2 }
