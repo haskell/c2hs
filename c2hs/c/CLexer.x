@@ -109,7 +109,7 @@ $visible  = \ -\127
 @intpart   = @digits
 @fractpart = @digits
 @mantpart  = @intpart?\.@fractpart|@intpart\.
-@exppart   = [eE]\-?@digits
+@exppart   = [eE][\+\-]?@digits
 @suffix    = [fFlL]
 
 
