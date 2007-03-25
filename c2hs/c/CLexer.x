@@ -158,9 +158,9 @@ $letter($letter|$digit)*	{ \pos len str -> idkwtok (take len str) pos }
 
 -- integer constants (follows K&R A2.5.1)
 --
-0$octdigit*[uUlL]{0,2}		{ token CTokILit (fst . head . readOct) }
-$digitNZ$digit*[uUlL]{0,2}	{ token CTokILit (fst . head . readDec) }
-0[xX]$hexdigit*[uUlL]{0,2}	{ token CTokILit (fst . head . readHex . drop 2) }
+0$octdigit*[uUlL]{0,3}		{ token CTokILit (fst . head . readOct) }
+$digitNZ$digit*[uUlL]{0,3}	{ token CTokILit (fst . head . readDec) }
+0[xX]$hexdigit*[uUlL]{0,3}	{ token CTokILit (fst . head . readHex . drop 2) }
 
 -- character constants (follows K&R A2.5.2)
 --
