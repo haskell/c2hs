@@ -133,7 +133,8 @@ data CStat = CLabel    Ident		-- label
 		       CStat
 		       Bool		-- `True' implies "do-while" statement
 		       Attrs
-           | CFor      (Maybe CExpr)
+           | CFor      (Either (Maybe CExpr)
+			       CDecl)
 		       (Maybe CExpr)
 		       (Maybe CExpr)
 		       CStat
