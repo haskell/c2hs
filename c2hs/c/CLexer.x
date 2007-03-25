@@ -279,6 +279,7 @@ idkwtok ('s':'t':'a':'t':'i':'c':[])			     = tok CTokStatic
 idkwtok ('s':'t':'r':'u':'c':'t':[])			     = tok CTokStruct
 idkwtok ('s':'w':'i':'t':'c':'h':[])			     = tok CTokSwitch
 idkwtok ('t':'y':'p':'e':'d':'e':'f':[])		     = tok CTokTypedef
+idkwtok ('_':'_':'t':'h':'r':'e':'a':'d':[])		     = tok CTokThread
 idkwtok ('u':'n':'i':'o':'n':[])			     = tok CTokUnion
 idkwtok ('u':'n':'s':'i':'g':'n':'e':'d':[])		     = tok CTokUnsigned
 idkwtok ('v':'o':'i':'d':[])				     = tok CTokVoid

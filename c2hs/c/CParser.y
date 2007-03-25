@@ -228,6 +228,7 @@ static		{ CTokStatic	_ }
 struct		{ CTokStruct	_ }
 switch		{ CTokSwitch	_ }
 typedef		{ CTokTypedef	_ }
+"__thread"	{ CTokThread	_ }
 union		{ CTokUnion	_ }
 unsigned	{ CTokUnsigned	_ }
 void		{ CTokVoid	_ }
@@ -582,6 +583,8 @@ declaration_qualifier
 
 -- parse C storage class specifier (C99 6.7.1)
 --
+-- * GNU extensions: '__thread' thread local storage
+--
 storage_class :: { CStorageSpec }
 storage_class
   : typedef			{% withAttrs $1 $ CTypedef }
@@ -589,6 +592,7 @@ storage_class
   | static			{% withAttrs $1 $ CStatic }
   | auto			{% withAttrs $1 $ CAuto }
   | register			{% withAttrs $1 $ CRegister }
+  | "__thread"			{% withAttrs $1 $ CThread }
 
 
 -- parse C type specifier (C99 6.7.2)

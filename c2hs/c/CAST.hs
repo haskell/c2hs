@@ -248,6 +248,7 @@ data CStorageSpec = CAuto     Attrs
 		  | CStatic   Attrs
 		  | CExtern   Attrs
 		  | CTypedef  Attrs	-- syntactic awkwardness of C
+                  | CThread   Attrs	-- GNUC thread local storage
 
 instance Pos CStorageSpec where
   posOf (CAuto     at) = posOf at
@@ -255,6 +256,7 @@ instance Pos CStorageSpec where
   posOf (CStatic   at) = posOf at
   posOf (CExtern   at) = posOf at
   posOf (CTypedef  at) = posOf at
+  posOf (CThread   at) = posOf at
 
 instance Eq CStorageSpec where
   (CAuto     at1) == (CAuto     at2) = at1 == at2
@@ -262,6 +264,7 @@ instance Eq CStorageSpec where
   (CStatic   at1) == (CStatic   at2) = at1 == at2
   (CExtern   at1) == (CExtern   at2) = at1 == at2
   (CTypedef  at1) == (CTypedef  at2) = at1 == at2
+  (CThread   at1) == (CThread   at2) = at1 == at2
 
 -- C type specifier (K&R A8.2) (EXPORTED)
 --
