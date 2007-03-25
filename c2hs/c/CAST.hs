@@ -140,6 +140,8 @@ data CStat = CLabel    Ident		-- label
 		       Attrs
            | CGoto     Ident		-- label
 		       Attrs
+           | CGotoPtr  CExpr		-- computed address
+		       Attrs
            | CCont     Attrs		-- continue statement
 	   | CBreak    Attrs		-- break statement
 	   | CReturn   (Maybe CExpr)
@@ -159,6 +161,7 @@ instance Pos CStat where
   posOf (CWhile    _ _ _   at) = posOf at
   posOf (CFor      _ _ _ _ at) = posOf at
   posOf (CGoto     _	   at) = posOf at
+  posOf (CGotoPtr     _    at) = posOf at
   posOf (CCont     	   at) = posOf at
   posOf (CBreak    	   at) = posOf at
   posOf (CReturn   _   	   at) = posOf at
@@ -176,6 +179,7 @@ instance Eq CStat where
   (CWhile    _ _ _   at1) == (CWhile    _ _ _   at2) = at1 == at2
   (CFor      _ _ _ _ at1) == (CFor      _ _ _ _ at2) = at1 == at2
   (CGoto     _	     at1) == (CGoto     _	at2) = at1 == at2
+  (CGotoPtr  _	     at1) == (CGotoPtr  _	at2) = at1 == at2
   (CCont	     at1) == (CCont		at2) = at1 == at2
   (CBreak	     at1) == (CBreak		at2) = at1 == at2
   (CReturn   _	     at1) == (CReturn   _	at2) = at1 == at2
@@ -529,6 +533,8 @@ data CExpr = CComma       [CExpr]	-- comma expression list, n >= 2
 	   | CCompoundLit CDecl		-- C99 compound literal
 	   		  CInitList	-- type name & initialiser list
 	   		  Attrs
+           | CLabAddrExpr Ident         -- GNUC address of label
+                          Attrs
 
 instance Pos CExpr where
   posOf (CComma       _     at) = posOf at
@@ -547,6 +553,7 @@ instance Pos CExpr where
   posOf (CVar         _     at) = posOf at
   posOf (CConst       _     at) = posOf at
   posOf (CCompoundLit _ _   at) = posOf at
+  posOf (CLabAddrExpr _     at) = posOf at
 
 instance Eq CExpr where
   (CComma      	_     at1) == (CComma       _     at2) = at1 == at2
@@ -565,6 +572,7 @@ instance Eq CExpr where
   (CVar        	_     at1) == (CVar	    _     at2) = at1 == at2
   (CConst      	_     at1) == (CConst	    _	  at2) = at1 == at2
   (CCompoundLit _ _   at1) == (CCompoundLit _ _   at2) = at1 == at2
+  (CLabAddrExpr _     at1) == (CLabAddrExpr _     at2) = at1 == at2
 
 -- C assignment operators (K&R A7.17) (EXPORTED)
 --

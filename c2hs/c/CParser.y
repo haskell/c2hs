@@ -422,9 +422,12 @@ iteration_statement
 
 -- parse C jump statement (C99 6.8.6)
 --
+-- * GNU extension: computed gotos
+--
 jump_statement :: { CStat }
 jump_statement
   : goto identifier ';'			{% withAttrs $1 $ CGoto $2 }
+  | goto '*' expression ';'		{% withAttrs $1 $ CGotoPtr $3 }
   | continue ';'			{% withAttrs $1 $ CCont }
   | break ';'				{% withAttrs $1 $ CBreak }
   | return expression_opt ';'		{% withAttrs $1 $ CReturn $2 }
@@ -1383,7 +1386,10 @@ argument_expression_list
 
 -- parse C unary expression (C99 6.5.3)
 --
--- * GNU extension: 'alignof' and '__extension__'
+-- * GNU extensions:
+--     'alignof' expression or type
+--     '__extension__' to suppress warnings about extensions
+--     allow taking address of a label with: && label
 --
 unary_expression :: { CExpr }
 unary_expression
@@ -1396,6 +1402,7 @@ unary_expression
   | sizeof '(' type_name ')'		{% withAttrs $1 $ CSizeofType $3 }
   | alignof unary_expression		{% withAttrs $1 $ CAlignofExpr $2 }
   | alignof '(' type_name ')'		{% withAttrs $1 $ CAlignofType $3 }
+  | "&&" identifier			{% withAttrs $1 $ CLabAddrExpr $2 }
 
 
 unary_operator :: { Located CUnaryOp }
