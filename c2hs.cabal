@@ -50,6 +50,8 @@ Other-Modules:	BaseVersion
 		CAttrs
 		CBuiltin
 		C
+		CTokens
+		CParserMonad
 		CLexer
 		CNames
 		CParser
