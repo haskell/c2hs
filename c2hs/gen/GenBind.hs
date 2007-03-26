@@ -1799,7 +1799,7 @@ sizeAlignOfSingle :: CDecl -> GB (BitSize, Int)
 --   declared.  At this time I don't care.  -- U.S. 05/2006
 --
 sizeAlignOf (CDecl dclspec
-                   [(Just (CArrDeclr declr (Just lexpr) _), init, expr)]
+                   [(Just (CArrDeclr declr _ (Just lexpr) _), init, expr)]
 		   attr) =
   do
     (bitsize, align) <- sizeAlignOf (CDecl dclspec
@@ -1807,7 +1807,7 @@ sizeAlignOf (CDecl dclspec
 					   attr)
     IntResult length <- evalConstCExpr lexpr
     return (fromIntegral length `scaleBitSize` bitsize, align)
-sizeAlignOf (CDecl _ [(Just (CArrDeclr cdecl Nothing _), _, _)] _) =
+sizeAlignOf (CDecl _ [(Just (CArrDeclr cdecl _ Nothing _), _, _)] _) =
     interr "GenBind.sizeAlignOf: array of undeclared size."
 sizeAlignOf cdecl =
     sizeAlignOfSingle cdecl
@@ -1902,7 +1902,7 @@ evalConstCExpr (CComma _ at) =
   illegalConstExprErr (posOf at) "a comma expression"
 evalConstCExpr (CAssign _ _ _ at) =
   illegalConstExprErr (posOf at) "an assignment"
-evalConstCExpr (CCond b t e _) =
+evalConstCExpr (CCond b (Just t) e _) =
   do
     bv <- evalConstCExpr b
     case bv of
