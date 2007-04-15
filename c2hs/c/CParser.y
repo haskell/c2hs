@@ -129,10 +129,11 @@ import Attributes (Attrs, newAttrs, newAttrsOnlyPos)
 import State      (PreCST, raiseFatal, getNameSupply)
 import CLexer     (lexC, parseError)
 import CAST       (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..),
-		   CDecl(..), CDeclSpec(..), CStorageSpec(..), CTypeSpec(..),
-		   CTypeQual(..), CStructUnion(..), CStructTag(..), CEnum(..),
-		   CDeclr(..), CInit(..), CInitList, CDesignator(..), CExpr(..),
-                   CAssignOp(..), CBinaryOp(..), CUnaryOp(..), CConst (..))
+                   CBlockItem(..), CDecl(..), CDeclSpec(..), CStorageSpec(..),
+                   CTypeSpec(..), CTypeQual(..), CStructUnion(..),
+                   CStructTag(..), CEnum(..), CDeclr(..), CInit(..), CInitList,
+                   CDesignator(..), CExpr(..), CAssignOp(..), CBinaryOp(..),
+                   CUnaryOp(..), CConst (..))
 import CBuiltin   (builtinTypeNames)
 import CTokens    (CToken(..), GnuCTok(..))
 import CParserMonad (P, execParser, getNewName, addTypedef, shadowTypedef,
@@ -383,17 +384,38 @@ leave_scope :: { () }
 leave_scope : {% leaveScope }
 
 
-block_item_list :: { Reversed [Either CDecl CStat] }
+block_item_list :: { Reversed [CBlockItem] }
 block_item_list
   : {- empty -}			{ empty }
   | block_item_list block_item	{ $1 `snoc` $2 }
 
 
-block_item :: { Either CDecl CStat }
+block_item :: { CBlockItem }
 block_item
-  : declaration			{ Left  $1 }
-  | extension declaration	{ Left  $2 }
-  | statement			{ Right $1 }
+  : statement			{ CBlockStmt $1 }
+  | nested_declaration		{ $1 }
+
+
+nested_declaration :: { CBlockItem }
+nested_declaration
+  : declaration						{ CBlockDecl $1 }
+  | nested_function_definition				{ CNestedFunDef $1 }
+  | extension nested_declaration			{ $2 }
+
+
+nested_function_definition :: { CFunDef }
+nested_function_definition
+  : declaration_specifier      function_declarator compound_statement
+	{% leaveScope >> (withAttrs $1 $ CFunDef $1 $2 [] $3) }
+
+  | type_specifier             function_declarator compound_statement
+	{% leaveScope >> (withAttrs $1 $ CFunDef $1 $2 [] $3) }
+
+  | declaration_qualifier_list function_declarator compound_statement
+	{% leaveScope >> (withAttrs $1 $ CFunDef (reverse $1) $2 [] $3) }
+
+  | type_qualifier_list        function_declarator compound_statement
+	{% leaveScope >> (withAttrs $1 $ CFunDef (liftTypeQuals $1) $2 [] $3) }
 
 
 label_declarations :: { () }

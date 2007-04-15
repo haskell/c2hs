@@ -40,11 +40,11 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module CAST (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..), CDecl(..),
-	     CDeclSpec(..), CStorageSpec(..), CTypeSpec(..), CTypeQual(..),
-	     CStructUnion(..),  CStructTag(..), CEnum(..), CDeclr(..),
-             CInit(..), CInitList, CDesignator(..), CExpr(..), CAssignOp(..),
-             CBinaryOp(..), CUnaryOp(..), CConst (..))
+module CAST (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..), CBlockItem(..),
+	     CDecl(..), CDeclSpec(..), CStorageSpec(..), CTypeSpec(..),
+	     CTypeQual(..), CStructUnion(..),  CStructTag(..), CEnum(..),
+             CDeclr(..), CInit(..), CInitList, CDesignator(..), CExpr(..),
+             CAssignOp(..), CBinaryOp(..), CUnaryOp(..), CConst (..))
 where
 
 import Position   (Position, Pos(posOf), nopos)
@@ -119,8 +119,7 @@ data CStat = CLabel    Ident		-- label
 		       Attrs
            | CExpr     (Maybe CExpr)	-- expression statement, maybe empty
 		       Attrs
-           | CCompound [Either CDecl	-- list of declarations
-			       CStat]	-- and statements
+           | CCompound [CBlockItem]	-- list of declarations and statements
 		       Attrs
            | CIf       CExpr		-- conditional expression
 		       CStat
@@ -185,6 +184,22 @@ instance Eq CStat where
   (CBreak	     at1) == (CBreak		at2) = at1 == at2
   (CReturn   _	     at1) == (CReturn   _	at2) = at1 == at2
   (CAsm              at1) == (CAsm              at2) = at1 == at2
+
+-- C99 Block items, things that may appear in compound statements
+data CBlockItem = CBlockStmt    CStat
+                | CBlockDecl    CDecl
+                | CNestedFunDef CFunDef		-- GNU C has nested functions
+
+instance Pos CBlockItem where
+  posOf (CBlockStmt stmt)  = posOf stmt
+  posOf (CBlockDecl decl)  = posOf decl
+  posOf (CNestedFunDef fdef) = posOf fdef
+
+instance Eq CBlockItem where
+  CBlockStmt    stmt1 == CBlockStmt    stmt2 = stmt1 == stmt2
+  CBlockDecl    decl1 == CBlockDecl    decl2 = decl1 == decl2
+  CNestedFunDef fdef1 == CNestedFunDef fdef2 = fdef1 == fdef2
+
 
 -- C declaration (K&R A8), structure declaration (K&R A8.3), parameter
 -- declaration (K&R A8.6.3), and type name (K&R A8.8) (EXPORTED) 
