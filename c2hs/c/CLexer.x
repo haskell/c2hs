@@ -88,8 +88,8 @@ $digit    = 0-9
 $digitNZ  = 1-9
 $hexdigit = [0-9a-fA-F]
 
-$inchar   = \0-\255 # [ \\ \' \n \f \r \v ]
-$instr    = \0-\255 # [ \\ \" \n \f \r \v ]
+$inchar   = \0-\255 # [ \\ \' \n \r ]
+$instr    = \0-\255 # [ \\ \" \n \r ]
 $anyButNL = \0-\255 # \n
 $infname  = \ -\127 # [ \\ \" ]
 $visible  = \ -\127
