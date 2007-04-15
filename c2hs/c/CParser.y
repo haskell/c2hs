@@ -978,14 +978,14 @@ type_qualifier
 --
 declarator :: { CDeclr }
 declarator
-  : identifier_declarator maybe_asm	{ $1 }
-  | typedef_declarator maybe_asm	{ $1 }
+  : identifier_declarator asm_opt	{ $1 }
+  | typedef_declarator asm_opt		{ $1 }
 
 
 -- Parse GNU C's asm annotations
 --
-maybe_asm :: { () }
-maybe_asm
+asm_opt :: { () }
+asm_opt
   : {- empty -}				{ () }
   | asm '(' string_literal_list ')'	{ () }
 
