@@ -437,8 +437,8 @@ iteration_statement
   | for '(' expression_opt ';' expression_opt ';' expression_opt ')' statement
 	{% withAttrs $1 $ CFor (Left $3) $5 $7 $9 }
 
-  | for '(' declaration expression_opt ';' expression_opt ')' statement
-	{% withAttrs $1 $ CFor (Right $3) $4 $6 $8 }
+  | for '(' enter_scope declaration expression_opt ';' expression_opt ')' statement leave_scope
+	{% withAttrs $1 $ CFor (Right $4) $5 $7 $9 }
 
 
 -- parse C jump statement (C99 6.8.6)
