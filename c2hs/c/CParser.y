@@ -244,7 +244,7 @@ cstr		{ CTokSLit   _ _ }		-- string constant (no escapes)
 ident		{ CTokIdent  _ $$ }		-- identifier
 tyident		{ CTokTyIdent _ $$ }		-- `typedef-name' identifier
 attribute	{ CTokGnuC GnuCAttrTok _ }	-- special GNU C tokens
-extension	{ CTokGnuC GnuCExtTok  _ }	-- special GNU C tokens
+"__extension__"	{ CTokGnuC GnuCExtTok  _ }	-- special GNU C tokens
 
 -- special GNU C builtin 'functions' that actually take types as parameters:
 "__builtin_va_arg"		{ CTokGnuC GnuCVaArg    _ }
@@ -282,10 +282,10 @@ translation_unit
 --
 external_declaration :: { CExtDecl }
 external_declaration
-  : function_definition			{ CFDefExt $1 }
-  | declaration				{ CDeclExt $1 }
-  | extension external_declaration	{ $2 }
-  | asm '(' string_literal ')' ';'	{% withAttrs $2 CAsmExt }
+  : function_definition				{ CFDefExt $1 }
+  | declaration					{ CDeclExt $1 }
+  | "__extension__" external_declaration	{ $2 }
+  | asm '(' string_literal ')' ';'		{% withAttrs $2 CAsmExt }
 
 
 -- parse C function definition (C99 6.9.1)
@@ -400,7 +400,7 @@ nested_declaration :: { CBlockItem }
 nested_declaration
   : declaration						{ CBlockDecl $1 }
   | nested_function_definition				{ CNestedFunDef $1 }
-  | extension nested_declaration			{ $2 }
+  | "__extension__" nested_declaration			{ $2 }
 
 
 nested_function_definition :: { CFunDef }
@@ -874,7 +874,7 @@ struct_declaration
   | struct_default_declaring_list ';'
   	{ case $1 of CDecl declspecs dies attr -> CDecl declspecs (List.reverse dies) attr }
 
-  | extension struct_declaration	{ $2 }
+  | "__extension__" struct_declaration	{ $2 }
 
 
 -- doesn't redeclare typedef
@@ -1453,7 +1453,7 @@ unary_expression
   : postfix_expression			{ $1 }
   | "++" unary_expression		{% withAttrs $1 $ CUnary CPreIncOp $2 }
   | "--" unary_expression		{% withAttrs $1 $ CUnary CPreDecOp $2 }
-  | extension cast_expression		{ $2 }
+  | "__extension__" cast_expression	{ $2 }
   | unary_operator cast_expression	{% withAttrs $1 $ CUnary (unL $1) $2 }
   | sizeof unary_expression		{% withAttrs $1 $ CSizeofExpr $2 }
   | sizeof '(' type_name ')'		{% withAttrs $1 $ CSizeofType $3 }
