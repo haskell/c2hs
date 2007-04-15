@@ -243,7 +243,7 @@ cfloat		{ CTokFLit   _ _ }		-- float constant
 cstr		{ CTokSLit   _ _ }		-- string constant (no escapes)
 ident		{ CTokIdent  _ $$ }		-- identifier
 tyident		{ CTokTyIdent _ $$ }		-- `typedef-name' identifier
-attribute	{ CTokGnuC GnuCAttrTok _ }	-- special GNU C tokens
+"__attribute__"	{ CTokGnuC GnuCAttrTok _ }	-- special GNU C tokens
 "__extension__"	{ CTokGnuC GnuCExtTok  _ }	-- special GNU C tokens
 
 -- special GNU C builtin 'functions' that actually take types as parameters:
@@ -1725,45 +1725,45 @@ identifier
   | tyident		{ $1 }
 
 
-{-
+
 -- parse GNU C attribute annotation (junking the result)
 --
-gnuc_attrs ::	{ () }
-gnuc_attrs
+attrs_opt ::	{ () }
+attrs_opt
   : {- empty -}						{ () }
-  | gnuc_attrs gnuc_attribute_specifier			{ () }
+  | attrs_opt attr					{ () }
 
 
-gnuc_attrs_nonempty :: { () }
-gnuc_attrs_nonempty
-  : gnuc_attribute_specifier				{ () }
-  | gnuc_attrs_nonempty gnuc_attribute_specifier	{ () }
+attrs :: { () }
+attrs
+  : attr						{ () }
+  | attrs attr	{ () }
 
 
-gnuc_attribute_specifier :: { () }
-gnuc_attribute_specifier
-  : attribute '(' '(' gnuc_attribute_list ')' ')'	{ () }
+attr :: { () }
+attr
+  : "__attribute__" '(' '(' attribute_list ')' ')'	{ () }
 
 
-gnuc_attribute_list :: { () }
-  : gnuc_attribute					{ () } 
-  | gnuc_attribute_list ',' gnuc_attribute		{ () } 
+attribute_list :: { () }
+  : attribute						{ () } 
+  | attribute_list ',' attribute			{ () } 
 
 
-gnuc_attribute :: { () }
-gnuc_attribute
+attribute :: { () }
+attribute
   : {- empty -}						{ () }
   | ident						{ () }
   | const						{ () }
-  | ident '(' gnuc_attribute_param_exps ')'		{ () }
+  | ident '(' attribute_params ')'			{ () }
   | ident '(' ')'					{ () }
 
 
-gnuc_attribute_param_exps :: { () }
-gnuc_attribute_param_exps
+attribute_params :: { () }
+attribute_params
   : constant_expression					{ () }
-  | gnuc_attribute_param_exps ',' constant_expression	{ () }
--}
+  | attribute_params ',' constant_expression		{ () }
+
 
 {
 
