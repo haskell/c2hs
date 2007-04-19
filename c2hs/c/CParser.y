@@ -356,7 +356,7 @@ statement
 --
 labeled_statement :: { CStat }
 labeled_statement
-  : identifier ':' statement			{% withAttrs $2 $ CLabel $1 $3}
+  : identifier ':' attrs_opt statement		{% withAttrs $2 $ CLabel $1 $4}
   | case constant_expression ':' statement	{% withAttrs $1 $ CCase $2 $4 }
   | default ':' statement			{% withAttrs $1 $ CDefault $3 }
   | case constant_expression "..." constant_expression ':' statement
