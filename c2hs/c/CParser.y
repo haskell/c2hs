@@ -282,8 +282,8 @@ translation_unit
 --
 external_declaration :: { CExtDecl }
 external_declaration
-  : function_definition				{ CFDefExt $1 }
-  | declaration					{ CDeclExt $1 }
+  : attrs_opt function_definition		{ CFDefExt $2 }
+  | attrs_opt declaration			{ CDeclExt $2 }
   | "__extension__" external_declaration	{ $2 }
   | asm '(' string_literal ')' ';'		{% withAttrs $2 CAsmExt }
 
@@ -398,9 +398,11 @@ block_item
 
 nested_declaration :: { CBlockItem }
 nested_declaration
-  : declaration						{ CBlockDecl $1 }
-  | nested_function_definition				{ CNestedFunDef $1 }
-  | "__extension__" nested_declaration			{ $2 }
+  : declaration				{ CBlockDecl $1 }
+  | attrs declaration			{ CBlockDecl $2 }
+  | nested_function_definition		{ CNestedFunDef $1 }
+  | attrs nested_function_definition	{ CNestedFunDef $2 }
+  | "__extension__" nested_declaration	{ $2 }
 
 
 nested_function_definition :: { CFunDef }
@@ -1272,17 +1274,17 @@ identifier_list
 --
 type_name :: { CDecl }
 type_name
-  : type_specifier
-  	{% withAttrs $1 $ CDecl $1 [] }
+  : attrs_opt type_specifier
+  	{% withAttrs $2 $ CDecl $2 [] }
 
-  | type_specifier abstract_declarator
-  	{% withAttrs $1 $ CDecl $1 [(Just $2, Nothing, Nothing)] }
+  | attrs_opt type_specifier abstract_declarator
+  	{% withAttrs $2 $ CDecl $2 [(Just $3, Nothing, Nothing)] }
 
-  | type_qualifier_list
-  	{% withAttrs $1 $ CDecl (liftTypeQuals $1) [] }
+  | attrs_opt type_qualifier_list
+  	{% withAttrs $2 $ CDecl (liftTypeQuals $2) [] }
 
-  | type_qualifier_list abstract_declarator
-  	{% withAttrs $1 $ CDecl (liftTypeQuals $1) [(Just $2, Nothing, Nothing)] }
+  | attrs_opt type_qualifier_list abstract_declarator
+  	{% withAttrs $2 $ CDecl (liftTypeQuals $2) [(Just $3, Nothing, Nothing)] }
 
 
 -- parse C abstract declarator (C99 6.7.6)
