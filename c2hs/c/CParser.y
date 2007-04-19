@@ -864,14 +864,14 @@ elaborated_type_name
 --
 struct_or_union_specifier :: { CStructUnion }
 struct_or_union_specifier
-  : struct_or_union identifier '{' struct_declaration_list '}'
-  	{% withAttrs $1 $ CStruct (unL $1) (Just $2) (reverse $4) }
+  : struct_or_union attrs_opt identifier '{' struct_declaration_list '}'
+  	{% withAttrs $1 $ CStruct (unL $1) (Just $3) (reverse $5) }
 
-  | struct_or_union '{' struct_declaration_list '}'
-  	{% withAttrs $1 $ CStruct (unL $1) Nothing   (reverse $3) }
+  | struct_or_union attrs_opt '{' struct_declaration_list '}'
+  	{% withAttrs $1 $ CStruct (unL $1) Nothing   (reverse $4) }
 
-  | struct_or_union identifier
-  	{% withAttrs $1 $ CStruct (unL $1) (Just $2) [] }
+  | struct_or_union attrs_opt identifier
+  	{% withAttrs $1 $ CStruct (unL $1) (Just $3) [] }
 
 
 struct_or_union :: { Located CStructTag }
@@ -959,20 +959,20 @@ struct_identifier_declarator
 --
 enum_specifier :: { CEnum }
 enum_specifier
-  : enum '{' enumerator_list '}'
-  	{% withAttrs $1 $ CEnum Nothing   (reverse $3) }
+  : enum attrs_opt '{' enumerator_list '}'
+  	{% withAttrs $1 $ CEnum Nothing   (reverse $4) }
 
-  | enum '{' enumerator_list ',' '}'
-  	{% withAttrs $1 $ CEnum Nothing   (reverse $3) }
+  | enum attrs_opt '{' enumerator_list ',' '}'
+  	{% withAttrs $1 $ CEnum Nothing   (reverse $4) }
 
-  | enum identifier '{' enumerator_list '}'
-  	{% withAttrs $1 $ CEnum (Just $2) (reverse $4) }
+  | enum attrs_opt identifier '{' enumerator_list '}'
+  	{% withAttrs $1 $ CEnum (Just $3) (reverse $5) }
 
-  | enum identifier '{' enumerator_list ',' '}'
-  	{% withAttrs $1 $ CEnum (Just $2) (reverse $4) }
+  | enum attrs_opt identifier '{' enumerator_list ',' '}'
+  	{% withAttrs $1 $ CEnum (Just $3) (reverse $5) }
 
-  | enum identifier
-  	{% withAttrs $1 $ CEnum (Just $2) []           }
+  | enum attrs_opt identifier
+  	{% withAttrs $1 $ CEnum (Just $3) []           }
 
 
 enumerator_list :: { Reversed [(Ident, Maybe CExpr)] }
