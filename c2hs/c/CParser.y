@@ -553,38 +553,38 @@ declaration
 --
 default_declaring_list :: { CDecl }
 default_declaring_list
-  : declaration_qualifier_list identifier_declarator {-{}-} initializer_opt
+  : declaration_qualifier_list identifier_declarator asm_opt attrs_opt {-{}-} initializer_opt
   	{% let declspecs = reverse $1 in
            doDeclIdent declspecs $2
-        >> (withAttrs $1 $ CDecl declspecs [(Just $2, $3, Nothing)]) }
+        >> (withAttrs $1 $ CDecl declspecs [(Just $2, $5, Nothing)]) }
 
-  | type_qualifier_list identifier_declarator {-{}-} initializer_opt
+  | type_qualifier_list identifier_declarator asm_opt attrs_opt {-{}-} initializer_opt
   	{% let declspecs = liftTypeQuals $1 in
            doDeclIdent declspecs $2
-        >> (withAttrs $1 $ CDecl declspecs [(Just $2, $3, Nothing)]) }
+        >> (withAttrs $1 $ CDecl declspecs [(Just $2, $5, Nothing)]) }
 
-  | default_declaring_list ',' identifier_declarator {-{}-} initializer_opt
+  | default_declaring_list ',' identifier_declarator asm_opt attrs_opt {-{}-} initializer_opt
   	{% case $1 of
              CDecl declspecs dies attr -> do
                doDeclIdent declspecs $3
-               return (CDecl declspecs ((Just $3, $4, Nothing) : dies) attr) }
+               return (CDecl declspecs ((Just $3, $6, Nothing) : dies) attr) }
 
 
 declaring_list :: { CDecl }
 declaring_list
-  : declaration_specifier declarator {-{}-} initializer_opt
+  : declaration_specifier declarator asm_opt attrs_opt {-{}-} initializer_opt
   	{% doDeclIdent $1 $2
-        >> (withAttrs $1 $ CDecl $1 [(Just $2, $3, Nothing)]) }
+        >> (withAttrs $1 $ CDecl $1 [(Just $2, $5, Nothing)]) }
 
-  | type_specifier declarator {-{}-} initializer_opt
+  | type_specifier declarator asm_opt attrs_opt {-{}-} initializer_opt
   	{% doDeclIdent $1 $2
-        >> (withAttrs $1 $ CDecl $1 [(Just $2, $3, Nothing)]) }
+        >> (withAttrs $1 $ CDecl $1 [(Just $2, $5, Nothing)]) }
 
-  | declaring_list ',' declarator {-{}-} initializer_opt
+  | declaring_list ',' declarator asm_opt attrs_opt {-{}-} initializer_opt
   	{% case $1 of
              CDecl declspecs dies attr -> do
                doDeclIdent declspecs $3
-               return (CDecl declspecs ((Just $3, $4, Nothing) : dies) attr) }
+               return (CDecl declspecs ((Just $3, $6, Nothing) : dies) attr) }
 
 
 -- parse C declaration specifiers (C99 6.7)
@@ -624,6 +624,9 @@ declaration_qualifier_list
 
   | declaration_qualifier_list declaration_qualifier
   	{ $1 `snoc` $2 }
+
+  | declaration_qualifier_list attr
+  	{ $1 }
 
 
 declaration_qualifier :: { CDeclSpec }
@@ -703,6 +706,9 @@ basic_declaration_specifier
   | basic_declaration_specifier basic_type_name
   	{ $1 `snoc` CTypeSpec $2 }
 
+  | basic_declaration_specifier attr
+  	{ $1 }
+
 
 -- A mixture of type qualifiers and basic type names in any order, but
 -- containing at least one basic type name.
@@ -725,6 +731,9 @@ basic_type_specifier
   | basic_type_specifier basic_type_name
   	{ $1 `snoc` CTypeSpec $2 }
 
+  | basic_type_specifier attr
+  	{ $1 }
+
 
 -- A named or anonymous struct, union or enum type along with at least one
 -- storage class and any mix of type qualifiers.
@@ -745,6 +754,9 @@ sue_declaration_specifier
   | sue_declaration_specifier declaration_qualifier
   	{ $1 `snoc` $2 }
 
+  | sue_declaration_specifier attr
+  	{ $1 }
+
 
 -- A struct, union or enum type (named or anonymous) with optional leading and
 -- trailing type qualifiers.
@@ -763,6 +775,9 @@ sue_type_specifier
 
   | sue_type_specifier type_qualifier
   	{ $1 `snoc` CTypeQual $2 }
+
+  | sue_type_specifier attr
+  	{ $1 }
 
 
 -- A typedef'ed type identifier with at least one storage qualifier and any
@@ -793,6 +808,9 @@ typedef_declaration_specifier
   | typedef_declaration_specifier declaration_qualifier
   	{ $1 `snoc` $2 }
 
+  | typedef_declaration_specifier attr
+  	{ $1 }
+
 
 -- typedef'ed type identifier with optional leading and trailing type qualifiers
 --
@@ -821,6 +839,9 @@ typedef_type_specifier
 
   | typedef_type_specifier type_qualifier
   	{ $1 `snoc` CTypeQual $2 }
+
+  | typedef_type_specifier attr
+  	{ $1 }
 
 
 -- A named or anonymous struct, union or enum type.
@@ -978,8 +999,8 @@ type_qualifier
 --
 declarator :: { CDeclr }
 declarator
-  : identifier_declarator asm_opt	{ $1 }
-  | typedef_declarator asm_opt		{ $1 }
+  : identifier_declarator		{ $1 }
+  | typedef_declarator			{ $1 }
 
 
 -- Parse GNU C's asm annotations
@@ -1145,6 +1166,7 @@ type_qualifier_list :: { Reversed [CTypeQual] }
 type_qualifier_list
   : type_qualifier			{ singleton $1 }
   | type_qualifier_list type_qualifier	{ $1 `snoc` $2 }
+  | type_qualifier_list attr		{ $1 }
 
 
 -- parse C parameter type list (C99 6.7.5)
