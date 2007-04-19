@@ -1045,11 +1045,19 @@ clean_typedef_declarator
   | '*' type_qualifier_list parameter_typedef_declarator
   	{% withAttrs $1 $ CPtrDeclr [reverse $2] $3 }
 
+  | '*' attrs parameter_typedef_declarator
+  	{% withAttrs $1 $ CPtrDeclr [] $3 }
+
+  | '*' attrs type_qualifier_list parameter_typedef_declarator
+  	{% withAttrs $1 $ CPtrDeclr [reverse $3] $4 }
+
 
 clean_postfix_typedef_declarator :: { CDeclr }
 clean_postfix_typedef_declarator
-  : '(' clean_typedef_declarator ')'					{ $2 }
-  | '(' clean_typedef_declarator ')' postfixing_abstract_declarator	{ $4 $2 }
+  : '(' clean_typedef_declarator ')'						{ $2 }
+  | '(' attrs clean_typedef_declarator ')'					{ $3 }
+  | '(' clean_typedef_declarator ')' postfixing_abstract_declarator		{ $4 $2 }
+  | '(' attrs clean_typedef_declarator ')' postfixing_abstract_declarator	{ $5 $3 }
 
 
 -- The following have a redundant '(' placed
@@ -1072,6 +1080,19 @@ paren_typedef_declarator
 
   | '*' type_qualifier_list paren_typedef_declarator
   	{% withAttrs $1 $ CPtrDeclr [reverse $2] $3 }
+
+  | '*' attrs '(' simple_paren_typedef_declarator ')'
+  	{% withAttrs $1 $ CPtrDeclr [[]] $4 }
+
+  -- redundant paren
+  | '*' attrs type_qualifier_list '(' simple_paren_typedef_declarator ')'
+  	{% withAttrs $1 $ CPtrDeclr [reverse $3] $5 }
+
+  | '*' attrs paren_typedef_declarator
+  	{% withAttrs $1 $ CPtrDeclr [] $3 }
+
+  | '*' attrs type_qualifier_list paren_typedef_declarator
+  	{% withAttrs $1 $ CPtrDeclr [reverse $3] $4 }
 
 
 -- redundant paren to left of tname
@@ -1116,6 +1137,12 @@ unary_identifier_declarator
   | '*' type_qualifier_list identifier_declarator
   	{% withAttrs $1 $ CPtrDeclr [reverse $2] $3 }
 
+  | '*' attrs identifier_declarator
+  	{% withAttrs $1 $ CPtrDeclr [[]] $3 }
+
+  | '*' attrs type_qualifier_list identifier_declarator
+  	{% withAttrs $1 $ CPtrDeclr [reverse $3] $4 }
+
 
 postfix_identifier_declarator :: { CDeclr }
 postfix_identifier_declarator
@@ -1127,6 +1154,12 @@ postfix_identifier_declarator
 
   | '(' unary_identifier_declarator ')' postfixing_abstract_declarator
   	{ $4 $2 }
+
+  | '(' attrs unary_identifier_declarator ')'
+  	{ $3 }
+
+  | '(' attrs unary_identifier_declarator ')' postfixing_abstract_declarator
+  	{ $5 $3 }
 
 
 paren_identifier_declarator :: { CDeclr }
@@ -1258,7 +1291,7 @@ abstract_declarator :: { CDeclr }
 abstract_declarator
   : unary_abstract_declarator			{ $1 }
   | postfix_abstract_declarator			{ $1 }
-  | postfixing_abstract_declarator		{ $1 emptyDeclr }
+  | postfixing_abstract_declarator attrs_opt	{ $1 emptyDeclr }
 
 
 postfixing_abstract_declarator :: { CDeclr -> CDeclr }
@@ -1323,6 +1356,18 @@ unary_abstract_declarator
   | '*' type_qualifier_list abstract_declarator
   	{% withAttrs $1 $ CPtrDeclr [reverse $2] $3 }
 
+  | '*' attrs
+  	{% withAttrs $1 $ CPtrDeclr [[]] emptyDeclr }
+
+  | '*' attrs type_qualifier_list
+  	{% withAttrs $1 $ CPtrDeclr [reverse $3] emptyDeclr }
+
+  | '*' attrs abstract_declarator
+  	{% withAttrs $1 $ CPtrDeclr [] $3 }
+
+  | '*' attrs type_qualifier_list abstract_declarator
+  	{% withAttrs $1 $ CPtrDeclr [reverse $3] $4 }
+
 
 postfix_abstract_declarator :: { CDeclr }
 postfix_abstract_declarator
@@ -1330,6 +1375,11 @@ postfix_abstract_declarator
   | '(' postfix_abstract_declarator ')'					{ $2 }
   | '(' postfixing_abstract_declarator ')'				{ $2 emptyDeclr }
   | '(' unary_abstract_declarator ')' postfixing_abstract_declarator	{ $4 $2 }
+  | '(' attrs unary_abstract_declarator ')'					{ $3 }
+  | '(' attrs postfix_abstract_declarator ')'					{ $3 }
+  | '(' attrs postfixing_abstract_declarator ')'				{ $3 emptyDeclr }
+  | '(' attrs unary_abstract_declarator ')' postfixing_abstract_declarator	{ $5 $3 }
+  | postfix_abstract_declarator attr						{ $1 }
 
 
 -- parse C initializer (C99 6.7.8)
