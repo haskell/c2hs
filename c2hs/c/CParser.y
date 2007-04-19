@@ -1215,8 +1215,9 @@ parameter_type_list
 
 parameter_list :: { Reversed [CDecl] }
 parameter_list
-  : parameter_declaration			{ singleton $1 }
-  | parameter_list ',' parameter_declaration	{ $1 `snoc` $3 }
+  : parameter_declaration				{ singleton $1 }
+  | attrs parameter_declaration				{ singleton $2 }
+  | parameter_list ',' attrs_opt parameter_declaration	{ $1 `snoc` $4 }
 
 
 parameter_declaration :: { CDecl }
@@ -1227,10 +1228,10 @@ parameter_declaration
   | declaration_specifier abstract_declarator
   	{% withAttrs $1 $ CDecl $1 [(Just $2, Nothing, Nothing)] }
 
-  | declaration_specifier identifier_declarator
+  | declaration_specifier identifier_declarator attrs_opt
   	{% withAttrs $1 $ CDecl $1 [(Just $2, Nothing, Nothing)] }
 
-  | declaration_specifier parameter_typedef_declarator
+  | declaration_specifier parameter_typedef_declarator attrs_opt
   	{% withAttrs $1 $ CDecl $1 [(Just $2, Nothing, Nothing)] }
 
   | declaration_qualifier_list
@@ -1239,7 +1240,7 @@ parameter_declaration
   | declaration_qualifier_list abstract_declarator
   	{% withAttrs $1 $ CDecl (reverse $1) [(Just $2, Nothing, Nothing)] }
 
-  | declaration_qualifier_list identifier_declarator
+  | declaration_qualifier_list identifier_declarator attrs_opt
   	{% withAttrs $1 $ CDecl (reverse $1) [(Just $2, Nothing, Nothing)] }
 
   | type_specifier
@@ -1248,10 +1249,10 @@ parameter_declaration
   | type_specifier abstract_declarator
   	{% withAttrs $1 $ CDecl $1 [(Just $2, Nothing, Nothing)] }
 
-  | type_specifier identifier_declarator
+  | type_specifier identifier_declarator attrs_opt
   	{% withAttrs $1 $ CDecl $1 [(Just $2, Nothing, Nothing)] }
 
-  | type_specifier parameter_typedef_declarator
+  | type_specifier parameter_typedef_declarator attrs_opt
   	{% withAttrs $1 $ CDecl $1 [(Just $2, Nothing, Nothing)] }
 
   | type_qualifier_list
@@ -1260,7 +1261,7 @@ parameter_declaration
   | type_qualifier_list abstract_declarator
   	{% withAttrs $1 $ CDecl (liftTypeQuals $1) [(Just $2, Nothing, Nothing)] }
 
-  | type_qualifier_list identifier_declarator
+  | type_qualifier_list identifier_declarator attrs_opt
   	{% withAttrs $1 $ CDecl (liftTypeQuals $1) [(Just $2, Nothing, Nothing)] }
 
 
