@@ -903,13 +903,13 @@ struct_declaration
 -- doesn't redeclare typedef
 struct_default_declaring_list :: { CDecl }
 struct_default_declaring_list
-  : type_qualifier_list struct_identifier_declarator
-  	{% withAttrs $1 $ case $2 of (d,s) -> CDecl (liftTypeQuals $1) [(d,Nothing,s)] }
+  : attrs_opt type_qualifier_list struct_identifier_declarator attrs_opt
+  	{% withAttrs $2 $ case $3 of (d,s) -> CDecl (liftTypeQuals $2) [(d,Nothing,s)] }
 
-  | struct_default_declaring_list ',' struct_identifier_declarator
+  | struct_default_declaring_list ',' attrs_opt struct_identifier_declarator attrs_opt
   	{ case $1 of
             CDecl declspecs dies attr ->
-              case $3 of
+              case $4 of
                 (d,s) -> CDecl declspecs ((d,Nothing,s) : dies) attr }
 
 
@@ -918,13 +918,13 @@ struct_default_declaring_list
 --
 struct_declaring_list :: { CDecl }
 struct_declaring_list
-  : type_specifier struct_declarator
-  	{% withAttrs $1 $ case $2 of (d,s) -> CDecl $1 [(d,Nothing,s)] }
+  : attrs_opt type_specifier struct_declarator attrs_opt
+  	{% withAttrs $2 $ case $3 of (d,s) -> CDecl $2 [(d,Nothing,s)] }
 
-  | struct_declaring_list ',' struct_declarator
+  | struct_declaring_list ',' attrs_opt struct_declarator attrs_opt
   	{ case $1 of
             CDecl declspecs dies attr ->
-              case $3 of
+              case $4 of
                 (d,s) -> CDecl declspecs ((d,Nothing,s) : dies) attr }
 
   -- We're being far too liberal in the parsing here, we realyl want to just
@@ -932,8 +932,8 @@ struct_declaring_list
   -- unnamed struct member. Making it allow only unnamed structs or unions in
   -- the parser is far too tricky, it makes things ambiguous. So we'll have to
   -- diagnose unnamed fields that are not structs/unions in a later stage.
-  | type_specifier
-        {% withAttrs $1 $ CDecl $1 [] }
+  | attrs_opt type_specifier
+        {% withAttrs $2 $ CDecl $2 [] }
 
 
 -- parse C structure declarator (C99 6.7.2.1)
