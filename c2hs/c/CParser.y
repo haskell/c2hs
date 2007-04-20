@@ -1,12 +1,10 @@
 --  C -> Haskell Compiler: Parser for C Header Files
 --
---  Author : Manuel M T Chakravarty, Duncan Coutts
+--  Author : Duncan Coutts, Manuel M T Chakravarty
 --  Created: 29 May 2005
 --
---  Version $Revision: 1.1.2.1 $ from $Date: 2005/06/14 00:16:15 $
---
---  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --  Copyright (c) 2005-2007 Duncan Coutts
+--  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --  Portions Copyright (c) 1989, 1990 James A. Roskind
 --
 --  This file is free software; you can redistribute it and/or modify
@@ -28,7 +26,7 @@
 --
 --  language: Haskell 98
 --
---  The parser recognizes all of ISO C 99 and many common GNU C extensions.
+--  The parser recognizes all of ISO C 99 and most common GNU C extensions.
 --
 --  With C99 we refer to the ISO C99 standard, specifically the section numbers
 --  used below refer to this report:
@@ -82,37 +80,15 @@
 --    at' have *no* valid attribute handle in `at' (only a `newAttrsOnlyPos
 --    nopos').
 --
---  Supported GNU C extensions:
---
---  * We also recognize GNU C `__attribute__' annotations (however, they are
---    not entered into the structure tree, but ignored).  More specifically, 
---
---      '__attribute__' '(' '(' attr ')' ')'
---
---    may occur after declarator specifiers or after a declarator itself (only
---    meaningful if it is a typedef), where `attr' is either just an 
---    identifier or an identifier followed by a comma-separated list of
---    constant expressions as follows:
---
---      attr  -> id ['(' const_1 ',' ... ',' const_n ')']
---	       | 'const'
---	const -> <constant expression>
---
---  * We also recognize GNU C `__extension__' annotations (however, they are
---    not entered into the structure tree, but ignored).  More specifically, 
---
---      __extension__
---
---    may occur in a specifier list.
---
---  * There may be a `,' behind the last element of a enum.
---
---  * Structs and unions may lack any declarations; eg, `struct { } foo;' is
---    valid. 
---
 --  * Builtin type names are imported from `CBuiltin'.
 --
 --- TODO ----------------------------------------------------------------------
+--
+--  * GNUC __attribute__s should be enetered into the parse tree since they
+--    contain useful api/abi information.
+--
+--  * Some other extensions are currently recognised by the parser but not
+--    entered into the parse tree.
 --
 
 {
