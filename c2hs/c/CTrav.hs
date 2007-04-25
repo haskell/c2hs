@@ -544,11 +544,8 @@ isPtrDeclr _                                  = False
 --	  into an anonymous declarator and also change its attributes
 --
 dropPtrDeclr                                          :: CDeclr -> CDeclr
-dropPtrDeclr (CPtrDeclr qs declr@(CVarDeclr _ _) ats)  
-  | length qs == 1				       = declr
-  | otherwise					       =
-    CPtrDeclr (init qs) declr ats
-dropPtrDeclr (CPtrDeclr qs  declr                 ats) = 
+dropPtrDeclr (CPtrDeclr qs declr@(CVarDeclr _ _) ats)  = declr
+dropPtrDeclr (CPtrDeclr qs  declr                ats)  = 
   let declr' = dropPtrDeclr declr
   in
   CPtrDeclr qs declr' ats

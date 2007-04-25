@@ -1021,13 +1021,13 @@ clean_typedef_declarator
   	{% withAttrs $1 $ CPtrDeclr [] $2 }
 
   | '*' type_qualifier_list parameter_typedef_declarator
-  	{% withAttrs $1 $ CPtrDeclr [reverse $2] $3 }
+  	{% withAttrs $1 $ CPtrDeclr (reverse $2) $3 }
 
   | '*' attrs parameter_typedef_declarator
   	{% withAttrs $1 $ CPtrDeclr [] $3 }
 
   | '*' attrs type_qualifier_list parameter_typedef_declarator
-  	{% withAttrs $1 $ CPtrDeclr [reverse $3] $4 }
+  	{% withAttrs $1 $ CPtrDeclr (reverse $3) $4 }
 
 
 clean_postfix_typedef_declarator :: { CDeclr }
@@ -1047,30 +1047,30 @@ paren_typedef_declarator
 
   -- redundant paren
   | '*' '(' simple_paren_typedef_declarator ')'
-  	{% withAttrs $1 $ CPtrDeclr [[]] $3 }
+  	{% withAttrs $1 $ CPtrDeclr [] $3 }
 
   -- redundant paren
   | '*' type_qualifier_list '(' simple_paren_typedef_declarator ')'
-  	{% withAttrs $1 $ CPtrDeclr [reverse $2] $4 }
+  	{% withAttrs $1 $ CPtrDeclr (reverse $2) $4 }
 
   | '*' paren_typedef_declarator
   	{% withAttrs $1 $ CPtrDeclr [] $2 }
 
   | '*' type_qualifier_list paren_typedef_declarator
-  	{% withAttrs $1 $ CPtrDeclr [reverse $2] $3 }
+  	{% withAttrs $1 $ CPtrDeclr (reverse $2) $3 }
 
   | '*' attrs '(' simple_paren_typedef_declarator ')'
-  	{% withAttrs $1 $ CPtrDeclr [[]] $4 }
+  	{% withAttrs $1 $ CPtrDeclr [] $4 }
 
   -- redundant paren
   | '*' attrs type_qualifier_list '(' simple_paren_typedef_declarator ')'
-  	{% withAttrs $1 $ CPtrDeclr [reverse $3] $5 }
+  	{% withAttrs $1 $ CPtrDeclr (reverse $3) $5 }
 
   | '*' attrs paren_typedef_declarator
   	{% withAttrs $1 $ CPtrDeclr [] $3 }
 
   | '*' attrs type_qualifier_list paren_typedef_declarator
-  	{% withAttrs $1 $ CPtrDeclr [reverse $3] $4 }
+  	{% withAttrs $1 $ CPtrDeclr (reverse $3) $4 }
 
 
 -- redundant paren to left of tname
@@ -1110,16 +1110,16 @@ unary_identifier_declarator
   	{ $1 }
 
   | '*' identifier_declarator
-  	{% withAttrs $1 $ CPtrDeclr [[]] $2 }
+  	{% withAttrs $1 $ CPtrDeclr [] $2 }
 
   | '*' type_qualifier_list identifier_declarator
-  	{% withAttrs $1 $ CPtrDeclr [reverse $2] $3 }
+  	{% withAttrs $1 $ CPtrDeclr (reverse $2) $3 }
 
   | '*' attrs identifier_declarator
-  	{% withAttrs $1 $ CPtrDeclr [[]] $3 }
+  	{% withAttrs $1 $ CPtrDeclr [] $3 }
 
   | '*' attrs type_qualifier_list identifier_declarator
-  	{% withAttrs $1 $ CPtrDeclr [reverse $3] $4 }
+  	{% withAttrs $1 $ CPtrDeclr (reverse $3) $4 }
 
 
 postfix_identifier_declarator :: { CDeclr }
@@ -1155,10 +1155,10 @@ old_function_declarator
   	{ $1 }
 
   | '*' old_function_declarator
-  	{% withAttrs $1 $ CPtrDeclr [[]] $2 }
+  	{% withAttrs $1 $ CPtrDeclr [] $2 }
 
   | '*' type_qualifier_list old_function_declarator
-  	{% withAttrs $1 $ CPtrDeclr [reverse $2] $3 }
+  	{% withAttrs $1 $ CPtrDeclr (reverse $2) $3 }
 
 
 postfix_old_function_declarator :: { CDeclr }
@@ -1324,28 +1324,28 @@ postfix_array_abstract_declarator
 unary_abstract_declarator :: { CDeclr }
 unary_abstract_declarator
   : '*'
-  	{% withAttrs $1 $ CPtrDeclr [[]] emptyDeclr }
+  	{% withAttrs $1 $ CPtrDeclr [] emptyDeclr }
 
   | '*' type_qualifier_list
-  	{% withAttrs $1 $ CPtrDeclr [reverse $2] emptyDeclr }
+  	{% withAttrs $1 $ CPtrDeclr (reverse $2) emptyDeclr }
 
   | '*' abstract_declarator
   	{% withAttrs $1 $ CPtrDeclr [] $2 }
 
   | '*' type_qualifier_list abstract_declarator
-  	{% withAttrs $1 $ CPtrDeclr [reverse $2] $3 }
+  	{% withAttrs $1 $ CPtrDeclr (reverse $2) $3 }
 
   | '*' attrs
-  	{% withAttrs $1 $ CPtrDeclr [[]] emptyDeclr }
+  	{% withAttrs $1 $ CPtrDeclr [] emptyDeclr }
 
   | '*' attrs type_qualifier_list
-  	{% withAttrs $1 $ CPtrDeclr [reverse $3] emptyDeclr }
+  	{% withAttrs $1 $ CPtrDeclr (reverse $3) emptyDeclr }
 
   | '*' attrs abstract_declarator
   	{% withAttrs $1 $ CPtrDeclr [] $3 }
 
   | '*' attrs type_qualifier_list abstract_declarator
-  	{% withAttrs $1 $ CPtrDeclr [reverse $3] $4 }
+  	{% withAttrs $1 $ CPtrDeclr (reverse $3) $4 }
 
 
 postfix_abstract_declarator :: { CDeclr }

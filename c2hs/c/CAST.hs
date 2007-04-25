@@ -436,7 +436,7 @@ instance Eq CEnum where
 --
 data CDeclr = CVarDeclr (Maybe Ident)		-- declared identifier
 		        Attrs
-	    | CPtrDeclr [[CTypeQual]]		-- indirections (non-empty)
+	    | CPtrDeclr [CTypeQual]		-- indirections
 		        CDeclr
 		        Attrs
             | CArrDeclr CDeclr
