@@ -571,7 +571,15 @@ process headerFiles bndFile  =
       [ "#include \"" ++ headerFile ++ "\"\n"
       | headerFile <- headerFiles ]
       ++ header
-    setHeader newHeaderFile
+    --
+    -- Check if we can get away without having to keep a separate .chs.h file
+    --
+    case headerFiles of
+      [headerFile] | null header
+        -> setHeader headerFile    -- the generated .hs file will directly
+                                   -- refer to this header rather than going
+                                   -- through a one-line .chs.h file.
+      _ -> setHeader newHeaderFile
     --
     -- run C preprocessor over the header
     --
@@ -589,11 +597,16 @@ process headerFiles bndFile  =
     (cheader, warnmsgs) <- loadAttrC preprocFile
     putStrCIO warnmsgs
     --
-    -- remove the custom header and the pre-processed header
+    -- remove the pre-processed header and if we no longer need it, remove the
+    -- custom header file too.
     --
     keep <- getSwitch keepSB
-    unless keep $
+    unless keep $ do
       removeFileCIO preprocFile
+      case headerFiles of
+        [headerFile] | null header
+          -> removeFileCIO newHeaderFile
+        _ -> return () -- keep it since we'll need it to compile the .hs file
     --
     -- expand binding hooks into plain Haskell
     --
