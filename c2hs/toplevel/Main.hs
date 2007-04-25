@@ -269,11 +269,11 @@ compile  =
     setup
     cmdLine <- getArgsCIO
     case getOpt RequireOrder options cmdLine of
-      (opts     , args, []) 
-        | noCompOpts opts &&
-	  null args       -> doExecute opts []
-        | properArgs args -> doExecute opts args
-        | otherwise       -> raiseErrs [wrongNoOfArgsErr]
+      (opts, []  , [])
+        | noCompOpts opts -> doExecute opts Nothing
+      (opts, args, [])    -> case parseArgs args of
+        args@(Just _)     -> doExecute opts args
+        Nothing           -> raiseErrs [wrongNoOfArgsErr]
       (_   , _   , errs)  -> raiseErrs errs
   where
     -- These options can be used without specifying a binding module.  Then,
@@ -291,10 +291,14 @@ compile  =
         nonDataOrDir (OutDir _) = False
 	nonDataOrDir _	        = True
     --
-    properArgs [bnd]         = suffix bnd == chssuffix 
-    properArgs [header, bnd] = suffix header == hsuffix 
-			       && suffix bnd == chssuffix 
-    properArgs _             = False
+    parseArgs :: [FilePath] -> Maybe (FilePath, [FilePath])
+    parseArgs = parseArgs' [] Nothing
+      where parseArgs' hs (Just chs) []    = Just (chs, reverse hs)
+            parseArgs' hs chs@Nothing (file:files)
+                | suffix file == chssuffix = parseArgs' hs (Just file) files
+            parseArgs' hs chs (file:files)
+                | suffix file == hsuffix   = parseArgs' (file:hs) chs files
+            parseArgs' _  _   _            = Nothing
     --
     doExecute opts args = do
 			    execute opts args
@@ -302,8 +306,8 @@ compile  =
 			    exitWithCIO ExitSuccess
     --
     wrongNoOfArgsErr = 
-      "There must be exactly one binding file (suffix .chs), possibly\n\
-      \preceded by one header file (suffix .h).\n"
+      "There must be exactly one binding file (suffix .chs),\n\
+      \and optionally one or more header files (suffix .h).\n"
     --
     -- exception handler
     --
@@ -341,24 +345,20 @@ raiseErrs errs = do
 -- * actual compilation is only invoked if we have one or two extra arguments
 --   (otherwise, it is just skipped)
 --
-execute :: [Flag] -> [FilePath] -> CST s ()
+execute :: [Flag] -> Maybe (FilePath, [FilePath]) -> CST s ()
 execute opts args | Help `elem` opts = help
 		  | otherwise	     = 
   do
     let vs      = filter (== Version) opts
 	opts'   = filter (/= Version) opts
     mapM_ processOpt (atMostOne vs ++ opts')
-    if length args > 0 
-      then
-	let (headerFile, bndFile) = case args of
-				      [       bfile] -> (""   , bfile)
-				      [hfile, bfile] -> (hfile, bfile)
-	    bndFileWithoutSuffix  = stripSuffix bndFile
-	in do
+    case args of
+      Just (bndFile, headerFiles) -> do
+	let bndFileWithoutSuffix  = stripSuffix bndFile
 	computeOutputName bndFileWithoutSuffix
-	process headerFile bndFileWithoutSuffix
+	process headerFiles bndFileWithoutSuffix
 	  `fatalsHandledBy` die
-      else
+      Nothing ->
 	computeOutputName "."	-- we need the output name for library copying
     copyLibrary
       `fatalsHandledBy` die
@@ -545,8 +545,8 @@ setHeader fname  = setSwitch $ \sb -> sb {headerSB = fname}
 --
 -- * the binding file name has been stripped of the .chs suffix
 --
-process                    :: FilePath -> FilePath -> CST s ()
-process headerFile bndFile  =
+process                    :: [FilePath] -> FilePath -> CST s ()
+process headerFiles bndFile  =
   do
     -- load the Haskell binding module
     --
@@ -567,11 +567,10 @@ process headerFile bndFile  =
     outFName <- getSwitch outputSB
     let newHeaderFile = outFName ++ chssuffix ++ hsuffix
 	preprocFile   = basename newHeaderFile ++ isuffix
-    newHeader <- openFileCIO newHeaderFile WriteMode
-    unless (null headerFile) $
-      hPutStrLnCIO newHeader $ "#include \"" ++ headerFile ++ "\""
-    mapM (hPutStrCIO newHeader) header
-    hCloseCIO newHeader
+    writeFileCIO newHeaderFile $ concat $
+      [ "#include \"" ++ headerFile ++ "\"\n"
+      | headerFile <- headerFiles ]
+      ++ header
     setHeader newHeaderFile
     --
     -- run C preprocessor over the header
