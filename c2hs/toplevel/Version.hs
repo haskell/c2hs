@@ -1,4 +1,4 @@
-module Version (version, copyright, disclaimer)		       -- -*-haskell-*-
+module Version (versnum, version, copyright, disclaimer)	       -- -*-haskell-*-
 where
 
 import qualified Paths_c2hs (version)

@@ -108,7 +108,7 @@
 --
 --  -v,
 --  --version
---        Print (on standard error output) the version and copyright
+--        Print (on standard output) the version and copyright
 --	  information of the compiler (before doing anything else).
 --
 --- TODO ----------------------------------------------------------------------
@@ -118,7 +118,7 @@ module Main (main)
 where
 
 -- standard libraries
-import List	  (isPrefixOf, intersperse)
+import List	  (isPrefixOf, intersperse, partition)
 import IO	  ()
 import Monad      (when, unless, mapM)
 
@@ -143,7 +143,7 @@ import C	  (AttrC, hsuffix, isuffix, loadAttrC)
 import CHS	  (CHSModule, loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
 import GenHeader  (genHeader)
 import GenBind	  (expandHooks)
-import Version    (version, copyright, disclaimer)
+import Version    (versnum, version, copyright, disclaimer)
 import C2HSConfig (cpp, cppopts, libfname, PlatformSpec(..),
 		   defaultPlatformSpec, platformSpecDB)
 import Paths_c2hs (getDataDir)
@@ -190,7 +190,8 @@ data Flag = CPPOpts  String     -- additional options for C preprocessor
 	  | Output   String     -- file where the generated file should go
 	  | Platform String     -- target platform to generate code for
 	  | OutDir   String     -- directory where generates files should go
-	  | Version	        -- print version information on stderr
+	  | Version	        -- print version information on stdout
+	  | NumericVersion      -- print numeric version on stdout
 	  | Error    String     -- error occured during processing of options
 	  deriving Eq
 
@@ -247,7 +248,11 @@ options  = [
   Option ['v'] 
 	 ["version"] 
 	 (NoArg Version) 
-	 "show version information"]
+	 "show version information",
+  Option []
+	 ["numeric-version"]
+	 (NoArg NumericVersion)
+	 "show version number"]
 
 -- convert argument of `Dump' option
 --
@@ -281,7 +286,7 @@ compile  =
     -- place.  (There can be --data and --output-dir (-t) options in addition
     -- to the action.)
     --
-    aloneOptions = [Help, Version, Library]
+    aloneOptions = [Help, Version, NumericVersion, Library]
     --
     noCompOpts opts = let nonDataOpts = filter nonDataOrDir opts
 		      in
@@ -349,8 +354,8 @@ execute :: [Flag] -> Maybe (FilePath, [FilePath]) -> CST s ()
 execute opts args | Help `elem` opts = help
 		  | otherwise	     = 
   do
-    let vs      = filter (== Version) opts
-	opts'   = filter (/= Version) opts
+    let (vs,opts') = partition (\opt -> opt == Version
+                                     || opt == NumericVersion) opts
     mapM_ processOpt (atMostOne vs ++ opts')
     case args of
       Just (bndFile, headerFiles) -> do
@@ -404,6 +409,7 @@ processOpt Version            = do
 				  platform <- getSwitch platformSB
 				  putStrCIO "  build platform is "
 				  printCIO platform
+processOpt NumericVersion     = putStrLnCIO versnum
 processOpt (Error    msg    ) = abort msg
 
 -- emit error message and raise an error
