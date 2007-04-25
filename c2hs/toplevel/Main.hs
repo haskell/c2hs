@@ -565,7 +565,7 @@ process headerFile bndFile  =
     -- CPP and inline-C of .chs file into the new header
     --
     outFName <- getSwitch outputSB
-    let newHeaderFile = outFName ++ hsuffix
+    let newHeaderFile = outFName ++ chssuffix ++ hsuffix
 	preprocFile   = basename newHeaderFile ++ isuffix
     newHeader <- openFileCIO newHeaderFile WriteMode
     unless (null headerFile) $
