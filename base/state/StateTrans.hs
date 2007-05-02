@@ -77,18 +77,13 @@ module StateTrans (-- the monad and the generic operations
 		   -- mutable variables and arrays
 		   --
 		   MVar, newMV, readMV, assignMV)
-		   -- Not used in c2hs:
-		   -- MArr, newMA, readMA, writeMA, boundsMA)
 where
 
--- standard libraries
 import Monad      (liftM)
 import System.IO  (fixIO)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 
--- CTK libraries
 import Errors (interr)
-
 
 infixr 1 +>=, +>
 
@@ -352,7 +347,6 @@ fatalsHandledBy m handler  =
 -- ------------------------------------------------------------------
 
 type MVar a   = IORef a
--- type MArr i a = IOArray i a  -- not used in c2hs
 
 newMV   :: a -> STB bs gs (MVar a)
 newMV x  = liftIO (newIORef x)

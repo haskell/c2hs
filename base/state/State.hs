@@ -43,9 +43,8 @@ module State (-- the PreCST monad
 	      nop, yield, (+>=), (+>), fixCST,             -- reexport
 	      throwExc, fatal, catchExc, fatalsHandledBy,  -- reexport lifted
 	      readCST, writeCST, transCST, run, runCST, 
-	      StateTrans.MVar, {-StateTrans.MArr, -}		   -- reexport
-	      newMV, readMV, assignMV, {-newMA, readMA,	   -- reexport lifted
-	      writeMA, StateTrans.boundsMA, -}		   -- reexport lifted
+	      StateTrans.MVar, 				   -- reexport
+	      newMV, readMV, assignMV,			   -- reexport lifted
 	      --
 	      -- reexport compiler I/O
 	      --
@@ -197,18 +196,6 @@ readMV  = CST . StateTrans.readMV
 
 assignMV     :: StateTrans.MVar a -> a -> PreCST e s ()
 assignMV m a  = CST $ StateTrans.assignMV m a
-
-{- not used in c2hs:
-newMA     :: Ix i => (i, i) -> a -> PreCST e s (StateTrans.MArr i a)
-newMA b a  = CST $ StateTrans.newMA b a
-
-readMA      :: Ix i => StateTrans.MArr i a -> i -> PreCST e s a
-readMA  m i  = CST $ StateTrans.readMA m i
-
-writeMA       :: Ix i => StateTrans.MArr i a -> i -> a -> PreCST e s ()
-writeMA m i a  = CST $ StateTrans.writeMA m i a
- -}
-
 
 -- read identification
 -- -------------------
