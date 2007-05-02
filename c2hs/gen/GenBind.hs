@@ -776,8 +776,8 @@ callImportDyn hook isPure isUns ideLexeme hsLexeme ty pos =
 --
 foreignImport :: String -> String -> String -> Bool -> ExtType -> String
 foreignImport header ident hsIdent isUnsafe ty  =
-  "foreign import ccall " ++ safety ++ " \"" ++ header ++ " " ++ ident ++ 
-  "\"\n  " ++ hsIdent ++ " :: " ++ showExtType ty ++ "\n"
+  "foreign import ccall " ++ safety ++ " " ++ show (header ++ " " ++ ident) ++
+  "\n  " ++ hsIdent ++ " :: " ++ showExtType ty ++ "\n"
   where
     safety = if isUnsafe then "unsafe" else "safe"
 
