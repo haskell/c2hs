@@ -69,7 +69,6 @@ import Ix
 import Monad       (when)
 import List        (sort)
 
-import Config	   (errorLimit)
 import Position    (Position)
 import UNames      (NameSupply,
 	            rootSupply, splitSupply)
@@ -255,6 +254,8 @@ raise0 err  = do
 		  fatal ("Error limit of " ++ show errorLimit 
 			 ++ " errors has been reached.\n" ++ errmsgs)
   where
+    errorLimit = 20
+
     doRaise    :: BaseState e -> (BaseState e, Int)
     doRaise bs  = let
 		    lvl			       = errorLvl err
