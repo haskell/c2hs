@@ -81,8 +81,6 @@ import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 
 import Errors (interr)
 
-infixr 1 +>=, +>
-
 
 -- BEWARE! You enter monad country. Read any of Wadler's or 
 -- Launchbury/Peyton-Jones' texts before entering. Otherwise,
@@ -111,7 +109,6 @@ newtype STB bs gs a = STB (bs -> gs -> IO (bs, gs, Either (String, String) a))
 instance Monad (STB bs gs) where
   return = yield
   (>>=)  = (+>=)
-  (>>)   = (+>)
 
 -- the monad's unit
 --
@@ -133,11 +130,6 @@ m +>= k  = let
 				      STB k' = k a
 				    in
 				    k' bs' gs'                   -- cont
-
--- bind dropping the result of the first state transfomer
---
-(+>)   :: STB bs gs a -> STB bs gs b -> STB bs gs b
-k +> m  = k +>= const m
 
 
 -- generic state manipulation

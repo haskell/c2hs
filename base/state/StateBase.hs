@@ -41,7 +41,6 @@
 --
 --  * The following state components are maintained:
 --
---    + idBS (triple of strings)        -- version, copyright, and disclaimer
 --    + errorsBS (type `ErrorState')    -- keeps track of raised errors 
 --    + namesBS (type `NameSupply')     -- provides unique names
 --    + extraBS (generic type)		-- extra compiler-dependent state 
@@ -63,9 +62,6 @@ import StateTrans (STB,
 import qualified  
        StateTrans (liftIO)
 import Errors     (ErrorLvl(..), Error)
-
-
-infixr 1 +>=, +>
 
 
 -- state used in the whole compiler
@@ -95,7 +91,6 @@ newtype PreCST e s a = CST (STB (BaseState e) s a)
 instance Monad (PreCST e s) where
   return = yield
   (>>=)  = (+>=)
-  (>>)   = (+>)
 
 
 -- unwrapper coercion function (EXPORTED)
@@ -116,16 +111,6 @@ yield a  = CST $ return a
 --
 (+>=)   :: PreCST e s a -> (a -> PreCST e s b) -> PreCST e s b
 m +>= k  = CST $ unpackCST m >>= (\a -> unpackCST (k a))
-
--- bind dropping the result of the first state transfomer
---
-(+>)   :: PreCST e s a -> PreCST e s b -> PreCST e s b
-k +> m  = k +>= const m
-
--- unit with no result
---
-nop :: PreCST e s ()
-nop  = yield ()
 
 
 -- generic state manipulation
