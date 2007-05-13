@@ -72,11 +72,7 @@ module StateTrans (-- the monad and the generic operations
 		   --
 		   -- exception handling and fatal errors
 		   --
-		   throwExc, fatal, catchExc, fatalsHandledBy, 
-		   --
-		   -- mutable variables and arrays
-		   --
-		   MVar, newMV, readMV, assignMV)
+		   throwExc, fatal, catchExc, fatalsHandledBy)
 where
 
 import Monad      (liftM)
@@ -341,18 +337,3 @@ fatalsHandledBy m handler  =
 			       STB handler' = handler err
 			     in
 			     handler' bs gs)
-
-
--- list mutable variables and arrays stuff into `STB'; all (EXPORTED)
--- ------------------------------------------------------------------
-
-type MVar a   = IORef a
-
-newMV   :: a -> STB bs gs (MVar a)
-newMV x  = liftIO (newIORef x)
-
-readMV    :: MVar a -> STB bs gs a
-readMV mv  = liftIO (readIORef mv)
-
-assignMV      :: MVar a -> a -> STB bs gs ()
-assignMV mv x  = liftIO (writeIORef mv x)

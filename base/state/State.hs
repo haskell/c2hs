@@ -43,8 +43,6 @@ module State (-- the PreCST monad
 	      nop, yield, (+>=), (+>), fixCST,             -- reexport
 	      throwExc, fatal, catchExc, fatalsHandledBy,  -- reexport lifted
 	      readCST, writeCST, transCST, run, runCST, 
-	      StateTrans.MVar, 				   -- reexport
-	      newMV, readMV, assignMV,			   -- reexport lifted
 	      --
 	      -- reexport compiler I/O
 	      --
@@ -75,8 +73,7 @@ import UNames      (NameSupply,
 import StateTrans  (STB,
 		    readBase, transBase, runSTB)
 import qualified
-       StateTrans  (interleave, throwExc, fatal, catchExc, fatalsHandledBy, 
-		    MVar, newMV, readMV, assignMV)
+       StateTrans  (interleave, throwExc, fatal, catchExc, fatalsHandledBy)
 import StateBase   (PreCST(..), ErrorState(..), BaseState(..),
 		    nop, yield, (+>=), (+>), fixCST,
 		    unpackCST, readCST, writeCST, transCST,
@@ -173,21 +170,6 @@ fatalsHandledBy m h  = CST $ StateTrans.fatalsHandledBy m' h'
 		       where
 		         m' = unpackCST m
 			 h' = unpackCST . h
-
--- mutable variables
--- -----------------
-
--- lifted mutable variable functions (EXPORTED)
---
-
-newMV :: a -> PreCST e s (StateTrans.MVar a)
-newMV  = CST . StateTrans.newMV
-
-readMV :: StateTrans.MVar a -> PreCST e s a
-readMV  = CST . StateTrans.readMV
-
-assignMV     :: StateTrans.MVar a -> a -> PreCST e s ()
-assignMV m a  = CST $ StateTrans.assignMV m a
 
 
 -- manipulating the error state
