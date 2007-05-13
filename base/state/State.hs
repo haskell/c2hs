@@ -51,10 +51,6 @@ module State (-- the PreCST monad
 	      module CIO,
 	      liftIO,
 	      --
-	      -- identification
-	      --
-	      getId,
-	      --
 	      -- error management
 	      --
 	      raise, raiseWarning, raiseError, raiseFatal, showErrors,
@@ -73,7 +69,6 @@ import Ix
 import Monad       (when)
 import List        (sort)
 
-import BaseVersion (version, copyright, disclaimer)
 import Config	   (errorLimit)
 import Position    (Position)
 import UNames      (NameSupply,
@@ -98,10 +93,8 @@ import Errors      (ErrorLvl(..), Error, makeError, errorLvl, showError)
 --
 -- * it gets the version information and the initial extra state as arguments
 --
-initialBaseState        :: (String, String, String) -> e -> BaseState e
-initialBaseState vcd es  = BaseState {
-		             idTKBS     = (version, copyright, disclaimer),
-			     idBS       = vcd,
+initialBaseState   :: e -> BaseState e
+initialBaseState es = BaseState {
 			     errorsBS   = initialErrorState, 
 			     suppliesBS = splitSupply rootSupply,
 			     extraBS    = es
@@ -117,8 +110,8 @@ initialBaseState vcd es  = BaseState {
 -- * fatals errors are explicitly caught and reported (instead of letting them
 --   through to the runtime system)
 --
-run            :: (String, String, String) -> e -> PreCST e () a -> IO a
-run vcd es cst  = runSTB m (initialBaseState vcd es) ()
+run       :: e -> PreCST e () a -> IO a
+run es cst = runSTB m (initialBaseState es) ()
   where
     m = unpackCST (
 	  cst
@@ -196,15 +189,6 @@ readMV  = CST . StateTrans.readMV
 
 assignMV     :: StateTrans.MVar a -> a -> PreCST e s ()
 assignMV m a  = CST $ StateTrans.assignMV m a
-
--- read identification
--- -------------------
-
--- read identification information (EXPORT)
---
-getId :: PreCST e s (String, String, String)
-getId  = CST $ 
-         readBase (idBS)
 
 
 -- manipulating the error state

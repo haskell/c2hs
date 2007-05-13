@@ -68,8 +68,8 @@ type CST s a = PreCST SwitchBoard s a
 
 -- execution of c2hs starts with the initial `SwitchBoard'
 --
-runC2HS     :: (String, String, String) -> CST () a -> IO a
-runC2HS vcd  = run vcd initialSwitchBoard
+runC2HS :: CST () a -> IO a
+runC2HS  = run initialSwitchBoard
 
 
 -- switch management

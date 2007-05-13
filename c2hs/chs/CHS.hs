@@ -100,6 +100,8 @@ import Char	 (isSpace, toUpper, toLower)
 import List	 (intersperse)
 import Monad	 (when)
 import System.FilePath ((<.>), (</>))
+import Data.Version (Version(..), showVersion, parseVersion)
+import Text.ParserCombinators.ReadP (readP_to_S)
 
 -- Compiler Toolkit
 import Position  (Position(..), Pos(posOf), nopos, isBuiltinPos)
@@ -107,9 +109,10 @@ import Errors	 (interr)
 import Idents    (Ident, identToLexeme, onlyPosIdent)
 
 -- C->Haskell
-import C2HSState (CST, doesFileExistCIO, readFileCIO, writeFileCIO, getId, 
+import C2HSState (CST, doesFileExistCIO, readFileCIO, writeFileCIO,
 		  getSwitch, chiPathSB, catchExc, throwExc, raiseError, 
 		  fatal, errorsPresent, showErrors, Traces(..), putTraceStr) 
+import Version    (versnum, version)
 
 -- friends
 import CHSLexer  (CHSToken(..), lexCHS)
@@ -388,7 +391,6 @@ dumpCHS fname mod pureHaskell  =
     let (suffix, kind) = if pureHaskell
 			 then (hssuffix , "(Haskell)")
 			 else (chssuffix, "(C->HS binding)")
-    (version, _, _) <- getId
     writeFileCIO (fname <.> suffix) (contents version kind)
   where
     contents version kind = 
@@ -656,7 +658,6 @@ loadCHI fname  = do
 				       Nothing     -> errorCHICorrupt fname
 				       Just majMin -> return majMin
 		     
-		   (version, _, _) <- getId
 		   let Just (myMajor, myMinor) = majorMinor version
 		   when (major /= myMajor || minor /= myMinor) $
 		     errorCHIVersion fname 
@@ -690,7 +691,6 @@ loadCHI fname  = do
 dumpCHI                :: String -> String -> CST s ()
 dumpCHI fname contents  =
   do
-    (version, _, _) <- getId
     writeFileCIO (fname <.> chisuffix) $
       versionPrefix ++ version ++ "\n" ++ contents
 

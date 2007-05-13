@@ -121,6 +121,7 @@ where
 import List	  (isPrefixOf, intersperse, partition)
 import IO	  ()
 import Monad      (when, unless, mapM)
+import Data.Version (showVersion)
 
 -- base libraries
 import System.Console.GetOpt     
@@ -132,7 +133,7 @@ import Errors	  (interr)
 import StateBase  (liftIO)
 
 -- c2hs modules
-import C2HSState  (CST, nop, runC2HS, fatal, fatalsHandledBy, getId,
+import C2HSState  (CST, nop, runC2HS, fatal, fatalsHandledBy,
 		   ExitCode(..), stderr, IOMode(..), putStrCIO, putStrLnCIO,
 		   hPutStrCIO, printCIO,
 		   hPutStrLnCIO, exitWithCIO, getArgsCIO, getProgNameCIO,
@@ -155,7 +156,7 @@ import Paths_c2hs (getDataDir)
 -- ============================
 
 main :: IO ()
-main  = runC2HS (version, copyright, disclaimer) compile
+main  = runC2HS compile
 
 
 -- option handling
@@ -164,8 +165,8 @@ main  = runC2HS (version, copyright, disclaimer) compile
 -- header is output in case of help, before the descriptions of the options;
 -- errTrailer is output after an error message
 --
-header :: String -> String -> String -> String
-header version copyright disclaimer  = 
+header :: String
+header =
   version ++ "\n" ++ copyright ++ "\n" ++ disclaimer
   ++ "\n\nUsage: c2hs [ option... ] [header-file] binding-file\n"
 
@@ -385,8 +386,7 @@ execute opts args | Help `elem` opts = help
 help :: CST s ()
 help = 
   do
-    (version, copyright, disclaimer) <- getId
-    putStrCIO (usageInfo (header version copyright disclaimer) options)
+    putStrCIO (usageInfo header options)
     putStrCIO trailer
     putStrCIO $ "PLATFORM can be " ++ hosts ++ "\n"
     putStrCIO $ "  (default is " ++ identPS defaultPlatformSpec ++ ")\n"
@@ -408,12 +408,11 @@ processOpt (Output   fname  ) = setOutput   fname
 processOpt (Platform fname  ) = setPlatform fname
 processOpt (OutDir   fname  ) = setOutDir   fname
 processOpt Version            = do
-			          (version, _, _) <- getId 
 			          putStrLnCIO version
 				  platform <- getSwitch platformSB
 				  putStrCIO "  build platform is "
 				  printCIO platform
-processOpt NumericVersion     = putStrLnCIO versnum
+processOpt NumericVersion     = putStrLnCIO (showVersion versnum)
 processOpt (Error    msg    ) = abort msg
 
 -- emit error message and raise an error

@@ -83,8 +83,6 @@ data ErrorState = ErrorState ErrorLvl    -- worst error level that was raised
 -- base state (EXPORTED)
 --
 data BaseState e = BaseState {
-		     idTKBS     :: (String, String, String),  -- toolkit id
-		     idBS       :: (String, String, String),  -- compiler id
 		     errorsBS   :: ErrorState, 
 		     suppliesBS :: [NameSupply],
 		     extraBS    :: e			      -- extra state
