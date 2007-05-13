@@ -63,7 +63,7 @@
 
 module StateTrans (-- the monad and the generic operations
 		   --
-		   STB, fixSTB,
+		   STB,
 		   --
 		   -- monad specific operations
 		   --
@@ -138,26 +138,6 @@ m +>= k  = let
 --
 (+>)   :: STB bs gs a -> STB bs gs b -> STB bs gs b
 k +> m  = k +>= const m
-
--- fixpoint combinator in the monad
---
-fixSTB   :: (a -> STB bs gs a) -> STB bs gs a
---
--- builds on the fixpoint combinator embedded within the IO monad; the
--- future overall result wrapped into a closure with the function extracting
--- the user-level result component is used to build the cycle
---
-fixSTB m  = STB $ \bs gs 
-		  -> fixIO (\future -> let 
-					 STB m' = m (extractResult future) 
-				       in 
-				       m' bs gs)
-            where
-	      extractResult (_, _, Right r) = r
-	      extractResult (_, _, Left _ ) = interr "StateTrans: fixSTB: \
-						     \Tried to access result \
-						     \of unsuccessful \
-						     \recursive computation!"
 
 
 -- generic state manipulation

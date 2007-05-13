@@ -52,14 +52,14 @@
 --
 
 module StateBase (PreCST(..), ErrorState(..), BaseState(..),
-		  nop, yield, (+>=), (+>), fixCST,
+		  nop, yield, (+>=), (+>),
 		  unpackCST, readCST, writeCST, transCST, liftIO)
 where
 
 import Position   (Position)
 import UNames     (NameSupply)
 import StateTrans (STB, 
-		   fixSTB, readGeneric, writeGeneric, transGeneric, readBase,
+		   readGeneric, writeGeneric, transGeneric, readBase,
 		   transBase)
 import qualified  
        StateTrans (liftIO)
@@ -127,11 +127,6 @@ k +> m  = k +>= const m
 --
 nop :: PreCST e s ()
 nop  = yield ()
-
--- fixpoint combinator in the monad (EXPORTED)
---
-fixCST   :: (a -> PreCST e s a) -> PreCST e s a
-fixCST m  = CST $ fixSTB (unpackCST . m)
 
 
 -- generic state manipulation
