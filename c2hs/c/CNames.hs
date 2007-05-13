@@ -42,7 +42,7 @@ import Monad	 (mapM_)
 import Position  (Position, posOf)
 import Idents	 (Ident, identToLexeme)
 
-import C2HSState (CST, nop)
+import C2HSState (CST)
 import CAST
 import CAttrs    (AttrC, CObj(..), CTag(..), CDef(..))
 import CBuiltin  (builtinTypeNames)
@@ -82,7 +82,7 @@ naCHeader  = do
 	       -- analyse the header
 	       --
 	       CHeader decls _ <- getCHeaderCT
-	       mapM_ (\decl -> naCExtDecl decl `ifCTExc` nop) decls
+	       mapM_ (\decl -> naCExtDecl decl `ifCTExc` return ()) decls
 
 -- Processing of toplevel declarations
 --
@@ -110,7 +110,7 @@ naCDecl decl@(CDecl specs decls _) =
 
 naCDeclSpec :: CDeclSpec -> NA ()
 naCDeclSpec (CTypeSpec tspec) = naCTypeSpec tspec
-naCDeclSpec _		      = nop
+naCDeclSpec _		      = return ()
 
 naCTypeSpec :: CTypeSpec -> NA ()
 naCTypeSpec (CSUType   su   _) = naCStructUnion (StructUnionCT su) su
@@ -118,7 +118,7 @@ naCTypeSpec (CEnumType enum _) = naCEnum (EnumCT enum) enum
 naCTypeSpec (CTypeDef  ide  _) = do
 				   (obj, _) <- findTypeObj ide False
 				   ide `refersToDef` ObjCD obj
-naCTypeSpec _		       = nop
+naCTypeSpec _		       = return ()
 
 naCStructUnion :: CTag -> CStructUnion -> NA ()
 naCStructUnion tag (CStruct _ oide decls _) =
@@ -176,7 +176,7 @@ naCExpr (CMember      expr ide _       _) = naCExpr expr
 naCExpr (CVar	      ide	       _) = do
 					     (obj, _) <- findValueObj ide False
 					     ide `refersToDef` ObjCD obj
-naCExpr (CConst	      _		       _) = nop
+naCExpr (CConst	      _		       _) = return ()
 naCExpr (CCompoundLit _ inits          _) = mapM_ (naCInit . snd) inits
 
 
@@ -189,7 +189,7 @@ defTagOrErr           :: Ident -> CTag -> NA ()
 ide `defTagOrErr` tag  = do
 			   otag <- ide `defTag` tag
 			   case otag of
-			     Nothing   -> nop
+			     Nothing   -> return ()
 			     Just tag' -> declaredTwiceErr ide (posOf tag')
 
 -- associate an object with a referring identifier
@@ -198,7 +198,7 @@ ide `defTagOrErr` tag  = do
 --   consistency of the declarations should be checked
 --
 defObjOrErr           :: Ident -> CObj -> NA ()
-ide `defObjOrErr` obj  = ide `defObj` obj >> nop
+ide `defObjOrErr` obj  = ide `defObj` obj >> return ()
 
 -- maps some monad operation into a `Maybe', discarding the result
 --

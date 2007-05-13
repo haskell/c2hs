@@ -90,7 +90,7 @@ import Errors	  (interr)
 import Idents	  (Ident, dumpIdent, identToLexeme)
 import Attributes (Attr(..), newAttrsOnlyPos)
 
-import C2HSState  (CST, nop, readCST, transCST, runCST, raiseError, catchExc,
+import C2HSState  (CST, readCST, transCST, runCST, raiseError, catchExc,
 		   throwExc, Traces(..), putTraceStr)
 import CAST
 import CAttrs     (AttrC, getCHeader, enterNewRangeC, enterNewObjRangeC,
@@ -841,7 +841,7 @@ assertFunDeclr :: Position -> CDeclr -> CT s ()
 assertFunDeclr pos (CArrDeclr (CFunDeclr (CVarDeclr _ _) _ _ _) _ _ _) =
   illegalFunResultErr pos
 assertFunDeclr pos            (CFunDeclr (CVarDeclr _ _) _ _ _)        =
-  nop -- everything is ok
+  return () -- everything is ok
 assertFunDeclr pos            (CFunDeclr declr           _ _ _)        =
   assertFunDeclr pos declr
 assertFunDeclr pos            (CPtrDeclr _ declr             _)        =
@@ -856,7 +856,7 @@ assertFunDeclr pos _					             =
 --
 assertIfEnumThenFull                          :: CTag -> CT s ()
 assertIfEnumThenFull (EnumCT (CEnum _ [] at))  = enumForwardErr (posOf at)
-assertIfEnumThenFull _			       = nop
+assertIfEnumThenFull _			       = return ()
 
 -- trace for this module
 --

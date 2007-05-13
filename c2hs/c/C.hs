@@ -71,7 +71,7 @@ import Idents	  (Ident, lexemeToIdent)
 import Attributes (Attrs, Attr(..))
 
 import C2HSState  (CST, IOMode(..),
-		   readCST, transCST, runCST, nop,
+		   readCST, transCST, runCST,
 		   readFileCIO, writeFileCIO, openFileCIO, hCloseCIO,
 		   fatal, errorsPresent, showErrors,
 		   Traces(..), putTraceStr)

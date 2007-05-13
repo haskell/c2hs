@@ -119,7 +119,7 @@ import Attributes (newAttrsOnlyPos)
 
 -- C->Haskell
 import C2HSConfig (PlatformSpec(..))
-import C2HSState  (CST, nop, errorsPresent, showErrors, fatal,
+import C2HSState  (CST, errorsPresent, showErrors, fatal,
 		   SwitchBoard(..), Traces(..), putTraceStr, getSwitch,
 		   printCIO)
 import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
@@ -1057,7 +1057,7 @@ accessPath (CHSRef path ide) =				-- a.m
   where
     assertPrimDeclr ide (CDecl _ [declr] _) =
       case declr of
-        (Just (CVarDeclr _ _), _, _) -> nop
+        (Just (CVarDeclr _ _), _, _) -> return ()
 	_			     -> structExpectedErr ide
 accessPath (CHSDeref path pos) =			-- *a
   do

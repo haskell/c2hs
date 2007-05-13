@@ -52,7 +52,6 @@
 --
 
 module StateBase (PreCST(..), ErrorState(..), BaseState(..),
-		  nop, yield, (+>=), (+>),
 		  unpackCST, readCST, writeCST, transCST, liftIO)
 where
 

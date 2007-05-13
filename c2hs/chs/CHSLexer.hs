@@ -184,7 +184,7 @@ import Lexers    (Regexp, Lexer, Action, epsilon, char, (+>), lexaction,
 		  lexactionErr, lexmeta, (>|<), (>||<), ctrlLexer, star, plus,
 		  quest, alt, string, LexerState, execLexer)
 
-import C2HSState (CST, raise, raiseError, nop, getNameSupply) 
+import C2HSState (CST, raise, raiseError, getNameSupply) 
 
 
 -- token definition
@@ -423,7 +423,7 @@ assertFinalState pos CHSLS {nestLvl = nestLvl, inHook = inHook}
 				  "Unclosed nested comment."]
   | inHook      = raiseError pos ["Unexpected end of file!",
 				  "Unclosed binding hook."]
-  | otherwise   = nop
+  | otherwise   = return ()
 
 -- lexer and action type used throughout this specification
 --

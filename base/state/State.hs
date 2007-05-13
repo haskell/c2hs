@@ -40,7 +40,6 @@
 module State (-- the PreCST monad
 	      --
 	      PreCST,					   -- reexport ABSTRACT
-	      nop, yield, (+>=), (+>),                     -- reexport
 	      throwExc, fatal, catchExc, fatalsHandledBy,  -- reexport lifted
 	      readCST, writeCST, transCST, run, runCST, 
 	      --
@@ -75,7 +74,6 @@ import StateTrans  (STB,
 import qualified
        StateTrans  (interleave, throwExc, fatal, catchExc, fatalsHandledBy)
 import StateBase   (PreCST(..), ErrorState(..), BaseState(..),
-		    nop, yield, (+>=), (+>),
 		    unpackCST, readCST, writeCST, transCST,
 		    liftIO)
 import CIO

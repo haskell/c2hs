@@ -133,7 +133,7 @@ import Errors	  (interr)
 import StateBase  (liftIO)
 
 -- c2hs modules
-import C2HSState  (CST, nop, runC2HS, fatal, fatalsHandledBy,
+import C2HSState  (CST, runC2HS, fatal, fatalsHandledBy,
 		   ExitCode(..), stderr, IOMode(..), putStrCIO, putStrLnCIO,
 		   hPutStrCIO, printCIO,
 		   hPutStrLnCIO, exitWithCIO, getArgsCIO, getProgNameCIO,
@@ -599,7 +599,7 @@ process headerFiles bndFile  =
     exitCode <- systemCIO cmd
     case exitCode of 
       ExitFailure _ -> fatal "Error during preprocessing custom header file"
-      _		    -> nop
+      _		    -> return ()
     --
     -- load and analyse the C header file
     --
