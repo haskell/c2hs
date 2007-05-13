@@ -125,7 +125,9 @@ import Monad      (when, unless, mapM)
 -- base libraries
 import System.Console.GetOpt     
 		  (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo, getOpt)
-import FNameOps   (suffix, basename, dirname, stripSuffix, addPath)
+import qualified System.FilePath as FilePath 
+                  (takeExtension, dropExtension, takeDirectory, takeBaseName)
+import System.FilePath ((<.>), (</>))
 import Errors	  (interr)
 import StateBase  (liftIO)
 
@@ -300,9 +302,11 @@ compile  =
     parseArgs = parseArgs' [] Nothing
       where parseArgs' hs (Just chs) []    = Just (chs, reverse hs)
             parseArgs' hs chs@Nothing (file:files)
-                | suffix file == chssuffix = parseArgs' hs (Just file) files
+                | FilePath.takeExtension file == '.':chssuffix
+                                           = parseArgs' hs (Just file) files
             parseArgs' hs chs (file:files)
-                | suffix file == hsuffix   = parseArgs' (file:hs) chs files
+                | FilePath.takeExtension file == '.':hsuffix
+                                           = parseArgs' (file:hs) chs files
             parseArgs' _  _   _            = Nothing
     --
     doExecute opts args = do
@@ -359,7 +363,7 @@ execute opts args | Help `elem` opts = help
     mapM_ processOpt (atMostOne vs ++ opts')
     case args of
       Just (bndFile, headerFiles) -> do
-	let bndFileWithoutSuffix  = stripSuffix bndFile
+	let bndFileWithoutSuffix  = FilePath.dropExtension bndFile
 	computeOutputName bndFileWithoutSuffix
 	process headerFiles bndFileWithoutSuffix
 	  `fatalsHandledBy` die
@@ -430,13 +434,13 @@ computeOutputName bndFileNoSuffix =
   do
     output <- getSwitch outputSB
     outDir <- getSwitch outDirSB
-    let dir  = if      null outDir && null output then dirname bndFileNoSuffix
-	       else if null outDir		  then dirname output
+    let dir  = if      null outDir && null output then FilePath.takeDirectory bndFileNoSuffix
+	       else if null outDir		  then FilePath.takeDirectory output
 	       else				       outDir
-    let base = if null output then basename bndFileNoSuffix
-	       else                basename output
+    let base = if null output then FilePath.takeBaseName bndFileNoSuffix
+	       else                FilePath.takeBaseName output
     setSwitch $ \sb -> sb {
-		         outputSB = dir `addPath` base,
+		         outputSB = dir </> base,
 			 outDirSB = dir
 		       }
 
@@ -447,8 +451,8 @@ copyLibrary =
     outdir  <- getSwitch outDirSB
     library <- getSwitch librarySB
     datadir <- liftIO getDataDir
-    let libFullName = datadir `addPath` libfname
-	libDestName = outdir  `addPath` libfname
+    let libFullName = datadir </> libfname
+	libDestName = outdir  </> libfname
     when library $
       readFileCIO libFullName >>= writeFileCIO libDestName
 
@@ -515,9 +519,9 @@ setInclude str = do
 --
 setOutput       :: FilePath -> CST s ()
 setOutput fname  = do
-		     when (suffix fname /= hssuffix) $
+		     when (FilePath.takeExtension fname /= '.':hssuffix) $
 		       raiseErrs ["Output file should end in .hs!\n"]
-		     setSwitch $ \sb -> sb {outputSB = stripSuffix fname}
+		     setSwitch $ \sb -> sb {outputSB = FilePath.dropExtension fname}
 
 -- set platform
 --
@@ -571,8 +575,8 @@ process headerFiles bndFile  =
     -- CPP and inline-C of .chs file into the new header
     --
     outFName <- getSwitch outputSB
-    let newHeaderFile = outFName ++ chssuffix ++ hsuffix
-	preprocFile   = basename newHeaderFile ++ isuffix
+    let newHeaderFile = outFName <.> chssuffix <.> hsuffix
+	preprocFile   = FilePath.takeBaseName newHeaderFile <.> isuffix
     writeFileCIO newHeaderFile $ concat $
       [ "#include \"" ++ headerFile ++ "\"\n"
       | headerFile <- headerFiles ]
@@ -634,4 +638,4 @@ process headerFiles bndFile  =
 					 ++ "'...\n")
 			      dumpCHS chsName mod False)
 
-    chsName = basename bndFile ++ ".dump"
+    chsName = FilePath.takeBaseName bndFile <.> "dump"

@@ -88,9 +88,9 @@ import CTrav
 -- suffix for files containing C (EXPORTED)
 --
 csuffix, hsuffix, isuffix :: String
-csuffix  = ".c"
-hsuffix  = ".h"
-isuffix  = ".i"
+csuffix  = "c"
+hsuffix  = "h"
+isuffix  = "i"
 
 -- given a file name (with suffix), parse that file as a C header and do the
 -- static analysis (collect defined names) (EXPORTED)
