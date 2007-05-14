@@ -66,13 +66,11 @@
 
 module CLexer (lexC, parseError) where
 
-import Char      (isDigit)
+import Data.Char (isDigit)
 import Numeric   (readDec, readOct, readHex)
 
 import Position  (Position(..), Pos(posOf))
-import Errors    (interr)
-import UNames	 (Name)
-import Idents    (Ident, lexemeToIdent, identToLexeme)
+import Idents    (lexemeToIdent)
 
 import CTokens
 import CParserMonad

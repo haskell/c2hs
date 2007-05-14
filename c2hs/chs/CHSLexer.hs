@@ -171,18 +171,17 @@
 module CHSLexer (CHSToken(..), lexCHS) 
 where 
 
-import List	 ((\\))
-import Char	 (isDigit)
-import Monad	 (liftM)
-import Numeric   (readDec, readOct, readHex)
+import Data.List     ((\\))
+import Data.Char     (isDigit)
+import Control.Monad (liftM)
 
 import Position  (Position(..), Pos(posOf), incPos, retPos, tabPos)
-import Errors    (ErrorLvl(..), Error, makeError)
-import UNames	 (NameSupply, Name, names)
+import Errors    (ErrorLvl(..), makeError)
+import UNames	 (Name, names)
 import Idents    (Ident, lexemeToIdent, identToLexeme)
 import Lexers    (Regexp, Lexer, Action, epsilon, char, (+>), lexaction,
 		  lexactionErr, lexmeta, (>|<), (>||<), ctrlLexer, star, plus,
-		  quest, alt, string, LexerState, execLexer)
+		  alt, string, execLexer)
 
 import C2HSState (CST, raise, raiseError, getNameSupply) 
 

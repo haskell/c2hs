@@ -118,9 +118,8 @@ module Main (main)
 where
 
 -- standard libraries
-import List	  (isPrefixOf, intersperse, partition)
-import IO	  ()
-import Monad      (when, unless, mapM)
+import Data.List (isPrefixOf, intersperse, partition)
+import Control.Monad (when, unless)
 import Data.Version (showVersion)
 
 -- base libraries
@@ -129,21 +128,19 @@ import System.Console.GetOpt
 import qualified System.FilePath as FilePath 
                   (takeExtension, dropExtension, takeDirectory, takeBaseName)
 import System.FilePath ((<.>), (</>))
-import Errors	  (interr)
 import StateBase  (liftIO)
 
 -- c2hs modules
 import C2HSState  (CST, runC2HS, fatal, fatalsHandledBy,
-		   ExitCode(..), stderr, IOMode(..), putStrCIO, putStrLnCIO,
+		   ExitCode(..), stderr, putStrCIO, putStrLnCIO,
 		   hPutStrCIO, printCIO,
 		   hPutStrLnCIO, exitWithCIO, getArgsCIO, getProgNameCIO,
 		   ioeGetErrorString, ioeGetFileName, removeFileCIO,
-		   systemCIO, openFileCIO, hCloseCIO,
-		   readFileCIO, writeFileCIO,
+		   systemCIO, readFileCIO, writeFileCIO,
 		   SwitchBoard(..), Traces(..), setTraces,
 		   traceSet, setSwitch, getSwitch, putTraceStr)
-import C	  (AttrC, hsuffix, isuffix, loadAttrC)
-import CHS	  (CHSModule, loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
+import C	  (hsuffix, isuffix, loadAttrC)
+import CHS	  (loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
 import GenHeader  (genHeader)
 import GenBind	  (expandHooks)
 import Version    (versnum, version, copyright, disclaimer)

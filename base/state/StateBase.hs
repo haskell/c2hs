@@ -54,11 +54,8 @@ module StateBase (PreCST(..), ErrorState(..), BaseState(..),
 		  unpackCST, readCST, writeCST, transCST, liftIO)
 where
 
-import Position   (Position)
 import UNames     (NameSupply)
-import StateTrans (STB, 
-		   readGeneric, writeGeneric, transGeneric, readBase,
-		   transBase)
+import StateTrans (STB, readGeneric, writeGeneric, transGeneric)
 import qualified  
        StateTrans (liftIO)
 import Errors     (ErrorLvl(..), Error)

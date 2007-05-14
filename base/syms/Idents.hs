@@ -63,7 +63,7 @@ module Idents (Ident, noARNum, isLegalIdent, lexemeToIdent, internalIdent,
 	       getIdentAttrs, dumpIdent)  
 where
 
-import Char
+import Data.Char
 import Position   (Position, Pos(posOf), nopos)
 import UNames     (Name)
 import Errors     (interr)

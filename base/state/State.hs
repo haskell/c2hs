@@ -62,15 +62,13 @@ module State (-- the PreCST monad
 	      getNameSupply)
 where
 
-import Ix
-import Monad       (when)
-import List        (sort)
+import Control.Monad (when)
+import Data.List     (sort)
 
 import Position    (Position)
 import UNames      (NameSupply,
 	            rootSupply, splitSupply)
-import StateTrans  (STB,
-		    readBase, transBase, runSTB)
+import StateTrans  (readBase, transBase, runSTB)
 import qualified
        StateTrans  (interleave, throwExc, fatal, catchExc, fatalsHandledBy)
 import StateBase   (PreCST(..), ErrorState(..), BaseState(..),

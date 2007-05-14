@@ -48,14 +48,14 @@ module GenHeader (
 ) where 
 
 -- standard libraries
-import Monad     (when)
+import Control.Monad (when)
 
 -- Compiler Toolkit
 import Position  (Position, Pos(..), nopos)
 import DLists	 (DList, openDL, closeDL, zeroDL, unitDL, joinDL, snocDL)
 import Errors	 (interr)
 import Idents	 (onlyPosIdent)
-import UNames    (NameSupply, Name, names)
+import UNames    (Name, names)
 
 -- C->Haskell
 import C2HSState (CST, getNameSupply, runCST, transCST, raiseError, catchExc,

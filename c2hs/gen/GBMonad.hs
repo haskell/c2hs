@@ -72,12 +72,12 @@ module GBMonad (
 ) where 
 
 -- standard libraries
-import Char	  (toUpper, toLower, isSpace)
-import List       (find)
-import Maybe	  (fromMaybe)
+import Data.Char  (toUpper, toLower, isSpace)
+import Data.List  (find)
+import Data.Maybe (fromMaybe)
 
 -- Compiler Toolkit
-import Position   (Position, Pos(posOf), nopos, builtinPos)
+import Position   (Position, Pos(posOf), nopos)
 import Errors	  (interr)
 import Idents     (Ident, identToLexeme, onlyPosIdent)
 import qualified Data.Map as Map (empty, insert, lookup, union, toList, fromList)
@@ -87,9 +87,8 @@ import Data.Map   (Map)
 import C	  (CT, readCT, transCT, raiseErrorCTExc)
 
 -- friends
-import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
-		   CHSChangeCase(..), CHSAccess(..), CHSAPath(..),
-		   CHSPtrType(..))
+import CHS	  (CHSFrag(..), CHSHook(..), CHSTrans(..),
+		   CHSChangeCase(..), CHSPtrType(..))
 
 
 -- translation tables

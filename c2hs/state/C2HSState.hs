@@ -51,7 +51,7 @@ module C2HSState (-- re-exports all of `State'
 		  putTraceStr, setSwitch, getSwitch) 
 where
 
-import Monad    (when)
+import Control.Monad (when)
 
 import State
 

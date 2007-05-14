@@ -54,7 +54,7 @@ module UNames (NameSupply, Name,
 	       rootSupply, splitSupply, names)
 where
 
-import Ix
+import Data.Ix
 import System.IO.Unsafe (unsafePerformIO)
 import Data.IORef       (IORef, newIORef, readIORef, writeIORef)
 

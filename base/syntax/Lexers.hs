@@ -134,11 +134,11 @@ module Lexers (Regexp, Lexer, Action, epsilon, char, (+>), lexaction,
 	       star, plus, quest, alt, string, LexerState, execLexer)
 where 
 
-import Maybe  (fromMaybe, isNothing)
-import Array  (Ix(..), Array, array, (!), assocs, accumArray)
+import Data.Maybe (fromMaybe)
+import Data.Array (Array, (!), assocs, accumArray)
 
-import Position (Position(..), Pos (posOf), nopos, incPos, tabPos, retPos)
-import DLists (DList, openDL, zeroDL, unitDL, snocDL, joinDL, closeDL)
+import Position (Position(..), incPos, tabPos, retPos)
+import DLists (zeroDL, snocDL, closeDL)
 import Errors (interr, ErrorLvl(..), Error, makeError)
 
 

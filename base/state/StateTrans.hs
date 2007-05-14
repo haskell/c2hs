@@ -75,12 +75,6 @@ module StateTrans (-- the monad and the generic operations
 		   throwExc, fatal, catchExc, fatalsHandledBy)
 where
 
-import Monad      (liftM)
-import System.IO  (fixIO)
-import Data.IORef (IORef, newIORef, readIORef, writeIORef)
-
-import Errors (interr)
-
 
 -- BEWARE! You enter monad country. Read any of Wadler's or 
 -- Launchbury/Peyton-Jones' texts before entering. Otherwise,

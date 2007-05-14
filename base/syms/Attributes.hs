@@ -88,13 +88,11 @@ module Attributes (-- attribute management
 		   getGenAttr, setGenAttr, updGenAttr) 
 where
 
-import Array
+import Data.Array
 import Control.Exception (assert)
-import Position   (Position, Pos(posOf), nopos, isNopos, dontCarePos, 
-		   isDontCarePos)
+import Position   (Position, Pos(posOf))
 import Errors     (interr)
-import UNames	  (NameSupply, Name,
-		   rootSupply, splitSupply, names)
+import UNames	  (Name)
 import qualified Data.Map as Map (fromList, toList, insert, findWithDefault, empty)
 import Data.Map (Map)
 

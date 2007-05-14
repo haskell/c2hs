@@ -37,7 +37,7 @@
 module CNames (nameAnalysis)
 where
 
-import Monad	 (mapM_)
+import Control.Monad (mapM_)
 
 import Position  (Position, posOf)
 import Idents	 (Ident, identToLexeme)
@@ -46,7 +46,7 @@ import C2HSState (CST)
 import CAST
 import CAttrs    (AttrC, CObj(..), CTag(..), CDef(..))
 import CBuiltin  (builtinTypeNames)
-import CTrav     (CT, getCHeaderCT, runCT, enter, enterObjs, leave, leaveObjs,
+import CTrav     (CT, getCHeaderCT, runCT, enterObjs, leaveObjs,
 		  ifCTExc, raiseErrorCTExc, defObj, findTypeObj, findValueObj,
 		  defTag, refersToDef, isTypedef) 
 

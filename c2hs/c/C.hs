@@ -51,10 +51,6 @@ module C (-- interface to KL for all non-KL modules
 	  --
 	  module CTrav,
 	  --
-	  -- support for pretty printing C abstract trees
-	  --
-	  module CPretty,
-	  --
 	  loadAttrC,		-- locally defined
 	  --
 	  -- misc. reexported stuff
@@ -67,17 +63,16 @@ module C (-- interface to KL for all non-KL modules
 where
 
 import Position   (Position(..), Pos(posOf))
-import Idents	  (Ident, lexemeToIdent)
+import Idents	  (Ident)
 import Attributes (Attrs, Attr(..))
 
-import C2HSState  (CST, IOMode(..),
-		   readCST, transCST, runCST,
-		   readFileCIO, writeFileCIO, openFileCIO, hCloseCIO,
+import C2HSState  (CST,
+		   readFileCIO,
 		   fatal, errorsPresent, showErrors,
 		   Traces(..), putTraceStr)
 import CAST
 import CParser    (parseC)
-import CPretty
+import CPretty    () -- just Show instances
 import CAttrs	  (AttrC, attrC, getCHeader, 
 		   CObj(..), CTag(..), CDef(..), lookupDefObjC, lookupDefTagC,
 		   getDefOfIdentC)

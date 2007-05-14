@@ -96,12 +96,10 @@ module CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 where 
 
 -- standard libraries
-import Char	 (isSpace, toUpper, toLower)
-import List	 (intersperse)
-import Monad	 (when)
+import Data.Char (isSpace, toUpper, toLower)
+import Data.List (intersperse)
+import Control.Monad (when)
 import System.FilePath ((<.>), (</>))
-import Data.Version (Version(..), showVersion, parseVersion)
-import Text.ParserCombinators.ReadP (readP_to_S)
 
 -- Compiler Toolkit
 import Position  (Position(..), Pos(posOf), nopos, isBuiltinPos)
@@ -112,7 +110,7 @@ import Idents    (Ident, identToLexeme, onlyPosIdent)
 import C2HSState (CST, doesFileExistCIO, readFileCIO, writeFileCIO,
 		  getSwitch, chiPathSB, catchExc, throwExc, raiseError, 
 		  fatal, errorsPresent, showErrors, Traces(..), putTraceStr) 
-import Version    (versnum, version)
+import Version    (version)
 
 -- friends
 import CHSLexer  (CHSToken(..), lexCHS)

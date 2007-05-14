@@ -56,10 +56,10 @@ module CParserMonad (
   setLastToken,      -- :: CToken -> P ()
   ) where
 
-import Position  (Position(..), Pos(posOf))
+import Position  (Position(..))
 import Errors    (interr)
 import UNames	 (Name)
-import Idents    (Ident, lexemeToIdent, identToLexeme)
+import Idents    (Ident)
 
 import Data.Set  (Set)
 import qualified Data.Set as Set (fromList, insert, member, delete)

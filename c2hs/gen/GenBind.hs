@@ -106,10 +106,10 @@ module GenBind (expandHooks)
 where 
 
 -- standard libraries
-import Char	  (toUpper, toLower, isSpace)
-import List       (deleteBy, intersperse, isPrefixOf, find)
-import Maybe	  (isNothing, isJust, fromJust, fromMaybe)
-import Monad	  (when, unless, liftM, mapAndUnzipM)
+import Data.Char     (toLower)
+import Data.List     (deleteBy, intersperse, find)
+import Data.Maybe    (isNothing, fromJust, fromMaybe)
+import Control.Monad (when, unless, liftM, mapAndUnzipM)
 
 -- Compiler Toolkit
 import Position   (Position, Pos(posOf), nopos, builtinPos)
@@ -120,18 +120,15 @@ import Attributes (newAttrsOnlyPos)
 -- C->Haskell
 import C2HSConfig (PlatformSpec(..))
 import C2HSState  (CST, errorsPresent, showErrors, fatal,
-		   SwitchBoard(..), Traces(..), putTraceStr, getSwitch,
-		   printCIO)
-import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
-		   CHeader(..), CExtDecl, CDecl(..), CDeclSpec(..),
-		   CStorageSpec(..), CTypeSpec(..), CTypeQual(..),
+		   SwitchBoard(..), Traces(..), putTraceStr, getSwitch)
+import C	  (AttrC, CObj(..), CTag(..),
+		   CDecl(..), CDeclSpec(..), CTypeSpec(..), 
 		   CStructUnion(..), CStructTag(..), CEnum(..), CDeclr(..),
-		   CInit(..), CExpr(..), CAssignOp(..), CBinaryOp(..),
-		   CUnaryOp(..), CConst (..),
-		   CT, readCT, transCT, getCHeaderCT, runCT, ifCTExc,
+		   CExpr(..), CBinaryOp(..), CUnaryOp(..), CConst (..),
+		   runCT, ifCTExc,
 		   raiseErrorCTExc, findValueObj, findFunObj, findTag,
-		   findTypeObj, applyPrefixToNameSpaces, isTypedef,
-		   simplifyDecl, declrFromDecl, declrNamed, structMembers,
+		   applyPrefixToNameSpaces,
+		   simplifyDecl, declrNamed, structMembers,
 		   structName, tagName, declaredName , structFromDecl,
 		   funResultAndArgs, chaseDecl, findAndChaseDecl,
 		   checkForAlias, checkForOneAliasName, checkForOneCUName, 
@@ -140,14 +137,14 @@ import C	  (AttrC, CObj(..), CTag(..), lookupDefObjC, lookupDefTagC,
 		   refersToNewDef, CDef(..))
 
 -- friends
-import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
+import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..),
 		   CHSParm(..), CHSArg(..), CHSAccess(..), CHSAPath(..),
 		   CHSPtrType(..), showCHSParm, apathToIdent) 
 import CInfo      (CPrimType(..), size, alignment, getPlatform)
 import GBMonad    (TransFun, transTabToTransFun, HsObject(..), GB,
 		   initialGBState, setContext, getPrefix, 
 		   delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
-		   queryObj, queryClass, queryPointer, mergeMaps, dumpMaps)
+		   queryClass, queryPointer, mergeMaps, dumpMaps)
 
 
 -- default marshallers

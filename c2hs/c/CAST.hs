@@ -47,7 +47,7 @@ module CAST (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..), CBlockItem(..),
              CAssignOp(..), CBinaryOp(..), CUnaryOp(..), CConst (..))
 where
 
-import Position   (Position, Pos(posOf), nopos)
+import Position   (Pos(posOf))
 import Idents     (Ident)
 import Attributes (Attrs)
 

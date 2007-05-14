@@ -59,9 +59,8 @@ module CInfo (
 ) where 
 
 import Foreign    (Ptr, FunPtr)
-import qualified  
-       Storable   (Storable(sizeOf, alignment))
-import CForeign
+import qualified Foreign.Storable as Storable (Storable(sizeOf, alignment))
+import Foreign.C
 
 import C2HSConfig (PlatformSpec(..))
 import C2HSState  (getSwitch)
