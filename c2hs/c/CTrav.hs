@@ -689,7 +689,7 @@ checkForOneCUName decl@(CDecl specs _ _)  =
 	case declaredDeclr decl of
 	  Nothing			-> n
           Just (CVarDeclr _ _         ) -> n
-	  Just (CPtrDeclr [_] (CVarDeclr _ _) _) -> Nothing
+	  Just (CPtrDeclr _ (CVarDeclr _ _) _) -> Nothing
     _                                  -> Nothing
 
 -- smart lookup
@@ -801,7 +801,7 @@ extractAlias decl@(CDecl specs _ _) ind =
       case declaredDeclr decl of
 	Nothing				       -> Just (ide', ind)
 	Just (CVarDeclr _ _                  ) -> Just (ide', ind)
-	Just (CPtrDeclr [_] (CVarDeclr _ _) _)
+	Just (CPtrDeclr _ (CVarDeclr _ _) _)
 	  | ind                                -> Just (ide', False)
 	  | otherwise			       -> Nothing
 	_                                      -> Nothing
