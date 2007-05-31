@@ -3,8 +3,6 @@
 --  Author : Manuel M T Chakravarty, Duncan Coutts
 --  Created: 24 May 2005
 --
---  Version $Revision: 1.1.2.1 $ from $Date: 2005/06/14 00:16:14 $
---
 --  Copyright (c) [1999..2004] Manuel M T Chakravarty
 --  Copyright (c) 2005 Duncan Coutts
 --

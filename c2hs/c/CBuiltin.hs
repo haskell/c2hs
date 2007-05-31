@@ -3,8 +3,6 @@
 --  Author : Manuel M. T. Chakravarty
 --  Created: 12 February 01
 --
---  Version $Revision: 1.1 $
---
 --  Copyright (c) 2001 Manuel M. T. Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify

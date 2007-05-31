@@ -3,8 +3,6 @@
 --  Author : Manuel M T Chakravarty
 --  Derived: 18 February 2 (extracted from GenBind.hs)
 --
---  Version $Revision: 1.4 $ from $Date: 2003/10/19 10:46:10 $
---
 --  Copyright (c) [2002..2005] Manuel M T Chakravarty
 --
 --  This file is free software; you can redistribute it and/or modify
