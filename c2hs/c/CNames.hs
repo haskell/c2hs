@@ -44,9 +44,9 @@ import Idents	 (Ident, identToLexeme)
 
 import C2HSState (CST)
 import CAST
-import CAttrs    (AttrC, CObj(..), CTag(..), CDef(..))
+import CAttrs    (AttrC, emptyAttrC, CObj(..), CTag(..), CDef(..))
 import CBuiltin  (builtinTypeNames)
-import CTrav     (CT, getCHeaderCT, runCT, enterObjs, leaveObjs,
+import CTrav     (CT, runCT, enterObjs, leaveObjs,
 		  ifCTExc, raiseErrorCTExc, defObj, findTypeObj, findValueObj,
 		  defTag, refersToDef, isTypedef) 
 
@@ -60,10 +60,10 @@ type NA a = CT () a
 
 -- name analysis of C header files (EXPORTED)
 --
-nameAnalysis    :: AttrC -> CST s AttrC
-nameAnalysis ac  = do
-		     (ac', _) <- runCT naCHeader ac ()
-		     return ac'
+nameAnalysis         :: CHeader -> CST s AttrC
+nameAnalysis headder  = do
+			  (ac', _) <- runCT (naCHeader headder) emptyAttrC ()
+			  return ac'
 
 
 -- name analyis traversal
@@ -73,15 +73,14 @@ nameAnalysis ac  = do
 --
 -- * in case of an error, back off the current declaration
 --
-naCHeader :: NA ()
-naCHeader  = do
+naCHeader :: CHeader -> NA ()
+naCHeader (CHeader decls _) = do
 	       -- establish definitions for builtins
 	       --
 	       mapM_ (uncurry defObjOrErr) builtinTypeNames
 	       --
 	       -- analyse the header
 	       --
-	       CHeader decls _ <- getCHeaderCT
 	       mapM_ (\decl -> naCExtDecl decl `ifCTExc` return ()) decls
 
 -- Processing of toplevel declarations

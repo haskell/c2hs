@@ -56,7 +56,7 @@
 
 module CAttrs (-- attributed C
 	       --
-	       AttrC, attrC, getCHeader, enterNewRangeC, enterNewObjRangeC,
+	       AttrC, emptyAttrC, enterNewRangeC, enterNewObjRangeC,
 	       leaveRangeC, leaveObjRangeC, addDefObjC, lookupDefObjC,
 	       lookupDefObjCShadow, addDefTagC, lookupDefTagC,
 	       lookupDefTagCShadow, applyPrefix, getDefOfIdentC,
@@ -85,32 +85,25 @@ import CAST
 -- attributed C structure tree
 -- ---------------------------
 
--- C unit together with the attributes relevant to the outside world
+-- attributes relevant to the outside world gathjered from a C unit
 -- (EXPORTED ABSTRACT)
 --
 data AttrC = AttrC {
-	        headerAC  :: CHeader,		-- raw header
 		defObjsAC :: CObjNS,		-- defined objects
 		defTagsAC :: CTagNS,		-- defined tags
 		shadowsAC :: CShadowNS,		-- shadow definitions (prefix)
 		defsAC    :: CDefTable		-- ident-def associations
 	      }
 
--- make an attribute structure tree from a raw one (EXPORTED)
+-- empty headder attribute set (EXPORTED)
 --
-attrC        :: CHeader -> AttrC
-attrC header  = AttrC {
-		    headerAC  = header, 
-		    defObjsAC = cObjNS,
-		    defTagsAC = cTagNS,
-		    shadowsAC = cShadowNS,
-		    defsAC    = cDefTable
-		  }
-
--- extract the raw structure tree from an attributes one (EXPORTED)
---
-getCHeader :: AttrC -> CHeader
-getCHeader  = headerAC
+emptyAttrC :: AttrC
+emptyAttrC  = AttrC {
+	     defObjsAC = cObjNS,
+	     defTagsAC = cTagNS,
+	     shadowsAC = cShadowNS,
+	     defsAC    = cDefTable
+	   }
 
 
 -- the name space operations

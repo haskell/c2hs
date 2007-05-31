@@ -61,7 +61,7 @@
 --   we have a user error, but currently an internal error is raised
 --
 
-module CTrav (CT, readCT, transCT, getCHeaderCT, runCT, throwCTExc, ifCTExc,
+module CTrav (CT, readCT, transCT, runCT, throwCTExc, ifCTExc,
 	      raiseErrorCTExc,
 	      enter, enterObjs, leave, leaveObjs, defObj, findObj,
 	      findObjShadow, defTag, findTag, findTagShadow,
@@ -92,7 +92,7 @@ import Attributes (Attr(..), newAttrsOnlyPos)
 import C2HSState  (CST, readCST, transCST, runCST, raiseError, catchExc,
 		   throwExc, Traces(..), putTraceStr)
 import CAST
-import CAttrs     (AttrC, getCHeader, enterNewRangeC, enterNewObjRangeC,
+import CAttrs     (AttrC, enterNewRangeC, enterNewObjRangeC,
 		   leaveRangeC, leaveObjRangeC, addDefObjC, lookupDefObjC,
 		   lookupDefObjCShadow, addDefTagC, lookupDefTagC,
 		   lookupDefTagCShadow, applyPrefix, getDefOfIdentC,
@@ -139,11 +139,6 @@ transCT trans  = transCST $ \(ac, s) -> let
 
 -- usage of a traversal monad
 --
-
--- get the raw C header from the monad (EXPORTED)
---
-getCHeaderCT :: CT s CHeader
-getCHeaderCT  = readAttrCCT getCHeader
 
 -- execute a traversal monad (EXPORTED)
 --

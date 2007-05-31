@@ -43,7 +43,7 @@ module C (-- interface to KL for all non-KL modules
 	  -- attributed structure tree with operations (reexported from
 	  -- `CAttrs')
 	  --
-	  AttrC, getCHeader, 
+	  AttrC,
 	  CObj(..), CTag(..), CDef(..), lookupDefObjC, lookupDefTagC,
 	  getDefOfIdentC,
 	  --
@@ -73,9 +73,8 @@ import C2HSState  (CST,
 import CAST
 import CParser    (parseC)
 import CPretty    () -- just Show instances
-import CAttrs	  (AttrC, attrC, getCHeader, 
-		   CObj(..), CTag(..), CDef(..), lookupDefObjC, lookupDefTagC,
-		   getDefOfIdentC)
+import CAttrs	  (AttrC, CObj(..), CTag(..), CDef(..),
+		   lookupDefObjC, lookupDefTagC, getDefOfIdentC)
 import CNames     (nameAnalysis)
 import CTrav
 
@@ -104,8 +103,7 @@ loadAttrC fname  = do
 		     -- parse
 		     --
 		     traceInfoParse
-		     rawHeader <- parseC contents (Position fname 1 1)
-		     let header = attrC rawHeader
+		     header <- parseC contents (Position fname 1 1)
 
 		     -- name analysis
 		     --
