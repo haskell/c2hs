@@ -427,18 +427,8 @@ abort msg  = do
 --
 computeOutputName :: FilePath -> CST s ()
 computeOutputName bndFileNoSuffix =
-  do
-    output <- getSwitch outputSB
-    outDir <- getSwitch outDirSB
-    let dir  = if      null outDir && null output then FilePath.takeDirectory bndFileNoSuffix
-	       else if null outDir		  then FilePath.takeDirectory output
-	       else				       outDir
-    let base = if null output then FilePath.takeBaseName bndFileNoSuffix
-	       else                FilePath.takeBaseName output
-    setSwitch $ \sb -> sb {
-		         outputSB = dir </> base,
-			 outDirSB = dir
-		       }
+  setSwitch $ \sb@SwitchBoard{ outputSB = output } ->
+    sb { outputSB = if null output then bndFileNoSuffix else output }
 
 -- Copy the C2HS library if requested
 --
@@ -571,8 +561,11 @@ process headerFiles bndFile  =
     -- CPP and inline-C of .chs file into the new header
     --
     outFName <- getSwitch outputSB
-    let newHeaderFile = outFName <.> chssuffix <.> hsuffix
-	preprocFile   = FilePath.takeBaseName newHeaderFile <.> isuffix
+    outDir   <- getSwitch outDirSB
+    let newHeader     = outFName <.> chssuffix <.> hsuffix
+        newHeaderFile = outDir </> newHeader
+	preprocFile   = FilePath.takeBaseName outFName <.> isuffix
+    putTraceStr (const True) $ show (outFName, outDir, newHeader, newHeaderFile, preprocFile) ++ "\n"
     writeFileCIO newHeaderFile $ concat $
       [ "#include \"" ++ headerFile ++ "\"\n"
       | headerFile <- headerFiles ]
@@ -585,7 +578,7 @@ process headerFiles bndFile  =
         -> setHeader headerFile    -- the generated .hs file will directly
                                    -- refer to this header rather than going
                                    -- through a one-line .chs.h file.
-      _ -> setHeader newHeaderFile
+      _ -> setHeader newHeader
     --
     -- run C preprocessor over the header
     --
@@ -621,8 +614,8 @@ process headerFiles bndFile  =
     --
     -- output the result
     --
-    dumpCHS outFName hsMod True
-    dumpCHI outFName chi		-- different suffix will be appended
+    dumpCHS (outDir </> outFName) hsMod True
+    dumpCHI (outDir </> outFName) chi		-- different suffix will be appended
   where
     tracePreproc cmd = putTraceStr tracePhasesSW $
 		         "Invoking cpp as `" ++ cmd ++ "'...\n"
