@@ -565,7 +565,6 @@ process headerFiles bndFile  =
     let newHeader     = outFName <.> chssuffix <.> hsuffix
         newHeaderFile = outDir </> newHeader
 	preprocFile   = FilePath.takeBaseName outFName <.> isuffix
-    putTraceStr (const True) $ show (outFName, outDir, newHeader, newHeaderFile, preprocFile) ++ "\n"
     writeFileCIO newHeaderFile $ concat $
       [ "#include \"" ++ headerFile ++ "\"\n"
       | headerFile <- headerFiles ]
