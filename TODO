@@ -124,6 +124,9 @@ Next: - enum hooks should define cFromEnum/cToEnum as the default marshallers
 
 Short term
 ~~~~~~~~~~
+* cpp directives on the very first line of the .chs file are ignored
+  because the lexer looks for \n#  This is very confusing to users.
+
 * The C99 spec says (sec. 6.7.2.1):
 
        [#4] Each  enumerated  type  shall  be  compatible  with  an
