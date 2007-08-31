@@ -1,21 +1,21 @@
 Name:		c2hs
-Version:	0.14.6
---Versnick:	"Travelling Lightly"
---Versdate:	"28 Apr 2006"
+Version:	0.15.0
+--Versnick:	"Rainy Days"
+--Versdate:	"31 Aug 2007"
 License:	GPL
 License-File:	COPYING
-Copyright:	Copyright (c) [1999..2006] Manuel M T Chakravarty
+Copyright:	Copyright (c) [1999..2007] Manuel M T Chakravarty
 Author:		Manuel M T Chakravarty
-Maintainer:	chak@cse.unsw.edu.au
+Maintainer:	chak@cse.unsw.edu.au, duncan@haskell.org
 Stability:	Stable
 Homepage:	http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
-Package-URL:	http://www.cse.unsw.edu.au/~chak/haskell/c2hs/c2hs-1.0.0.tar.gz
 Synopsis:	C->Haskell Interface Generator
 Description:	C->Haskell assists in the development of Haskell bindings to C
 		libraries.  It extracts C interface information from vanilla header
 		files and generates marshaling and signature code in Haskell.
 Category:       Development tool
 Build-Depends:  base, filepath
+Build-Tools:    happy, alex
 --TODO: Cabal should allow 'Data-Files' in the executable stanza
 Data-Files:	C2HS.hs
 
@@ -66,5 +66,4 @@ Other-Modules:	Errors
 		C2HSConfig
 		Version
 Extensions:	ForeignFunctionInterface
-Ghc-Options:	-O
 C-Sources:	c2hs/toplevel/c2hs_config.c
