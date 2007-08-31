@@ -57,7 +57,9 @@ cpp  = "cpp"
 -- * `-P' would suppress `#line' directives
 --
 cppopts :: String
-cppopts  = "-x c"
+cppopts  = case os of
+  "darwin" -> "-x=c"   --why oh why must gcc on OSX be different!?
+  _        -> "-x c"
 
 -- |C2HS Library file name
 --
