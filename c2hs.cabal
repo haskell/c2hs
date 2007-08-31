@@ -13,11 +13,12 @@ Synopsis:	C->Haskell Interface Generator
 Description:	C->Haskell assists in the development of Haskell bindings to C
 		libraries.  It extracts C interface information from vanilla header
 		files and generates marshaling and signature code in Haskell.
-Category:       Development tool
+Category:       Development
 Build-Depends:  base, filepath
 Build-Tools:    happy, alex
 --TODO: Cabal should allow 'Data-Files' in the executable stanza
 Data-Files:	C2HS.hs
+Extra-Source-Files: c2hs/toplevel/c2hs_config.h
 
 Executable:     c2hs
 Hs-Source-Dirs:	base/admin 
