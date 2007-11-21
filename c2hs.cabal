@@ -18,19 +18,32 @@ Description:    C->Haskell assists in the development of Haskell bindings to C
 Category:       Development
 --TODO: Cabal should allow 'Data-Files' in the executable stanza
 Data-Files:     C2HS.hs
-Extra-Source-Files: c2hs/toplevel/c2hs_config.h
+Extra-Source-Files:
+                c2hs/toplevel/c2hs_config.h
+                AUTHORS INSTALL README README.CTKlight
 
-Flag Base30
-    Description:    Set if base-3.0 or later is available.
+                c2hs/tests/Calls.chs c2hs/tests/enums.h c2hs/tests/simple.c
+                c2hs/tests/calls.h c2hs/tests/Makefile c2hs/tests/Simple.chs
+                c2hs/tests/Calls.hs c2hs/tests/Marsh.chs c2hs/tests/simple.h
+                c2hs/tests/Cpp.chs c2hs/tests/marsh.h c2hs/tests/structs.c
+                c2hs/tests/cpp.h c2hs/tests/pointer.c c2hs/tests/Structs.chs
+                c2hs/tests/enums.c c2hs/tests/Pointer.chs c2hs/tests/structs.h
+                c2hs/tests/Enums.chs c2hs/tests/pointer.h
+
+                doc/c2hs/c2hs.sgml doc/c2hs/man1/c2hs.1.in
+                doc/base/base.bib doc/base/base.tex
+
+Flag splitBase
+    Description: Choose the new smaller, split-up base package.
 
 Executable c2hs
     Main-Is:        Main.hs
     Build-Depends:  base, filepath
 
-    if flag(Base30)
-        Build-Depends: base>=3.0, process, directory, array, containers, pretty
+    if flag(splitBase)
+        Build-Depends: base >= 3, process, directory, array, containers, pretty
     else
-        Build-Depends: base<3.0
+        Build-Depends: base < 3
 
     Build-Tools:    happy, alex
 
