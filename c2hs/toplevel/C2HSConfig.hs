@@ -58,8 +58,10 @@ cpp  = "cpp"
 --
 cppopts :: String
 cppopts  = case os of
-  "darwin" -> "-x=c"   --why oh why must gcc on OSX be different!?
-  _        -> "-x c"
+  -- why is gcc different between all these platforms?
+  "darwin"  -> "-x=c"
+  "openbsd" -> "-xc"
+  _         -> "-x c"
 
 -- |C2HS Library file name
 --
