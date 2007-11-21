@@ -4,31 +4,24 @@
 Prerequisites
 ~~~~~~~~~~~~~
 
-You need a Haskell 98 compiler.  Currently, this has to be GHC 6.0 upwards,
+You need a Haskell 98 compiler.  Currently, this has to be GHC 6.2 upwards,
 which you can get from
 
   http://haskell.org/ghc
 
-Moreover, you need to have at least version 1.0.1 of the Haskell packaging
+Moreover, you need to have at least version 1.2 of the Haskell packaging
 system Cabal installed.  
-
-IMPORTANT NOTE: GHC 6.04 includes Cabal 1.0, which is NOT sufficient.  You
-  need to install 1.0.1.  (Sorry, I couldn't avoid this.)
-
-I am developing and testing under GNU/Linux.  If you intend to install on a
-Solaris or Win32 machine, please see the information under the heading
-"Solaris Notes" and "Win32 Notes", respectively.
 
 
 Simple install procedure
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-  % gzip -cd <package>.tar.gz | tar xvf -  # unpack the sources
-  % cd <package>			   # change to the toplevel directory
-  % ./Setup.hs configure		   # configure the build system
-  % ./Setup.hs build			   # build everything
+  % tar -xzf <package>.tar.gz		# unpack the sources
+  % cd <package>			# change to the toplevel directory
+  % runghc Setup.hs configure		# configure the build system
+  % runghc Setup.hs build		# build everything
   [ Become root if necessary ]
-  % ./Setup.hs install			   # install c2hs
+  % runghc Setup.hs install		# install c2hs
 
 If you are installing from darcs, please read the corresponding section below
 first.
@@ -72,22 +65,3 @@ Tested with Glasgow Haskell Compilation System, Version 6.4, but should in
 principle work with any 6.x version.  The actual c2hs sources might also
 compile with nhc98, but Cabal currently doesn't fully support nhc98.
 
-
-Additional Instructions for Building from Darcs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you are building from darcs, you have to execute
-
-  % autoconf
-  % chmod +x Setup.hs
-
-in the toplevel directory before following the build instructions above.
-
-
-Solaris Notes
-~~~~~~~~~~~~~
-None.
-
-
-Win32 Notes
-~~~~~~~~~~~
-You should be right as long has you have cygwin or something similar.
