@@ -1,7 +1,7 @@
 HC=ghc
 
-HCFLAGS= -ffi
-C2HS   = ../c2hs-inplace
+HCFLAGS= -fffi
+C2HS   = ../../dist/build/c2hs/c2hs
 
 PRGMS = simple calls enums pointer structs marsh cpp
 
@@ -9,7 +9,8 @@ default: tests
 
 # builds
 
-C2HS.o: ../lib/C2HS.hs
+C2HS.o: ../../C2HS.hs
+	cp -p $> .
 	$(C2HS) --copy-library
 	$(HC) -c C2HS.hs
 
