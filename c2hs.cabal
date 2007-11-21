@@ -1,70 +1,82 @@
-Name:		c2hs
-Version:	0.15.0
---Versnick:	"Rainy Days"
---Versdate:	"31 Aug 2007"
-License:	GPL
-License-File:	COPYING
-Copyright:	Copyright (c) [1999..2007] Manuel M T Chakravarty
-Author:		Manuel M T Chakravarty
-Maintainer:	chak@cse.unsw.edu.au, duncan@haskell.org
-Stability:	Stable
-Homepage:	http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
-Synopsis:	C->Haskell Interface Generator
-Description:	C->Haskell assists in the development of Haskell bindings to C
-		libraries.  It extracts C interface information from vanilla header
-		files and generates marshaling and signature code in Haskell.
+Name:           c2hs
+Version:        0.15.0
+Cabal-Version:  >= 1.2
+Build-Type:     Simple
+--Versnick:     "Rainy Days"
+--Versdate:     "31 Aug 2007"
+License:        GPL
+License-File:   COPYING
+Copyright:      Copyright (c) [1999..2007] Manuel M T Chakravarty
+Author:         Manuel M T Chakravarty
+Maintainer:     chak@cse.unsw.edu.au, duncan@haskell.org
+Stability:      Stable
+Homepage:       http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
+Synopsis:       C->Haskell Interface Generator
+Description:    C->Haskell assists in the development of Haskell bindings to C
+                libraries.  It extracts C interface information from vanilla header
+                files and generates marshaling and signature code in Haskell.
 Category:       Development
-Build-Depends:  base, filepath
-Build-Tools:    happy, alex
 --TODO: Cabal should allow 'Data-Files' in the executable stanza
-Data-Files:	C2HS.hs
+Data-Files:     C2HS.hs
 Extra-Source-Files: c2hs/toplevel/c2hs_config.h
 
-Executable:     c2hs
-Hs-Source-Dirs:	base/admin 
-		base/errors
-		base/general 
-		base/state
-		base/syms
-		base/syntax
-		c2hs/c
-		c2hs/chs
-		c2hs/gen
-		c2hs/state
-		c2hs/toplevel
-Main-Is:        Main.hs
-Other-Modules:	Errors
-		DLists
-		UNames
-		CIO
-		StateBase
-		State
-		StateTrans
-		Position
-		Attributes
-		Idents
-		NameSpaces
-		Lexers
-		CAST
-		CAttrs
-		CBuiltin
-		C
-		CTokens
-		CParserMonad
-		CLexer
-		CNames
-		CParser
-		CPretty
-		CTrav
-		CHS
-		CHSLexer
-		CInfo
-		GBMonad
-		GenBind
-		GenHeader
-		C2HSState
-		Switches
-		C2HSConfig
-		Version
-Extensions:	ForeignFunctionInterface
-C-Sources:	c2hs/toplevel/c2hs_config.c
+Flag Base30
+    Description:    Set if base-3.0 or later is available.
+
+Executable c2hs
+    Main-Is:        Main.hs
+    Build-Depends:  base, filepath
+
+    if flag(Base30)
+        Build-Depends: base>=3.0, process, directory, array, containers, pretty
+    else
+        Build-Depends: base<3.0
+
+    Build-Tools:    happy, alex
+
+    Hs-Source-Dirs: base/admin 
+                    base/errors
+                    base/general 
+                    base/state
+                    base/syms
+                    base/syntax
+                    c2hs/c
+                    c2hs/chs
+                    c2hs/gen
+                    c2hs/state
+                    c2hs/toplevel
+    Other-Modules:  Errors
+                    DLists
+                    UNames
+                    CIO
+                    StateBase
+                    State
+                    StateTrans
+                    Position
+                    Attributes
+                    Idents
+                    NameSpaces
+                    Lexers
+                    CAST
+                    CAttrs
+                    CBuiltin
+                    C
+                    CTokens
+                    CParserMonad
+                    CLexer
+                    CNames
+                    CParser
+                    CPretty
+                    CTrav
+                    CHS
+                    CHSLexer
+                    CInfo
+                    GBMonad
+                    GenBind
+                    GenHeader
+                    C2HSState
+                    Switches
+                    C2HSConfig
+                    Version
+    Extensions:     ForeignFunctionInterface
+    C-Sources:      c2hs/toplevel/c2hs_config.c
