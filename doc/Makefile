@@ -29,16 +29,17 @@ XSLTPROC=xsltproc
 XSLTPROC_HTML_OUTDIR=users_guide/
 XSLTPROC_HTML_CSS=fptools.css
 XSLTPROC_HTML_PARAMS=\
-	"--stringparam use.id.as.filename 1 \
+	--stringparam use.id.as.filename 1 \
 	--stringparam base.dir $(XSLTPROC_HTML_OUTDIR) \
-	--stringparam html.stylesheet $(XSLTPROC_HTML_CSS)"
+	--stringparam html.stylesheet $(XSLTPROC_HTML_CSS)
 XSLTPROC_HTML_STYLESHEET=/usr/share/sgml/docbook/xsl-stylesheets-1.70.1/xhtml/chunk.xsl
 
 # build targets
 #
-.PHONY html pdf
+.PHONY: html pdf
 html:
 	$(XSLTPROC) $(XSLTPROC_HTML_PARAMS) $(XSLTPROC_HTML_STYLESHEET) c2hs.xml
+	cp $(XSLTPROC_HTML_CSS) $(XSLTPROC_HTML_OUTDIR)
 
 pdf:
 	sgml2pdf c2hs.xml

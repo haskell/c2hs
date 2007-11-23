@@ -52,16 +52,24 @@ Documentation
 ~~~~~~~~~~~~~
 Documentation can be formatted with
 
-  % make doc
+  $ make -C doc
 
-and be installed with
+Currently there is no support for installing the documentation. That step
+has to be done manually.
 
-  # make install-doc
+The generated html pages for the user guide live in:
 
+  docs/user_guide/*
+
+The man page is:
+
+  docs/man1/c2hs.1
 
 Supported Systems and Porting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Tested with Glasgow Haskell Compilation System, Version 6.4, but should in
-principle work with any 6.x version.  The actual c2hs sources might also
-compile with nhc98, but Cabal currently doesn't fully support nhc98.
+Tested with Glasgow Haskell Compiler, Version 6.4.2, 6.6.1 and 6.8.1.
+In principle it should work with any 6.x version since 6.2.
+
+The actual c2hs sources might also compile with nhc98, but Cabal doesn't fully
+support nhc98 yet.
 
