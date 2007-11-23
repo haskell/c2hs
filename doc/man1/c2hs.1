@@ -2,7 +2,7 @@
 .\"
 .\" Version $Revision: 1.2 $ from $Date: 2002/09/15 07:00:41 $
 .\"
-.TH C2HS 1 "14 November 1999" "Version @VERSION@" C\->Haskell
+.TH C2HS 1 "November 2007" "Version 0.15.1" C\->Haskell
 .SH NAME
 c2hs \- C->Haskell Interface Generator
 
@@ -33,26 +33,42 @@ brief help
 .B  \-v, \-\-version
 show version information
 .TP
+.B  \-\-numeric\-version
+show version number
+.TP
 .BI \-c \ CPP\fR, \ \-\-cpp= CPP
 use executable \fICPP\fR to invoke C preprocessor
 .TP
 .BR \-C \ CPPOPTS\fR, \ \-\-cppopts= CPPOPTS
 pass CPPOPTS to the C preprocessor
 .TP
+.BI \-o \ FILE\fR, \ \-\-output= FILE
+output result to \fIFILE\fR (should end in \fI.hs\fR)
+.TP
+.BI \-t \ PATH\fR, \ \-\-output\-dir= PATH
+place generated files in PATH
+.TP
+.B  \-p \ PLATFORM, \-\-platform=PLATFORM
+platform to use for cross compilation
+.TP
+.B  \-k, \-\-keep
+keep pre-processed C header
+.TP
+.B  \-l, \-\-copy\-library
+copy `C2HS' library module to the current directory
+.TP
 .BR \-d \ TYPE\fR, \ \-\-dump= TYPE
 dump internal information (for debugging), where TYPE is one of:
 .RS
 .IP "\(bu \fBtrace\fR" 10
 trace compiler phases
+.IP "\(bu \fBgenbind\fR"   10
+trace binding generation
+.IP "\(bu \fBctrav\fR"   10
+trace C declaration traversal
 .IP "\(bu \fBchs\fR"   10
 dump the binding file (adds \fI.dump\fR to the name)
 .RE
-.TP
-.BI \-o \ FILE\fR, \ \-\-output= FILE
-output result to \fIFILE\fR (should end in \fI.hs\fR)
-.TP
-.B  \-k, \-\-keep
-keep pre-processed C header
 .PP
 
 .I header-file
@@ -64,6 +80,14 @@ suffix
 is the corresponding Haskell binding file, which must end with suffix
 .IR .chs .
 
+.I PLATFORM
+The platform name can be one of:
+.IR x86_64-linux .
+.IR i686-linux .
+.IR m68k-palmos .
+This allows for cross-compilation, assuming the rest of your toolchain supports
+that. The default is the current host platform.
+
 The most useful of these options is probably 
 .B  \-\-cppopts
 (or 
@@ -73,7 +97,17 @@ through the C pre-processor, here is the place to pass them.
 
 .SH EXAMPLES
 
-The C->Haskell Interface Generator is usually called as:
+The easiest way to use the C->Haskell Interface Generator is via
+.I Cabal.
+Cabal knows about 
+.I .chs
+files and will run
+.B c2hs
+automatically, passing the appropriate flags.
+
+When used directly, 
+.Bc2hs
+is usually called as:
 
 .B c2hs
 .I lib.h Lib.chs
@@ -89,8 +123,8 @@ which implements the Haskell API of the library.
 
 A more advanced call may look like this:
 
-.BR "c2hs \-\-cppopts=" '\-I\fI/some/obscure/dir\fR
--DEXTRA'
+.BR "c2hs" \ \-\-cppopts=\-I\fI/some/obscure/dir\fR
+\-\-cppopts=\-DEXTRA
 .I lib.h Lib.chs
 
 Often, 
@@ -106,16 +140,29 @@ option passed to the pre-processor via
 .BR \-\-cppopts .
 
 .SH CAVEATS
-Do not forget the quotes if you have more than one option that you want to
-give to the pre-processor.
+If you have more than one option that you want to
+give to the pre-processor, use multiple
+.BR \-\-cppopts= \ flags.
 
 .SH "SEE ALSO"
-.B c2hs-config(1)
 
-.I @DOCDIR@/html/c2hs.html
+User guide
+.I /usr/share/doc/c2hs-0.15.1/html/c2hs.html
+
+Home page
+.I http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
+
+.SH "BUGS"
+
+Please report bugs and feature requests in the c2hs trac
+
+.I http://hackage.haskell.org/trac/c2hs/
+
+or to the C->Haskell mailing list
+.I c2hs@haskell.org
 
 .SH COPYRIGHT
-C->Haskell Version @VERSION@ Copyright (c) [1999..2002] 
+C->Haskell Version 0.15.1 Copyright (c) [1999..2007]
 Manuel M. T. Chakravarty <chak@cse.unsw.edu.au>
 
 .SH AUTHOR

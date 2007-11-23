@@ -1,0 +1,1546 @@
+<?xml version="1.0" encoding="UTF8"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
+  "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd" [
+    <!ENTITY C2hs 'C&#10132;Haskell'>
+    <!ENTITY c2hs '<command>c2hs</command>'>
+  ]>
+
+<!-- C->Haskell documentation
+ -->
+<article>
+<articleinfo>
+  <title>The Binding Generator &C2hs;</title>
+  <authorgroup>
+    <author>
+      <firstname>Manuel</firstname>
+      <surname>Chakravarty</surname>
+      <email>chak@cse.unsw.edu.au</email>
+    </author>
+<!--    <author>
+      <firstname>Duncan</firstname>
+      <surname>Coutts</surname>
+      <email>duncan@haskell.org</email>
+    </author>-->
+  </authorgroup>
+  <pubdate>November 2007</pubdate>
+</articleinfo>
+<abstract>
+  <para>
+  &C2hs; is an interface generator that simplifies the development of
+  <ulink url="http://haskell.org">Haskell</ulink> bindings to C libraries.  The
+  tool processes existing C header files that determine data layout and function
+  signatures on the C side in conjunction with Haskell modules that specify
+  Haskell-side type signatures and marshaling details.  Hooks embedded in the
+  Haskell code signal access to C structures and functions -- they are expanded
+  by the interfacing tool in dependence on information from the corresponding C
+  header file.  Another noteworthy property is the lightweight nature of the
+  approach.
+  </para>
+</abstract>
+
+<para>
+More background information is available in a research paper discussing
+&C2hs;, which is at
+<ulink url="http://www.cse.unsw.edu.au/~chak/papers/papers.html#c2hs"/>.
+However, this paper does not cover the more recent advanced features such as
+function hooks and conditional compilation.
+</para>
+
+<sect1 id="installation">
+  <title>Installation</title>
+  <para>
+  It follows a brief discussion of the installation from source.  There is,
+  however, a file <filename>INSTALL</filename> in the source distribution, which is
+  more frequently updated and should be consulted in any case.
+  </para>
+
+  <sect2>
+    <title>Where is the Source?</title>
+    <para>
+    The master site of &C2hs; is at
+    <ulink url="http://www.cse.unsw.edu.au/~chak/haskell/c2hs/"/>.  It has all the
+    latest information and sources.  Furthermore, it explains how to get access to
+    the &C2hs; Darcs repository and has references to pre-compiled binaries.
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>What Else Do I Need?</title>
+    <para>
+    You need a Haskell system supported by &C2hs;. Currently, this is only
+    the <firstterm>Glasgow Haskell Compiler (GHC)</firstterm>, which you can obtain
+    from <ulink url="http://haskell.org/ghc/"/>.  Furthermore, you need the Haskell
+    package system Cabal. See the <filename>INSTALL</filename> file for details on
+    supported versions.
+    </para>
+
+    <para>
+    To build the documentation, you will also need the <firstterm>SGML
+    Tools</firstterm>, which you find at your nearest sunsite or Linux mirror or at
+    <ulink url="ftp://ftp.lip6.fr/pub/sgml-tools/"/>.  On an up-to-date Linux
+    system, the tools are probably already installed.
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>I Got Everything, and Now?</title>
+    <para>
+    The short answer is
+<screen>
+$ tar -xzf <replaceable>package</replaceable>.tar.gz      # unpack the sources
+$ cd <replaceable>package</replaceable>                   # change to the toplevel directory
+$ runghc Setup.hs configure    # configure the build system
+$ runghc Setup.hs build        # build everything
+[ Become root if necessary ]
+$ runghc Setup.hs install      # install c2hs
+</screen>
+    </para>
+
+    <para>
+    In the <filename>INSTALL</filename> file, there are more details.
+    </para>
+
+    <para>
+    Optionally, you can build the documentation by issuing <userinput>make
+    doc</userinput> and install it with <userinput>make install-doc</userinput>.
+    </para>
+  </sect2>
+</sect1>
+
+<sect1 id="usage">
+  <title>Usage of &C2hs;</title>
+  <para>
+  Let's have a brief look at how to call the tool and how to use the generated
+  interfaces.
+  </para>
+
+  <sect2>
+    <title>Usage of &c2hs;</title>
+    <para>
+    &C2hs; is implemented by the executable &c2hs;. The simplest form of usage
+    is
+
+<screen>
+c2hs <replaceable>Lib</replaceable><literal>.chs</literal>
+</screen>
+
+    where <replaceable>Lib</replaceable><literal>.chs</literal> is the Haskell
+    binding module defining the Haskell interface to a C library together with
+    the required marshalling code. If &c2hs; is invoked in this manner, the
+    binding module must contain a cpp <literal>#include</literal> directive to
+    determine the C-side interface of the library. Alternatively, a C header
+    file can be specified on the command line, as in
+
+<screen>
+c2hs <replaceable>lib</replaceable><literal>.h </literal><replaceable>Lib</replaceable><literal>.chs</literal>
+</screen>
+
+    However, the latter option is only preserved for backwards compatibility and
+    not recommended.  If no errors occur, &c2hs; generates three files:
+    <orderedlist>
+      <listitem>
+        <para>
+        a pure Haskell module <replaceable>Lib</replaceable><literal>.hs</literal>,
+        which implements the Haskell API of the library
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+         a C header file <replaceable>Lib</replaceable><literal>.h</literal>
+         which some Haskell systems need to compile the generated Haskell code.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        a &c2hs; interface file
+        <replaceable>Lib</replaceable><literal>.chi</literal> that is used by
+        other binding modules that import
+        <replaceable>Lib</replaceable><literal>.hs</literal> using an import
+        hook (see <xref linkend="import"/>the section on import hooks for details).
+        </para>
+      </listitem>
+    </orderedlist>
+    </para>
+
+    <para>
+    The executable &c2hs; has a couple more options:
+<screen>
+Usage: c2hs [ option... ] [header-file] binding-file
+
+  -C CPPOPTS   --cppopts=CPPOPTS    pass CPPOPTS to the C preprocessor
+  -c CPP       --cpp=CPP            use executable CPP to invoke C preprocessor
+  -d TYPE      --dump=TYPE          dump internal information (for debugging)
+  -h, -?       --help               brief help (the present message)
+  -i INCLUDE   --include=INCLUDE    include paths for .chi files
+  -k           --keep               keep pre-processed C header
+  -l           --copy-library       copy `C2HS' library module in
+  -o FILE      --output=FILE        output result to FILE (should end in .hs)
+  -p PLATFORM  --platform=PLATFORM  platform to use for cross compilation
+  -t PATH      --output-dir=PATH    place generated files in PATH
+  -v           --version            show version information
+               --numeric-version    show version number
+
+The header file must be a C header file matching the given binding file.
+The dump TYPE can be
+  trace   -- trace compiler phases
+  genbind -- trace binding generation
+  ctrav   -- trace C declaration traversal
+  chs     -- dump the binding file (adds `.dump' to the name)
+PLATFORM can be x86_64-linux, i686-linux, m68k-palmos
+</screen>
+
+    The most useful of these is probably <literal>--cppopts=</literal> (or
+    <literal>-C</literal>).  If the C header file needs any special options
+    (like <literal>-D</literal> or <literal>-I</literal>) to go through the C
+    pre-processor, here is the place to pass them.  A call may look like this:
+
+<screen>
+c2hs --cppopts='-I/some/obscure/dir' --cppopts=-DEXTRA' <replaceable>Lib</replaceable>.chs
+</screen>
+
+    If you have more than one option that you want to pass to the pre-processor
+    it is best to use multiple <literal>--cppopts=</literal> flags. That way
+    there is no need to worry about quoting.
+    </para>
+    
+    <para>
+    Often, <replaceable>lib</replaceable><literal>.h</literal> will not be in
+    the current directory, but in one of the header file directories. &c2hs;
+    leaves locating the header file to the standard C preprocessor, which
+    usually looks in two places for the header: first, in the standard include
+    directory of the used system, this is usually <filename>/usr/include</filename> and
+    <filename>/usr/local/include</filename>; and second, it will look in every directory
+    that is mentioned in a <literal>-IDIR</literal> option passed to the
+    pre-processor via <literal>--cppopts</literal>.
+    </para>
+
+    <para>
+    If the compiled binding module contains import hooks, &C2hs; needs to
+    find the <literal>.chi</literal> (&C2hs; interface files) produced while compiling
+    the corresponding binding modules.  By default, they will be searched for in
+    the current working directory.  If they are located elsewhere, the
+    <literal>--include=<replaceable>INCLUDE</replaceable></literal> option has
+    to be used to indicate the location, where
+    <replaceable>INCLUDE</replaceable> is a colon-separated list of
+    directories.  Multiple such options are admissible.  Paths specified later
+    are searched first.
+    </para>
+  </sect2>
+  
+  <sect2>
+    <title>Compilation of a Generated Haskell API</title>
+    <para>
+    &C2hs; comes with a marshalling library, called <literal>C2HS</literal>,
+    which needs to be explicitly imported into Haskell binding modules.  The
+    library contains functions that users might use explicitly, but also
+    functions that &C2hs; will generate for some classes of bindings.  The
+    library takes the form of a single Haskell module, which &c2hs; places in
+    the same directory as the generated binding whenever it is given the
+    <literal>--copy-library</literal> (or <literal>-l</literal>) option.
+    </para>
+  </sect2>
+</sect1>
+
+<sect1 id="implementing">
+  <title>Implementation of Haskell Binding Modules</title>
+  <para>
+  A discussion of binding modules, the principles behind the tool, and a
+  discussion of related work can be found in a research paper located at <ulink
+  url="http://www.cse.unsw.edu.au/~chak/papers/papers.html#c2hs" />.  All
+  features described in the paper, except <literal>enum define</literal> hooks
+  are implemented in the tool, but since the publication of the paper, the tool
+  has been extended further.  The library interface essentially consists of the
+  new Haskell FFI Marshalling Library.  More details about this library are
+  provided in the next section.
+  </para>
+
+  <para>
+  The remainder of this section describes the hooks that are available in
+  binding modules.
+  </para>
+
+  <sect2 id="import">
+    <title>Import Hooks</title>
+    <para>
+<programlisting>
+{#import [qualified] <replaceable>modid</replaceable>#}
+</programlisting>
+
+    Is translated into the same syntactic form in Haskell, which implies that
+    it may be followed by an explicit import list.  Moreover, it implies that
+    the module <replaceable>modid</replaceable> is also generated by &C2hs; and
+    instructs the tool to read the file
+    <replaceable>modid</replaceable><literal>.chi</literal>.
+    </para>
+    <para>
+    If an explicit output file name is given (<literal>--output</literal>
+    option), this name determines the basename for the <literal>.chi</literal>
+    file of the currently translated module. 
+    </para>
+    <para>
+    Currently, only pointer hooks generate information that is stored in a
+    <literal>.chi</literal> file and needs to be incorporated into any client
+    module that makes use of these pointer types.  It is, however, regarded as
+    good style to use import hooks for any module generated by &C2hs;.
+    </para>
+    <note>
+      <title>Restriction</title>
+      <para>
+      &C2hs; does not use qualified names.  This can be a problem, for example,
+      if two pointer hooks are defined to have the same unqualified Haskell
+      name in two different modules, which are then imported by a third module.
+       To partially work around this problem, it is guaranteed that the
+       declaration of the textually later import hook dominates.
+      </para>
+    </note>
+  </sect2>
+
+  <sect2>
+  <title>Context Hooks</title>
+    <para>
+<programlisting>
+{#context [lib = <replaceable>lib</replaceable>] [prefix = <replaceable>prefix</replaceable>]#}
+</programlisting>
+
+    Context hooks define a set of global configuration options.  Currently,
+    there are two parameters which are both strings
+    <itemizedlist>
+      <listitem>
+        <para>
+        <replaceable>lib</replaceable> is a dynamic library that contains
+        symbols needed by the present binding.
+        </para>
+      </listitem>
+      <listitem>
+        <para><replaceable>prefix</replaceable> is an identifier prefix that
+        may be omitted in the lexemes of identifiers referring to C definitions
+        in any binding hook.  The is useful as C libraries often use a prefix,
+        such as <literal>gtk_</literal>, as a form of poor man's name spaces. 
+        Any occurrence of underline characters between a prefix and the main
+        part of an identifier must also be dropped.  Case is not relevant in a
+        prefix.  In case of a conflict of the abbreviation with an explicitly
+        defined identifier, the explicit definition takes preference.
+        </para>
+      </listitem>
+    </itemizedlist>
+
+    Both parameters are optional.  An example of a context hook is the
+    following:
+<programlisting>
+{#context prefix = "gtk"#}
+</programlisting>
+    </para>
+    <para>
+    If a binding module contains a binding hook, it must be the first hook in
+    the module.
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>Type Hooks</title>
+    <para>
+<programlisting>
+{#type <replaceable>ident</replaceable>#}
+</programlisting>
+
+    A type hooks maps a C type to a Haskell type.  As an example, consider
+
+<programlisting>
+type GInt = {#type gint#}
+</programlisting>
+
+    The type must be a defined type, primitive types, such as
+    <literal>int</literal>, are not admissible.
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>Sizeof Hooks</title>
+    <para>
+<programlisting>
+{#sizeof <replaceable>ident</replaceable>#}
+</programlisting>
+
+    A sizeof hooks maps a C type to its size in bytes.  As an example, consider
+
+<programlisting>
+gIntSize :: Int
+gIntSize  = {#sizeof gint#}
+</programlisting>
+
+    The type must be a defined type, primitive types, such as
+    <literal>int</literal>, are not admissible.  The size of primitive types can
+    always be obtained using <literal>Storable.sizeOf</literal>. 
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>Enumeration Hooks</title>
+    <para>
+<programlisting>
+{#enum <replaceable>cid</replaceable> [as <replaceable>hsid</replaceable>] {<replaceable>alias1</replaceable> , ... , <replaceable>aliasn</replaceable>}
+  [with prefix = <replaceable>pref</replaceable>] [deriving (<replaceable>clid1</replaceable> , ... , <replaceable>clidn</replaceable>)]#}
+</programlisting>
+
+    Rewrite the C enumeration called <replaceable>cid</replaceable> into a
+    Haskell data type declaration, which is made an instance of
+    <literal>Enum</literal> such that the ordinals match those of the
+    enumeration values in C.  This takes explicit enumeration values in the C
+    definitions into account.  If <replaceable>hsid</replaceable> is given, this
+    is the name of the Haskell data type.  The identifiers
+    <replaceable>clid1</replaceable> to <replaceable>clidn</replaceable> are
+    added to the deriving clause of the Haskell type.
+    </para>
+
+    <para>
+    By default, the names of the C enumeration are used for the constructors in
+    Haskell.  If <replaceable>alias1</replaceable> is
+    <literal>underscoreToCase</literal>, the original C names are capitalised
+    and the use of underscores is rewritten to caps.  If it is
+    <literal>upcaseFirstLetter</literal> or
+    <literal>downcaseFirstLetter</literal>, the first letter of the original C
+    name changes case correspondingly.  It is also possible to combine
+    <literal>underscoreToCase</literal> with one of
+    <literal>upcaseFirstLetter</literal> or
+    <literal>downcaseFirstLetter</literal>. Moreover,
+    <replaceable>alias1</replaceable> to <replaceable>aliasn</replaceable> may
+    be aliases of the form <replaceable>cid</replaceable> <literal>as</literal>
+    <replaceable>hsid</replaceable>, which map individual C names to Haskell
+    names.  Instead of the global prefix introduced by a context hook, a local
+    prefix <replaceable>pref</replaceable> can optionally be specified.
+    </para>
+
+    <para>
+    As an example, consider
+
+<programlisting>
+{#enum WindowType {underscoreToCase} deriving (Eq)#}
+</programlisting>
+
+    <note>
+      <para>The <literal>enum define</literal> hooks described in the &C2hs;
+      paper are not implemented yet.
+      </para>
+    </note>
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>Call Hooks</title>
+    <para>
+<programlisting>
+{#call [pure] [unsafe] <replaceable>cid</replaceable> [as (<replaceable>hsid</replaceable> | ^)]#}
+</programlisting>
+
+    A call hook rewrites to a call to the C function
+    <replaceable>cid</replaceable> and also ensures that the appropriate foreign
+    import declaration is generated.  The tags <literal>pure</literal> and
+    <literal>unsafe</literal> specify that the external function is purely
+    functional and cannot re-enter the Haskell runtime, respectively.  If
+    <replaceable>hsid</replaceable> is present, it is used as the identifier for
+    the foreign declaration, which otherwise defaults to the
+    <replaceable>cid</replaceable>.  When instead of
+    <replaceable>hsid</replaceable>, the symbol <literal>^</literal> is given,
+    the <replaceable>cid</replaceable> after conversion from C's underscore
+    notation to a capitalised identifier is used.
+    </para>
+
+    <para>
+    As an example, consider
+
+<programlisting>
+sin :: Float -> Float
+sin  = {#call pure sin as "_sin"#}
+</programlisting>
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>Function Hooks</title>
+    <para>
+<programlisting>
+{#fun  [pure] [unsafe] <replaceable>cid</replaceable> [as (<replaceable>hsid</replaceable> | ^)]
+[<replaceable>ctxt</replaceable> =>] { <replaceable>parm1</replaceable> , ... , <replaceable>parmn</replaceable> } -> <replaceable>parm</replaceable>
+</programlisting>
+
+    Function hooks are call hooks including parameter marshalling.  Thus, the
+    components of a function hook up to and including the <literal>as</literal>
+    alias are the same as for call hooks.  However, an <literal>as</literal>
+    alias has a different meaning; it specifies the name of the generated
+    Haskell function.  The remaining components use literals enclosed in
+    backwards and foward single quotes (<literal>`</literal> and
+    <literal>'</literal>) to denote Haskell code fragments (or more precisely,
+    parts of the Haskell type signature for the bound function).  The first one
+    is the phrase <replaceable>ctxt</replaceable> preceding
+    <literal>=></literal>, which denotes the type context.  This is followed by
+    zero or more type and marshalling specifications
+    <replaceable>parm1</replaceable> to <replaceable>parmn</replaceable> for the
+    function arguments and one <replaceable>parm</replaceable> for the function
+    result.  Each such specification <replaceable>parm</replaceable> has the
+    form
+
+<programlisting>
+[<replaceable>inmarsh</replaceable> [* | -]] <replaceable>hsty</replaceable>[&amp;] [<replaceable>outmarsh</replaceable> [*] [-]]
+</programlisting>
+
+    where <replaceable>hsty</replaceable> is a Haskell code fragment denoting a
+    Haskell type.  The optional information to the left and right of this type
+    determines the marshalling of the corresponding Haskell value to and from C;
+    they are called the <firstterm>in</firstterm> and <firstterm>out</firstterm>
+    marshaller, respectively.
+    </para>
+
+    <para>
+    Each marshalling specification <replaceable>parm</replaceable> corresponds
+    to one or two arguments of the C function, in the order in which they are
+    given.  A marshalling specification in which the symbol
+    <literal>&amp;</literal> follows the Haskell type corresponds to two C
+    function arguments; otherwise, it corresponds only to one argument.  The
+    <replaceable>parm</replaceable> following the left arrow
+    <literal>-></literal> determines the marshalling of the result of the C
+    function and may not contain the symbol <literal>&amp;</literal>.
+    </para>
+
+    <para>
+    The <literal>*-</literal> output marshal specification is for monadic
+    actions that must be executed but whose results are discarded. This is very
+    useful for e.g. checking an error value and throwing an exception if needed.
+    </para>
+
+    <para>
+    Both <replaceable>inmarsh</replaceable> and
+    <replaceable>outmarsh</replaceable> are identifiers of Haskell marshalling
+    functions.  By default they are assumed to be pure functions; if they have
+    to be executed in the <literal>IO</literal> monad, the function name needs
+    to be followed by a star symbol <literal>*</literal>.  Alternatively, the
+    identifier may be followed by a minux sign <literal>-</literal>, in which
+    case the Haskell type does <emphasis>not</emphasis> appear as an argument
+    (in marshaller) or result (out marshaller) of the generated Haskell
+    function.  In other words, the argument types of the Haskell function is
+    determined by the set of all marshalling specifications where the in
+    marshaller is not followed by a minus sign.  Conversely, the result tuple of
+    the Haskell function is determined by the set of all marshalling
+    specifications where the out marshaller is not followed by a minus sign. 
+    The order of function arguments and components in the result tuple is the
+    same as the order in which the marshalling specifications are given, with
+    the exception that the value of the result marshaller is always the first
+    component in the result tuple if it is included at all.
+    </para>
+    <para>
+    For a set of commonly occuring Haskell and C type combinations,
+    <emphasis>default marshallers</emphasis> are provided by &C2hs; if no
+    explicit marshaller is given.   The out marshaller for function arguments
+    is by default <literal>void-</literal>. The defaults for the in marshallers
+    for function arguments are as follows: 
+
+    <itemizedlist>
+      <listitem>
+        <para>
+        <literal>Bool</literal> and integral C type (including chars):
+        <literal>cFromBool</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Integral Haskell and integral C type: <literal>cIntConv</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Floating Haskell and floating C type: <literal>cFloatConv</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        <literal>String</literal> and <literal>char*</literal>:
+        <literal>withCString*</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        <literal>String</literal> and <literal>char*</literal> with
+        explicit length: <literal>withCStringLen*</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        <replaceable>T</replaceable> and
+        <replaceable>T</replaceable><literal>*</literal>:
+        <literal>with*</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        <replaceable>T</replaceable> and
+        <replaceable>T</replaceable><literal>*</literal> where
+        <replaceable>T</replaceable> is an integral type:
+        <literal>withIntConv*</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        <replaceable>T</replaceable> and
+        <replaceable>T</replaceable><literal>*</literal> where
+        <replaceable>T</replaceable> is a floating type:
+        <literal>withFloatConv*</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        <literal>Bool</literal> and
+        <replaceable>T</replaceable><literal>*</literal> where
+        <replaceable>T</replaceable> is an integral type:
+        <literal>withFromBool*</literal>
+        </para>
+      </listitem>
+    </itemizedlist>
+
+    The defaults for the out marshaller of the result are the converse of the
+    above; i.e., instead of the <literal>with</literal> functions, the
+    corresponding <literal>peek</literal> functions are used.  Moreover, when
+    the Haskell type is <literal>()</literal>, the default marshaller is
+    <literal>void-</literal>.
+    </para>
+
+    <para>
+    As an example, consider
+
+<programlisting>
+{#fun notebook_query_tab_label_packing as ^
+  `(NotebookClass nb, WidgetClass cld)' => 
+  {notebook `nb'                , 
+   widget   `cld'               , 
+   alloca-  `Bool'     peekBool*, 
+   alloca-  `Bool'     peekBool*,
+   alloca-  `PackType' peekEnum*} -> `()'#}
+</programlisting>
+
+    which results in the Haskell type signature
+
+<programlisting>
+notebookQueryTabLabelPacking :: (NotebookClass nb, WidgetClass cld)
+			     => nb -> cld -> IO (Bool, Bool, PackType)
+</programlisting>
+
+    which binds the following C function:
+
+<programlisting>
+void gtk_notebook_query_tab_label_packing (GtkNotebook *notebook,
+					   GtkWidget   *child,
+					   gboolean    *expand,
+					   gboolean    *fill,
+					   GtkPackType *pack_type);
+</programlisting>
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>Get Hooks</title>
+    <para>
+<programlisting>
+{#get <replaceable>apath</replaceable>#}
+</programlisting>
+
+    A get hook supports accessing a member value of a C structure.  The hook
+    itself yields a function that, when given the address of a structure of the
+    right type, performs the structure access.  The member that is to be
+    extracted is specified by the access path <replaceable>apath</replaceable>. 
+    Access paths are formed as follows (following a subset of the C expression
+    syntax):
+
+    <itemizedlist>
+      <listitem>
+        <para>
+        The root of any access path is a simple identifier, which denotes either
+        a type name or <literal>struct</literal> tag.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        An access path of the form
+        <literal>*</literal><replaceable>apath</replaceable> denotes
+        dereferencing of the pointer yielded by accessing the access path
+        <replaceable>apath</replaceable>.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        An access path of the form
+        <replaceable>apath</replaceable><literal>.</literal><replaceable>cid</replaceable>
+        specifies that the value of the <literal>struct</literal> member called
+        <replaceable>cid</replaceable> should be accessed. 
+        </para>
+      </listitem>
+      <listitem>
+        <para>Finally, an access path of the form       
+        <replaceable>apath</replaceable><literal>-></literal><replaceable>cid</replaceable>,
+        as in C, specifies a combination of dereferencing and member selection.
+        </para>
+      </listitem>
+    </itemizedlist>
+
+    For example, we may have
+
+<programlisting>
+visualGetType              :: Visual -> IO VisualType
+visualGetType (Visual vis)  = liftM cToEnum $ {#get Visual->type#} vis
+</programlisting>
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>Set Hooks</title>
+    <para>
+<programlisting>
+{#set <replaceable>apath</replaceable>#}
+</programlisting>
+
+    Set hooks are formed in the same way as get hooks, but yield a function that
+    assigns a value to a member of a C structure.  These functions expect a
+    pointer to the structure as the first and the value to be assigned as the
+    second argument.  For example, we may have
+
+<programlisting>
+{#set sockaddr_in.sin_family#} addr_in (cFromEnum AF_NET)
+</programlisting>
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>Pointer Hooks</title>
+    <para>
+<programlisting>
+{#pointer [*] <replaceable>cid</replaceable> [as <replaceable>hsid</replaceable>] [foreign | stable] [newtype | -&gt;
+<replaceable>hsid2</replaceable>] [nocode]#}
+</programlisting>
+
+    A pointer hook facilitates the mapping of C to Haskell pointer types.  In
+    particular, it enables the use of <literal>ForeignPtr</literal> and
+    <literal>StablePtr</literal> types and defines type name translations for
+    pointers to non-basic types.  In general, such a hook establishes an
+    association between the C type <replaceable>cid</replaceable> or
+    <literal>*</literal><replaceable>cid</replaceable> and the Haskell type
+    <replaceable>hsid</replaceable>, where the latter defaults to
+    <replaceable>cid</replaceable> if not explicitly given.  The identifier
+    <replaceable>cid</replaceable> will usually be a type name, but in the case
+    of <literal>*</literal><replaceable>cid</replaceable> may also be a struct,
+    union, or enum tag.  If both a type name and a tag of the same name are
+    available, the type name takes precedence.  Optionally, the Haskell
+    representation of the pointer can be by a <literal>ForeignPtr</literal> or
+    <literal>StablePtr</literal> instead of a plain <literal>Ptr</literal>.  If
+    the <literal>newtype</literal> tag is given, the Haskell type
+    <replaceable>hsid</replaceable> is defined as a <literal>newtype</literal>
+    rather than a transparent type synonym.  In case of a
+    <literal>newtype</literal>, the type argument to the Haskell pointer type
+    will be <replaceable>hsid</replaceable>, which gives a cyclic definition,
+    but the type argument is here really only used as a unique type tag. 
+    Without <literal>newtype</literal>, the default type argument is
+    <literal>()</literal>, but another type can be specified after the symbol
+    <literal>-&gt;</literal>.
+    </para>
+
+    <para>
+    For example, we may have
+
+<programlisting>
+{#pointer *GtkObject as Object newtype#}
+</programlisting>
+
+    This will generate a new type <literal>Object</literal> as follows:
+
+<programlisting>
+newtype Object = Object (Ptr Object)
+</programlisting>
+
+    which enables exporting <literal>Object</literal> as an abstract type and
+    facilitates type checking at call sites of imported functions using the
+    encapsulated pointer.  The latter is achieved by &C2hs; as follows.  The
+    tool remembers the association of the C type <literal>*GtkObject</literal>
+    with the Haskell type <literal>Object</literal>, and so, it generates for
+    the C function
+
+<programlisting>
+void gtk_unref_object (GtkObject *obj);
+</programlisting>
+
+    the import declaration
+
+<programlisting>
+foreign import gtk_unref_object :: Object -> IO ()
+</programlisting>
+
+    This function can obviously only be applied to pointers of the right type,
+    and thus, protects against the common mistake of confusing the order of
+    pointer arguments in function calls.
+    </para>
+
+    <para>
+    However, as the Haskell FFI does not permit to directly pass
+    <literal>ForeignPtr</literal>s to function calls or return them, the tool
+    will use the type <literal>Ptr HsName</literal> in this case, where
+    <literal>HsName</literal> is the Haskell name of the type.  So, if we modify
+    the above declaration to be
+
+<programlisting>
+{#pointer *GtkObject as Object foreign newtype#}
+</programlisting>
+
+    the type <literal>Ptr Object</literal> will be used instead of a plain
+    <literal>Object</literal> in import declarations; i.e., the previous
+    <literal>import</literal> declaration will become
+
+<programlisting>
+foreign import gtk_unref_object :: Ptr Object -> IO ()
+</programlisting>
+
+    To simplify the required marshalling code for such pointers,
+    the tool automatically generates a function
+
+<programlisting>
+withObject :: Object -> (Ptr Object -> IO a) -> IO a
+</programlisting>
+
+    As an example that does not represent the pointer as an abstract type,
+    consider the C type declaration:
+
+<programlisting>
+typedef struct {int x, y;} *point;
+</programlisting>
+
+    We can represent it in Haskell as
+
+<programlisting>
+data Point = Point {x :: Int, y :: Int}
+{#pointer point as PointPtr -> Point#}
+</programlisting>
+
+    which will translate to
+
+<programlisting>
+data Point = Point {x :: Int, y :: Int}
+type PointPtr = Ptr Point
+</programlisting>
+
+    and establish a type association between <literal>point</literal> and
+    <literal>PointPtr</literal>.
+    </para>
+
+    <para>
+    If the keyword <literal>nocode</literal> is added to the end of a pointer
+    hook, &C2hs; will not emit a type declaration.  This is useful when a &C2hs;
+    module wants to make use of an existing type declaration in a binding not
+    generated by &C2hs; (i.e., where there are no <literal>.chi</literal>
+    files).
+    </para>
+
+    <note>
+      <title>Restriction</title>
+      <para>
+      The name <replaceable>cid</replaceable> cannot be a basic C type (such as
+      <literal>int</literal>), it must be a defined name.
+      </para>
+    </note>
+  </sect2>
+
+  <sect2>
+    <title>Class Hooks</title>
+    <para>
+<programlisting>
+{#class [<replaceable>hsid1</replaceable> =>] <replaceable>hsid2</replaceable> <replaceable>hsid3</replaceable>#}
+</programlisting>
+
+    Class hooks facilitate the definition of a single inheritance class hierachy
+    for external pointers including up and down cast functionality.  This is
+    meant to be used in cases where the objects referred to by the external
+    pointers are order in such a hierachy in the external API - such structures
+    are encountered in C libraries that provide an object-oriented interface. 
+    Each class hook rewrites to a class declaration and one or more instance
+    declarations.
+    </para>
+
+    <para>
+    All classes in a hierarchy, except the root, will have a superclass
+    identified by <replaceable>hsid1</replaceable>.  The new class is given by
+    <replaceable>hsid2</replaceable> and the corresponding external pointer is
+    identified by <replaceable>hsid3</replaceable>.  Both the superclass and the
+    pointer type must already have been defined by binding hooks that precede
+    the class hook.
+    </para>
+
+    <para>
+    The pointers in a hierachy must either all be foreign pointers or all be
+    normal pointers.  Stable pointers are not allowed.  Both pointer defined as
+    <literal>newtype</literal>s and those defined by type synonyms may be used
+    in class declarations and they may be mixed.  In the case of synonyms,
+    Haskell's usual restrictions regarding overlapping instance declarations
+    apply.
+    </para>
+
+    <para>
+    The newly defined class has two members whose names are derived from the
+    type name <replaceable>hsid3</replaceable>.  The name of first member is
+    derived from <replaceable>hsid3</replaceable> by converting the first
+    character to lower case.  This function casts from any superclass to the
+    current class.  The name of the second member is derived by prefixing
+    <replaceable>hsid3</replaceable> with the <literal>from</literal>.  It casts
+    from the current class to any superclass.  A class hook generates an
+    instance for the pointer in the newly defined class as well as in all its
+    superclasses.
+    </para>
+
+    <para>
+    As an example, consider
+
+<programlisting>
+{#pointer *GtkObject newtype#}
+{#class GtkObjectClass GtkObject#}
+
+{#pointer *GtkWidget newtype#}
+{#class GtkObjectClass => GtkWidgetClass GtkWidget#}
+</programlisting>
+
+    The second class hook generates an instance for <literal>GtkWidget</literal>
+    for both the <literal>GtkWidgetClass</literal> as well as for the
+    <literal>GtkObjectClass</literal>.
+    </para>
+  </sect2>
+
+  <sect2 id="cpp">
+    <title>CPP Directives and Inline C Code</title>
+    <para>
+    A Haskell binding module may include arbitrary C pre-processor directives
+    using the standard C syntax.  The directives are used in two ways: Firstly,
+    they are included in the C header file generated by &C2hs; in exactly
+    the same order in which they appear in the binding module.  Secondly, all
+    conditional directives are honoured by &C2hs; in that all Haskell
+    binding code in alternatives that are discarded by the C pre-processor are
+    also discarded by &C2hs;.  This latter feature is, for example, useful
+    to maintain different bindings for multiple versions of the same C API in a
+    single Haskell binding module.
+    </para>
+
+    <para>
+    In addition to C pre-processor directives, vanilla C code can be maintained
+    in a Haskell binding module by bracketing this C code with the pseudo
+    directives <literal>#c</literal> and <literal>#endc</literal>.  Such inline
+    C code is emitted into the C header generated by &C2hs; at exactly the same
+    position relative to CPP directives as it occurs in the binding module. 
+    Pre-processor directives may encompass the <literal>#include</literal>
+    directive, which can be used instead of specifying a C header file as an
+    argument to <literal>c2hs</literal>.  In particular, this enables the
+    simultaneous use of multiple header files without the need to provide a
+    custom header file that binds them together.  If a header file
+    <replaceable>lib</replaceable><literal>.h</literal> is specified as an
+    argument to <literal>c2hs</literal>, the tool will emit the directive 
+    <literal>#include"</literal><replaceable>lib</replaceable><literal>.h"</literal>
+    into the generated C header before any other CPP directive or inline C code.
+    </para>
+
+    <para>
+    As an artificial example of these features consider the following code:
+
+<programlisting>
+#define VERSION 2
+
+#if (VERSION == 1)
+foo :: CInt -> CInt
+foo = {#call pure fooC#}
+#else
+foo :: CInt -> CInt -> CInt
+foo = {#call pure fooC#}
+#endif
+
+#c
+int fooC (int, int);
+#endc
+</programlisting>
+
+    One of two versions of the Haskell function <literal>foo</literal> (having
+    different arities) is selected in dependence on the value of the CPP macro
+    <literal>VERSION</literal>, which in this example is defined in the same
+    file.  In realistic code, <literal>VERSION</literal> would be defined in
+    the header file supplied with the C library that is made accessible from
+    Haskell by a binding module.  The above code fragment also includes one
+    line of inline C code that declares a C prototype for
+    <literal>fooC</literal>.
+    </para>
+
+    <note>
+      <title>Current limitation of the implementation</title>
+      <para>
+      Inline C code can currently not contain any code blocks; i.e., only
+      declarations as typically found in header files may be included.
+      </para>
+    </note>
+  </sect2>
+
+  <sect2>
+    <title>Grammar Rules</title>
+    <para>
+    The following grammar rules define the syntax of binding hooks:
+
+<programlisting>
+hook     -> `{#' inner `#}'
+inner    -> `import' ['qualified'] ident
+          | `context' ctxt
+          | `type' ident
+          | `sizeof' ident
+          | `enum' idalias trans [`with' prefix] [deriving]
+          | `call' [`pure'] [`unsafe'] idalias
+          | `fun' [`pure'] [`unsafe'] idalias parms
+          | `get' apath
+          | `set' apath
+          | `pointer' ['*'] idalias ptrkind
+          | `class' [ident `=>'] ident ident
+
+ctxt     -> [`lib' `=' string] [prefix]
+idalias  -> ident [(`as' ident | `^')]
+prefix   -> `prefix' `=' string
+deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
+parms    -> [verbhs `=>'] `{' parm_1 `,' ... `,' parm_n `}' `->' parm
+parm     -> [ident_1 [`*' | `-']] verbhs [`&amp;'] [ident_2 [`*'] [`-']]
+apath    -> ident
+          | `*' apath
+          | apath `.' ident
+          | apath `->' ident
+trans    -> `{' alias_1 `,' ... `,' alias_n `}'
+alias    -> `underscoreToCase' | `upcaseFirstLetter' | `downcaseFirstLetter'
+          | ident `as' ident
+ptrkind  -> [`foreign' | `stable'] ['newtype' | '->' ident]
+</programlisting>
+
+    Identifier <literal>ident</literal> follow the lexis of Haskell.  They may
+    be enclosed in single quotes to disambiguate them from C->Haskell keywords.
+    </para>
+  </sect2>
+</sect1>
+
+<sect1 id="bugs">
+  <title>Bug Reports and Suggestions</title>
+  <para>
+  There is a tracker for bugs and feature requests:
+  <ulink ulr="http://hackage.haskell.org/trac/c2hs/" />.
+  Alternatively if you prefer email please send your bug reports and
+  suggestions to the C->Haskell List <email>c2hs@haskell.org</email>.
+  </para>
+
+  <para>
+  A good bug report contains information on the used operating system and
+  Haskell compiler as well as the version of &C2hs; that you have been using. 
+  You can obtain the version information by running <literal>c2hs
+  --version</literal>. If possible a concise example illustrating your problem
+  would be appreciated.
+  </para>
+</sect1>
+
+<sect1 id="copyright">
+  <title>Copyright</title>
+  <para>
+  &C2hs; is Copyright (C) [1999..2005] Manuel M. T. Chakravarty
+  </para>
+
+  <sect2>
+    <title>&C2hs; License</title>
+    <para>
+    <literallayout>
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+    </literallayout>
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>Documentation License</title>
+    <para>
+    <literallayout>
+This manual is Copyright (c) [2000..2005] by Manuel M. T. Chakravarty. 
+Permission is granted to copy, distribute and/or modify this document under
+the terms of the GNU Free Documentation License, Version 1.1 or any later
+version published by the Free Software Foundation; with no Invariant Sections,
+with no Front-Cover Texts, and with the no Back-Cover Texts.  A copy of the
+license is included in the section entitled "GNU Free Documentation License".
+    </literallayout>
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>Possible Licenses of Generated Code</title>
+    <para>
+    All code included into generated bindings is under a BSD-style
+    license that does not place any restrictions on the license of the
+    inteface produced with &C2hs; (ie, closed proprietary licenses are
+    possible, too).  In other words, I do not care what you use &C2hs;
+    for or to whom you are giving &C2hs; or any interfaces generated with
+    &C2hs;, only if you modify or improve &C2hs; itself, you have to
+    contribute your changes back to the community.  Nevertheless, I will of
+    course be particularly delighted if you choose to make your work freely
+    available.
+    </para>
+  </sect2>
+</sect1>
+
+<sect1 id="gfdl">
+  <title>GNU Free Documentation License</title>
+  <para>
+  The GNU Free Documentation License is available at
+  <ulink url="http://www.fsf.org/copyleft/fdl.html" />.
+  </para>
+</sect1>
+
+<sect1 id="release-notes">
+  <title>Release Notes</title>
+  <para>
+  Important changes (especially those affecting the semantics of the tool) are
+  documented in the following.
+  </para>
+
+  <sect2>
+    <title>Version 0.15.1 "Rainy Days"</title>
+    <itemizedlist>
+      <listitem>
+        <para>
+        New C parser that can parse all of C99 and GNU C
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Make c2hs integrate better with Cabal (1.2 and later)
+        </para>
+      </listitem> 
+      <listitem><para>Adapted to GHC 6.8.</para></listitem>
+      <listitem><para>Now requires Cabal 1.2.</para></listitem>
+      <listitem><para>Lots and lots of old code removal</para></listitem>
+      <listitem>
+        <para>
+        Several bug fixes and improvements from Udo Stenzel:
+        <itemizedlist>
+          <listitem>
+            <para>allowing variadic functions in structures</para>
+          </listitem>
+          <listitem>
+            <para>allowing call and fun hooks for FunPtrs in C structs</para>
+          </listitem>
+          <listitem>
+            <para>embedded arrays size calculated correctly</para>
+          </listitem>
+        </itemizedlist>
+        </para>
+      </listitem>
+    </itemizedlist>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.14.5 "Travelling Lightly"</title>
+    <itemizedlist>
+      <listitem>
+        <para>
+        Added <literal>nocode</literal> directive to pointer hooks
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Can use structs properly in pointer hooks now (contributed by Jelmer
+        Vernooij)
+      </para>
+      </listitem>
+      <listitem>
+        <para>
+        <literal>upcaseFirstLetter</literal> and
+        <literal>downcaseFirstLetter</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>Cross-compiling with <literal>--platform</literal> flag
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Gcc's <literal>asm</literal> construct is supported (contributed by
+        Duncan Coutts)
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Hierarchical modules syntax in <literal>import</literal> hooks supported
+        </para>
+      </listitem> 
+      <listitem>
+        <para>
+        No separately installed marshaling library anymore; as a result binary
+        &C2hs; packages and installations are now independent of the targeted
+        Haskell system
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        New lexer and parser generated with Alex and Happy (contributed by
+        Duncan Coutts)
+        </para>
+      </listitem>
+      <listitem><para>Cabal build system</para></listitem>
+    </itemizedlist>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.13.6 "Pressing Forward"</title>
+    <itemizedlist>
+      <listitem>
+        <para>Works with GHC 6.4 and Cabal packages
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Strings may contain 8-bit characters (e.g., umlauts).
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Identifier may optionally be put in single quotes.  (This is useful if
+        they would otherwise collide with a &C2hs; keyword.)
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Some smaller bug fixes
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        C chars are treated as integral types for marshalling purposes.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        If there is no explicit output file specified, the generated header
+        file is put in the same directory as the binding file; otherwise, it
+        goes in the directory where the output file is put.  Moreover, the
+        <literal>--output-dir</literal> option enables the specification of
+        directory where all generated files are to be put.
+        </para>
+      </listitem>
+      <listitem>
+        <para>Foreign import declarations include the name of the header file
+        generated by &C2hs; (ie, it needs neither be passed to the Haskell
+        compiler at the command line nor in an OPTIONS pragma).
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        We allow structs and unions with no declarations.
+        </para>
+      </listitem>
+      <listitem>
+        <para>Headers including function bodies are now parsed correctly.
+        </para>
+      </listitem>
+      <listitem>
+        <para>Duncan Coutts identified a space leak in the parser whose removal
+        improved performance significantly.
+        </para>
+      </listitem>
+    </itemizedlist>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.12.1 "Springtime"</title>
+    <itemizedlist>
+      <listitem><para>Removed support for deprecated <literal>C2HS</literal>
+      interface and for old versions of the FFI libraries</para></listitem>
+      <listitem><para>Improved line pragma generation</para></listitem>
+      <listitem><para>Works with GHC 6.3</para></listitem>
+      <listitem>
+        <para>
+        Builds on Mac OS X thanks to a patch by Sean Seefried
+        </para>
+      </listitem>
+    </itemizedlist>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.11.5 "Powder Snow"</title>
+    <itemizedlist>
+      <listitem><para>Bug fixes</para></listitem>
+      <listitem>
+        <para>Constant expression can now contain enumerators</para>
+      </listitem>
+      <listitem>
+        <para>
+        <literal>header</literal> label removed from <literal>context</literal>
+        hooks
+        </para>
+      </listitem>
+      <listitem>
+        <warning>
+          <para>
+          This version of <literal>c2hs</literal> may
+          <emphasis>overwrite</emphasis> C header files in the current
+          directory. More precisely, if a binding module with the name
+          <literal>Foo.chs</literal> is processed, a header file with the name 
+          <literal>Foo.h</literal> is generated and will
+          <emphasis>overwrite</emphasis> any file of the same name in the
+          current directory or the directory specified via the 
+          <literal>-o</literal> option.
+          </para>
+        </warning>
+      </listitem>
+      <listitem>
+        <para>
+        Added support for CPP directives, including special treatment of
+        conditions, and for inline C code; specification of a header file as an
+        argument to <literal>c2hs</literal> is now option.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        GHC line pragmas are emitted into generated Haskell code
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Swap the order of reading the binding module and the C header (i.e., we
+        now read the binding module first)
+        </para>
+      </listitem>
+    </itemizedlist>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.10.17 "Altocumulus Stratiformis Perlucidus Undulatus"
+    </title>
+    <itemizedlist>
+      <listitem>
+        <para>Worked around a bug in GHC 5.04.1</para></listitem>
+      <listitem>
+        <para>Solaris-related fix</para></listitem>
+      <listitem>
+        <para>
+        Marshalling support for bit masks represented as enumeration types
+        </para>
+      </listitem>
+      <listitem>
+        <para>Added <literal>fun</literal> hooks</para>
+      </listitem>
+      <listitem>
+        <para>
+        <literal>as</literal> aliases can use <literal>^</literal> convert the
+        orignal identifier with underscore2case
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        In call hooks, the attributes `fun' was replaced by `pure' (`fun' is
+        will still be recognised for a while to ensure backwards compatibility,
+        but it's use is deprecated)
+        </para>
+      </listitem>
+      <listitem>
+        <para>GHC's package system is now supported</para>
+      </listitem>
+      <listitem>
+        <para>
+        If two import hooks add a type mapping for a pointer hook with the same
+        name, the textual later one dominates.
+      </para>
+      </listitem>
+      <listitem>
+        <para>Bug fixes</para>
+      </listitem>
+      <listitem>
+        <para>
+        Support for bitfields (they are correctly handled when computing struct
+        offsets and they can be accessed using <literal>set</literal> and
+        <literal>get</literal> hooks)
+       </para>
+      </listitem>
+      <listitem>
+        <para>
+          Some more support for GNU C extensions ("alignof" and better support
+        "__attribute__")
+        </para>
+      </listitem>
+      <listitem>
+        <para>Added <literal>class</literal> hooks</para>
+      </listitem>
+    </itemizedlist>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.9.9 "Blue Ginger"</title>
+    <itemizedlist>
+      <listitem><para>Bug fixes</para></listitem>
+      <listitem>
+        <para>
+        Library names in <literal>foreign import</literal>s have been removed
+        until the convention of the new FFI is implemented (they are currently
+        <emphasis>silently</emphasis> omitted)
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Added <literal>sizeof</literal> hooks; sizeof of type names is now also
+        supported in constant expressions
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Local prefix for <literal>enum</literal> hooks; courtesy of Armin Sander
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Added <literal>import</literal> hooks</para></listitem>
+      <listitem>
+        <para>
+        The documentation includes a description of binding hooks
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Added <literal>pointer</literal> hooks, which were derived from code
+        for a similar feature by Axel Simon; this includes proper treatment of
+        parametrised pointers
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Integrated <literal>deriving</literal> option for
+        <literal>enum</literal> hooks, which was contributed by Axel Simon
+        </para>
+      </listitem>
+      <listitem><para>Adapted to GHC 5.0</para></listitem>
+    </itemizedlist>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.8.2 "Gentle Moon"</title>
+    <itemizedlist>
+      <listitem>
+        <para>
+        Adaptation layer for legacy <literal>StablePtr</literal> interface
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Forgot to export <literal>FunPtr</literal> and associated functions
+        from <literal>C2HS</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Forgot to export some names in <literal>C2HSDeprecated</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        Added support for gcc's <literal>__builtin_va_list</literal>
+        </para>
+      </listitem>
+    </itemizedlist>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.8.1 "Gentle Moon"</title>
+    <itemizedlist>
+      <listitem>
+        <para>Library adapted to New FFI; the old interface can still be used
+        by importing <literal>C2HSDeprecated</literal>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        FFI Library specification added to the documentation
+        </para>
+      </listitem>
+    </itemizedlist>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.7.10 "Afterthought"</title>
+    <itemizedlist>
+      <listitem>
+        <para>
+          CygWin support; based on suggestions by Anibal Maffioletti Rodrigues
+          de DEUS <email>anibaldedeus@email.com</email>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        <literal>IntConv</literal> instances for <literal>Int8</literal>,
+        <literal>Word8</literal>, and <literal>Char</literal>
+        </para>
+      </listitem>
+    </itemizedlist>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.7.9 "Afterthought"</title>
+    <itemizedlist>
+      <listitem>
+        <para>
+        Debugged the stripping of prefixes from enumerators; prefixes are now
+        generally stripped, independent of whether they can be stripped from
+        all enumerators of a given enumeration type
+        </para>
+      </listitem>
+      <listitem>
+        <para>Comma now correctly required after
+        <literal>underscoreToCase</literal>.
+        </para>
+        <warning>
+          <para>This breaks source compatibility with previous versions.
+          </para>
+        </warning>
+      </listitem> 
+    </itemizedlist>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.7.8</title>
+    <itemizedlist>
+      <listitem><para>Provisional support for GHC 4.08</para></listitem>
+      <listitem><para>Corrected constant folding</para></listitem>
+    </itemizedlist>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.7.7</title>
+    <para>
+    Ignores any occurrence of <literal>#pragma</literal>.
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.7.6</title>
+    <para>
+    Bug fixes and support for <literal>long long</literal>.
+    </para>
+  </sect2>
+
+  <sect2>
+    <title>Version 0.7.5</title>
+    <para>
+    This is mainly a bug fix release.  In particular, the space behaviour of
+    &C2hs; has been significantly improved.
+    </para>
+
+    <para>
+    IMPORTANT NOTE: From this release on, library names in
+    <literal>lib</literal> tags in <literal>context</literal> hooks should
+    <emphasis>not</emphasis> contain a suffix (i.e., omit
+    <literal>.so</literal> etc).
+    </para>
+  </sect2>
+</sect1>
+
+</article>
