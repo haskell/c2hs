@@ -19,7 +19,7 @@ Category:       Development
 --TODO: Cabal should allow 'Data-Files' in the executable stanza
 Data-Files:     C2HS.hs
 Extra-Source-Files:
-                c2hs/toplevel/c2hs_config.h
+                src/C2HS/config.h
                 AUTHORS INSTALL README README.CTKlight
 
                 c2hs/tests/Calls.chs c2hs/tests/enums.h c2hs/tests/simple.c
@@ -36,7 +36,6 @@ Flag splitBase
     Description: Choose the new smaller, split-up base package.
 
 Executable c2hs
-    Main-Is:        Main.hs
     Build-Depends:  base, filepath
 
     if flag(splitBase)
@@ -44,51 +43,43 @@ Executable c2hs
     else
         Build-Depends: base < 3
 
-    Build-Tools:    happy, alex
+    build-tools:    happy, alex
+    hs-source-dirs: src
+    main-is:        Main.hs
+    other-modules:
+      Data.Errors
+      Data.DLists
+      Data.Position
+      Data.UNames
+      Data.Attributes
+      Data.Idents
+      Data.NameSpaces
+      Control.StateBase
+      Control.State
+      Control.StateTrans
+      System.CIO
+      Text.Lexers
 
-    Hs-Source-Dirs: base/admin 
-                    base/errors
-                    base/general 
-                    base/state
-                    base/syms
-                    base/syntax
-                    c2hs/c
-                    c2hs/chs
-                    c2hs/gen
-                    c2hs/state
-                    c2hs/toplevel
-    Other-Modules:  Errors
-                    DLists
-                    UNames
-                    CIO
-                    StateBase
-                    State
-                    StateTrans
-                    Position
-                    Attributes
-                    Idents
-                    NameSpaces
-                    Lexers
-                    CAST
-                    CAttrs
-                    CBuiltin
-                    C
-                    CTokens
-                    CParserMonad
-                    CLexer
-                    CNames
-                    CParser
-                    CPretty
-                    CTrav
-                    CHS
-                    CHSLexer
-                    CInfo
-                    GBMonad
-                    GenBind
-                    GenHeader
-                    C2HSState
-                    Switches
-                    C2HSConfig
-                    Version
-    Extensions:     ForeignFunctionInterface
-    C-Sources:      c2hs/toplevel/c2hs_config.c
+      C2HS.C
+      C2HS.C.AST
+      C2HS.C.Builtin
+      C2HS.C.Lexer
+      C2HS.C.Parser
+      C2HS.C.Pretty
+      C2HS.C.Tokens
+      C2HS.C.Attrs
+      C2HS.C.Names
+      C2HS.C.Trav
+      C2HS.C.ParserMonad
+      C2HS.C.Info
+      C2HS.CHS
+      C2HS.CHS.Lexer
+      C2HS.State
+      C2HS.Switches
+      C2HS.Config
+      C2HS.Version
+      C2HS.Gen.Monad
+      C2HS.Gen.Bind
+      C2HS.Gen.Header
+    extensions:     ForeignFunctionInterface
+    c-sources:      src/C2HS/config.c
