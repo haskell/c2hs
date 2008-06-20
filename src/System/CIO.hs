@@ -35,41 +35,35 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module System.CIO (-- (verbatim) re-exports
-	    --
-	    Handle, HandlePosn, IOMode(..), BufferMode(..), SeekMode(..),
-	    stdin, stdout, stderr, 
-	    isAlreadyExistsError, isDoesNotExistError, isAlreadyInUseError,
-	    isFullError, isEOFError, isIllegalOperation, isPermissionError,
-	    isUserError, 
-	    ioeGetErrorString, ioeGetHandle, ioeGetFileName,
+module System.CIO (
 	    --
 	    -- file handling
 	    --
-	    openFileCIO, hCloseCIO,
+	    openFile, hClose,
 	    --
 	    -- text I/O
 	    --
-	    putCharCIO, putStrCIO, putStrLnCIO, hPutStrCIO, hPutStrLnCIO,
-	    writeFileCIO, readFileCIO, printCIO, getCharCIO, hFlushCIO,
-	    hPutCharCIO, hSetBufferingCIO, hGetBufferingCIO, newlineCIO,
+	    putChar, putStr, putStrLn, hPutStr, hPutStrLn,
+	    writeFile, readFile, print, getChar, hFlush,
+	    hPutChar, hSetBuffering, hGetBuffering, newline,
 	    --
 	    -- `Directory'
 	    --
-	    doesFileExistCIO, removeFileCIO, 
+	    doesFileExist, removeFile,
 	    --
 	    -- `System'
 	    --
-	    ExitCode(..), exitWithCIO, getArgsCIO, getProgNameCIO, systemCIO,
+	    IO.ExitCode(..), exitWith, getArgs, getProgName, system,
 	    )
 where
 
-import System.IO
-import System.IO.Error
-import System.Directory (doesFileExist, removeFile)
-import System.Environment (getArgs, getProgName)
-import System.Cmd (system)
-import System.Exit (ExitCode(..), exitWith)
+import Prelude (Bool, Char, String, FilePath, (.), Show)
+import qualified System.IO as IO
+import qualified System.IO.Error as IO
+import qualified System.Directory   as IO (doesFileExist, removeFile)
+import qualified System.Environment as IO (getArgs, getProgName)
+import qualified System.Cmd  as IO (system)
+import qualified System.Exit as IO (ExitCode(..), exitWith)
 
 import Control.StateBase (PreCST, liftIO)
 
@@ -77,82 +71,82 @@ import Control.StateBase (PreCST, liftIO)
 -- file handling
 -- -------------
 
-openFileCIO     :: FilePath -> IOMode -> PreCST e s Handle
-openFileCIO p m  = liftIO (openFile p m)
+openFile     :: FilePath -> IO.IOMode -> PreCST e s IO.Handle
+openFile p m  = liftIO (IO.openFile p m)
 
-hCloseCIO   :: Handle -> PreCST e s ()
-hCloseCIO h  = liftIO (hClose h)
+hClose   :: IO.Handle -> PreCST e s ()
+hClose h  = liftIO (IO.hClose h)
 
 -- text I/O
 -- --------
 
-putCharCIO   :: Char -> PreCST e s ()
-putCharCIO c  = liftIO (putChar c)
+putChar   :: Char -> PreCST e s ()
+putChar c  = liftIO (IO.putChar c)
 
-putStrCIO   :: String -> PreCST e s ()
-putStrCIO s  = liftIO (putStr s)
+putStr   :: String -> PreCST e s ()
+putStr s  = liftIO (IO.putStr s)
 
-putStrLnCIO   :: String -> PreCST e s ()
-putStrLnCIO s  = liftIO (putStrLn s)
+putStrLn   :: String -> PreCST e s ()
+putStrLn s  = liftIO (IO.putStrLn s)
 
-hPutStrCIO     :: Handle -> String -> PreCST e s ()
-hPutStrCIO h s  = liftIO (hPutStr h s)
+hPutStr     :: IO.Handle -> String -> PreCST e s ()
+hPutStr h s  = liftIO (IO.hPutStr h s)
 
-hPutStrLnCIO     :: Handle -> String -> PreCST e s ()
-hPutStrLnCIO h s  = liftIO (hPutStrLn h s)
+hPutStrLn     :: IO.Handle -> String -> PreCST e s ()
+hPutStrLn h s  = liftIO (IO.hPutStrLn h s)
 
-writeFileCIO		    :: FilePath -> String -> PreCST e s ()
-writeFileCIO fname contents  = liftIO (writeFile fname contents)
+writeFile		    :: FilePath -> String -> PreCST e s ()
+writeFile fname contents  = liftIO (IO.writeFile fname contents)
 
-readFileCIO       :: FilePath -> PreCST e s String
-readFileCIO fname  = liftIO (readFile fname)
+readFile       :: FilePath -> PreCST e s String
+readFile fname  = liftIO (IO.readFile fname)
 
-printCIO   :: Show a => a -> PreCST e s ()
-printCIO a  = liftIO (print a)
+print   :: Show a => a -> PreCST e s ()
+print a  = liftIO (IO.print a)
 
-getCharCIO :: PreCST e s Char
-getCharCIO  = liftIO getChar
+getChar :: PreCST e s Char
+getChar  = liftIO IO.getChar
 
-hFlushCIO   :: Handle -> PreCST e s ()
-hFlushCIO h  = liftIO (hFlush h)
+hFlush   :: IO.Handle -> PreCST e s ()
+hFlush h  = liftIO (IO.hFlush h)
 
-hPutCharCIO      :: Handle -> Char -> PreCST e s ()
-hPutCharCIO h ch  = liftIO (hPutChar h ch)
+hPutChar      :: IO.Handle -> Char -> PreCST e s ()
+hPutChar h ch  = liftIO (IO.hPutChar h ch)
 
-hSetBufferingCIO     :: Handle  -> BufferMode -> PreCST e s ()
-hSetBufferingCIO h m  = liftIO (hSetBuffering h m)
+hSetBuffering     :: IO.Handle  -> IO.BufferMode -> PreCST e s ()
+hSetBuffering h m  = liftIO (IO.hSetBuffering h m)
 
-hGetBufferingCIO   :: Handle  -> PreCST e s BufferMode
-hGetBufferingCIO h  = liftIO (hGetBuffering h)
+hGetBuffering   :: IO.Handle  -> PreCST e s IO.BufferMode
+hGetBuffering h  = liftIO (IO.hGetBuffering h)
 
 -- derived functions
 --
 
-newlineCIO :: PreCST e s ()
-newlineCIO  = putCharCIO '\n'
+newline :: PreCST e s ()
+newline  = putChar '\n'
 
 
 -- `Directory'
 -- -----------
 
-doesFileExistCIO :: FilePath -> PreCST e s Bool
-doesFileExistCIO  = liftIO . doesFileExist
+doesFileExist :: FilePath -> PreCST e s Bool
+doesFileExist  = liftIO . IO.doesFileExist
 
-removeFileCIO :: FilePath -> PreCST e s ()
-removeFileCIO  = liftIO . removeFile
+removeFile :: FilePath -> PreCST e s ()
+removeFile  = liftIO . IO.removeFile
 
 
 -- `System'
 -- --------
 
-exitWithCIO :: ExitCode -> PreCST e s a
-exitWithCIO  = liftIO . exitWith
+exitWith :: IO.ExitCode -> PreCST e s a
+exitWith  = liftIO . IO.exitWith
 
-getArgsCIO :: PreCST e s [String]
-getArgsCIO  = liftIO getArgs
+getArgs :: PreCST e s [String]
+getArgs  = liftIO IO.getArgs
 
-getProgNameCIO :: PreCST e s String
-getProgNameCIO  = liftIO getProgName
+getProgName :: PreCST e s String
+getProgName  = liftIO IO.getProgName
 
-systemCIO :: String -> PreCST e s ExitCode
-systemCIO  = liftIO . system
+system :: String -> PreCST e s IO.ExitCode
+system  = liftIO . IO.system

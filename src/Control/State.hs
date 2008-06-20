@@ -61,6 +61,7 @@ where
 
 import Control.Monad (when)
 import Data.List     (sort)
+import System.Exit   (ExitCode(ExitFailure))
 
 import Data.Position    (Position)
 import Data.UNames      (NameSupply,
@@ -70,7 +71,7 @@ import qualified Control.StateTrans as StateTrans (interleave, throwExc, fatal, 
 import Control.StateBase   (PreCST(..), ErrorState(..), BaseState(..),
 		    unpackCST, readCST, writeCST, transCST,
 		    liftIO)
-import System.CIO
+import qualified System.CIO as CIO
 import Data.Errors      (ErrorLvl(..), Error, makeError, errorLvl, showError)
 
 
@@ -104,8 +105,8 @@ run es cst = runSTB m (initialBaseState es) ()
     m = unpackCST (
 	  cst
 	  `fatalsHandledBy` \err ->
-	    putStrCIO ("Uncaught fatal error: " ++ show err)	>>
-	    exitWithCIO (ExitFailure 1)
+	    CIO.putStr ("Uncaught fatal error: " ++ show err)	>>
+	    CIO.exitWith (ExitFailure 1)
 	)
 
 -- run a PreCST in the context of another PreCST (EXPORTED)

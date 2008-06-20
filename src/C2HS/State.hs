@@ -50,9 +50,10 @@ module C2HS.State (-- re-exports all of `State'
 where
 
 import Control.Monad (when)
+import System.IO (stderr)
 
 import Control.State
-import System.CIO
+import qualified System.CIO as CIO
 
 import C2HS.Switches (SwitchBoard(..), Traces(..), 
 		 initialSwitchBoard)
@@ -91,7 +92,7 @@ putTraceStr       :: (Traces -> Bool) -> String -> CST s ()
 putTraceStr t msg  = do
 		       set <- traceSet t
 		       when set $
-			 hPutStrCIO stderr msg
+			 CIO.hPutStr stderr msg
 
 -- set a switch value
 --

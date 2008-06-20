@@ -121,24 +121,23 @@ where
 import Data.List (isPrefixOf, intersperse, partition)
 import Control.Monad (when, unless)
 import Data.Version (showVersion)
-
--- base libraries
 import System.Console.GetOpt     
 		  (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo, getOpt)
 import qualified System.FilePath as FilePath 
                   (takeExtension, dropExtension, takeDirectory, takeBaseName)
 import System.FilePath ((<.>), (</>))
+import System.Exit (ExitCode(..))
+import System.IO (stderr)
+import System.IO.Error (ioeGetErrorString, ioeGetFileName)
+
+-- base libraries
 import Control.StateBase  (liftIO)
 
 -- c2hs modules
 import C2HS.State  (CST, runC2HS, fatal, fatalsHandledBy,
 		   SwitchBoard(..), Traces(..), setTraces,
 		   traceSet, setSwitch, getSwitch, putTraceStr)
-import System.CIO (ExitCode(..), stderr, putStrCIO, putStrLnCIO,
-		   hPutStrCIO, printCIO,
-		   hPutStrLnCIO, exitWithCIO, getArgsCIO, getProgNameCIO,
-		   ioeGetErrorString, ioeGetFileName, removeFileCIO,
-		   systemCIO, readFileCIO, writeFileCIO,)
+import qualified System.CIO as CIO
 import C2HS.C	  (hsuffix, isuffix, loadAttrC)
 import C2HS.CHS	  (loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
 import C2HS.Gen.Header  (genHeader)
@@ -272,7 +271,7 @@ compile :: CST s ()
 compile  = 
   do
     setup
-    cmdLine <- getArgsCIO
+    cmdLine <- CIO.getArgs
     case getOpt RequireOrder options cmdLine of
       (opts, []  , [])
         | noCompOpts opts -> doExecute opts Nothing
@@ -310,7 +309,7 @@ compile  =
     doExecute opts args = do
 			    execute opts args
 			      `fatalsHandledBy` failureHandler
-			    exitWithCIO ExitSuccess
+			    CIO.exitWith ExitSuccess
     --
     wrongNoOfArgsErr = 
       "There must be exactly one binding file (suffix .chs),\n\
@@ -324,8 +323,8 @@ compile  =
 	    fnMsg = case ioeGetFileName err of
 		       Nothing -> ""
 		       Just s  -> " (file: `" ++ s ++ "')"
-	hPutStrLnCIO stderr (msg ++ fnMsg)
-	exitWithCIO $ ExitFailure 1
+	CIO.hPutStrLn stderr (msg ++ fnMsg)
+	CIO.exitWith $ ExitFailure 1
 
 -- set up base configuration
 --
@@ -338,9 +337,9 @@ setup  = do
 --
 raiseErrs      :: [String] -> CST s a
 raiseErrs errs = do
-		   hPutStrCIO stderr (concat errs)
-		   hPutStrCIO stderr errTrailer
-		   exitWithCIO $ ExitFailure 1
+		   CIO.hPutStr stderr (concat errs)
+		   CIO.hPutStr stderr errTrailer
+		   CIO.exitWith $ ExitFailure 1
 
 -- Process tasks
 -- -------------
@@ -374,19 +373,19 @@ execute opts args | Help `elem` opts = help
     --
     die ioerr = 
       do
-        name <- getProgNameCIO
-	putStrCIO $ name ++ ": " ++ ioeGetErrorString ioerr ++ "\n"
-	exitWithCIO $ ExitFailure 1
+        name <- CIO.getProgName
+	CIO.putStr $ name ++ ": " ++ ioeGetErrorString ioerr ++ "\n"
+	CIO.exitWith $ ExitFailure 1
 
 -- emit help message
 --
 help :: CST s ()
 help = 
   do
-    putStrCIO (usageInfo header options)
-    putStrCIO trailer
-    putStrCIO $ "PLATFORM can be " ++ hosts ++ "\n"
-    putStrCIO $ "  (default is " ++ identPS defaultPlatformSpec ++ ")\n"
+    CIO.putStr (usageInfo header options)
+    CIO.putStr trailer
+    CIO.putStr $ "PLATFORM can be " ++ hosts ++ "\n"
+    CIO.putStr $ "  (default is " ++ identPS defaultPlatformSpec ++ ")\n"
   where
     hosts = (concat . intersperse ", " . map identPS) platformSpecDB
 
@@ -405,19 +404,19 @@ processOpt (Output   fname  ) = setOutput   fname
 processOpt (Platform fname  ) = setPlatform fname
 processOpt (OutDir   fname  ) = setOutDir   fname
 processOpt Version            = do
-			          putStrLnCIO version
+			          CIO.putStrLn version
 				  platform <- getSwitch platformSB
-				  putStrCIO "  build platform is "
-				  printCIO platform
-processOpt NumericVersion     = putStrLnCIO (showVersion versnum)
+				  CIO.putStr "  build platform is "
+				  CIO.print platform
+processOpt NumericVersion     = CIO.putStrLn (showVersion versnum)
 processOpt (Error    msg    ) = abort msg
 
 -- emit error message and raise an error
 --
 abort     :: String -> CST s ()
 abort msg  = do
-	       hPutStrLnCIO stderr msg
-	       hPutStrCIO stderr errTrailer
+	       CIO.hPutStrLn stderr msg
+	       CIO.hPutStr stderr errTrailer
 	       fatal "Error in command line options"
 
 -- Compute the base name for all generated files (Haskell, C header, and .chi
@@ -440,7 +439,7 @@ copyLibrary =
     let libFullName = datadir </> libfname
 	libDestName = outdir  </> libfname
     when library $
-      readFileCIO libFullName >>= writeFileCIO libDestName
+      CIO.readFile libFullName >>= CIO.writeFile libDestName
 
 
 -- set switches
@@ -547,7 +546,7 @@ process headerFiles bndFile  =
     -- load the Haskell binding module
     --
     (chsMod , warnmsgs) <- loadCHS bndFile
-    putStrCIO warnmsgs
+    CIO.putStr warnmsgs
     traceCHSDump chsMod
     --
     -- extract CPP and inline-C embedded in the .chs file (all CPP and
@@ -555,7 +554,7 @@ process headerFiles bndFile  =
     -- replaced by structured conditionals)
     --
     (header, strippedCHSMod, warnmsgs) <- genHeader chsMod
-    putStrCIO warnmsgs
+    CIO.putStr warnmsgs
     --
     -- create new header file, make it #include `headerFile', and emit
     -- CPP and inline-C of .chs file into the new header
@@ -565,7 +564,7 @@ process headerFiles bndFile  =
     let newHeader     = outFName <.> chssuffix <.> hsuffix
         newHeaderFile = outDir </> newHeader
 	preprocFile   = FilePath.takeBaseName outFName <.> isuffix
-    writeFileCIO newHeaderFile $ concat $
+    CIO.writeFile newHeaderFile $ concat $
       [ "#include \"" ++ headerFile ++ "\"\n"
       | headerFile <- headerFiles ]
       ++ header
@@ -585,7 +584,7 @@ process headerFiles bndFile  =
     cppOpts <- getSwitch cppOptsSB
     let cmd  = unwords [cpp, cppOpts, newHeaderFile, ">" ++ preprocFile]
     tracePreproc cmd
-    exitCode <- systemCIO cmd
+    exitCode <- CIO.system cmd
     case exitCode of 
       ExitFailure _ -> fatal "Error during preprocessing custom header file"
       _		    -> return ()
@@ -593,23 +592,23 @@ process headerFiles bndFile  =
     -- load and analyse the C header file
     --
     (cheader, warnmsgs) <- loadAttrC preprocFile
-    putStrCIO warnmsgs
+    CIO.putStr warnmsgs
     --
     -- remove the pre-processed header and if we no longer need it, remove the
     -- custom header file too.
     --
     keep <- getSwitch keepSB
     unless keep $ do
-      removeFileCIO preprocFile
+      CIO.removeFile preprocFile
       case headerFiles of
         [headerFile] | null header
-          -> removeFileCIO newHeaderFile
+          -> CIO.removeFile newHeaderFile
         _ -> return () -- keep it since we'll need it to compile the .hs file
     --
     -- expand binding hooks into plain Haskell
     --
     (hsMod, chi, warnmsgs) <- expandHooks cheader strippedCHSMod
-    putStrCIO warnmsgs
+    CIO.putStr warnmsgs
     --
     -- output the result
     --
@@ -622,7 +621,7 @@ process headerFiles bndFile  =
 			 flag <- traceSet dumpCHSSW
 			 when flag $
 			   (do
-			      putStrCIO ("...dumping CHS to `" ++ chsName 
+			      CIO.putStr ("...dumping CHS to `" ++ chsName
 					 ++ "'...\n")
 			      dumpCHS chsName mod False)
 

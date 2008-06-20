@@ -67,7 +67,7 @@ import Data.Attributes (Attrs, Attr(..))
 import C2HS.State  (CST,
 		   fatal, errorsPresent, showErrors,
 		   Traces(..), putTraceStr)
-import System.CIO (readFileCIO)
+import qualified System.CIO as CIO
 import C2HS.C.AST
 import C2HS.C.Parser    (parseC)
 import C2HS.C.Pretty    () -- just Show instances
@@ -96,7 +96,7 @@ loadAttrC fname  = do
 		     -- read file
 		     --
 		     traceInfoRead fname
-		     contents <- readFileCIO fname
+		     contents <- CIO.readFile fname
 
 		     -- parse
 		     --
