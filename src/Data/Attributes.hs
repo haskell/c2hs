@@ -99,25 +99,25 @@ import Data.Map (Map)
 -- ---------------------------------------------------
 
 -- abstract data structure used in the structure tree to represent the
--- attribute identifier and the position (EXPORTED)
+-- attribute identifier and the position
 --
 data Attrs = OnlyPos Position           -- only pos (for internal stuff only)
            | Attrs   Position Name      -- pos and unique name
 
--- get the position associated with an attribute identifier (EXPORTED)
+-- get the position associated with an attribute identifier
 --
 instance Pos Attrs where
   posOf (OnlyPos pos  ) = pos
   posOf (Attrs   pos _) = pos
 
--- equality of attributes is used to define the equality of objects (EXPORTED)
+-- equality of attributes is used to define the equality of objects
 --
 instance Eq Attrs where
   (Attrs   _ id1) == (Attrs   _ id2) = id1 == id2
   _               == _               =
     interr "Attributes: Attempt to compare `OnlyPos' attributes!"
 
--- attribute ordering is also lifted to objects (EXPORTED)
+-- attribute ordering is also lifted to objects
 --
 instance Ord Attrs where
   (Attrs   _ id1) <= (Attrs   _ id2) = id1 <= id2
@@ -125,17 +125,17 @@ instance Ord Attrs where
     interr "Attributes: Attempt to compare `OnlyPos' attributes!"
 
 -- a class for convenient access to the attributes of an attributed object
--- (EXPORTED)
+--
 --
 class Attributed a where
   attrsOf :: a -> Attrs
 
--- equality induced by attribution (EXPORTED)
+-- equality induced by attribution
 --
 eqOfAttrsOf           :: Attributed a => a -> a -> Bool
 eqOfAttrsOf obj1 obj2  = (attrsOf obj1) == (attrsOf obj2)
 
--- position induced by attribution (EXPORTED)
+-- position induced by attribution
 --
 posOfAttrsOf :: Attributed a => a -> Position
 posOfAttrsOf  = posOf . attrsOf
@@ -144,13 +144,13 @@ posOfAttrsOf  = posOf . attrsOf
 -- attribute identifier creation
 -- -----------------------------
 
--- Given only a source position, create a new attribute identifier (EXPORTED)
+-- Given only a source position, create a new attribute identifier
 --
 newAttrsOnlyPos     :: Position -> Attrs
 newAttrsOnlyPos pos  = OnlyPos pos
 
 -- Given a source position and a unique name, create a new attribute
--- identifier (EXPORTED)
+-- identifier
 --
 newAttrs          :: Position -> Name -> Attrs
 newAttrs pos name  = Attrs pos name
@@ -159,16 +159,16 @@ newAttrs pos name  = Attrs pos name
 -- attribute tables and operations on them
 -- ---------------------------------------
 
--- the type class `Attr' determines which types may be used as attributes
--- (EXPORTED)
+-- | the type class 'Attr' determines which types may be used as attributes
+--
 --
 -- * such types have to provide values representing an undefined and a don't
 --   care state, together with two functions to test for these values
 --
--- * an attribute in an attribute table is initially set to `undef' (before
+-- * an attribute in an attribute table is initially set to 'undef' (before
 --   some value is assigned to it)
 --
--- * an attribute with value `dontCare' participated in an already detected
+-- * an attribute with value 'dontCare' participated in an already detected
 --   error, it's value may not be used for further computations in order to
 --   avoid error avalanches
 --
@@ -185,8 +185,7 @@ class Attr a where
   isDontCare  = interr "Attributes: Undefined `isDontCare' method in `Attr' \
                        \class!"
 
--- attribute tables map attribute identifiers to attribute values
--- (EXPORTED ABSTRACT)
+-- | attribute tables map attribute identifiers to attribute values
 --
 -- * the attributes within a table can be soft or frozen, the former may by be
 --   updated, but the latter can not be changed
@@ -199,20 +198,20 @@ class Attr a where
 --
 data Attr a =>
      AttrTable a = -- for all attribute identifiers not contained in the
-                   -- finite map the value is `undef'
+                   -- finite map the value is 'undef'
                    --
                    SoftTable (Map Name a)   -- updated attr.s
                              String               -- desc of the table
 
-                   -- the array contains `undef' attributes for the undefined
+                   -- the array contains 'undef' attributes for the undefined
                    -- attributes; for all attribute identifiers outside the
-                   -- bounds, the value is also `undef';
+                   -- bounds, the value is also 'undef';
                    --
                  | FrozenTable (Array Name a)     -- attribute values
                                String             -- desc of the table
 
 
--- create an attribute table, where all attributes are `undef' (EXPORTED)
+-- | create an attribute table, where all attributes are 'undef'
 --
 -- the description string is used to identify the table in error messages
 -- (internal errors); a table is initially soft
@@ -220,7 +219,7 @@ data Attr a =>
 newAttrTable      :: Attr a => String -> AttrTable a
 newAttrTable desc  = SoftTable Map.empty desc
 
--- get the value of an attribute from the given attribute table (EXPORTED)
+-- | get the value of an attribute from the given attribute table
 --
 getAttr                      :: Attr a => AttrTable a -> Attrs -> a
 getAttr at (OnlyPos pos    )  = onlyPosErr "getAttr" at pos
@@ -231,8 +230,8 @@ getAttr at (Attrs   _   aid)  =
                            in
                            if (aid < lbd || aid > ubd) then undef else arr!aid
 
--- set the value of an, up to now, undefined attribute from the given
--- attribute table (EXPORTED)
+-- | set the value of an, up to now, undefined attribute from the given
+-- attribute table
 --
 setAttr :: Attr a => AttrTable a -> Attrs -> a -> AttrTable a
 setAttr at (OnlyPos pos    ) av = onlyPosErr "setAttr" at pos
@@ -245,7 +244,7 @@ setAttr at (Attrs   pos aid) av =
     frozenErr     = "Attributes.setAttr: Tried to write frozen attribute in\n"
                     ++ errLoc at pos
 
--- update the value of an attribute from the given attribute table (EXPORTED)
+-- | update the value of an attribute from the given attribute table
 --
 updAttr :: Attr a => AttrTable a -> Attrs -> a -> AttrTable a
 updAttr at (OnlyPos pos    ) av = onlyPosErr "updAttr" at pos
@@ -256,7 +255,7 @@ updAttr at (Attrs   pos aid) av =
                                        \ update frozen attribute in\n"
                                        ++ errLoc at pos
 
--- copy the value of an attribute to another one (EXPORTED)
+-- | copy the value of an attribute to another one
 --
 -- * undefined attributes are not copied, to avoid filling the table
 --
@@ -268,7 +267,7 @@ copyAttr at ats ats'
   where
     av = getAttr at ats
 
--- auxiliary functions for error messages
+-- | auxiliary functions for error messages
 --
 onlyPosErr                :: Attr a => String -> AttrTable a -> Position -> b
 onlyPosErr fctName at pos  =
@@ -282,8 +281,8 @@ errLoc at pos  = "  table `" ++ tableDesc at ++ "' for construct at\n\
     tableDesc (SoftTable   _ desc) = desc
     tableDesc (FrozenTable _ desc) = desc
 
--- freeze a soft table; afterwards no more changes are possible until the
--- table is softened again (EXPORTED)
+-- | freeze a soft table; afterwards no more changes are possible until the
+-- table is softened again
 --
 freezeAttrTable                        :: Attr a => AttrTable a -> AttrTable a
 freezeAttrTable (SoftTable   fm  desc)  =
@@ -298,8 +297,8 @@ freezeAttrTable (FrozenTable arr desc)  =
   interr ("Attributes.freezeAttrTable: Attempt to freeze the already frozen\n\
           \  table `" ++ desc ++ "'!")
 
--- soften a frozen table; afterwards changes are possible until the
--- table is frozen again (EXPORTED)
+-- | soften a frozen table; afterwards changes are possible until the
+-- table is frozen again
 --
 softenAttrTable                        :: Attr a => AttrTable a -> AttrTable a
 softenAttrTable (SoftTable   fm  desc)  =
@@ -312,7 +311,7 @@ softenAttrTable (FrozenTable arr desc)  =
 -- standard attributes
 -- -------------------
 
--- standard attribute variants (EXPORTED)
+-- | standard attribute variants
 --
 data StdAttr a = UndefStdAttr
                | DontCareStdAttr
@@ -329,10 +328,10 @@ instance Attr (StdAttr a) where
   isDontCare DontCareStdAttr = True
   isDontCare _               = False
 
--- get an attribute value from a standard attribute table (EXPORTED)
+-- | get an attribute value from a standard attribute table
 --
 -- * if the attribute can be "don't care", this should be checked before
---   calling this function (using `isDontCareStdAttr')
+--   calling this function (using 'isDontCareStdAttr')
 --
 getStdAttr         :: AttrTable (StdAttr a) -> Attrs -> a
 getStdAttr atab at  = getStdAttrDft atab at err
@@ -340,8 +339,8 @@ getStdAttr atab at  = getStdAttrDft atab at err
     err = interr $ "Attributes.getStdAttr: Don't care in\n"
                    ++ errLoc atab (posOf at)
 
--- get an attribute value from a standard attribute table, where a default is
--- substituted if the table is don't care (EXPORTED)
+-- | get an attribute value from a standard attribute table, where a default is
+-- substituted if the table is don't care
 --
 getStdAttrDft             :: AttrTable (StdAttr a) -> Attrs -> a -> a
 getStdAttrDft atab at dft  =
@@ -351,30 +350,30 @@ getStdAttrDft atab at dft  =
     UndefStdAttr    -> interr $ "Attributes.getStdAttrDft: Undefined in\n"
                                 ++ errLoc atab (posOf at)
 
--- check if the attribue value is marked as "don't care" (EXPORTED)
+-- | check if the attribue value is marked as "don't care"
 --
 isDontCareStdAttr         :: AttrTable (StdAttr a) -> Attrs -> Bool
 isDontCareStdAttr atab at  = isDontCare (getAttr atab at)
 
--- check if the attribue value is still undefined (EXPORTED)
+-- | check if the attribue value is still undefined
 --
 -- * we also regard "don't care" attributes as undefined
 --
 isUndefStdAttr         :: AttrTable (StdAttr a) -> Attrs -> Bool
 isUndefStdAttr atab at  = isUndef (getAttr atab at)
 
--- set an attribute value in a standard attribute table (EXPORTED)
+-- | set an attribute value in a standard attribute table
 --
 setStdAttr :: AttrTable (StdAttr a) -> Attrs -> a -> AttrTable (StdAttr a)
 setStdAttr atab at av = setAttr atab at (JustStdAttr av)
 
--- update an attribute value in a standard attribute table (EXPORTED)
+-- | update an attribute value in a standard attribute table
 --
 updStdAttr :: AttrTable (StdAttr a) -> Attrs -> a -> AttrTable (StdAttr a)
 updStdAttr atab at av = updAttr atab at (JustStdAttr av)
 
 
--- generic attribute table access (EXPORTED)
+-- generic attribute table access
 -- ------------------------------
 
 getGenAttr         :: (Attr a, Attributed obj) => AttrTable a -> obj -> a

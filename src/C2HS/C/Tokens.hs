@@ -30,7 +30,7 @@ import Data.Idents    (Ident, identToLexeme)
 -- token definition
 -- ----------------
 
--- possible tokens (EXPORTED)
+-- | possible tokens
 --
 data CToken = CTokLParen   !Position            -- `('
             | CTokRParen   !Position            -- `)'
@@ -143,7 +143,7 @@ data CToken = CTokLParen   !Position            -- `('
             | CTokGnuC !GnuCTok !Position       -- special GNU C tokens
             | CTokEof                           -- end of file
 
--- special tokens used in GNU C extensions to ANSI C
+-- | special tokens used in GNU C extensions to ANSI C
 --
 data GnuCTok = GnuCAttrTok              -- `__attribute__'
              | GnuCExtTok               -- `__extension__'

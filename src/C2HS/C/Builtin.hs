@@ -39,7 +39,7 @@ import Data.Idents (Ident, onlyPosIdent)
 import C2HS.C.Attrs (CObj(BuiltinCO))
 
 
--- predefined type names
+-- | predefined type names
 --
 builtinTypeNames :: [(Ident, CObj)]
 builtinTypeNames  = [(onlyPosIdent builtinPos "__builtin_va_list", BuiltinCO)]

@@ -30,37 +30,37 @@
 module Data.DLists (DList, open, zero, unit, snoc, join, close)
 where
 
--- a difference list is a function that given a list returns the original
--- contents of the difference list prepended at the given list (EXPORTED)
+-- | a difference list is a function that given a list returns the original
+-- contents of the difference list prepended at the given list
 --
 type DList a = [a] -> [a]
 
--- open a list for use as a difference list (EXPORTED)
+-- | open a list for use as a difference list
 --
 open :: [a] -> DList a
 open  = (++)
 
--- create a difference list containing no elements (EXPORTED)
+-- | create a difference list containing no elements
 --
 zero :: DList a
 zero  = id
 
--- create difference list with given single element (EXPORTED)
+-- | create difference list with given single element
 --
 unit :: a -> DList a
 unit  = (:)
 
--- append a single element at a difference list (EXPORTED)
+-- | append a single element at a difference list
 --
-snoc      :: DList a -> a -> DList a
+snoc :: DList a -> a -> DList a
 snoc dl x  = \l -> dl (x:l)
 
--- appending difference lists (EXPORTED)
+-- | appending difference lists
 --
 join :: DList a -> DList a -> DList a
 join  = (.)
 
--- closing a difference list into a normal list (EXPORTED)
+-- | closing a difference list into a normal list
 --
 close :: DList a -> [a]
 close  = ($[])

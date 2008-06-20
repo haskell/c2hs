@@ -52,11 +52,11 @@ import C2HS.C.Trav     (CT, runCT, enterObjs, leaveObjs,
 -- monad and wrapper
 -- -----------------
 
--- local instance of the C traversal monad
+-- | local instance of the C traversal monad
 --
 type NA a = CT () a
 
--- name analysis of C header files (EXPORTED)
+-- | name analysis of C header files
 --
 nameAnalysis         :: CHeader -> CST s AttrC
 nameAnalysis headder  = do
@@ -67,7 +67,7 @@ nameAnalysis headder  = do
 -- name analyis traversal
 -- ----------------------
 
--- traverse a complete header file
+-- | traverse a complete header file
 --
 -- * in case of an error, back off the current declaration
 --
@@ -81,7 +81,7 @@ naCHeader (CHeader decls _) = do
                --
                mapM_ (\decl -> naCExtDecl decl `ifCTExc` return ()) decls
 
--- Processing of toplevel declarations
+-- | Processing of toplevel declarations
 --
 -- * We turn function definitions into prototypes, as we are not interested in
 --   function bodies.
@@ -180,7 +180,7 @@ naCExpr (CCompoundLit _ inits          _) = mapM_ (naCInit . snd) inits
 -- auxilliary functions
 -- --------------------
 
--- raise an error and exception if the identifier is defined twice
+-- | raise an error and exception if the identifier is defined twice
 --
 defTagOrErr           :: Ident -> CTag -> NA ()
 ide `defTagOrErr` tag  = do
@@ -189,7 +189,7 @@ ide `defTagOrErr` tag  = do
                              Nothing   -> return ()
                              Just tag' -> declaredTwiceErr ide (posOf tag')
 
--- associate an object with a referring identifier
+-- | associate an object with a referring identifier
 --
 -- * currently, repeated declarations are completely ignored; eventually, the
 --   consistency of the declarations should be checked
@@ -197,7 +197,7 @@ ide `defTagOrErr` tag  = do
 defObjOrErr           :: Ident -> CObj -> NA ()
 ide `defObjOrErr` obj  = ide `defObj` obj >> return ()
 
--- maps some monad operation into a `Maybe', discarding the result
+-- | maps some monad operation into a 'Maybe', discarding the result
 --
 mapMaybeM_ :: Monad m => (a -> m b) -> Maybe a -> m ()
 mapMaybeM_ m Nothing   =        return ()

@@ -69,10 +69,10 @@ import C2HS.Gen.Monad    (GB)
 -- calibration of C's primitive types
 -- ----------------------------------
 
--- C's primitive types (EXPORTED)
+-- | C's primitive types
 --
--- * `CFunPtrPT' doesn't occur in Haskell representations of C types, but we
---   need to know their size, which may be different from `CPtrPT'
+-- * 'CFunPtrPT' doesn't occur in Haskell representations of C types, but we
+--   need to know their size, which may be different from 'CPtrPT'
 --
 data CPrimType = CPtrPT         -- void *
                | CFunPtrPT      -- void *()
@@ -94,7 +94,7 @@ data CPrimType = CPtrPT         -- void *
                | CUFieldPT  Int -- unsigned bit field
                deriving (Eq)
 
--- size of primitive type of C (EXPORTED)
+-- | size of primitive type of C
 --
 -- * negative size implies that it is a bit, not an octet size
 --
@@ -118,7 +118,7 @@ size CLDoublePT      = Storable.sizeOf (undefined :: CLDouble)
 size (CSFieldPT bs)  = -bs
 size (CUFieldPT bs)  = -bs
 
--- alignment of C's primitive types (EXPORTED)
+-- | alignment of C's primitive types
 --
 -- * more precisely, the padding put before the type's member starts when the
 --   preceding component is a char
@@ -143,7 +143,7 @@ alignment CLDoublePT      = return $ Storable.alignment (undefined :: CLDouble)
 alignment (CSFieldPT bs)  = fieldAlignment bs
 alignment (CUFieldPT bs)  = fieldAlignment bs
 
--- alignment constraint for a C bitfield
+-- | alignment constraint for a C bitfield
 --
 -- * gets the bitfield size (in bits) as an argument
 --
@@ -170,7 +170,7 @@ fieldAlignment bs =
     PlatformSpec {bitfieldPaddingPS = bitfieldPadding} <- getPlatform
     return $ if bitfieldPadding then - bs else 0
 
--- obtain platform from switchboard
+-- | obtain platform from switchboard
 --
 getPlatform :: GB PlatformSpec
 getPlatform = getSwitch platformSB

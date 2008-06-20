@@ -152,11 +152,11 @@ import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
 
 -- FIXME:
 -- - we might have a dynamically extended table in the monad if needed (we
---   could marshall enums this way and also save the `id' marshallers for
+--   could marshall enums this way and also save the 'id' marshallers for
 --   pointers defined via (newtype) pointer hooks)
 -- - the checks for the Haskell types are quite kludgy
 
--- determine the default "in" marshaller for the given Haskell and C types
+-- | determine the default "in" marshaller for the given Haskell and C types
 --
 lookupDftMarshIn :: String -> [ExtType] -> GB (Maybe (Ident, CHSArg))
 lookupDftMarshIn "Bool"   [PrimET pt] | isIntegralCPrimType pt =
@@ -187,7 +187,7 @@ lookupDftMarshIn "Bool"   [PtrET (PrimET pt)]
 lookupDftMarshIn _        _                                    =
   return Nothing
 
--- determine the default "out" marshaller for the given Haskell and C types
+-- | determine the default "out" marshaller for the given Haskell and C types
 --
 lookupDftMarshOut :: String -> [ExtType] -> GB (Maybe (Ident, CHSArg))
 lookupDftMarshOut "()"     _                                    =
@@ -213,7 +213,7 @@ lookupDftMarshOut _        _                                    =
   return Nothing
 
 
--- check for integral Haskell types
+-- | check for integral Haskell types
 --
 isIntegralHsType :: String -> Bool
 isIntegralHsType "Int"    = True
@@ -227,7 +227,7 @@ isIntegralHsType "Word32" = True
 isIntegralHsType "Word64" = True
 isIntegralHsType _        = False
 
--- check for floating Haskell types
+-- | check for floating Haskell types
 --
 isFloatHsType :: String -> Bool
 isFloatHsType "Float"  = True
@@ -241,23 +241,23 @@ isVariadic (PtrET t)    = isVariadic t
 isVariadic (VarFunET _) = True
 isVariadic _            = False
 
--- check for integral C types
+-- | check for integral C types
 --
 -- * For marshalling purposes C char's are integral types (see also types
---   classes for which the FFI guarantees instances for `CChar', `CSChar', and
---   `CUChar')
+--   classes for which the FFI guarantees instances for 'CChar', 'CSChar', and
+--   'CUChar')
 --
 isIntegralCPrimType :: CPrimType -> Bool
 isIntegralCPrimType  = (`elem` [CCharPT, CSCharPT, CIntPT, CShortPT, CLongPT,
                                 CLLongPT, CUIntPT, CUCharPT, CUShortPT,
                                 CULongPT, CULLongPT])
 
--- check for floating C types
+-- | check for floating C types
 --
 isFloatCPrimType :: CPrimType -> Bool
 isFloatCPrimType  = (`elem` [CFloatPT, CDoublePT, CLDoublePT])
 
--- standard conversions
+-- | standard conversions
 --
 voidIde           = noPosIdent "void"         -- never appears in the output
 cFromBoolIde      = noPosIdent "cFromBool"
@@ -278,8 +278,8 @@ peekCStringLenIde = noPosIdent "peekCStringLenIntConv"
 -- expansion of binding hooks
 -- --------------------------
 
--- given a C header file and a binding file, expand all hooks in the binding
--- file using the C header information (EXPORTED)
+-- | given a C header file and a binding file, expand all hooks in the binding
+-- file using the C header information
 --
 -- * together with the module, returns the contents of the .chi file
 --
@@ -477,7 +477,7 @@ expandHook hook@(CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
     (ObjCO cdecl, cide) <- findFunObj ide True
     let ideLexeme = identToLexeme ide  -- orignal name might have been a shadow
         hsLexeme  = ideLexeme `maybe` identToLexeme $ oalias
-        fiLexeme  = hsLexeme ++ "'_"   -- *Urgh* - probably unqiue...
+        fiLexeme  = hsLexeme ++ "'_"   -- Urgh - probably unqiue...
         fiIde     = onlyPosIdent nopos fiLexeme
         cdecl'    = cide `simplifyDecl` cdecl
         callHook  = CHSCall isPure isUns (CHSRoot cide) (Just fiIde) pos
@@ -507,7 +507,7 @@ expandHook hook@(CHSFun isPure isUns apath oalias ctxt parms parm pos) =
     -- (ObjCO cdecl, cide) <- findFunObj ide True
     let ideLexeme = identToLexeme $ apathToIdent apath
         hsLexeme  = ideLexeme `maybe` identToLexeme $ oalias
-        fiLexeme  = hsLexeme ++ "'_"   -- *Urgh* - probably unqiue...
+        fiLexeme  = hsLexeme ++ "'_"   -- Urgh - probably unqiue...
         fiIde     = onlyPosIdent nopos fiLexeme
         -- cdecl'    = cide `simplifyDecl` cdecl
         args      = concat [ " x" ++ show n | n <- [1..numArgs ty] ]
@@ -636,7 +636,7 @@ expandHook (CHSClass oclassIde classIde typeIde pos) =
     --
     traceInfoClass = traceGenBind $ "** Class hook:\n"
 
--- produce code for an enumeration
+-- | produce code for an enumeration
 --
 -- * an extra instance declaration is required when any of the enumeration
 --   constants is explicitly assigned a value in its definition
@@ -679,12 +679,12 @@ enumDef cenum@(CEnum _ list _) hident trans userDerive =
     makeDerives [] = ""
     makeDerives dList = "deriving (" ++ concat (intersperse "," dList) ++")"
 
--- Haskell code for the head of an enumeration definition
+-- | Haskell code for the head of an enumeration definition
 --
 enumHead       :: String -> String
 enumHead ident  = "data " ++ ident ++ " = "
 
--- Haskell code for the body of an enumeration definition
+-- | Haskell code for the body of an enumeration definition
 --
 enumBody                        :: Int -> [(String, Maybe CExpr)] -> String
 enumBody indent []               = ""
@@ -692,7 +692,7 @@ enumBody indent ((ide, _):list)  =
   ide ++ "\n" ++ replicate indent ' '
   ++ (if null list then "" else "| " ++ enumBody indent list)
 
--- Haskell code for an instance declaration for `Enum'
+-- | Haskell code for an instance declaration for 'Enum'
 --
 -- * the expression of all explicitly specified tag values already have to be
 --   in normal form, ie, to be an int constant
@@ -734,7 +734,7 @@ enumInst ident list =
         --
         show' x = if x < 0 then "(" ++ show x ++ ")" else show x
 
--- generate a foreign import declaration that is put into the delayed code
+-- | generate a foreign import declaration that is put into the delayed code
 --
 -- * the C declaration is a simplified declaration of the function that we
 --   want to import into Haskell land
@@ -769,7 +769,7 @@ callImportDyn hook isPure isUns ideLexeme hsLexeme ty pos =
     traceFunType et = traceGenBind $
       "Imported function type: " ++ showExtType et ++ "\n"
 
--- Haskell code for the foreign import declaration needed by a call hook
+-- | Haskell code for the foreign import declaration needed by a call hook
 --
 foreignImport :: String -> String -> String -> Bool -> ExtType -> String
 foreignImport header ident hsIdent isUnsafe ty  =
@@ -778,7 +778,7 @@ foreignImport header ident hsIdent isUnsafe ty  =
   where
     safety = if isUnsafe then "unsafe" else "safe"
 
--- Haskell code for the foreign import dynamic declaration needed by a call hook
+-- | Haskell code for the foreign import dynamic declaration needed by a call hook
 --
 foreignImportDyn :: String -> String -> Bool -> ExtType -> String
 foreignImportDyn ident hsIdent isUnsafe ty  =
@@ -788,7 +788,7 @@ foreignImportDyn ident hsIdent isUnsafe ty  =
   where
     safety = if isUnsafe then "unsafe" else "safe"
 
--- produce a Haskell function definition for a fun hook
+-- | produce a Haskell function definition for a fun hook
 --
 -- * FIXME: There's an ugly special case in here: to support dynamic fun hooks
 --   I had to add a special second marshaller for the first argument,
@@ -932,7 +932,7 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
                                  . showChar '\n'
                                  . showParms parms
 
--- add default marshallers for "in" and "out" marshalling
+-- | add default marshallers for "in" and "out" marshalling
 --
 addDftMarshaller :: Position -> [CHSParm] -> CHSParm -> ExtType
                  -> GB ([CHSParm], CHSParm, Bool)
@@ -1006,7 +1006,7 @@ addDftMarshaller pos parms parm extTy = do
     addDftVoid        Nothing         = do
       return (Just (noPosIdent "void", CHSVoidArg), False)
 
--- compute from an access path, the declarator finally accessed and the index
+-- | compute from an access path, the declarator finally accessed and the index
 -- path required for the access
 --
 -- * each element in the index path specifies dereferencing an address and the
@@ -1073,7 +1073,7 @@ accessPath (CHSDeref path pos) =                        -- *a
         _                                                   ->
           ptrExpectedErr pos
 
--- replaces a decleration by its alias if any
+-- | replaces a decleration by its alias if any
 --
 -- * the alias inherits any field size specification that the original
 --   declaration may have
@@ -1089,7 +1089,7 @@ replaceByAlias cdecl@(CDecl _ [(_, _, size)] at)  =
       Just (CDecl specs [(declr, init, _)] at) ->   -- form of an alias
         return $ CDecl specs [(declr, init, size)] at
 
--- given a structure declaration and member name, compute the offset of the
+-- | given a structure declaration and member name, compute the offset of the
 -- member in the structure and the declaration of the referenced member
 --
 refStruct :: CStructUnion -> Ident -> GB (BitSize, CDecl)
@@ -1112,7 +1112,7 @@ refStruct su ide =
                 CUnionTag  -> return $ BitSize 0 0
     return (offset, decl)
 
--- does the given declarator define the given name?
+-- | does the given declarator define the given name?
 --
 declNamed :: CDecl -> Ident -> Bool
 (CDecl _ [(Nothing   , _, _)] _) `declNamed` ide = False
@@ -1122,7 +1122,7 @@ declNamed :: CDecl -> Ident -> Bool
 _                                `declNamed` _   =
   interr "GenBind.declNamed: More than one declarator!"
 
--- Haskell code for writing to or reading from a struct
+-- | Haskell code for writing to or reading from a struct
 --
 setGet :: Position -> CHSAccess -> [BitSize] -> ExtType -> GB String
 setGet pos access offsets ty =
@@ -1190,8 +1190,8 @@ setGet pos access offsets ty =
     pokeOp off tyTag var = "pokeByteOff ptr " ++ show off ++ " (" ++ var
                            ++ "::" ++ tyTag ++ ")"
 
--- generate the type definition for a pointer hook and enter the required type
--- mapping into the `ptrmap'
+-- | generate the type definition for a pointer hook and enter the required type
+-- mapping into the 'ptrmap'
 --
 pointerDef :: Bool              -- explicit `*' in pointer hook
            -> Ident             -- full C name
@@ -1234,7 +1234,7 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
           "with" ++ hsName ++ " (" ++ hsName ++ " fptr) = withForeignPtr fptr"
         | otherwise                = ""
 
--- generate the class and instance definitions for a class hook
+-- | generate the class and instance definitions for a class hook
 --
 -- * the pointer type must not be a stable pointer
 --
@@ -1297,12 +1297,12 @@ classDef pos className typeName ptrType isNewtype superClasses =
 -- C code computations
 -- -------------------
 
--- the result of a constant expression
+-- | the result of a constant expression
 --
 data ConstResult = IntResult   Integer
                  | FloatResult Float
 
--- types that may occur in foreign declarations, ie, Haskell land types
+-- | types that may occur in foreign declarations, ie, Haskell land types
 --
 -- * we reprsent C functions with no arguments (ie, the ANSI C `void'
 --   argument) by `FunET UnitET res' rather than just `res' internally,
@@ -1338,12 +1338,12 @@ instance Eq ExtType where
   (VarFunET  t    ) == (VarFunET  t'     ) = t == t'
   UnitET            == UnitET              = True
 
--- composite C type
+-- | composite C type
 --
 data CompType = ExtType  ExtType                -- external type
               | SUType   CStructUnion           -- structure or union
 
--- check whether an external type denotes a function type
+-- | check whether an external type denotes a function type
 --
 isFunExtType             :: ExtType -> Bool
 isFunExtType (FunET    _ _) = True
@@ -1355,7 +1355,7 @@ numArgs                  :: ExtType -> Int
 numArgs (FunET _ f) = 1 + numArgs f
 numArgs _           = 0
 
--- pretty print an external type
+-- | pretty print an external type
 --
 -- * a previous version of this function attempted to not print unnecessary
 --   brackets; this however doesn't work consistently due to `DefinedET'; so,
@@ -1393,12 +1393,12 @@ showExtType (PrimET (CSFieldPT bs)) = "CInt{-:" ++ show bs ++ "-}"
 showExtType (PrimET (CUFieldPT bs)) = "CUInt{-:" ++ show bs ++ "-}"
 showExtType UnitET                  = "()"
 
--- compute the type of the C function declared by the given C object
+-- | compute the type of the C function declared by the given C object
 --
 -- * the identifier specifies in which of the declarators we are interested
 --
--- * if the third argument is `True', the function result should not be
---   wrapped into an `IO' type
+-- * if the third argument is 'True', the function result should not be
+--   wrapped into an 'IO' type
 --
 -- * the caller has to guarantee that the object does indeed refer to a
 --   function
@@ -1414,7 +1414,7 @@ extractFunType pos cdecl isPure  =
     let (args, resultDecl, variadic) = funResultAndArgs cdecl
     preResultType <- extractSimpleType True pos resultDecl
     --
-    -- we can now add the `IO' monad if this is no pure function
+    -- we can now add the 'IO' monad if this is no pure function
     --
     let protoResultType = if isPure
                           then      preResultType
@@ -1430,7 +1430,7 @@ extractFunType pos cdecl isPure  =
     argTypes <- mapM (extractSimpleType False pos) args
     return $ foldr FunET resultType argTypes
 
--- compute a non-struct/union type from the given declaration
+-- | compute a non-struct/union type from the given declaration
 --
 -- * the declaration may have at most one declarator
 --
@@ -1450,11 +1450,11 @@ extractSimpleType isResult pos cdecl  =
       "Entering `extractSimpleType' (" ++ (if isResult then "" else "not ")
       ++ "for a result)...\n"
 
--- compute a Haskell type for a type referenced in a C pointer type
+-- | compute a Haskell type for a type referenced in a C pointer type
 --
 -- * the declaration may have at most one declarator
 --
--- * unknown struct/union types are mapped to `()'
+-- * unknown struct/union types are mapped to '()'
 --
 -- * do *not* take aliases into account
 --
@@ -1467,12 +1467,12 @@ extractPtrType cdecl = do
     ExtType et -> return et
     SUType  _  -> return UnitET
 
--- compute a Haskell type from the given C declaration, where C functions are
+-- | compute a Haskell type from the given C declaration, where C functions are
 -- represented by function pointers
 --
 -- * the declaration may have at most one declarator
 --
--- * all C pointers (including functions) are represented as `Addr' if in
+-- * all C pointers (including functions) are represented as 'Addr' if in
 --   compatibility mode (--old-ffi)
 --
 -- * typedef'ed types are chased
@@ -1569,7 +1569,7 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs declrs ats)  =
     traceAlias ide = traceGenBind $
       "extractCompType: found an alias called `" ++ identToLexeme ide ++ "'\n"
 
--- C to Haskell type mapping described in the DOCU section
+-- | C to Haskell type mapping described in the DOCU section
 --
 typeMap :: [([CTypeSpec], ExtType)]
 typeMap  = [([void]                      , UnitET           ),
@@ -1615,7 +1615,7 @@ typeMap  = [([void]                      , UnitET           ),
              unsigned = CUnsigType  undefined
              enum     = CEnumType   undefined undefined
 
--- compute the complex (external) type determined by a list of type specifiers
+-- | compute the complex (external) type determined by a list of type specifiers
 --
 -- * may not be called for a specifier that defines a typedef alias
 --
@@ -1664,7 +1664,7 @@ specType cpos specs osize =
     eqSpec _               _               = False
     --
     bitfieldSpec :: [CTypeSpec] -> ExtType -> Maybe CExpr -> GB CompType
-    bitfieldSpec tspecs et (Just sizeExpr) =  -- never called with `Nothing'
+    bitfieldSpec tspecs et (Just sizeExpr) =  -- never called with 'Nothing'
       do
         PlatformSpec {bitfieldIntSignedPS = bitfieldIntSigned} <- getPlatform
         let pos = posOf sizeExpr
@@ -1692,18 +1692,18 @@ specType cpos specs osize =
 -- offset and size computations
 -- ----------------------------
 
--- precise size representation
+-- | precise size representation
 --
 -- * this is a pair of a number of octets and a number of bits
 --
 -- * if the number of bits is nonzero, the octet component is aligned by the
---   alignment constraint for `CIntPT' (important for accessing bitfields with
+--   alignment constraint for 'CIntPT' (important for accessing bitfields with
 --   more than 8 bits)
 --
 data BitSize = BitSize Int Int
              deriving (Eq, Show)
 
--- ordering relation compares in terms of required storage units
+-- | ordering relation compares in terms of required storage units
 --
 instance Ord BitSize where
   bs1@(BitSize o1 b1) <  bs2@(BitSize o2 b2) =
@@ -1712,7 +1712,7 @@ instance Ord BitSize where
     -- the <= instance is needed for Ord's compare functions, which is used in
     -- the defaults for all other members
 
--- add two bit size values
+-- | add two bit size values
 --
 addBitSize                                 :: BitSize -> BitSize -> BitSize
 addBitSize (BitSize o1 b1) (BitSize o2 b2)  = BitSize (o1 + o2 + overflow) rest
@@ -1720,7 +1720,7 @@ addBitSize (BitSize o1 b1) (BitSize o2 b2)  = BitSize (o1 + o2 + overflow) rest
     bitsPerBitfield  = size CIntPT * 8
     (overflow, rest) = (b1 + b2) `divMod` bitsPerBitfield
 
--- multiply a bit size by a constant (gives size of an array)
+-- | multiply a bit size by a constant (gives size of an array)
 --
 -- * not sure if this makes sense if the number of bits is non-zero.
 --
@@ -1730,13 +1730,13 @@ scaleBitSize n (BitSize o1 b1) = BitSize (n * o1 + overflow) rest
     bitsPerBitfield  = size CIntPT * 8
     (overflow, rest) = (n * b1) `divMod` bitsPerBitfield
 
--- pad any storage unit that is partially used by a bitfield
+-- | pad any storage unit that is partially used by a bitfield
 --
 padBits               :: BitSize -> Int
 padBits (BitSize o 0)  = o
 padBits (BitSize o _)  = o + size CIntPT
 
--- compute the offset of the declarator in the second argument when it is
+-- | compute the offset of the declarator in the second argument when it is
 -- preceded by the declarators in the first argument
 --
 offsetInStruct                :: [CDecl] -> CDecl -> CStructTag -> GB BitSize
@@ -1748,7 +1748,7 @@ offsetInStruct decls decl tag  =
     (_, align)  <- sizeAlignOf decl
     return $ alignOffset offset align bitfieldAlignment
 
--- compute the size and alignment (no padding at the end) of a set of
+-- | compute the size and alignment (no padding at the end) of a set of
 -- declarators from a struct
 --
 sizeAlignOfStruct :: [CDecl] -> CStructTag -> GB (BitSize, Int)
@@ -1771,7 +1771,7 @@ sizeAlignOfStruct decls CUnionTag   =
                   | align <- aligns]
     return (maximum sizes, maximum aligns')
 
--- compute the size and alignment of the declarators forming a struct
+-- | compute the size and alignment of the declarators forming a struct
 -- including any end-of-struct padding that is needed to make the struct ``tile
 -- in an array'' (K&R A7.4.8)
 --
@@ -1782,13 +1782,13 @@ sizeAlignOfStructPad decls tag =
     (size, align) <- sizeAlignOfStruct decls tag
     return (alignOffset size align bitfieldAlignment, align)
 
--- compute the size and alignment constraint of a given C declaration
+-- | compute the size and alignment constraint of a given C declaration
 --
 sizeAlignOf       :: CDecl -> GB (BitSize, Int)
 sizeAlignOfSingle :: CDecl -> GB (BitSize, Int)
 --
--- * we make use of the assertion that `extractCompType' can only return a
---   `DefinedET' when the declaration is a pointer declaration
+-- * we make use of the assertion that 'extractCompType' can only return a
+--   'DefinedET' when the declaration is a pointer declaration
 -- * for arrays, alignment is the same as for the base type and the size
 --   is the size of the base type multiplied by the number of elements.
 --   FIXME: I'm not sure whether anything of this is guaranteed by ISO C
@@ -1860,7 +1860,7 @@ sizeAlignOfSingle cdecl  =
                where
                  sz = size et
 
--- apply the given alignment constraint at the given offset
+-- | apply the given alignment constraint at the given offset
 --
 -- * if the alignment constraint is negative or zero, it is the alignment
 --   constraint for a bitfield
@@ -1888,7 +1888,7 @@ alignOffset offset@(BitSize octetOffset bitOffset) align bitfieldAlignment
 -- constant folding
 -- ----------------
 
--- evaluate a constant expression
+-- | evaluate a constant expression
 --
 -- FIXME: this is a bit too simplistic, as the range of expression allowed as
 --        constant expression varies depending on the context in which the
@@ -2062,22 +2062,22 @@ applyUnary cpos CNegOp     (FloatResult _) =
 -- auxilliary functions
 -- --------------------
 
--- create an identifier without position information
+-- | create an identifier without position information
 --
 noPosIdent :: String -> Ident
 noPosIdent  = onlyPosIdent nopos
 
--- print trace message
+-- | print trace message
 --
 traceGenBind :: String -> GB ()
 traceGenBind  = putTraceStr traceGenBindSW
 
--- generic lookup
+-- | generic lookup
 --
 lookupBy      :: (a -> a -> Bool) -> a -> [(a, b)] -> Maybe b
 lookupBy eq x  = fmap snd . find (eq x . fst)
 
--- maps some monad operation into a `Maybe', discarding the result
+-- | maps some monad operation into a `Maybe', discarding the result
 --
 mapMaybeM_ :: Monad m => (a -> m b) -> Maybe a -> m ()
 mapMaybeM_ m Nothing   =        return ()

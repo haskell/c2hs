@@ -82,32 +82,31 @@ where
 -- state transformer base and its monad operations
 -- -----------------------------------------------
 
--- the generic form of a state transformer using the external state represented
--- by `IO'; `STB' is a abbreviation for state transformer base
+-- | the generic form of a state transformer using the external state represented
+-- by 'IO'; 'STB' is a abbreviation for state transformer base
 --
--- the first state component `bs' is provided for the omnipresent compiler
--- state and the, second, `gs' for the generic component
+-- the first state component @bs@ is provided for the omnipresent compiler
+-- state and the, second, @gs@ for the generic component
 --
 -- the third component of the result distinguishes between erroneous and
 -- successful computations where
 --
---   `Left (tag, msg)' -- stands for an exception identified by `tag' with
---                        error message `msg', and
---   `Right a'         -- is a successfully delivered result
+--   @Left (tag, msg)@ -- stands for an exception identified by @tag@ with
+--                        error message @msg@, and
+--   @Right a@         -- is a successfully delivered result
 --
-
 newtype STB bs gs a = STB (bs -> gs -> IO (bs, gs, Either (String, String) a))
 
 instance Monad (STB bs gs) where
   return = yield
   (>>=)  = (+>=)
 
--- the monad's unit
+-- | the monad's unit
 --
 yield   :: a -> STB bs gs a
 yield a  = STB $ \bs gs -> return (bs, gs, Right a)
 
--- the monad's bind
+-- | the monad's bind
 --
 -- * exceptions are propagated
 --
@@ -130,17 +129,17 @@ m +>= k  = let
 -- base state:
 --
 
--- given a reader function for the base state, wrap it into an STB monad
+-- | given a reader function for the base state, wrap it into an STB monad
 --
 readBase   :: (bs -> a) -> STB bs gs a
 readBase f  = STB $ \bs gs -> return (bs, gs, Right (f bs))
 
--- given a new base state, inject it into an STB monad
+-- | given a new base state, inject it into an STB monad
 --
 writeBase     :: bs -> STB bs gs ()
 writeBase bs'  = STB $ \_ gs -> return (bs', gs, Right ())
 
--- given a transformer function for the base state, wrap it into an STB monad
+-- | given a transformer function for the base state, wrap it into an STB monad
 --
 transBase   :: (bs -> (bs, a)) -> STB bs gs a
 transBase f  = STB $ \bs gs -> let
@@ -151,17 +150,17 @@ transBase f  = STB $ \bs gs -> let
 -- generic state:
 --
 
--- given a reader function for the generic state, wrap it into an STB monad
+-- | given a reader function for the generic state, wrap it into an STB monad
 --
 readGeneric   :: (gs -> a) -> STB bs gs a
 readGeneric f  = STB $ \bs gs -> return (bs, gs, Right (f gs))
 
--- given a new generic state, inject it into an STB monad
+-- | given a new generic state, inject it into an STB monad
 --
 writeGeneric     :: gs -> STB bs gs ()
 writeGeneric gs'  = STB $ \bs _ -> return (bs, gs', Right ())
 
--- given a transformer function for the generic state, wrap it into an STB
+-- | given a transformer function for the generic state, wrap it into an STB
 -- monad
 --
 transGeneric   :: (gs -> (gs, a)) -> STB bs gs a
@@ -171,16 +170,16 @@ transGeneric f  = STB $ \bs gs -> let
                                   return (bs, gs', Right a)
 
 
--- interaction with the encapsulated `IO' monad
+-- interaction with the encapsulated 'IO' monad
 -- --------------------------------------------
 
--- lifts an `IO' state transformer into `STB'
+-- | lifts an 'IO' state transformer into 'STB'
 --
 liftIO   :: IO a -> STB bs gs a
 liftIO m  = STB $ \bs gs -> m >>= \r -> return (bs, gs, Right r)
 
--- given an initial state, executes the `STB' state transformer yielding an
--- `IO' state transformer that must be placed into the context of the external
+-- | given an initial state, executes the 'STB' state transformer yielding an
+-- 'IO' state transformer that must be placed into the context of the external
 -- IO
 --
 -- * uncaught exceptions become fatal errors
@@ -199,8 +198,8 @@ runSTB m bs gs  = let
                                         ioError err
                     Right a          -> return a
 
--- interleave the (complete) execution of an `STB' with another generic state
--- component into an `STB'
+-- | interleave the (complete) execution of an 'STB' with another generic state
+-- component into an 'STB'
 --
 interleave :: STB bs gs' a -> gs' -> STB bs gs a
 interleave m gs' = STB $ let
@@ -213,7 +212,7 @@ interleave m gs' = STB $ let
 -- error and exception handling
 -- ----------------------------
 
--- * we exploit the `UserError' component of `IOError' for fatal errors
+-- * we exploit the 'UserError' component of 'IOError' for fatal errors
 --
 -- * we distinguish exceptions and user-defined fatal errors
 --
@@ -226,26 +225,26 @@ interleave m gs' = STB $ let
 --     to invoke another operation; there is no special support for different
 --     handling of different kinds of fatal-errors
 --
--- * the costs for fatal error handling are already incurred by the `IO' monad;
+-- * the costs for fatal error handling are already incurred by the 'IO' monad;
 --   the costs for exceptions mainly is the case distinction in the definition
---   of `+>='
+--   of '+>='
 --
 
--- throw an exception with the given tag and message (EXPORTED)
+-- | throw an exception with the given tag and message
 --
 throwExc         :: String -> String -> STB bs gs a
 throwExc tag msg  = STB $ \bs gs -> return (bs, gs, Left (tag, msg))
 
--- raise a fatal user-defined error (EXPORTED)
+-- | raise a fatal user-defined error
 --
--- * such an error my be caught and handled using `fatalsHandeledBy'
+-- * such an error my be caught and handled using 'fatalsHandeledBy'
 --
 fatal   :: String -> STB bs gs a
 fatal s  = liftIO (ioError (userError s))
 
--- the given state transformer is executed and exceptions with the given tag
+-- | the given state transformer is executed and exceptions with the given tag
 -- are caught using the provided handler, which expects to get the exception
--- message (EXPORTED)
+-- message
 --
 -- * the base and generic state observed by the exception handler is *modified*
 --   by the failed state transformer upto the point where the exception was
@@ -272,15 +271,15 @@ catchExc m (tag, handler)  =
                                    return state         -- wrong tag, rethrow
              Right _          -> return state           -- no exception
 
--- given a state transformer that may raise fatal errors and an error handler
+-- | given a state transformer that may raise fatal errors and an error handler
 -- for fatal errors, execute the state transformer and apply the error handler
--- when a fatal error occurs (EXPORTED)
+-- when a fatal error occurs
 --
--- * fatal errors are IO monad errors and errors raised by `fatal' as well as
+-- * fatal errors are IO monad errors and errors raised by 'fatal' as well as
 --   uncaught exceptions
 --
 -- * the base and generic state observed by the error handler is *in contrast
---   to `catch'* the state *before* the state transformer is applied
+--   to 'catch'* the state *before* the state transformer is applied
 --
 fatalsHandledBy :: STB bs gs a -> (IOError -> STB bs gs a) -> STB bs gs a
 fatalsHandledBy m handler  =

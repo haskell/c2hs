@@ -187,7 +187,7 @@ import C2HS.State (CST, raise, raiseError, getNameSupply)
 -- token definition
 -- ----------------
 
--- possible tokens (EXPORTED)
+-- | possible tokens
 --
 data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokDArrow  Position          -- `=>'
@@ -393,7 +393,7 @@ instance Show CHSToken where
 -- lexer state
 -- -----------
 
--- state threaded through the lexer
+-- | state threaded through the lexer
 --
 data CHSLexerState = CHSLS {
                        nestLvl :: Int,   -- nesting depth of nested comments
@@ -401,7 +401,7 @@ data CHSLexerState = CHSLS {
                        namesup :: [Name] -- supply of unique names
                      }
 
--- initial state
+-- | initial state
 --
 initialState :: CST s CHSLexerState
 initialState  = do
@@ -412,7 +412,7 @@ initialState  = do
                              namesup = namesup
                            }
 
--- raise an error if the given state is not a final state
+-- | raise an error if the given state is not a final state
 --
 assertFinalState :: Position -> CHSLexerState -> CST s ()
 assertFinalState pos CHSLS {nestLvl = nestLvl, inHook = inHook}
@@ -422,13 +422,13 @@ assertFinalState pos CHSLS {nestLvl = nestLvl, inHook = inHook}
                                   "Unclosed binding hook."]
   | otherwise   = return ()
 
--- lexer and action type used throughout this specification
+-- | lexer and action type used throughout this specification
 --
 type CHSLexer  = Lexer  CHSLexerState CHSToken
 type CHSAction = Action               CHSToken
 type CHSRegexp = Regexp CHSLexerState CHSToken
 
--- for actions that need a new unique name
+-- | for actions that need a new unique name
 --
 infixl 3 `lexactionName`
 lexactionName :: CHSRegexp
@@ -447,8 +447,7 @@ re `lexactionName` action = re `lexmeta` action'
 -- lexical specification
 -- ---------------------
 
--- the lexical definition of the tokens (the base lexer)
---
+-- | the lexical definition of the tokens (the base lexer)
 --
 chslexer :: CHSLexer
 chslexer  =      haskell        -- Haskell code
@@ -457,7 +456,7 @@ chslexer  =      haskell        -- Haskell code
             >||< hook           -- start of a binding hook
             >||< cpp            -- a pre-processor directive (or `#c')
 
--- stream of Haskell code (terminated by a control character or binding hook)
+-- | stream of Haskell code (terminated by a control character or binding hook)
 --
 haskell :: CHSLexer
 --
@@ -490,12 +489,12 @@ haskell  = (    anyButSpecial`star` epsilon
              inhstr           = instr >|< char '\\' >|< string "\\\"" >|< gap
              gap              = char '\\' +> alt (' ':ctrlSet)`plus` char '\\'
 
--- action copying the input verbatim to `CHSTokHaskell' tokens
+-- | action copying the input verbatim to `CHSTokHaskell' tokens
 --
 copyVerbatim        :: CHSAction
 copyVerbatim cs pos  = Just $ CHSTokHaskell pos cs
 
--- nested comments
+-- | nested comments
 --
 nested :: CHSLexer
 nested  =
@@ -535,14 +534,14 @@ nested  =
                              {- for Haskell emacs mode :-( -}
 
 
--- lexer processing the inner of a comment
+-- | lexer processing the inner of a comment
 --
 inNestedComment :: CHSLexer
 inNestedComment  =      commentInterior         -- inside a comment
                    >||< nested                  -- nested comments
                    >||< ctrl                    -- control code (preserved)
 
--- standard characters in a nested comment
+-- | standard characters in a nested comment
 --
 commentInterior :: CHSLexer
 commentInterior  = (    anyButSpecial`star` epsilon
@@ -553,7 +552,7 @@ commentInterior  = (    anyButSpecial`star` epsilon
                      anyButSpecial = alt (inlineSet \\ commentSpecialSet)
                      special       = alt commentSpecialSet
 
--- control code in the base lexer (is turned into a token)
+-- | control code in the base lexer (is turned into a token)
 --
 -- * this covers exactly the same set of characters as contained in `ctrlSet'
 --   and `Lexers.ctrlLexer' and advances positions also like the `ctrlLexer'
@@ -573,13 +572,13 @@ ctrl  =
     ctrlResult pos c pos' s =
       (Just $ Right (CHSTokCtrl pos c), pos', s, Nothing)
 
--- start of a binding hook (ie, enter the binding hook lexer)
+-- | start of a binding hook (ie, enter the binding hook lexer)
 --
 hook :: CHSLexer
 hook  = string "{#"
         `lexmeta` \_ pos s -> (Nothing, incPos pos 2, s, Just bhLexer)
 
--- pre-processor directives and `#c'
+-- | pre-processor directives and `#c'
 --
 -- * we lex `#c' as a directive and special case it in the action
 --
@@ -621,7 +620,7 @@ adjustPosByCLinePragma str (Position fname _ _) =
     --
     dropWhite = dropWhile (\c -> c == ' ' || c == '\t')
 
--- the binding hook lexer
+-- | the binding hook lexer
 --
 bhLexer :: CHSLexer
 bhLexer  =      identOrKW
@@ -639,7 +638,7 @@ bhLexer  =      identOrKW
                           \_ pos s -> (Just $ Right (CHSTokEndHook pos),
                                        incPos pos 2, s, Just chslexer)
 
--- the inline-C lexer
+-- | the inline-C lexer
 --
 cLexer :: CHSLexer
 cLexer =      inlineC                     -- inline C code
@@ -654,7 +653,7 @@ cLexer =      inlineC                     -- inline C code
            copyVerbatimC :: CHSAction
            copyVerbatimC cs pos = Just $ CHSTokC pos cs
 
--- whitespace
+-- | whitespace
 --
 -- * horizontal and vertical tabs, newlines, and form feeds are filter out by
 --   `Lexers.ctrlLexer'
@@ -663,7 +662,7 @@ whitespace :: CHSLexer
 whitespace  =      (char ' ' `lexaction` \_ _ -> Nothing)
               >||< ctrlLexer
 
--- identifiers and keywords
+-- | identifiers and keywords
 --
 identOrKW :: CHSLexer
 --
@@ -708,7 +707,7 @@ identOrKW  =
     --
     mkid pos cs name = CHSTokIdent pos (lexemeToIdent pos cs name)
 
--- reserved symbols
+-- | reserved symbols
 --
 symbol :: CHSLexer
 symbol  =      sym "->" CHSTokArrow
@@ -727,20 +726,20 @@ symbol  =      sym "->" CHSTokArrow
           where
             sym cs con = string cs `lexaction` \_ pos -> Just (con pos)
 
--- string
+-- | string
 --
 strlit :: CHSLexer
 strlit  = char '"' +> (instr >|< char '\\')`star` char '"'
           `lexaction` \cs pos -> Just (CHSTokString pos (init . tail $ cs))
 
--- verbatim code
+-- | verbatim code
 --
 hsverb :: CHSLexer
 hsverb  = char '`' +> inhsverb`star` char '\''
           `lexaction` \cs pos -> Just (CHSTokHSVerb pos (init . tail $ cs))
 
 
--- regular expressions
+-- | regular expressions
 --
 letter, digit, instr, inhsverb :: Regexp s t
 letter   = alt ['a'..'z'] >|< alt ['A'..'Z'] >|< char '_'
@@ -748,7 +747,7 @@ digit    = alt ['0'..'9']
 instr    = alt ([' '..'\255'] \\ "\"\\")
 inhsverb = alt ([' '..'\127'] \\ "\'")
 
--- character sets
+-- | character sets
 --
 anySet, inlineSet, specialSet, commentSpecialSet, ctrlSet :: [Char]
 anySet            = ['\0'..'\255']
@@ -761,8 +760,7 @@ ctrlSet           = ['\n', '\f', '\r', '\t', '\v']
 -- main lexing routine
 -- -------------------
 
--- generate a token sequence out of a string denoting a CHS file
--- (EXPORTED)
+-- | generate a token sequence out of a string denoting a CHS file
 --
 -- * the given position is attributed to the first character in the string
 --

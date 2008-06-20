@@ -57,11 +57,11 @@ import System.IO.Unsafe (unsafePerformIO)
 import Data.IORef       (IORef, newIORef, readIORef, writeIORef)
 
 
--- Name supply definition (EXPORTED ABSTRACTLY)
+-- | Name supply definition
 --
 newtype NameSupply = NameSupply (IORef Int)
 
--- Name (EXPORTED ABSTRACTLY)
+-- | Name
 --
 newtype Name = Name Int
 --             deriving (Show, Eq, Ord, Ix)
@@ -83,18 +83,18 @@ instance Show Name where
 --  and if you believe in the lambda calculus better also don't look at it
 --          ! here lives the daemon of unordered destructive updates !
 
--- The initial supply (EXPORTED)
+-- | The initial supply
 --
 rootSupply :: NameSupply
 {-# NOINLINE rootSupply #-}
 rootSupply  = NameSupply (unsafeNewIntRef 1)
 
--- Split a name supply into a stream of supplies (EXPORTED)
+-- | Split a name supply into a stream of supplies
 --
 splitSupply   :: NameSupply -> [NameSupply]
 splitSupply s  = repeat s
 
--- Given a name supply, yield a stream of names (EXPORTED)
+-- | Given a name supply, yield a stream of names
 --
 names                :: NameSupply -> [Name]
 --
@@ -121,13 +121,13 @@ names (NameSupply s)  =
 --                 *** DON'T TOUCH NOR USE THIS STUFF ***
 --              (unless you really know what you are doing!)
 
--- UNSAFELY create a mutable integer (EXPORTED)
+-- | UNSAFELY create a mutable integer
 --
 unsafeNewIntRef   :: Int -> IORef Int
 unsafeNewIntRef i  = unsafePerformIO (newIORef i)
 
--- UNSAFELY increment a mutable integer and yield its value before the
--- increment (EXPORTED)
+-- | UNSAFELY increment a mutable integer and yield its value before the
+-- increment
 --
 unsafeReadAndIncIntRef    :: IORef Int -> Int
 unsafeReadAndIncIntRef mv  = unsafePerformIO $ do

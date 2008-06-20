@@ -101,17 +101,17 @@ import C2HS.C.Attrs     (AttrC, enterNewRangeC, enterNewObjRangeC,
 -- the C traversal monad
 -- ---------------------
 
--- C traversal monad (EXPORTED ABSTRACTLY)
+-- | C traversal monad
 --
 type CState s    = (AttrC, s)
 type CT     s a  = CST (CState s) a
 
--- read attributed struture tree
+-- | read attributed struture tree
 --
 readAttrCCT        :: (AttrC -> a) -> CT s a
 readAttrCCT reader  = readCST $ \(ac, _) -> reader ac
 
--- transform attributed structure tree
+-- | transform attributed structure tree
 --
 transAttrCCT       :: (AttrC -> (AttrC, a)) -> CT s a
 transAttrCCT trans  = transCST $ \(ac, s) -> let
@@ -119,15 +119,15 @@ transAttrCCT trans  = transCST $ \(ac, s) -> let
                                              in
                                              ((ac', s), r)
 
--- access to the user-defined state
+-- | access to the user-defined state
 --
 
--- read user-defined state (EXPORTED)
+-- | read user-defined state
 --
 readCT        :: (s -> a) -> CT s a
 readCT reader  = readCST $ \(_, s) -> reader s
 
--- transform user-defined state (EXPORTED)
+-- | transform user-defined state
 --
 transCT       :: (s -> (s, a)) -> CT s a
 transCT trans  = transCST $ \(ac, s) -> let
@@ -138,7 +138,7 @@ transCT trans  = transCST $ \(ac, s) -> let
 -- usage of a traversal monad
 --
 
--- execute a traversal monad (EXPORTED)
+-- | execute a traversal monad
 --
 -- * given a traversal monad, an attribute structure tree, and a user
 --   state, the transformed structure tree and monads result are returned
@@ -155,22 +155,22 @@ runCT m ac s  = runCST m' (ac, s)
 -- exception handling
 -- ------------------
 
--- exception identifier
+-- | exception identifier
 --
 ctExc :: String
 ctExc  = "ctExc"
 
--- throw an exception  (EXPORTED)
+-- | throw an exception 
 --
 throwCTExc :: CT s a
 throwCTExc  = throwExc ctExc "Error during traversal of a C structure tree"
 
--- catch a `ctExc'  (EXPORTED)
+-- | catch a `ctExc'
 --
 ifCTExc           :: CT s a -> CT s a -> CT s a
 ifCTExc m handler  = m `catchExc` (ctExc, const handler)
 
--- raise an error followed by throwing a CT exception (EXPORTED)
+-- | raise an error followed by throwing a CT exception
 --
 raiseErrorCTExc          :: Position -> [String] -> CT s a
 raiseErrorCTExc pos errs  = raiseError pos errs >> throwCTExc
@@ -182,45 +182,45 @@ raiseErrorCTExc pos errs  = raiseError pos errs >> throwCTExc
 -- name spaces
 --
 
--- enter a new local range (EXPORTED)
+-- | enter a new local range
 --
 enter :: CT s ()
 enter  = transAttrCCT $ \ac -> (enterNewRangeC ac, ())
 
--- enter a new local range, only for objects (EXPORTED)
+-- | enter a new local range, only for objects
 --
 enterObjs :: CT s ()
 enterObjs  = transAttrCCT $ \ac -> (enterNewObjRangeC ac, ())
 
--- leave the current local range (EXPORTED)
+-- | leave the current local range
 --
 leave :: CT s ()
 leave  = transAttrCCT $ \ac -> (leaveRangeC ac, ())
 
--- leave the current local range, only for objects (EXPORTED)
+-- | leave the current local range, only for objects
 --
 leaveObjs :: CT s ()
 leaveObjs  = transAttrCCT $ \ac -> (leaveObjRangeC ac, ())
 
--- enter an object definition into the object name space (EXPORTED)
+-- | enter an object definition into the object name space
 --
 -- * if a definition of the same name was already present, it is returned
 --
 defObj         :: Ident -> CObj -> CT s (Maybe CObj)
 defObj ide obj  = transAttrCCT $ \ac -> addDefObjC ac ide obj
 
--- find a definition in the object name space (EXPORTED)
+-- | find a definition in the object name space
 --
 findObj     :: Ident -> CT s (Maybe CObj)
 findObj ide  = readAttrCCT $ \ac -> lookupDefObjC ac ide
 
--- find a definition in the object name space; if nothing found, try
--- whether there is a shadow identifier that matches (EXPORTED)
+-- | find a definition in the object name space; if nothing found, try
+-- whether there is a shadow identifier that matches
 --
 findObjShadow     :: Ident -> CT s (Maybe (CObj, Ident))
 findObjShadow ide  = readAttrCCT $ \ac -> lookupDefObjCShadow ac ide
 
--- enter a tag definition into the tag name space (EXPORTED)
+-- | enter a tag definition into the tag name space
 --
 -- * empty definitions of structures get overwritten with complete ones and a
 --   forward reference is added to their tag identifier; furthermore, both
@@ -272,19 +272,19 @@ defTag ide tag  =
       Just (tag, ide)
     isRefinedOrUse _ _                                             = Nothing
 
--- find an definition in the tag name space (EXPORTED)
+-- | find an definition in the tag name space
 --
 findTag     :: Ident -> CT s (Maybe CTag)
 findTag ide  = readAttrCCT $ \ac -> lookupDefTagC ac ide
 
--- find an definition in the tag name space; if nothing found, try
--- whether there is a shadow identifier that matches (EXPORTED)
+-- | find an definition in the tag name space; if nothing found, try
+-- whether there is a shadow identifier that matches
 --
 findTagShadow     :: Ident -> CT s (Maybe (CTag, Ident))
 findTagShadow ide  = readAttrCCT $ \ac -> lookupDefTagCShadow ac ide
 
--- enrich the object and tag name space with identifiers obtained by dropping
--- the given prefix from the identifiers already in the name space (EXPORTED)
+-- | enrich the object and tag name space with identifiers obtained by dropping
+-- the given prefix from the identifiers already in the name space
 --
 -- * if a new identifier would collides with an existing one, the new one is
 --   discarded, ie, all associations that existed before the transformation
@@ -297,7 +297,7 @@ applyPrefixToNameSpaces prefix  =
 -- definition attribute
 --
 
--- get the definition of an identifier (EXPORTED)
+-- | get the definition of an identifier
 --
 -- * the attribute must be defined, ie, a definition must be associated with
 --   the given identifier
@@ -308,18 +308,18 @@ getDefOf ide  = do
                   assert (not . isUndef $ def) $
                     return def
 
--- set the definition of an identifier (EXPORTED)
+-- | set the definition of an identifier
 --
 refersToDef         :: Ident -> CDef -> CT s ()
 refersToDef ide def  = transAttrCCT $ \akl -> (setDefOfIdentC akl ide def, ())
 
--- update the definition of an identifier (EXPORTED)
+-- | update the definition of an identifier
 --
 refersToNewDef         :: Ident -> CDef -> CT s ()
 refersToNewDef ide def  =
   transAttrCCT $ \akl -> (updDefOfIdentC akl ide def, ())
 
--- get the declarator of an identifier (EXPORTED)
+-- | get the declarator of an identifier
 --
 getDeclOf     :: Ident -> CT s CDecl
 getDeclOf ide  =
@@ -356,10 +356,10 @@ getDeclOf ide  =
 -- convenience functions
 --
 
--- find a type object in the object name space; returns `nothing' if the
--- identifier is not defined (EXPORTED)
+-- | find a type object in the object name space; returns 'Nothing' if the
+-- identifier is not defined
 --
--- * if the second argument is `True', use `findObjShadow'
+-- * if the second argument is 'True', use 'findObjShadow'
 --
 findTypeObjMaybe                :: Ident -> Bool -> CT s (Maybe (CObj, Ident))
 findTypeObjMaybe ide useShadows  =
@@ -373,10 +373,10 @@ findTypeObjMaybe ide useShadows  =
       Just _                  -> typedefExpectedErr ide
       Nothing                 -> return $ Nothing
 
--- find a type object in the object name space; raises an error and exception
--- if the identifier is not defined (EXPORTED)
+-- | find a type object in the object name space; raises an error and exception
+-- if the identifier is not defined
 --
--- * if the second argument is `True', use `findObjShadow'
+-- * if the second argument is 'True', use 'findObjShadow'
 --
 findTypeObj                :: Ident -> Bool -> CT s (CObj, Ident)
 findTypeObj ide useShadows  = do
@@ -385,10 +385,10 @@ findTypeObj ide useShadows  = do
     Nothing  -> unknownObjErr ide
     Just obj -> return obj
 
--- find an object, function, or enumerator in the object name space; raises an
--- error and exception if the identifier is not defined (EXPORTED)
+-- | find an object, function, or enumerator in the object name space; raises an
+-- error and exception if the identifier is not defined
 --
--- * if the second argument is `True', use `findObjShadow'
+-- * if the second argument is 'True', use 'findObjShadow'
 --
 findValueObj                :: Ident -> Bool -> CT s (CObj, Ident)
 findValueObj ide useShadows  =
@@ -402,10 +402,10 @@ findValueObj ide useShadows  =
       Just _                   -> unexpectedTypedefErr (posOf ide)
       Nothing                  -> unknownObjErr ide
 
--- find a function in the object name space; raises an error and exception if
--- the identifier is not defined (EXPORTED)
+-- | find a function in the object name space; raises an error and exception if
+-- the identifier is not defined
 --
--- * if the second argument is `True', use `findObjShadow'
+-- * if the second argument is 'True', use 'findObjShadow'
 --
 findFunObj               :: Ident -> Bool -> CT s  (CObj, Ident)
 findFunObj ide useShadows =
@@ -422,14 +422,13 @@ findFunObj ide useShadows =
 -- C structure tree query routines
 -- -------------------------------
 
--- test if this is a type definition specification (EXPORTED)
+-- | test if this is a type definition specification
 --
 isTypedef                   :: CDecl -> Bool
 isTypedef (CDecl specs _ _)  =
   not . null $ [() | CStorageSpec (CTypedef _) <- specs]
 
--- discard all declarators but the one declaring the given identifier
--- (EXPORTED)
+-- | discard all declarators but the one declaring the given identifier
 --
 -- * the declaration must contain the identifier
 --
@@ -446,7 +445,7 @@ ide `simplifyDecl` (CDecl specs declrs at) =
                    \  Looking for `" ++ identToLexeme ide ++ "' in decl \
                    \at " ++ show (posOf at)
 
--- extract the declarator that declares the given identifier (EXPORTED)
+-- | extract the declarator that declares the given identifier
 --
 -- * the declaration must contain the identifier
 --
@@ -456,13 +455,12 @@ ide `declrFromDecl` decl  =
   in
   declr
 
--- tests whether the given declarator has the given name (EXPORTED)
+-- | tests whether the given declarator has the given name
 --
 declrNamed             :: CDeclr -> Ident -> Bool
 declr `declrNamed` ide  = declrName declr == Just ide
 
--- get the declarator of a declaration that has at most one declarator
--- (EXPORTED)
+-- | get the declarator of a declaration that has at most one declarator
 --
 declaredDeclr                              :: CDecl -> Maybe CDeclr
 declaredDeclr (CDecl _ []               _)  = Nothing
@@ -471,13 +469,12 @@ declaredDeclr decl                          =
   interr $ "CTrav.declaredDeclr: Too many declarators!\n\
            \  Declaration at " ++ show (posOf decl)
 
--- get the name declared by a declaration that has exactly one declarator
--- (EXPORTED)
+-- | get the name declared by a declaration that has exactly one declarator
 --
 declaredName      :: CDecl -> Maybe Ident
 declaredName decl  = declaredDeclr decl >>= declrName
 
--- obtains the member definitions and the tag of a struct (EXPORTED)
+-- | obtains the member definitions and the tag of a struct
 --
 -- * member definitions are expanded
 --
@@ -485,24 +482,24 @@ structMembers :: CStructUnion -> ([CDecl], CStructTag)
 structMembers (CStruct tag _ members _) = (concat . map expandDecl $ members,
                                            tag)
 
--- expand declarators declaring more than one identifier into multiple
--- declarators, eg, `int x, y;' becomes `int x; int y;' (EXPORTED)
+-- | expand declarators declaring more than one identifier into multiple
+-- declarators, eg, `int x, y;' becomes `int x; int y;'
 --
 expandDecl                        :: CDecl -> [CDecl]
 expandDecl (CDecl specs decls at)  =
   map (\decl -> CDecl specs [decl] at) decls
 
--- get a struct's name (EXPORTED)
+-- | get a struct's name
 --
 structName                      :: CStructUnion -> Maybe Ident
 structName (CStruct _ oide _ _)  = oide
 
--- get an enum's name (EXPORTED)
+-- | get an enum's name
 --
 enumName                  :: CEnum -> Maybe Ident
 enumName (CEnum oide _ _)  = oide
 
--- get a tag's name (EXPORTED)
+-- | get a tag's name
 --
 -- * fail if the tag is anonymous
 --
@@ -514,8 +511,8 @@ tagName tag  =
   where
     err = interr "CTrav.tagName: Anonymous tag definition"
 
--- checks whether the given declarator defines an object that is a pointer to
--- some other type (EXPORTED)
+-- | checks whether the given declarator defines an object that is a pointer to
+-- some other type
 --
 -- * as far as parameter passing is concerned, arrays are also pointer
 --
@@ -527,11 +524,11 @@ isPtrDeclr (CArrDeclr declr _ _           _)  = isPtrDeclr declr
 isPtrDeclr (CFunDeclr declr _ _           _)  = isPtrDeclr declr
 isPtrDeclr _                                  = False
 
--- drops the first pointer level from the given declarator (EXPORTED)
+-- | drops the first pointer level from the given declarator
 --
 -- * the declarator must declare a pointer object
 --
--- FIXME: this implementation isn't nice, because we retain the `CVarDeclr'
+-- FIXME: this implementation isn't nice, because we retain the 'CVarDeclr'
 --        unchanged; as the declarator is changed, we should maybe make this
 --        into an anonymous declarator and also change its attributes
 --
@@ -553,7 +550,7 @@ dropPtrDeclr (CFunDeclr declr args vari         ats)   =
 dropPtrDeclr _                                         =
   interr "CTrav.dropPtrDeclr: No pointer!"
 
--- checks whether the given declaration defines a pointer object (EXPORTED)
+-- | checks whether the given declaration defines a pointer object
 --
 -- * there may only be a single declarator in the declaration
 --
@@ -563,7 +560,7 @@ isPtrDecl (CDecl _ [(Just declr, _, _)] _)  = isPtrDeclr declr
 isPtrDecl _                                 =
   interr "CTrav.isPtrDecl: There was more than one declarator!"
 
--- checks whether the given declarator defines a function object (EXPORTED)
+-- | checks whether the given declarator defines a function object
 --
 isFunDeclr                                   :: CDeclr -> Bool
 isFunDeclr (CPtrDeclr _ declr             _)  = isFunDeclr declr
@@ -572,7 +569,7 @@ isFunDeclr (CFunDeclr (CVarDeclr _ _) _ _ _)  = True
 isFunDeclr (CFunDeclr declr _ _           _)  = isFunDeclr declr
 isFunDeclr _                                  = False
 
--- extract the structure from the type specifiers of a declaration (EXPORTED)
+-- | extract the structure from the type specifiers of a declaration
 --
 structFromDecl                       :: Position -> CDecl -> CT s CStructUnion
 structFromDecl pos (CDecl specs _ _)  =
@@ -580,9 +577,8 @@ structFromDecl pos (CDecl specs _ _)  =
     CSUType su _ -> extractStruct pos (StructUnionCT su)
     _            -> structExpectedErr pos
 
--- extracts the arguments from a function declaration (must be a unique
+-- | extracts the arguments from a function declaration (must be a unique
 -- declarator) and constructs a declaration for the result of the function
--- (EXPORTED)
 --
 -- * the boolean result indicates whether the function is variadic
 --
@@ -614,10 +610,10 @@ funResultAndArgs (CDecl specs [(Just declr, _, _)] _) =
 -- name chasing
 --
 
--- find the declarator identified by the given identifier; if the declarator
--- is itself only a `typedef'ed name, the operation recursively searches for
+-- | find the declarator identified by the given identifier; if the declarator
+-- is itself only a 'typedef'ed name, the operation recursively searches for
 -- the declarator associated with that name (this is called ``typedef
--- chasing'') (EXPORTED)
+-- chasing'')
 --
 -- * if `ind = True', we have to hop over one indirection
 --
@@ -642,14 +638,14 @@ chaseDecl ide ind  =
                    ++ "' " ++ (if ind then "" else "not ")
                    ++ "following indirections...\n"
 
--- find type object in object name space and then chase it (EXPORTED)
+-- | find type object in object name space and then chase it
 --
--- * see also `chaseDecl'
+-- * see also 'chaseDecl'
 --
 -- * also create an object association from the given identifier to the object
 --   that it _directly_ represents
 --
--- * if the third argument is `True', use `findObjShadow'
+-- * if the third argument is 'True', use 'findObjShadow'
 --
 findAndChaseDecl                    :: Ident -> Bool -> Bool -> CT s CDecl
 findAndChaseDecl ide ind useShadows  =
@@ -659,8 +655,8 @@ findAndChaseDecl ide ind useShadows  =
     ide' `refersToNewDef` ObjCD obj             -- assoc needed for chasing
     chaseDecl ide' ind
 
--- given a declaration (which must have exactly one declarator), if the
--- declarator is an alias, chase it to the actual declaration (EXPORTED)
+-- | given a declaration (which must have exactly one declarator), if the
+-- declarator is an alias, chase it to the actual declaration
 --
 checkForAlias      :: CDecl -> CT s (Maybe CDecl)
 checkForAlias decl  =
@@ -668,13 +664,13 @@ checkForAlias decl  =
     Nothing        -> return Nothing
     Just (ide', _) -> liftM Just $ chaseDecl ide' False
 
--- given a declaration (which must have exactly one declarator), if the
--- declarator is an alias, yield the alias name; *no* chasing (EXPORTED)
+-- | given a declaration (which must have exactly one declarator), if the
+-- declarator is an alias, yield the alias name; *no* chasing
 --
 checkForOneAliasName      :: CDecl -> Maybe Ident
 checkForOneAliasName decl  = fmap fst $ extractAlias decl False
 
--- given a declaration, find the name of the struct/union type
+-- | given a declaration, find the name of the struct/union type
 checkForOneCUName        :: CDecl -> Maybe Ident
 checkForOneCUName decl@(CDecl specs _ _)  =
   case [ts | CTypeSpec ts <- specs] of
@@ -688,11 +684,11 @@ checkForOneCUName decl@(CDecl specs _ _)  =
 -- smart lookup
 --
 
--- for the given identifier, either find an enumeration in the tag name space
+-- | for the given identifier, either find an enumeration in the tag name space
 -- or a type definition referring to an enumeration in the object name space;
--- raises an error and exception if the identifier is not defined (EXPORTED)
+-- raises an error and exception if the identifier is not defined
 --
--- * if the second argument is `True', use `findTagShadow'
+-- * if the second argument is 'True', use 'findTagShadow'
 --
 lookupEnum               :: Ident -> Bool -> CT s CEnum
 lookupEnum ide useShadows =
@@ -709,9 +705,9 @@ lookupEnum ide useShadows =
           CEnumType enum _ -> return enum
           _                -> enumExpectedErr ide
 
--- for the given identifier, either find a struct/union in the tag name space
+-- | for the given identifier, either find a struct/union in the tag name space
 -- or a type definition referring to a struct/union in the object name space;
--- raises an error and exception if the identifier is not defined (EXPORTED)
+-- raises an error and exception if the identifier is not defined
 --
 -- * if `ind = True', the identifier names a reference type to the searched
 --   for struct/union
@@ -739,8 +735,8 @@ lookupStructUnion ide ind useShadows
         decl <- findAndChaseDecl ide ind useShadows
         structFromDecl (posOf ide) decl
 
--- for the given identifier, check for the existance of both a type definition
--- or a struct, union, or enum definition (EXPORTED)
+-- | for the given identifier, check for the existance of both a type definition
+-- or a struct, union, or enum definition
 --
 -- * if a typedef and a tag exists, the typedef takes precedence
 --
@@ -766,7 +762,7 @@ lookupDeclOrTag ide useShadows  = do
 -- auxiliary routines (internal)
 --
 
--- if the given declaration (which may have at most one declarator) is a
+-- | if the given declaration (which may have at most one declarator) is a
 -- `typedef' alias, yield the referenced name
 --
 -- * a `typedef' alias has one of the following forms
@@ -800,7 +796,7 @@ extractAlias decl@(CDecl specs _ _) ind =
         _                                      -> Nothing
     _                 -> Nothing
 
--- if the given tag is a forward declaration of a structure, follow the
+-- | if the given tag is a forward declaration of a structure, follow the
 -- reference to the full declaration
 --
 -- * the recursive call is not dangerous as there can't be any cycles
@@ -818,7 +814,7 @@ extractStruct pos (StructUnionCT su)  =
   where
     err = interr "CTrav.extractStruct: Illegal reference!"
 
--- yield the name declared by a declarator if any
+-- | yield the name declared by a declarator if any
 --
 declrName                          :: CDeclr -> Maybe Ident
 declrName (CVarDeclr oide       _)  = oide
@@ -826,7 +822,7 @@ declrName (CPtrDeclr _ declr    _)  = declrName declr
 declrName (CArrDeclr declr  _ _ _)  = declrName declr
 declrName (CFunDeclr declr  _ _ _)  = declrName declr
 
--- raise an error if the given declarator does not declare a C function or if
+-- | raise an error if the given declarator does not declare a C function or if
 -- the function is supposed to return an array (the latter is illegal in C)
 --
 assertFunDeclr :: Position -> CDeclr -> CT s ()
@@ -843,14 +839,14 @@ assertFunDeclr pos            (CArrDeclr declr           _ _ _)        =
 assertFunDeclr pos _                                                 =
   funExpectedErr pos
 
--- raise an error if the given tag defines an enumeration, but does not fully
+-- | raise an error if the given tag defines an enumeration, but does not fully
 -- define it
 --
 assertIfEnumThenFull                          :: CTag -> CT s ()
 assertIfEnumThenFull (EnumCT (CEnum _ [] at))  = enumForwardErr (posOf at)
 assertIfEnumThenFull _                         = return ()
 
--- trace for this module
+-- | trace for this module
 --
 traceCTrav :: String -> CT s ()
 traceCTrav  = putTraceStr traceCTravSW

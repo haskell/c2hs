@@ -62,11 +62,11 @@ import C2HS.Switches (SwitchBoard(..), Traces(..),
 -- instantiation of the extra state
 -- --------------------------------
 
--- the extra state consists of the `SwitchBoard' (EXPORTED)
+-- | the extra state consists of the `SwitchBoard'
 --
 type CST s a = PreCST SwitchBoard s a
 
--- execution of c2hs starts with the initial `SwitchBoard'
+-- | execution of c2hs starts with the initial `SwitchBoard'
 --
 runC2HS :: CST () a -> IO a
 runC2HS  = run initialSwitchBoard
@@ -75,17 +75,17 @@ runC2HS  = run initialSwitchBoard
 -- switch management
 -- -----------------
 
--- set traces according to the given transformation function
+-- | set traces according to the given transformation function
 --
 setTraces   :: (Traces -> Traces) -> CST s ()
 setTraces t  = updExtra (\es -> es {tracesSB = t (tracesSB es)})
 
--- inquire the status a trace using the given inquiry function
+-- | inquire the status a trace using the given inquiry function
 --
 traceSet   :: (Traces -> Bool) -> CST s Bool
 traceSet t  = readExtra (t . tracesSB)
 
--- output the given string to `stderr' when the trace determined by the inquiry
+-- | output the given string to `stderr' when the trace determined by the inquiry
 -- function is activated
 --
 putTraceStr       :: (Traces -> Bool) -> String -> CST s ()
@@ -94,12 +94,12 @@ putTraceStr t msg  = do
                        when set $
                          CIO.hPutStr stderr msg
 
--- set a switch value
+-- | set a switch value
 --
 setSwitch :: (SwitchBoard -> SwitchBoard) -> CST s ()
 setSwitch  = updExtra
 
--- get a switch values
+-- | get a switch values
 --
 getSwitch :: (SwitchBoard -> a) -> CST s a
 getSwitch  = readExtra

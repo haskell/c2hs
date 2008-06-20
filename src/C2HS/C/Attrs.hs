@@ -83,8 +83,7 @@ import C2HS.C.AST
 -- attributed C structure tree
 -- ---------------------------
 
--- attributes relevant to the outside world gathjered from a C unit
--- (EXPORTED ABSTRACT)
+-- | attributes relevant to the outside world gathjered from a C unit
 --
 data AttrC = AttrC {
                 defObjsAC :: CObjNS,            -- defined objects
@@ -93,7 +92,7 @@ data AttrC = AttrC {
                 defsAC    :: CDefTable          -- ident-def associations
               }
 
--- empty headder attribute set (EXPORTED)
+-- | empty headder attribute set
 --
 emptyAttrC :: AttrC
 emptyAttrC  = AttrC {
@@ -107,7 +106,7 @@ emptyAttrC  = AttrC {
 -- the name space operations
 --
 
--- enter a new range (EXPORTED)
+-- | enter a new range
 --
 enterNewRangeC    :: AttrC -> AttrC
 enterNewRangeC ac  = ac {
@@ -115,14 +114,14 @@ enterNewRangeC ac  = ac {
                       defTagsAC = enterNewRange . defTagsAC $ ac
                      }
 
--- enter a new range, only for objects (EXPORTED)
+-- | enter a new range, only for objects
 --
 enterNewObjRangeC    :: AttrC -> AttrC
 enterNewObjRangeC ac  = ac {
                           defObjsAC = enterNewRange . defObjsAC $ ac
                         }
 
--- leave the current range (EXPORTED)
+-- | leave the current range
 --
 leaveRangeC    :: AttrC -> AttrC
 leaveRangeC ac  = ac {
@@ -130,14 +129,14 @@ leaveRangeC ac  = ac {
                     defTagsAC = fst . leaveRange . defTagsAC $ ac
                    }
 
--- leave the current range, only for objects (EXPORTED)
+-- | leave the current range, only for objects
 --
 leaveObjRangeC    :: AttrC -> AttrC
 leaveObjRangeC ac  = ac {
                        defObjsAC = fst . leaveRange . defObjsAC $ ac
                      }
 
--- add another definitions to the object name space (EXPORTED)
+-- | add another definitions to the object name space
 --
 -- * if a definition of the same name was already present, it is returned
 --
@@ -147,13 +146,13 @@ addDefObjC ac ide obj  = let om          = defObjsAC ac
                          in
                          (ac {defObjsAC = ac'}, obj')
 
--- lookup an identifier in the object name space (EXPORTED)
+-- | lookup an identifier in the object name space
 --
 lookupDefObjC        :: AttrC -> Ident -> Maybe CObj
 lookupDefObjC ac ide  = find (defObjsAC ac) ide
 
--- lookup an identifier in the object name space; if nothing found, try
--- whether there is a shadow identifier that matches (EXPORTED)
+-- | lookup an identifier in the object name space; if nothing found, try
+-- whether there is a shadow identifier that matches
 --
 -- * the returned identifier is the _real_ identifier of the object
 --
@@ -167,7 +166,7 @@ lookupDefObjCShadow ac ide  =
                                  Just obj -> Just (obj, ide')
                                  Nothing  -> Nothing
 
--- add another definition to the tag name space (EXPORTED)
+-- | add another definition to the tag name space
 --
 -- * if a definition of the same name was already present, it is returned
 --
@@ -177,13 +176,13 @@ addDefTagC ac ide obj  = let tm          = defTagsAC ac
                          in
                          (ac {defTagsAC = ac'}, obj')
 
--- lookup an identifier in the tag name space (EXPORTED)
+-- | lookup an identifier in the tag name space
 --
 lookupDefTagC        :: AttrC -> Ident -> Maybe CTag
 lookupDefTagC ac ide  = find (defTagsAC ac) ide
 
--- lookup an identifier in the tag name space; if nothing found, try
--- whether there is a shadow identifier that matches (EXPORTED)
+-- | lookup an identifier in the tag name space; if nothing found, try
+-- whether there is a shadow identifier that matches
 --
 -- * the returned identifier is the _real_ identifier of the tag
 --
@@ -197,9 +196,9 @@ lookupDefTagCShadow ac ide  =
                                  Just tag -> Just (tag, ide')
                                  Nothing  -> Nothing
 
--- enrich the shadow name space with identifiers obtained by dropping
+-- | enrich the shadow name space with identifiers obtained by dropping
 -- the given prefix from the identifiers already in the object or tag name
--- space (EXPORTED)
+-- space
 --
 -- * in case of a collisions, a random entry is selected
 --
@@ -235,7 +234,7 @@ applyPrefix ac prefix  =
 -- the attribute table operations on the attributes
 --
 
--- get the definition associated with the given identifier (EXPORTED)
+-- | get the definition associated with the given identifier
 --
 getDefOfIdentC    :: AttrC -> Ident -> CDef
 getDefOfIdentC ac  = getAttr (defsAC ac) . getIdentAttrs
@@ -262,7 +261,7 @@ softenDefOfIdentsAttrC ac  = ac {defsAC = softenAttrTable (defsAC ac)}
 -- C objects including operations
 -- ------------------------------
 
--- C objects data definition (EXPORTED)
+-- | C objects data definition
 --
 data CObj = TypeCO    CDecl             -- typedef declaration
           | ObjCO     CDecl             -- object or function declaration
@@ -289,12 +288,12 @@ instance Pos CObj where
 -- C tagged objects including operations
 -- -------------------------------------
 
--- C tagged objects data definition (EXPORTED)
+-- | C tagged objects data definition
 --
 data CTag = StructUnionCT CStructUnion  -- toplevel struct-union declaration
           | EnumCT        CEnum         -- toplevel enum declaration
 
--- two C tag objects are equal iff they are defined by the same structure
+-- | two C tag objects are equal iff they are defined by the same structure
 -- tree node (i.e., the two nodes referenced have the same attribute
 -- identifier)
 --
@@ -311,7 +310,7 @@ instance Pos CTag where
 -- C general definition
 -- --------------------
 
--- C general definition (EXPORTED)
+-- | C general definition
 --
 data CDef = UndefCD                     -- undefined object
           | DontCareCD                  -- don't care object
@@ -354,11 +353,11 @@ instance Pos CDef where
 -- object tables (internal use only)
 -- ---------------------------------
 
--- the object name spavce
+-- | the object name spavce
 --
 type CObjNS = NameSpace CObj
 
--- creating a new object name space
+-- | creating a new object name space
 --
 cObjNS :: CObjNS
 cObjNS  = nameSpace
@@ -372,20 +371,20 @@ type CTagNS = NameSpace CTag
 cTagNS :: CTagNS
 cTagNS  = nameSpace
 
--- the shadow name space
+-- | the shadow name space
 --
 type CShadowNS = NameSpace Ident
 
--- creating a shadow name space
+-- | creating a shadow name space
 --
 cShadowNS :: CShadowNS
 cShadowNS  = nameSpace
 
--- the general definition table
+-- | the general definition table
 --
 type CDefTable = AttrTable CDef
 
--- creating a new definition table
+-- | creating a new definition table
 --
 cDefTable :: CDefTable
 cDefTable  = newAttrTable "C General Definition Table for Idents"

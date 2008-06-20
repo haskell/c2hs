@@ -148,9 +148,8 @@ import C2HS.Config (cpp, cppopts, libfname, PlatformSpec(..),
 import Paths_c2hs (getDataDir)
 
 
--- wrapper running the compiler
--- ============================
-
+-- | wrapper running the compiler
+--
 main :: IO ()
 main  = runC2HS compile
 
@@ -158,7 +157,7 @@ main  = runC2HS compile
 -- option handling
 -- ===============
 
--- header is output in case of help, before the descriptions of the options;
+-- | header is output in case of help, before the descriptions of the options;
 -- errTrailer is output after an error message
 --
 header :: String
@@ -177,30 +176,30 @@ trailer    = "\n\
              \  chs     -- dump the binding file (adds `.dump' to the name)\n"
 errTrailer = "Try the option `--help' on its own for more information.\n"
 
--- supported option types
+-- | supported option types
 --
-data Flag = CPPOpts  String     -- additional options for C preprocessor
-          | CPP      String     -- program name of C preprocessor
-          | Dump     DumpType   -- dump internal information
-          | Help                -- print brief usage information
-          | Keep                -- keep the .i file
-          | Library             -- copy library module `C2HS'
-          | Include  String     -- list of directories to search .chi files
-          | Output   String     -- file where the generated file should go
-          | Platform String     -- target platform to generate code for
-          | OutDir   String     -- directory where generates files should go
-          | Version             -- print version information on stdout
-          | NumericVersion      -- print numeric version on stdout
-          | Error    String     -- error occured during processing of options
+data Flag = CPPOpts  String     -- ^ additional options for C preprocessor
+          | CPP      String     -- ^ program name of C preprocessor
+          | Dump     DumpType   -- ^ dump internal information
+          | Help                -- ^ print brief usage information
+          | Keep                -- ^ keep the .i file
+          | Library             -- ^ copy library module @C2HS@
+          | Include  String     -- ^ list of directories to search .chi files
+          | Output   String     -- ^ file where the generated file should go
+          | Platform String     -- ^ target platform to generate code for
+          | OutDir   String     -- ^ directory where generates files should go
+          | Version             -- ^ print version information on stdout
+          | NumericVersion      -- ^ print numeric version on stdout
+          | Error    String     -- ^ error occured during processing of options
           deriving Eq
 
-data DumpType = Trace         -- compiler trace
-              | GenBind       -- trace `GenBind'
-              | CTrav         -- trace `CTrav'
-              | CHS           -- dump binding file
+data DumpType = Trace         -- ^ compiler trace
+              | GenBind       -- ^ trace "C2HS.Gen.Bind"
+              | CTrav         -- ^ trace "C2HS.C.CTrav"
+              | CHS           -- ^ dump binding file
               deriving Eq
 
--- option description suitable for `GetOpt'
+-- | option description suitable for "Distribution.GetOpt"
 --
 options :: [OptDescr Flag]
 options  = [
@@ -253,7 +252,7 @@ options  = [
          (NoArg NumericVersion)
          "show version number"]
 
--- convert argument of `Dump' option
+-- | convert argument of 'Dump' option
 --
 dumpArg           :: String -> Flag
 dumpArg "trace"    = Dump Trace
@@ -262,7 +261,7 @@ dumpArg "ctrav"    = Dump CTrav
 dumpArg "chs"      = Dump CHS
 dumpArg _          = Error "Illegal dump type."
 
--- main process (set up base configuration, analyse command line, and execute
+-- | main process (set up base configuration, analyse command line, and execute
 -- compilation process)
 --
 -- * Exceptions are caught and reported
@@ -326,14 +325,14 @@ compile  =
         CIO.hPutStrLn stderr (msg ++ fnMsg)
         CIO.exitWith $ ExitFailure 1
 
--- set up base configuration
+-- | set up base configuration
 --
 setup :: CST s ()
 setup  = do
            setCPP     cpp
            addCPPOpts cppopts
 
--- output error message
+-- | output error message
 --
 raiseErrs      :: [String] -> CST s a
 raiseErrs errs = do
@@ -344,10 +343,10 @@ raiseErrs errs = do
 -- Process tasks
 -- -------------
 
--- execute the compilation task
+-- | execute the compilation task
 --
--- * if `Help' is present, emit the help message and ignore the rest
--- * if `Version' is present, do it first (and only once)
+-- * if 'Help' is present, emit the help message and ignore the rest
+-- * if 'Version' is present, do it first (and only once)
 -- * actual compilation is only invoked if we have one or two extra arguments
 --   (otherwise, it is just skipped)
 --
@@ -377,7 +376,7 @@ execute opts args | Help `elem` opts = help
         CIO.putStr $ name ++ ": " ++ ioeGetErrorString ioerr ++ "\n"
         CIO.exitWith $ ExitFailure 1
 
--- emit help message
+-- | emit help message
 --
 help :: CST s ()
 help =
@@ -389,9 +388,9 @@ help =
   where
     hosts = (concat . intersperse ", " . map identPS) platformSpecDB
 
--- process an option
+-- | process an option
 --
--- * `Help' cannot occur
+-- * 'Help' cannot occur
 --
 processOpt :: Flag -> CST s ()
 processOpt (CPPOpts  cppopts) = addCPPOpts  cppopts
@@ -411,7 +410,7 @@ processOpt Version            = do
 processOpt NumericVersion     = CIO.putStrLn (showVersion versnum)
 processOpt (Error    msg    ) = abort msg
 
--- emit error message and raise an error
+-- | emit error message and raise an error
 --
 abort     :: String -> CST s ()
 abort msg  = do
@@ -419,17 +418,17 @@ abort msg  = do
                CIO.hPutStr stderr errTrailer
                fatal "Error in command line options"
 
--- Compute the base name for all generated files (Haskell, C header, and .chi
+-- | Compute the base name for all generated files (Haskell, C header, and .chi
 -- file)
 --
--- * The result is available from the `outputSB' switch
+-- * The result is available from the 'outputSB' switch
 --
 computeOutputName :: FilePath -> CST s ()
 computeOutputName bndFileNoSuffix =
   setSwitch $ \sb@SwitchBoard{ outputSB = output } ->
     sb { outputSB = if null output then bndFileNoSuffix else output }
 
--- Copy the C2HS library if requested
+-- | Copy the C2HS library if requested
 --
 copyLibrary =
   do
@@ -445,7 +444,7 @@ copyLibrary =
 -- set switches
 -- ------------
 
--- set the options for the C proprocessor
+-- | set the options for the C proprocessor
 --
 addCPPOpts      :: String -> CST s ()
 addCPPOpts opts  =
@@ -456,7 +455,7 @@ addCPPOpts opts  =
     addOpts opts  = setSwitch $
                       \sb -> sb {cppOptsSB = cppOptsSB sb ++ (' ':opts)}
 
--- set the program name of the C proprocessor
+-- | set the program name of the C proprocessor
 --
 setCPP       :: FilePath -> CST s ()
 setCPP fname  = setSwitch $ \sb -> sb {cppSB = fname}
@@ -469,17 +468,17 @@ setDump GenBind  = setTraces $ \ts -> ts {traceGenBindSW = True}
 setDump CTrav    = setTraces $ \ts -> ts {traceCTravSW   = True}
 setDump CHS      = setTraces $ \ts -> ts {dumpCHSSW      = True}
 
--- set flag to keep the pre-processed header file
+-- | set flag to keep the pre-processed header file
 --
 setKeep :: CST s ()
 setKeep  = setSwitch $ \sb -> sb {keepSB = True}
 
--- set flag to copy library module in
+-- | set flag to copy library module in
 --
 setLibrary :: CST s ()
 setLibrary  = setSwitch $ \sb -> sb {librarySB = True}
 
--- set the search directories for .chi files
+-- | set the search directories for .chi files
 --
 -- * Several -i flags are accumulated. Later paths have higher priority.
 --
@@ -500,7 +499,7 @@ setInclude str = do
     makePath ""            ""   = []
     makePath ""            path = [path]
 
--- set the output file name
+-- | set the output file name
 --
 setOutput       :: FilePath -> CST s ()
 setOutput fname  = do
@@ -508,7 +507,7 @@ setOutput fname  = do
                        raiseErrs ["Output file should end in .hs!\n"]
                      setSwitch $ \sb -> sb {outputSB = FilePath.dropExtension fname}
 
--- set platform
+-- | set platform
 --
 setPlatform :: String -> CST s ()
 setPlatform platform =
@@ -518,12 +517,12 @@ setPlatform platform =
   where
     platformAL = [(identPS p, p) | p <- platformSpecDB]
 
--- set the output directory
+-- | set the output directory
 --
 setOutDir       :: FilePath -> CST s ()
 setOutDir fname  = setSwitch $ \sb -> sb {outDirSB = fname}
 
--- set the name of the generated header file
+-- | set the name of the generated header file
 --
 setHeader       :: FilePath -> CST s ()
 setHeader fname  = setSwitch $ \sb -> sb {headerSB = fname}
@@ -532,7 +531,7 @@ setHeader fname  = setSwitch $ \sb -> sb {headerSB = fname}
 -- compilation process
 -- -------------------
 
--- read the binding module, construct a header, run it through CPP, read it,
+-- | read the binding module, construct a header, run it through CPP, read it,
 -- and finally generate the Haskell target
 --
 -- * the header file name (first argument) may be empty; otherwise, it already

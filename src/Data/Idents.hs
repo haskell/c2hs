@@ -52,7 +52,7 @@ import Data.Attributes (Attrs, newAttrsOnlyPos, newAttrs,
                    Attributed(attrsOf), posOfAttrsOf)
 
 
--- simple identifier representation (EXPORTED)
+-- | simple identifier representation
 --
 data Ident = Ident String       -- lexeme
  {-# UNBOXED #-}   !Int         -- hash to speed up equality check
@@ -85,13 +85,13 @@ instance Attributed Ident where
 instance Pos Ident where
   posOf = posOfAttrsOf
 
--- to speed up the equality test we compute some hash-like value for each
+-- | to speed up the equality test we compute some hash-like value for each
 -- identifiers lexeme and store it in the identifiers representation
 
 -- hash function from the dragon book pp437; assumes 7 bit characters and needs
--- the (nearly) full range of values guaranteed for `Int' by the Haskell
+-- the (nearly) full range of values guaranteed for 'Int' by the Haskell
 -- language definition; can handle 8 bit characters provided we have 29 bit
--- for the `Int's without sign
+-- for the 'Int's without sign
 --
 quad                 :: String -> Int
 quad (c1:c2:c3:c4:s)  = ((ord c4 * bits21
@@ -110,7 +110,7 @@ bits14 = 2^14
 bits21 = 2^21
 bits28 = 2^28
 
--- given the lexeme of an identifier, yield the abstract identifier (EXPORTED)
+-- | given the lexeme of an identifier, yield the abstract identifier
 --
 -- * the only attribute of the resulting identifier is its source text
 --   position; as provided in the first argument of this function
@@ -119,35 +119,35 @@ bits28 = 2^28
 --   not checked for being alphanumerical only; the correct lexis of the
 --   identifier should be ensured by the caller, e.g., the scanner.
 --
--- * for reasons of simplicity the complete lexeme is hashed (with `quad')
+-- * for reasons of simplicity the complete lexeme is hashed (with 'quad')
 --
 lexemeToIdent            :: Position -> String -> Name -> Ident
 lexemeToIdent pos s name  = Ident s (quad s) (newAttrs pos name)
 
--- generate an internal identifier (has no position and cannot be asccociated
--- with attributes) (EXPORTED)
+-- | generate an internal identifier (has no position and cannot be asccociated
+-- with attributes)
 --
 internalIdent   :: String -> Ident
 internalIdent s  = Ident s (quad s) (newAttrsOnlyPos nopos)
 
--- generate a `only pos' identifier (may not be used to index attribute
--- tables, but has a position value) (EXPORTED)
+-- | generate a \"only pos\" identifier (may not be used to index attribute
+-- tables, but has a position value)
 --
 onlyPosIdent       :: Position -> String -> Ident
 onlyPosIdent pos s  = Ident s (quad s) (newAttrsOnlyPos pos)
 
--- given an abstract identifier, yield its lexeme (EXPORTED)
+-- | given an abstract identifier, yield its lexeme
 --
 identToLexeme               :: Ident -> String
 identToLexeme (Ident s _ _)  = s
 
--- get the attribute identifier associated with the given identifier (EXPORTED)
+-- | get the attribute identifier associated with the given identifier
 --
 getIdentAttrs                  :: Ident -> Attrs
 getIdentAttrs (Ident _ _ as)  = as
 
--- dump the lexeme and its positions into a string for debugging purposes
--- (EXPORTED)
+-- | dump the lexeme and its positions into a string for debugging purposes
+--
 --
 dumpIdent     :: Ident -> String
 dumpIdent ide  = identToLexeme ide ++ " at " ++ show (posOf ide)

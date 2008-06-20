@@ -43,18 +43,18 @@ import System.Info (arch, os)
 -- program settings
 -- ----------------
 
--- |C preprocessor executable
+-- | C preprocessor executable
 --
 cpp :: FilePath
 cpp  = "cpp"
 
--- |C preprocessor options
+-- | C preprocessor options
 --
 -- * `-x c' forces CPP to regard the input as C code; this option seems to be
 --   understood at least on Linux, FreeBSD, and Solaris and seems to make a
 --   difference over the default language setting on FreeBSD
 --
--- * `-P' would suppress `#line' directives
+-- * @-P@ would suppress @#line@ directives
 --
 cppopts :: String
 cppopts  = case os of
@@ -63,12 +63,12 @@ cppopts  = case os of
   "openbsd" -> "-xc"
   _         -> "-x c"
 
--- |C2HS Library file name
+-- | C2HS Library file name
 --
 libfname :: FilePath
 libfname  = "C2HS.hs"
 
--- |Standard system search paths for header files
+-- | Standard system search paths for header files
 --
 hpaths :: [FilePath]
 hpaths  = [".", "/usr/include", "/usr/local/include"]
@@ -76,7 +76,7 @@ hpaths  = [".", "/usr/include", "/usr/local/include"]
 -- parameters of the targeted C compiler
 -- -------------------------------------
 
--- Parameters that characterise implementation-dependent features of the
+-- | Parameters that characterise implementation-dependent features of the
 -- targeted C compiler
 --
 data PlatformSpec = PlatformSpec {
@@ -92,7 +92,7 @@ instance Show PlatformSpec where
     show ident ++ " <" ++ show dir ++ ", " ++ show pad ++ ", " ++
     show intSig ++ ", " ++ show align ++ ">"
 
--- Platform specification for the C compiler used to compile c2hs (which is
+-- | Platform specification for the C compiler used to compile c2hs (which is
 -- the default target).
 --
 defaultPlatformSpec :: PlatformSpec
@@ -104,7 +104,7 @@ defaultPlatformSpec = PlatformSpec {
                         bitfieldAlignmentPS = bitfieldAlignment
                       }
 
--- The set of platform specification that may be choosen for cross compiling
+-- | The set of platform specification that may be choosen for cross compiling
 -- bindings.
 --
 platformSpecDB :: [PlatformSpec]
@@ -133,7 +133,7 @@ platformSpecDB =
     }
   ]
 
--- indicates in which direction the C compiler fills bitfields (EXPORTED)
+-- | indicates in which direction the C compiler fills bitfields
 --
 -- * the value is 1 or -1, depending on whether the direction is growing
 --   towards the MSB
@@ -143,11 +143,11 @@ bitfieldDirection  = fromIntegral bitfield_direction
 
 foreign import ccall "config.h" bitfield_direction :: CInt
 
--- indicates whether a bitfield that does not fit into a partially filled
+-- | indicates whether a bitfield that does not fit into a partially filled
 -- storage unit in its entirety introduce padding or split over two storage
--- units (EXPORTED)
+-- units
 --
--- * `True' means that such a bitfield introduces padding (instead of being
+-- * 'True' means that such a bitfield introduces padding (instead of being
 --   split)
 --
 bitfieldPadding :: Bool
@@ -155,15 +155,15 @@ bitfieldPadding  = toBool bitfield_padding
 
 foreign import ccall "config.h" bitfield_padding :: CInt
 
--- indicates whether a bitfield of type `int' is signed in the targeted C
--- compiler (EXPORTED)
+-- | indicates whether a bitfield of type `int' is signed in the targeted C
+-- compiler
 --
 bitfieldIntSigned :: Bool
 bitfieldIntSigned  = toBool bitfield_int_signed
 
 foreign import ccall "config.h" bitfield_int_signed :: CInt
 
--- the alignment constraint for a bitfield (EXPORTED)
+-- | the alignment constraint for a bitfield
 --
 -- * this makes the assumption that the alignment of a bitfield is independent
 --   of the bitfield's size

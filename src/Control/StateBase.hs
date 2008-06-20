@@ -61,7 +61,7 @@ import Data.Errors     (ErrorLvl(..), Error)
 -- state used in the whole compiler
 -- --------------------------------
 
--- form of the error state
+-- | form of the error state
 --
 -- * when no error was raised yet, the error level is the lowest possible one
 --
@@ -69,7 +69,7 @@ data ErrorState = ErrorState ErrorLvl    -- worst error level that was raised
                              Int         -- number of errors (excl warnings)
                              [Error]     -- already raised errors
 
--- base state (EXPORTED)
+-- | base state
 --
 data BaseState e = BaseState {
                      errorsBS   :: ErrorState,
@@ -77,7 +77,7 @@ data BaseState e = BaseState {
                      extraBS    :: e                          -- extra state
                  }
 
--- the compiler state transformer (EXPORTED)
+-- | the compiler state transformer
 --
 
 newtype PreCST e s a = CST (STB (BaseState e) s a)
@@ -87,7 +87,7 @@ instance Monad (PreCST e s) where
   (>>=)  = (+>=)
 
 
--- unwrapper coercion function (EXPORTED)
+-- | unwrapper coercion function
 --
 unpackCST   :: PreCST e s a -> STB (BaseState e) s a
 unpackCST m  = let CST m' = m in m'
@@ -96,12 +96,12 @@ unpackCST m  = let CST m' = m in m'
 -- monad operations
 -- ----------------
 
--- the monad's unit
+-- | the monad's unit
 --
 yield   :: a -> PreCST e s a
 yield a  = CST $ return a
 
--- the monad's bind
+-- | the monad's bind
 --
 (+>=)   :: PreCST e s a -> (a -> PreCST e s b) -> PreCST e s b
 m +>= k  = CST $ unpackCST m >>= (\a -> unpackCST (k a))
@@ -110,26 +110,25 @@ m +>= k  = CST $ unpackCST m >>= (\a -> unpackCST (k a))
 -- generic state manipulation
 -- --------------------------
 
--- given a reader function for the state, wrap it into an CST monad (EXPORTED)
+-- | given a reader function for the state, wrap it into an CST monad
 --
 readCST   :: (s -> a) -> PreCST e s a
 readCST f  = CST $ readGeneric f
 
--- given a new state, inject it into an CST monad (EXPORTED)
+-- | given a new state, inject it into an CST monad
 --
 writeCST    :: s -> PreCST e s ()
 writeCST s'  = CST $ writeGeneric s'
 
--- given a transformer function for the state, wrap it into an CST monad
--- (EXPORTED)
+-- | given a transformer function for the state, wrap it into an CST monad
 --
 transCST   :: (s -> (s, a)) -> PreCST e s a
 transCST f  = CST $ transGeneric f
 
--- interaction with the encapsulated `IO' monad
+-- interaction with the encapsulated 'IO' monad
 -- --------------------------------------------
 
--- lifts an `IO' state transformer into `CST'
+-- | lifts an 'IO' state transformer into 'CST'
 --
 liftIO   :: IO a -> PreCST e s a
 liftIO m  = CST $ (StateTrans.liftIO m)

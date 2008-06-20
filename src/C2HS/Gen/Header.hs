@@ -64,11 +64,11 @@ import C2HS.State (CST, getNameSupply, runCST, transCST, raiseError, catchExc,
 import C2HS.CHS  (CHSModule(..), CHSFrag(..))
 
 
--- The header generation monad
+-- | The header generation monad
 --
 type GH a = CST [Name] a
 
--- |Generate a custom C header from a CHS binding module.
+-- | Generate a custom C header from a CHS binding module.
 --
 -- * All CPP directives and inline-C fragments are moved into the custom header
 --
@@ -94,14 +94,14 @@ genHeader mod =
         warnmsgs <- showErrors
         return (header, mod, warnmsgs)
 
--- Obtain a new base name that may be used, in C, to encode the result of a
+-- | Obtain a new base name that may be used, in C, to encode the result of a
 -- preprocessor conditionl.
 --
 newName :: CST [Name] String
 newName = transCST $
   \supply -> (tail supply, "C2HS_COND_SENTRY_" ++ show (head supply))
 
--- Various forms of processed fragments
+-- | Various forms of processed fragments
 --
 data FragElem = Frag  CHSFrag
               | Elif  String Position
@@ -116,16 +116,16 @@ instance Pos FragElem where
   posOf (Endif     pos) = pos
   posOf EOF             = nopos
 
--- check for end of file
+-- | check for end of file
 --
 isEOF :: FragElem -> Bool
 isEOF EOF = True
 isEOF _   = False
 
--- Generate the C header for an entire .chs module.
+-- | Generate the C header for an entire .chs module.
 --
 -- * This works more or less like a recursive decent parser for a statement
---   sequence that may contain conditionals, where `ghFrag' implements most of
+--   sequence that may contain conditionals, where 'ghFrag' implements most of
 --   the state transition system of the associated automaton
 --
 ghModule :: CHSModule -> GH ([String], CHSModule)
@@ -136,7 +136,7 @@ ghModule (CHSModule frags) =
       notOpenCondErr (posOf last)
     return (DL.close header, CHSModule frags)
 
--- Collect header and fragments up to eof or a CPP directive that is part of a
+-- | Collect header and fragments up to eof or a CPP directive that is part of a
 -- conditional
 --
 -- * We collect the header (ie, CPP directives and inline-C) using a
@@ -156,7 +156,7 @@ ghFrags frags =
                               frag', rest)
       _          -> return (header, [], frag, rest)
 
--- Process a single fragment *structure*; i.e., if the first fragment
+-- | Process a single fragment *structure*; i.e., if the first fragment
 -- introduces a conditional, process the whole conditional; otherwise, process
 -- the first fragment
 --
@@ -236,7 +236,7 @@ ghFrag (frag@(CHSCPP  s  pos) : frags) =
                                  rest
           EOF         -> notClosedCondErr pos
     --
-    -- turn a completed conditional into a `CHSCond' fragment
+    -- turn a completed conditional into a 'CHSCond' fragment
     --
     -- * `(s, fragsTh)' is the CPP directive `s' containing the condition under
     --   which `fragTh' should be executed; `alts' are alternative branches
@@ -258,22 +258,22 @@ ghFrag (frag@(CHSCPP  s  pos) : frags) =
 -- exception handling
 -- ------------------
 
--- exception identifier
+-- | exception identifier
 --
 ghExc :: String
 ghExc  = "ghExc"
 
--- throw an exception
+-- | throw an exception
 --
 throwGHExc :: GH a
 throwGHExc  = throwExc ghExc "Error during C header generation"
 
--- catch a `ghExc'
+-- | catch a 'ghExc'
 --
 ifGHExc           :: CST s a -> CST s a -> CST s a
 ifGHExc m handler  = m `catchExc` (ghExc, const handler)
 
--- raise an error followed by throwing a GH exception
+-- | raise an error followed by throwing a GH exception
 --
 raiseErrorGHExc          :: Position -> [String] -> GH a
 raiseErrorGHExc pos errs  = raiseError pos errs >> throwGHExc

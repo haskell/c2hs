@@ -45,7 +45,7 @@ import Data.Idents     (Ident)
 import Data.Errors     (interr)
 
 
--- name space (EXPORTED ABSTRACT)
+-- | name space
 --
 -- * the definitions in the global ranges are stored in a finite map, because
 --   they tend to be a lot and are normally not updated after the global range
@@ -66,12 +66,12 @@ import Data.Errors     (interr)
 data NameSpace a = NameSpace (Map Ident a)  -- defs in global range
                              [[(Ident, a)]]       -- stack of local ranges
 
--- create a name space (EXPORTED)
+-- | create a name space
 --
 nameSpace :: NameSpace a
 nameSpace  = NameSpace Map.empty []
 
--- add global definition (EXPORTED)
+-- | add global definition
 --
 -- * returns the modfied name space
 --
@@ -84,19 +84,19 @@ defGlobal :: NameSpace a -> Ident -> a -> (NameSpace a, Maybe a)
 defGlobal (NameSpace gs lss) id def  = (NameSpace (Map.insert id def gs) lss,
                                         Map.lookup id gs)
 
--- add new range (EXPORTED)
+-- | add new range
 --
 enterNewRange                    :: NameSpace a -> NameSpace a
 enterNewRange (NameSpace gs lss)  = NameSpace gs ([]:lss)
 
--- pop topmost range and return its definitions (EXPORTED)
+-- | pop topmost range and return its definitions
 --
 leaveRange :: NameSpace a -> (NameSpace a, [(Ident, a)])
 leaveRange (NameSpace gs [])        = interr "NameSpaces.leaveRange: \
                                              \No local range!"
 leaveRange (NameSpace gs (ls:lss))  = (NameSpace gs lss, ls)
 
--- add local definition (EXPORTED)
+-- | add local definition
 --
 -- * returns the modfied name space
 --
@@ -117,7 +117,7 @@ defLocal (NameSpace    gs (ls:lss)) id def =
     lookup ((id', def):ls) | id == id' = Just def
                            | otherwise = lookup ls
 
--- search for a definition (EXPORTED)
+-- | search for a definition
 --
 -- * the definition from the innermost range is returned, if any
 --
@@ -136,7 +136,7 @@ find (NameSpace gs lss) id  = case (lookup lss) of
                                         | id' == id     = Just def
                                         | otherwise     = lookup' ls
 
--- dump a name space into a list (EXPORTED)
+-- | dump a name space into a list
 --
 -- * local ranges are concatenated
 --

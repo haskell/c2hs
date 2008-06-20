@@ -78,7 +78,7 @@ import Data.Errors      (ErrorLvl(..), Error, makeError, errorLvl, showError)
 -- state used in the whole compiler
 -- --------------------------------
 
--- initialization
+-- | initialization
 --
 -- * it gets the version information and the initial extra state as arguments
 --
@@ -93,8 +93,8 @@ initialBaseState es = BaseState {
 -- executing state transformers
 -- ----------------------------
 
--- initiate a complete run of the ToolKit represented by a PreCST with a void
--- generic component (type `()') (EXPORTED)
+-- | initiate a complete run of the ToolKit represented by a PreCST with a void
+-- generic component (type '()')
 --
 -- * fatals errors are explicitly caught and reported (instead of letting them
 --   through to the runtime system)
@@ -109,7 +109,7 @@ run es cst = runSTB m (initialBaseState es) ()
             CIO.exitWith (ExitFailure 1)
         )
 
--- run a PreCST in the context of another PreCST (EXPORTED)
+-- | run a PreCST in the context of another PreCST
 --
 -- the generic state of the enclosing PreCST is preserved while the
 -- computation of the PreCST passed as an argument is interleaved in the
@@ -122,21 +122,21 @@ runCST m s  = CST $ StateTrans.interleave (unpackCST m) s
 -- exception handling
 -- ------------------
 
--- throw an exception with the given tag and message (EXPORTED)
+-- | throw an exception with the given tag and message
 --
 throwExc       :: String -> String -> PreCST e s a
 throwExc s1 s2  = CST $ StateTrans.throwExc s1 s2
 
--- raise a fatal user-defined error (EXPORTED)
+-- | raise a fatal user-defined error
 --
--- * such an error my be caught and handled using `fatalsHandeledBy'
+-- * such an error my be caught and handled using 'fatalsHandeledBy'
 --
 fatal :: String -> PreCST e s a
 fatal  = CST . StateTrans.fatal
 
--- the given state transformer is executed and exceptions with the given tag
+-- | the given state transformer is executed and exceptions with the given tag
 -- are caught using the provided handler, which expects to get the exception
--- message (EXPORTED)
+-- message
 --
 -- * the state observed by the exception handler is *modified* by the failed
 --   state transformer upto the point where the exception was thrown (this
@@ -148,15 +148,15 @@ catchExc     :: PreCST e s a
              -> PreCST e s a
 catchExc m (s, h)  = CST $ StateTrans.catchExc (unpackCST m) (s, unpackCST . h)
 
--- given a state transformer that may raise fatal errors and an error handler
+-- | given a state transformer that may raise fatal errors and an error handler
 -- for fatal errors, execute the state transformer and apply the error handler
--- when a fatal error occurs (EXPORTED)
+-- when a fatal error occurs
 --
--- * fatal errors are IO monad errors and errors raised by `fatal' as well as
+-- * fatal errors are IO monad errors and errors raised by 'fatal' as well as
 --   uncaught exceptions
 --
 -- * the base and generic state observed by the error handler is *in contrast
---   to `catch'* the state *before* the state transformer is applied
+--   to 'catch'* the state *before* the state transformer is applied
 --
 fatalsHandledBy :: PreCST e s a -> (IOError -> PreCST e s a) -> PreCST e s a
 fatalsHandledBy m h  = CST $ StateTrans.fatalsHandledBy m' h'
@@ -168,15 +168,15 @@ fatalsHandledBy m h  = CST $ StateTrans.fatalsHandledBy m' h'
 -- manipulating the error state
 -- ----------------------------
 
--- the lowest level of errors is `WarningErr', but it is meaningless as long as
+-- | the lowest level of errors is 'WarningErr', but it is meaningless as long as
 -- the the list of errors is empty
 --
 initialErrorState :: ErrorState
 initialErrorState  = ErrorState WarningErr 0 []
 
--- raise an error (EXPORTED)
+-- | raise an error
 --
--- * a fatal error is reported immediately; see `raiseFatal'
+-- * a fatal error is reported immediately; see 'raiseFatal'
 --
 raise     :: Error -> PreCST e s ()
 raise err  = case errorLvl err of
@@ -184,17 +184,17 @@ raise err  = case errorLvl err of
                ErrorErr    -> raise0 err
                FatalErr    -> raiseFatal0 "Generic fatal error." err
 
--- raise a warning (see `raiseErr') (EXPORTED)
+-- | raise a warning (see 'raiseErr')
 --
 raiseWarning         :: Position -> [String] -> PreCST e s ()
 raiseWarning pos msg  = raise0 (makeError WarningErr pos msg)
 
--- raise an error (see `raiseErr') (EXPORTED)
+-- | raise an error (see 'raiseErr')
 --
 raiseError         :: Position -> [String] -> PreCST e s ()
 raiseError pos msg  = raise0 (makeError ErrorErr pos msg)
 
--- raise a fatal compilation error (EXPORTED)
+-- | raise a fatal compilation error
 --
 -- * the error is together with the up-to-now accumulated errors are reported
 --   as part of the error message of the fatal error exception
@@ -203,12 +203,12 @@ raiseError pos msg  = raise0 (makeError ErrorErr pos msg)
 --   innermost handler for fatal errors
 --
 -- * the first argument must contain a short description of the error, while
---   the second and third argument are like the two arguments to `raise'
+--   the second and third argument are like the two arguments to 'raise'
 --
 raiseFatal                :: String -> Position -> [String] -> PreCST e s a
 raiseFatal short pos long  = raiseFatal0 short (makeError FatalErr pos long)
 
--- raise a fatal error; internal version that gets an abstract error
+-- | raise a fatal error; internal version that gets an abstract error
 --
 raiseFatal0           :: String -> Error -> PreCST e s a
 raiseFatal0 short err  = do
@@ -216,10 +216,10 @@ raiseFatal0 short err  = do
                            errmsgs <- showErrors
                            fatal (short ++ "\n\n" ++ errmsgs)
 
--- raise an error; internal version, doesn't check whether the error is fatal
+-- | raise an error; internal version, doesn't check whether the error is fatal
 --
 -- * the error is entered into the compiler state and a fatal error is
---   triggered if the `errorLimit' is reached
+--   triggered if the 'errorLimit' is reached
 --
 raise0     :: Error -> PreCST e s ()
 raise0 err  = do
@@ -242,7 +242,7 @@ raise0 err  = do
                   in
                     (bs {errorsBS = (ErrorState wlvl' no' errs')}, no')
 
--- yield a string containing the collected error messages (EXPORTED)
+-- | yield a string containing the collected error messages
 --
 --  * the error state is reset in this process
 --
@@ -258,8 +258,7 @@ showErrors  = CST $ do
                 errsToStrs      :: [Error] -> [String]
                 errsToStrs errs  = (map showError . sort) errs
 
--- inquire if there was already an error of at least level `ErrorErr' raised
--- (EXPORTED)
+-- | inquire if there was already an error of at least level 'ErrorErr' raised
 --
 errorsPresent :: PreCST e s Bool
 errorsPresent  = CST $ do
@@ -270,15 +269,14 @@ errorsPresent  = CST $ do
 -- manipulating the extra state
 -- ----------------------------
 
--- apply a reader function to the extra state and yield the reader's result
--- (EXPORTED)
+-- | apply a reader function to the extra state and yield the reader's result
 --
 readExtra    :: (e -> a) -> PreCST e s a
 readExtra rf  = CST $ readBase (\bs ->
                         (rf . extraBS) bs
                       )
 
--- apply an update function to the extra state (EXPORTED)
+-- | apply an update function to the extra state
 --
 updExtra    :: (e -> e) -> PreCST e s ()
 updExtra uf  = CST $ transBase (\bs ->
@@ -292,7 +290,7 @@ updExtra uf  = CST $ transBase (\bs ->
 -- name supplies
 -- -------------
 
--- Get a name supply out of the base state (EXPORTED)
+-- | Get a name supply out of the base state
 --
 getNameSupply :: PreCST e s NameSupply
 getNameSupply  = CST $ transBase (\bs ->

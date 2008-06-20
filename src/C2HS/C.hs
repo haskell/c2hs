@@ -77,15 +77,15 @@ import C2HS.C.Names     (nameAnalysis)
 import C2HS.C.Trav
 
 
--- suffix for files containing C (EXPORTED)
+-- | suffix for files containing C
 --
 csuffix, hsuffix, isuffix :: String
 csuffix  = "c"
 hsuffix  = "h"
 isuffix  = "i"
 
--- given a file name (with suffix), parse that file as a C header and do the
--- static analysis (collect defined names) (EXPORTED)
+-- | given a file name (with suffix), parse that file as a C header and do the
+-- static analysis (collect defined names)
 --
 -- * currently, lexical and syntactical errors are reported immediately and
 --   abort the program; others are reported as part of the fatal error message;

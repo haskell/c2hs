@@ -149,7 +149,7 @@ infixl 2 >|<, >||<
 -- constants
 -- ---------
 
--- we use the dense representation if a table has at least the given number of
+-- | we use the dense representation if a table has at least the given number of
 -- (non-error) elements
 --
 denseMin :: Int
@@ -159,7 +159,7 @@ denseMin  = 20
 -- data structures
 -- ---------------
 
--- represents the number of (non-error) elements and the bounds of a table
+-- | represents the number of (non-error) elements and the bounds of a table
 --
 type BoundsNum = (Int, Char, Char)
 
@@ -168,18 +168,18 @@ type BoundsNum = (Int, Char, Char)
 nullBoundsNum :: BoundsNum
 nullBoundsNum  = (0, maxBound, minBound)
 
--- combine two bounds
+-- | combine two bounds
 --
 addBoundsNum                            :: BoundsNum -> BoundsNum -> BoundsNum
 addBoundsNum (n, lc, hc) (n', lc', hc')  = (n + n', min lc lc', max hc hc')
 
--- check whether a character is in the bounds
+-- | check whether a character is in the bounds
 --
 inBounds               :: Char -> BoundsNum -> Bool
 inBounds c (_, lc, hc)  = c >= lc && c <= hc
 
--- Lexical actions take a lexeme with its position and may return a token; in
--- a variant, an error can be returned (EXPORTED)
+-- | Lexical actions take a lexeme with its position and may return a token; in
+-- a variant, an error can be returned
 --
 -- * if there is no token returned, the current lexeme is discarded lexing
 --   continues looking for a token
@@ -187,24 +187,23 @@ inBounds c (_, lc, hc)  = c >= lc && c <= hc
 type Action    t = String -> Position -> Maybe t
 type ActionErr t = String -> Position -> Either Error t
 
--- Meta actions transform the lexeme, position, and a user-defined state; they
+-- | Meta actions transform the lexeme, position, and a user-defined state; they
 -- may return a lexer, which is then used for accepting the next token (this
 -- is important to implement non-regular behaviour like nested comments)
--- (EXPORTED)
 --
 type Meta s t = String -> Position -> s -> (Maybe (Either Error t), -- err/tok?
                                             Position,               -- new pos
                                             s,                      -- state
                                             Maybe (Lexer s t))      -- lexer?
 
--- tree structure used to represent the lexer table (EXPORTED ABSTRACTLY)
+-- | tree structure used to represent the lexer table
 --
 -- * each node in the tree corresponds to a state of the lexer; the associated
 --   actions are those that apply when the corresponding state is reached
 --
 data Lexer s t = Lexer (LexAction s t) (Cont s t)
 
--- represent the continuation of a lexer
+-- | represent the continuation of a lexer
 --
 data Cont s t = -- on top of the tree, where entries are dense, we use arrays
                 --
@@ -221,13 +220,13 @@ data Cont s t = -- on top of the tree, where entries are dense, we use arrays
               | Done
 --            deriving Show
 
--- lexical action (EXPORTED ABSTRACTLY)
+-- | lexical action
 --
 data LexAction s t = Action   (Meta s t)
                    | NoAction
 --                 deriving Show
 
--- a regular expression (EXPORTED)
+-- | a regular expression
 --
 type Regexp s t = Lexer s t -> Lexer s t
 
@@ -235,23 +234,23 @@ type Regexp s t = Lexer s t -> Lexer s t
 -- basic combinators
 -- -----------------
 
--- Empty lexeme (EXPORTED)
+-- | Empty lexeme
 --
 epsilon :: Regexp s t
 epsilon  = id
 
--- One character regexp (EXPORTED)
+-- | One character regexp
 --
 char   :: Char -> Regexp s t
 char c  = \l -> Lexer NoAction (Sparse (1, c, c) [(c, l)])
 
--- Concatenation of regexps (EXPORTED)
+-- | Concatenation of regexps
 --
 (+>) :: Regexp s t -> Regexp s t -> Regexp s t
 (+>)  = (.)
 
--- Close a regular expression with an action that converts the lexeme into a
--- token (EXPORTED)
+-- | Close a regular expression with an action that converts the lexeme into a
+-- token
 --
 -- * Note: After the application of the action, the position is advanced
 --         according to the length of the lexeme.  This implies that normal
@@ -269,7 +268,7 @@ lexaction re a  = re `lexmeta` a'
                     Nothing -> (Nothing, (Position fname row col'), s, Nothing)
                     Just t  -> (Just (Right t), (Position fname row col'), s, Nothing)
 
--- Variant for actions that may returns an error (EXPORTED)
+-- | Variant for actions that may returns an error
 --
 lexactionErr      :: Regexp s t -> ActionErr t -> Lexer s t
 lexactionErr re a  = re `lexmeta` a'
@@ -279,7 +278,7 @@ lexactionErr re a  = re `lexmeta` a'
        in
        col' `seq` (Just (a lexeme pos), (Position fname row col'), s, Nothing)
 
--- Close a regular expression with a meta action (EXPORTED)
+-- | Close a regular expression with a meta action
 --
 -- * Note: Meta actions have to advance the position in dependence of the
 --         lexeme by themselves.
@@ -287,17 +286,17 @@ lexactionErr re a  = re `lexmeta` a'
 lexmeta      :: Regexp s t -> Meta s t -> Lexer s t
 lexmeta re a  = re (Lexer (Action a) Done)
 
--- disjunctive combination of two regexps (EXPORTED)
+-- | disjunctive combination of two regexps
 --
 (>|<)      :: Regexp s t -> Regexp s t -> Regexp s t
 re >|< re'  = \l -> re l >||< re' l
 
--- disjunctive combination of two lexers (EXPORTED)
+-- | disjunctive combination of two lexers
 --
 (>||<)                         :: Lexer s t -> Lexer s t -> Lexer s t
 (Lexer a c) >||< (Lexer a' c')  = Lexer (joinActions a a') (joinConts c c')
 
--- combine two disjunctive continuations
+-- | combine two disjunctive continuations
 --
 joinConts :: Cont s t -> Cont s t -> Cont s t
 joinConts Done c'   = c'
@@ -315,14 +314,14 @@ joinConts c    c'   = let (bn , cls ) = listify c
     listify (Sparse n cls) = (n, cls)
     listify _              = interr "Lexers.listify: Impossible argument!"
 
--- combine two actions
+-- | combine two actions
 --
 joinActions :: LexAction s t -> LexAction s t -> LexAction s t
 joinActions NoAction a'       = a'
 joinActions a        NoAction = a
 joinActions _        _        = interr "Lexers.>||<: Overlapping actions!"
 
--- Note: `n' is only an upper bound of the number of non-overlapping cases
+-- | Note: `n' is only an upper bound of the number of non-overlapping cases
 --
 aggregate :: BoundsNum -> ([(Char, Lexer s t)]) -> Cont s t
 aggregate bn@(n, lc, hc) cls
@@ -331,7 +330,7 @@ aggregate bn@(n, lc, hc) cls
   where
     noLexer = Lexer NoAction Done
 
--- combine the elements in the association list that have the same key
+-- | combine the elements in the association list that have the same key
 --
 accum :: Eq a => (b -> b -> b) -> [(a, b)] -> [(a, b)]
 accum f []           = []
@@ -351,12 +350,12 @@ accum f ((k, e):kes) =
 -- handling of control characters
 -- ------------------------------
 
--- control characters recognized by `ctrlLexer' (EXPORTED)
+-- | control characters recognized by `ctrlLexer'
 --
 ctrlChars :: [Char]
 ctrlChars  = ['\n', '\r', '\f', '\t']
 
--- control lexer (EXPORTED)
+-- | control lexer
 --
 -- * implements proper `Position' management in the presence of the standard
 --   layout control characters
@@ -377,7 +376,7 @@ ctrlLexer  =
 -- non-basic combinators
 -- ---------------------
 
--- x `star` y corresponds to the regular expression x*y (EXPORTED)
+-- | x `star` y corresponds to the regular expression x*y
 --
 star :: Regexp s t -> Regexp s t -> Regexp s t
 --
@@ -396,17 +395,17 @@ star re1 re2  = \l -> let self = re1 self >||< re2 l
                       in
                       self
 
--- x `plus` y corresponds to the regular expression x+y (EXPORTED)
+-- | x `plus` y corresponds to the regular expression x+y
 --
 plus         :: Regexp s t -> Regexp s t -> Regexp s t
 plus re1 re2  = re1 +> (re1 `star` re2)
 
--- x `quest` y corresponds to the regular expression x?y (EXPORTED)
+-- | x `quest` y corresponds to the regular expression x?y
 --
 quest         :: Regexp s t -> Regexp s t -> Regexp s t
 quest re1 re2  = (re1 +> re2) >|< re2
 
--- accepts a non-empty set of alternative characters (EXPORTED)
+-- | accepts a non-empty set of alternative characters
 --
 alt    :: [Char] -> Regexp s t
 --
@@ -417,7 +416,7 @@ alt cs  = \l -> let bnds = (length cs, minimum cs, maximum cs)
                 in
                 Lexer NoAction (aggregate bnds [(c, l) | c <- cs])
 
--- accept a character sequence (EXPORTED)
+-- | accept a character sequence
 --
 string    :: String -> Regexp s t
 string []  = interr "Lexers.string: Empty character set!"
@@ -427,12 +426,12 @@ string cs  = (foldr1 (+>) . map char) cs
 -- execution of a lexer
 -- --------------------
 
--- threaded top-down during lexing (current input, current position, meta
--- state) (EXPORTED)
+-- | threaded top-down during lexing (current input, current position, meta
+-- state)
 --
 type LexerState s = (String, Position, s)
 
--- apply a lexer, yielding a token sequence and a list of errors (EXPORTED)
+-- | apply a lexer, yielding a token sequence and a list of errors
 --
 -- * Currently, all errors are fatal; thus, the result is undefined in case of
 --   an error (this changes when error correction is added).

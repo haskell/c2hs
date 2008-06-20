@@ -45,15 +45,15 @@ import Data.Position (Position(..), isInternalPos)
 -- internal errors
 -- ---------------
 
--- raise a fatal internal error; message may have multiple lines (EXPORTED)
+-- | raise a fatal internal error; message may have multiple lines
 --
 interr     :: String -> a
 interr msg  = error ("INTERNAL COMPILER ERROR:\n"
                      ++ indentMultilineString 2 msg
                      ++ "\n")
 
--- raise a error due to a implementation restriction; message may have multiple
--- lines (EXPORTED)
+-- | raise a error due to a implementation restriction; message may have multiple
+-- lines
 --
 todo     :: String -> a
 todo msg  = error ("Feature not yet implemented:\n"
@@ -64,14 +64,14 @@ todo msg  = error ("Feature not yet implemented:\n"
 -- errors in the compiled program
 -- ------------------------------
 
--- the higher the level of an error, the more critical it is (EXPORTED)
+-- | the higher the level of an error, the more critical it is
 --
 data ErrorLvl = WarningErr              -- does not affect compilation
               | ErrorErr                -- cannot generate code
               | FatalErr                -- abort immediately
               deriving (Eq, Ord)
 
-data Error = Error ErrorLvl Position [String]  -- (EXPORTED ABSTRACTLY)
+data Error = Error ErrorLvl Position [String]
 
 -- note that the equality to on errors takes into account only the error level
 -- and position (not the error text)
@@ -88,36 +88,36 @@ instance Ord Error where
   e1                  <= e2                  = e1 < e2 || e1 == e2
 
 
--- produce an `Error', given its level, position, and a list of lines of
--- the error message that must not be empty (EXPORTED)
+-- | produce an 'Error', given its level, position, and a list of lines of
+-- the error message that must not be empty
 --
 makeError :: ErrorLvl -> Position -> [String] -> Error
 makeError  = Error
 
--- inquire the error level (EXPORTED)
+-- | inquire the error level
 --
 errorLvl                 :: Error -> ErrorLvl
 errorLvl (Error lvl _ _)  = lvl
 
--- converts an error into a string using a fixed format (EXPORTED)
+-- | converts an error into a string using a fixed format
 --
 -- * the list of lines of the error message must not be empty
 --
 -- * the format is
 --
---     <fname>:<row>: (column <col>) [<err lvl>]
---       >>> <line_1>
---       <line_2>
---         ...
---       <line_n>
+-- >    <fname>:<row>: (column <col>) [<err lvl>]
+-- >      >>> <line_1>
+-- >      <line_2>
+-- >        ...
+-- >      <line_n>
 --
 -- * internal errors (identified by a special position value) are formatted as
 --
---     INTERNAL ERROR!
---       >>> <line_1>
---       <line_2>
---         ...
---       <line_n>
+-- >    INTERNAL ERROR!
+-- >      >>> <line_1>
+-- >      <line_2>
+-- >        ...
+-- >      <line_n>
 --
 showError :: Error -> String
 showError (Error _   pos               (l:ls))  | isInternalPos pos =
@@ -145,7 +145,7 @@ showError (Error _  _                  []   )   = interr "Errors: showError:\
 errorAtPos         :: Position -> [String] -> a
 errorAtPos pos msg  = (error . showError . makeError ErrorErr pos) msg
 
--- indent the given multiline text by the given number of spaces
+-- | indent the given multiline text by the given number of spaces
 --
 indentMultilineString   :: Int -> String -> String
 indentMultilineString n  = unlines . (map (spaces++)) . lines

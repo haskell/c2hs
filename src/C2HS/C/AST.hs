@@ -50,7 +50,7 @@ import Data.Idents     (Ident)
 import Data.Attributes (Attrs)
 
 
--- a complete C header file (K&R A10) (EXPORTED)
+-- | a complete C header file (K&R A10)
 --
 data CHeader = CHeader [CExtDecl]
                        Attrs
@@ -61,7 +61,7 @@ instance Pos CHeader where
 instance Eq CHeader where
   (CHeader _ at1) == (CHeader _ at2) = at1 == at2
 
--- external C declaration (K&R A10) (EXPORTED)
+-- | external C declaration (K&R A10)
 --
 data CExtDecl = CDeclExt CDecl
               | CFDefExt CFunDef
@@ -78,7 +78,7 @@ instance Eq CExtDecl where
   CFDefExt fdef1 == CFDefExt fdef2 = fdef1 == fdef2
   CAsmExt at1    == CAsmExt at2    =   at1 == at2
 
--- C function definition (K&R A10.1) (EXPORTED)
+-- | C function definition (K&R A10.1)
 --
 -- * The only type specifiers allowed are `extern' and `static'.
 --
@@ -101,7 +101,7 @@ instance Pos CFunDef where
 instance Eq CFunDef where
   CFunDef _ _ _ _ at1 == CFunDef _ _ _ _ at2 = at1 == at2
 
--- C statement (A9) (EXPORTED)
+-- | C statement (A9)
 --
 data CStat = CLabel    Ident            -- label
                        CStat
@@ -199,8 +199,8 @@ instance Eq CBlockItem where
   CNestedFunDef fdef1 == CNestedFunDef fdef2 = fdef1 == fdef2
 
 
--- C declaration (K&R A8), structure declaration (K&R A8.3), parameter
--- declaration (K&R A8.6.3), and type name (K&R A8.8) (EXPORTED)
+-- | C declaration (K&R A8), structure declaration (K&R A8.3), parameter
+-- declaration (K&R A8.6.3), and type name (K&R A8.8)
 --
 -- * Toplevel declarations (K&R A8):
 --
@@ -253,7 +253,7 @@ instance Pos CDecl where
 instance Eq CDecl where
   (CDecl _ _ at1) == (CDecl _ _ at2) = at1 == at2
 
--- C declaration specifiers and qualifiers (EXPORTED)
+-- | C declaration specifiers and qualifiers
 --
 data CDeclSpec = CStorageSpec CStorageSpec
                | CTypeSpec    CTypeSpec
@@ -265,7 +265,7 @@ instance Pos CDeclSpec where
   posOf (CTypeSpec    tspec) = posOf tspec
   posOf (CTypeQual    tqual) = posOf tqual
 
--- C storage class specifier (K&R A8.1) (EXPORTED)
+-- | C storage class specifier (K&R A8.1)
 --
 data CStorageSpec = CAuto     Attrs
                   | CRegister Attrs
@@ -290,7 +290,7 @@ instance Eq CStorageSpec where
   (CTypedef  at1) == (CTypedef  at2) = at1 == at2
   (CThread   at1) == (CThread   at2) = at1 == at2
 
--- C type specifier (K&R A8.2) (EXPORTED)
+-- | C type specifier (K&R A8.2)
 --
 data CTypeSpec = CVoidType    Attrs
                | CCharType    Attrs
@@ -350,7 +350,7 @@ instance Eq CTypeSpec where
   (CTypeOfExpr _ at1) == (CTypeOfExpr _ at2) = at1 == at2
   (CTypeOfType _ at1) == (CTypeOfType _ at2) = at1 == at2
 
--- C type qualifier (K&R A8.2) (EXPORTED)
+-- | C type qualifier (K&R A8.2)
 --
 -- * plus `restrict' from C99 and `inline'
 --
@@ -371,14 +371,14 @@ instance Eq CTypeQual where
   (CRestrQual at1) == (CRestrQual at2) = at1 == at2
   (CInlinQual at1) == (CInlinQual at2) = at1 == at2
 
--- C structure of union declaration (K&R A8.3) (EXPORTED)
+-- | C structure of union declaration (K&R A8.3)
 --
 -- * in both case, either the identifier is present or the list must be
 --   non-empty
 --
 data CStructUnion = CStruct CStructTag
                             (Maybe Ident)
-                            [CDecl]     -- *structure* declaration
+                            [CDecl]     -- structure declaration
                             Attrs
 
 instance Pos CStructUnion where
@@ -387,13 +387,13 @@ instance Pos CStructUnion where
 instance Eq CStructUnion where
   (CStruct _ _ _ at1) == (CStruct _ _ _ at2) = at1 == at2
 
--- (EXPORTED)
+-- |
 --
 data CStructTag = CStructTag
                 | CUnionTag
                 deriving (Eq)
 
--- C enumeration declaration (K&R A8.4) (EXPORTED)
+-- | C enumeration declaration (K&R A8.4)
 --
 data CEnum = CEnum (Maybe Ident)
                    [(Ident,                     -- variant name
@@ -406,7 +406,7 @@ instance Pos CEnum where
 instance Eq CEnum where
   (CEnum _ _ at1) == (CEnum _ _ at2) = at1 == at2
 
--- C declarator (K&R A8.5) and abstract declarator (K&R A8.8) (EXPORTED)
+-- | C declarator (K&R A8.5) and abstract declarator (K&R A8.8)
 --
 -- * We have one type qualifer list `[CTypeQual]' for each indirection (ie,
 --   each occurrence of `*' in the concrete syntax).
@@ -442,7 +442,7 @@ data CDeclr = CVarDeclr (Maybe Ident)           -- declared identifier
                         (Maybe CExpr)           -- array size
                         Attrs
             | CFunDeclr CDeclr
-                        [CDecl]                 -- *parameter* declarations
+                        [CDecl]                 -- parameter declarations
                         Bool                    -- is variadic?
                         Attrs
 
@@ -458,7 +458,7 @@ instance Eq CDeclr where
   (CArrDeclr _ _ _ at1) == (CArrDeclr _ _ _ at2) = at1 == at2
   (CFunDeclr _ _ _ at1) == (CFunDeclr _ _ _ at2) = at1 == at2
 
--- C initializer (K&R A8.7) (EXPORTED)
+-- | C initializer (K&R A8.7)
 --
 data CInit = CInitExpr CExpr
                        Attrs            -- assignment expression
@@ -475,7 +475,7 @@ instance Eq CInit where
   (CInitExpr _ at1) == (CInitExpr _ at2) = at1 == at2
   (CInitList _ at1) == (CInitList _ at2) = at1 == at2
 
--- C initializer designator (EXPORTED)
+-- | C initializer designator
 --
 data CDesignator = CArrDesig     CExpr
                                  Attrs
@@ -495,7 +495,7 @@ instance Eq CDesignator where
   (CMemberDesig  _ at1) == (CMemberDesig  _ at2) = at1 == at2
   (CRangeDesig _ _ at1) == (CRangeDesig _ _ at2) = at1 == at2
 
--- C expression (K&R A7) (EXPORTED)
+-- | C expression (K&R A7)
 --
 -- * these can be arbitrary expression, as the argument of `sizeof' can be
 --   arbitrary, even if appearing in a constant expression
@@ -595,7 +595,7 @@ instance Eq CExpr where
   (CLabAddrExpr _     at1) == (CLabAddrExpr _     at2) = at1 == at2
   (CBuiltinExpr       at1) == (CBuiltinExpr       at2) = at1 == at2
 
--- C assignment operators (K&R A7.17) (EXPORTED)
+-- | C assignment operators (K&R A7.17)
 --
 data CAssignOp = CAssignOp
                | CMulAssOp
@@ -610,7 +610,7 @@ data CAssignOp = CAssignOp
                | COrAssOp
                deriving (Eq)
 
--- C binary operators (K&R A7.6-15) (EXPORTED)
+-- | C binary operators (K&R A7.6-15)
 --
 data CBinaryOp = CMulOp
                | CDivOp
@@ -632,7 +632,7 @@ data CBinaryOp = CMulOp
                | CLorOp                 -- logical or
                deriving (Eq)
 
--- C unary operator (K&R A7.3-4) (EXPORTED)
+-- | C unary operator (K&R A7.3-4)
 --
 data CUnaryOp = CPreIncOp               -- prefix increment operator
               | CPreDecOp               -- prefix decrement operator
@@ -646,7 +646,7 @@ data CUnaryOp = CPreIncOp               -- prefix increment operator
               | CNegOp                  -- logical negation
               deriving (Eq)
 
--- C constant (K&R A2.5 & A7.2) (EXPORTED)
+-- | C constant (K&R A2.5 & A7.2)
 --
 -- * we do not list enumeration constants here, as they are identifiers
 --

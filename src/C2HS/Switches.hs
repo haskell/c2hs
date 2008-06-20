@@ -61,7 +61,7 @@ import C2HS.Config (PlatformSpec, defaultPlatformSpec)
 -- the switch board contains all toolkit switches
 -- ----------------------------------------------
 
--- all switches of the toolkit (EXPORTED)
+-- | all switches of the toolkit
 --
 data SwitchBoard = SwitchBoard {
                      cppOptsSB :: String,       -- cpp options
@@ -76,7 +76,7 @@ data SwitchBoard = SwitchBoard {
                      chiPathSB :: [FilePath]    -- .chi file directories
                    }
 
--- switch states on startup (EXPORTED)
+-- | switch states on startup
 --
 initialSwitchBoard :: SwitchBoard
 initialSwitchBoard  = SwitchBoard {
@@ -96,7 +96,7 @@ initialSwitchBoard  = SwitchBoard {
 -- traces
 -- ------
 
--- different kinds of traces possible (EXPORTED)
+-- | different kinds of traces possible
 --
 data Traces = Traces {
                 tracePhasesSW  :: Bool,
@@ -105,7 +105,7 @@ data Traces = Traces {
                 dumpCHSSW      :: Bool
               }
 
--- trace setting on startup
+-- | trace setting on startup
 --
 -- * all traces are initially off
 --

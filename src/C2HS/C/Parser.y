@@ -1820,7 +1820,7 @@ attribute_params
 
 infixr 5 `snoc`
 
--- Due to the way the grammar is constructed we very often have to build lists
+-- | Due to the way the grammar is constructed we very often have to build lists
 -- in reverse. To make sure we do this consistently and correctly we have a
 -- newtype to wrap the reversed style of list:
 --
@@ -1841,7 +1841,7 @@ rmap f (Reversed xs) = Reversed (map f xs)
 reverse :: Reversed [a] -> [a]
 reverse (Reversed xs) = List.reverse xs
 
--- We occasionally need things to have a location when they don't naturally
+-- | We occasionally need things to have a location when they don't naturally
 -- have one built in as tokens and most AST elements do.
 --
 data Located a = L !a !Position
@@ -1859,7 +1859,7 @@ withAttrs node mkAttributedNode = do
   let attrs = newAttrs (posOf node) name
   attrs `seq` return (mkAttributedNode attrs)
 
--- this functions gets used repeatedly so take them out of line:
+-- | this functions gets used repeatedly so take them out of line:
 --
 liftTypeQuals :: Reversed [CTypeQual] -> [CDeclSpec]
 liftTypeQuals (Reversed xs) = revmap [] xs
@@ -1867,7 +1867,7 @@ liftTypeQuals (Reversed xs) = revmap [] xs
         revmap a (x:xs) = revmap (CTypeQual x : a) xs
 
 
--- convenient instance, the position of a list of things is the position of
+-- | convenient instance, the position of a list of things is the position of
 -- the first thing in the list
 --
 instance Pos a => Pos [a] where
@@ -1878,7 +1878,7 @@ instance Pos a => Pos (Reversed a) where
 
 emptyDeclr = CVarDeclr Nothing (newAttrsOnlyPos nopos)
 
--- Take the identifiers and use them to update the typedef'ed identifier set
+-- | Take the identifiers and use them to update the typedef'ed identifier set
 -- if the decl is defining a typedef then we add it to the set,
 -- if it's a var decl then that shadows typedefed identifiers
 --

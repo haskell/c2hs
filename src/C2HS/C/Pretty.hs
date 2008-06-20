@@ -24,11 +24,11 @@ import C2HS.C.AST
 import Data.Idents
 import Text.PrettyPrint.HughesPJ
 
--- provide a Show instance for CDecl for backward compatibility
+-- | provide a Show instance for CDecl for backward compatibility
 instance Show CDecl where
     showsPrec _ = showString . render . pretty
 
--- Pretty class
+-- | Pretty class
 class Pretty p where
     pretty     :: p -> Doc
     prettyPrec :: Int -> p -> Doc
@@ -36,19 +36,19 @@ class Pretty p where
     pretty       = prettyPrec 0
     prettyPrec _ = pretty
 
--- pretty print optional chunk
+-- | pretty print optional chunk
 maybeP :: (p -> Doc) -> Maybe p -> Doc
 maybeP = maybe empty
 
--- pretty print identifier
+-- | pretty print identifier
 identP :: Ident -> Doc
 identP = text . identToLexeme
 
--- analogous to showParen
+-- | analogous to showParen
 parenPrec :: Int -> Int -> Doc -> Doc
 parenPrec prec prec2 t = if prec <= prec2 then t else parens t
 
--- indent a chunk of code
+-- | indent a chunk of code
 ii :: Doc -> Doc
 ii = nest 4
 
@@ -300,7 +300,7 @@ instance Pretty CConst where
     pretty (CFloatConst flt _) = text flt
     pretty (CStrConst   str _) = text str
 
--- precedence of C operators
+-- | precedence of C operators
 binPrec :: CBinaryOp -> Int
 binPrec CMulOp = 20
 binPrec CDivOp = 20

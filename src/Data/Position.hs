@@ -42,9 +42,8 @@ module Data.Position (
 ) where
 
 
--- uniform representation of source file positions; the order of the arguments
+-- | uniform representation of source file positions; the order of the arguments
 -- is important as it leads to the desired ordering of source positions
--- (EXPORTED)
 --
 data Position = Position String         -- file name
         {-# UNPACK #-}   !Int           -- row
@@ -54,7 +53,7 @@ data Position = Position String         -- file name
 instance Show Position where
   show (Position fname row col) = show (fname, row, col)
 
--- no position (for unknown position information) (EXPORTED)
+-- | no position (for unknown position information)
 --
 nopos :: Position
 nopos  = Position "<no file>" (-1) (-1)
@@ -63,7 +62,7 @@ isNopos :: Position -> Bool
 isNopos (Position _ (-1) (-1)) = True
 isNopos _                      = False
 
--- don't care position (to be used for invalid position information) (EXPORTED)
+-- | don't care position (to be used for invalid position information)
 --
 dontCarePos :: Position
 dontCarePos = Position "<invalid>" (-2) (-2)
@@ -72,7 +71,7 @@ isDontCarePos  :: Position -> Bool
 isDontCarePos (Position _ (-2) (-2)) = True
 isDontCarePos _                      = False
 
--- position attached to objects that are hard-coded into the toolkit (EXPORTED)
+-- | position attached to objects that are hard-coded into the toolkit
 --
 builtinPos :: Position
 builtinPos  = Position "<built into the compiler>" (-3) (-3)
@@ -81,7 +80,7 @@ isBuiltinPos :: Position -> Bool
 isBuiltinPos (Position _ (-3) (-3)) = True
 isBuiltinPos _                      = False
 
--- position used for internal errors (EXPORTED)
+-- | position used for internal errors
 --
 internalPos :: Position
 internalPos = Position "<internal error>" (-4) (-4)
@@ -90,24 +89,24 @@ isInternalPos :: Position -> Bool
 isInternalPos (Position _ (-4) (-4)) = True
 isInternalPos _                      = False
 
--- instances of the class `Pos' are associated with some source text position
--- don't care position (to be used for invalid position information) (EXPORTED)
+-- | instances of the class 'Pos' are associated with some source text position
+-- don't care position (to be used for invalid position information)
 --
 class Pos a where
   posOf :: a -> Position
 
--- advance column
+-- | advance column
 --
 incPos :: Position -> Int -> Position
 incPos (Position fname row col) n = Position fname row (col + n)
 
--- advance column to next tab positions (tabs are at every 8th column)
+-- | advance column to next tab positions (tabs are at every 8th column)
 --
 tabPos :: Position -> Position
 tabPos (Position fname row col) =
         Position fname row (col + 8 - (col - 1) `mod` 8)
 
--- advance to next line
+-- | advance to next line
 --
 retPos :: Position -> Position
 retPos (Position fname row col) = Position fname (row + 1) 1
