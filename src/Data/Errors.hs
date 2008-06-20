@@ -29,7 +29,7 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module Errors (
+module Data.Errors (
   -- handling of internal error
   --
   interr, todo,
@@ -39,7 +39,7 @@ module Errors (
   ErrorLvl(..), Error, makeError, errorLvl, showError, errorAtPos
 ) where
 
-import Position (Position(..), isInternalPos)
+import Data.Position (Position(..), isInternalPos)
 
 
 -- internal errors

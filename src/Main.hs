@@ -128,10 +128,10 @@ import System.Console.GetOpt
 import qualified System.FilePath as FilePath 
                   (takeExtension, dropExtension, takeDirectory, takeBaseName)
 import System.FilePath ((<.>), (</>))
-import StateBase  (liftIO)
+import Control.StateBase  (liftIO)
 
 -- c2hs modules
-import C2HSState  (CST, runC2HS, fatal, fatalsHandledBy,
+import C2HS.State  (CST, runC2HS, fatal, fatalsHandledBy,
 		   ExitCode(..), stderr, putStrCIO, putStrLnCIO,
 		   hPutStrCIO, printCIO,
 		   hPutStrLnCIO, exitWithCIO, getArgsCIO, getProgNameCIO,
@@ -139,12 +139,12 @@ import C2HSState  (CST, runC2HS, fatal, fatalsHandledBy,
 		   systemCIO, readFileCIO, writeFileCIO,
 		   SwitchBoard(..), Traces(..), setTraces,
 		   traceSet, setSwitch, getSwitch, putTraceStr)
-import C	  (hsuffix, isuffix, loadAttrC)
-import CHS	  (loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
-import GenHeader  (genHeader)
-import GenBind	  (expandHooks)
-import Version    (versnum, version, copyright, disclaimer)
-import C2HSConfig (cpp, cppopts, libfname, PlatformSpec(..),
+import C2HS.C	  (hsuffix, isuffix, loadAttrC)
+import C2HS.CHS	  (loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
+import C2HS.Gen.Header  (genHeader)
+import C2HS.Gen.Bind	  (expandHooks)
+import C2HS.Version    (versnum, version, copyright, disclaimer)
+import C2HS.Config (cpp, cppopts, libfname, PlatformSpec(..),
 		   defaultPlatformSpec, platformSpecDB)
 import Paths_c2hs (getDataDir)
 

@@ -35,14 +35,14 @@
 --  * evaluate the performance gain that a hashtable would bring
 --
 
-module NameSpaces (NameSpace, nameSpace, defGlobal, enterNewRange, leaveRange,
+module Data.NameSpaces (NameSpace, nameSpace, defGlobal, enterNewRange, leaveRange,
 		   defLocal, find, nameSpaceToList)
 where
 
 import qualified Data.Map as Map (empty, insert, lookup, toList)
 import Data.Map   (Map)
-import Idents     (Ident)
-import Errors     (interr)
+import Data.Idents     (Ident)
+import Data.Errors     (interr)
 
 
 -- name space (EXPORTED ABSTRACT)

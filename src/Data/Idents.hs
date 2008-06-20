@@ -40,15 +40,15 @@
 --  * Hashing is not 8bit clean.
 --
 
-module Idents (Ident, lexemeToIdent, internalIdent,
+module Data.Idents (Ident, lexemeToIdent, internalIdent,
 	       onlyPosIdent, identToLexeme, getIdentAttrs)
 where
 
 import Data.Char
-import Position   (Position, Pos(posOf), nopos)
-import UNames     (Name)
-import Errors     (interr)
-import Attributes (Attrs, newAttrsOnlyPos, newAttrs,
+import Data.Position   (Position, Pos(posOf), nopos)
+import Data.UNames     (Name)
+import Data.Errors     (interr)
+import Data.Attributes (Attrs, newAttrsOnlyPos, newAttrs,
 		   Attributed(attrsOf), posOfAttrsOf)
 
 

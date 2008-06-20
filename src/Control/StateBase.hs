@@ -48,15 +48,14 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module StateBase (PreCST(..), ErrorState(..), BaseState(..),
+module Control.StateBase (PreCST(..), ErrorState(..), BaseState(..),
 		  unpackCST, readCST, writeCST, transCST, liftIO)
 where
 
-import UNames     (NameSupply)
-import StateTrans (STB, readGeneric, writeGeneric, transGeneric)
-import qualified  
-       StateTrans (liftIO)
-import Errors     (ErrorLvl(..), Error)
+import Data.UNames     (NameSupply)
+import Control.StateTrans (STB, readGeneric, writeGeneric, transGeneric)
+import qualified Control.StateTrans as StateTrans (liftIO)
+import Data.Errors     (ErrorLvl(..), Error)
 
 
 -- state used in the whole compiler

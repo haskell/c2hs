@@ -166,22 +166,22 @@
 --  * Comments in the "gap" of a string are not yet supported.
 --
 
-module CHSLexer (CHSToken(..), lexCHS) 
+module C2HS.CHS.Lexer (CHSToken(..), lexCHS)
 where 
 
 import Data.List     ((\\))
 import Data.Char     (isDigit)
 import Control.Monad (liftM)
 
-import Position  (Position(..), Pos(posOf), incPos, retPos, tabPos)
-import Errors    (ErrorLvl(..), makeError)
-import UNames	 (Name, names)
-import Idents    (Ident, lexemeToIdent, identToLexeme)
-import Lexers    (Regexp, Lexer, Action, epsilon, char, (+>), lexaction,
+import Data.Position  (Position(..), Pos(posOf), incPos, retPos, tabPos)
+import Data.Errors    (ErrorLvl(..), makeError)
+import Data.UNames	 (Name, names)
+import Data.Idents    (Ident, lexemeToIdent, identToLexeme)
+import Text.Lexers    (Regexp, Lexer, Action, epsilon, char, (+>), lexaction,
 		  lexactionErr, lexmeta, (>|<), (>||<), ctrlLexer, star, plus,
 		  alt, string, execLexer)
 
-import C2HSState (CST, raise, raiseError, getNameSupply) 
+import C2HS.State (CST, raise, raiseError, getNameSupply) 
 
 
 -- token definition

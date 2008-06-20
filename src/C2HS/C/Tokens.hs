@@ -21,10 +21,10 @@
 --  C Tokens for the C lexer.
 --
 
-module CTokens (CToken(..), GnuCTok(..)) where 
+module C2HS.C.Tokens (CToken(..), GnuCTok(..)) where
 
-import Position  (Position(..), Pos(posOf))
-import Idents    (Ident, identToLexeme)
+import Data.Position  (Position(..), Pos(posOf))
+import Data.Idents    (Ident, identToLexeme)
 
 
 -- token definition

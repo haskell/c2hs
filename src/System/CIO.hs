@@ -35,7 +35,7 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module CIO (-- (verbatim) re-exports
+module System.CIO (-- (verbatim) re-exports
 	    --
 	    Handle, HandlePosn, IOMode(..), BufferMode(..), SeekMode(..),
 	    stdin, stdout, stderr, 
@@ -71,7 +71,7 @@ import System.Environment (getArgs, getProgName)
 import System.Cmd (system)
 import System.Exit (ExitCode(..), exitWith)
 
-import StateBase (PreCST, liftIO)
+import Control.StateBase (PreCST, liftIO)
 
 
 -- file handling

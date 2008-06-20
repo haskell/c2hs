@@ -29,7 +29,7 @@
 --- TODO ----------------------------------------------------------------------
 --
  
-module Position (
+module Data.Position (
   --
   -- source text positions
   --

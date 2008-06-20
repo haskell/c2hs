@@ -28,7 +28,7 @@
 --
 --
 
-module C (-- interface to KL for all non-KL modules
+module C2HS.C (-- interface to KL for all non-KL modules
 	  --
 	  -- stuff from `Common' (reexported)
 	  --
@@ -36,7 +36,7 @@ module C (-- interface to KL for all non-KL modules
 	  --	      
 	  -- structure tree
 	  --
-	  module CAST,
+	  module C2HS.C.AST,
 	  --
 	  -- attributed structure tree with operations (reexported from
 	  -- `CAttrs')
@@ -47,7 +47,7 @@ module C (-- interface to KL for all non-KL modules
 	  --
 	  -- support for C structure tree traversals
 	  --
-	  module CTrav,
+	  module C2HS.C.Trav,
 	  --
 	  loadAttrC,		-- locally defined
 	  --
@@ -60,21 +60,21 @@ module C (-- interface to KL for all non-KL modules
 	  csuffix, hsuffix, isuffix)
 where
 
-import Position   (Position(..), Pos(posOf))
-import Idents	  (Ident)
-import Attributes (Attrs, Attr(..))
+import Data.Position   (Position(..), Pos(posOf))
+import Data.Idents	  (Ident)
+import Data.Attributes (Attrs, Attr(..))
 
-import C2HSState  (CST,
+import C2HS.State  (CST,
 		   readFileCIO,
 		   fatal, errorsPresent, showErrors,
 		   Traces(..), putTraceStr)
-import CAST
-import CParser    (parseC)
-import CPretty    () -- just Show instances
-import CAttrs	  (AttrC, CObj(..), CTag(..), CDef(..),
+import C2HS.C.AST
+import C2HS.C.Parser    (parseC)
+import C2HS.C.Pretty    () -- just Show instances
+import C2HS.C.Attrs	  (AttrC, CObj(..), CTag(..), CDef(..),
 		   lookupDefObjC, lookupDefTagC, getDefOfIdentC)
-import CNames     (nameAnalysis)
-import CTrav
+import C2HS.C.Names     (nameAnalysis)
+import C2HS.C.Trav
 
 
 -- suffix for files containing C (EXPORTED)

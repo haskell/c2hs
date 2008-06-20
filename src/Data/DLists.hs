@@ -27,7 +27,7 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module DLists (DList, openDL, zeroDL, unitDL, snocDL, joinDL, closeDL)
+module Data.DLists (DList, openDL, zeroDL, unitDL, snocDL, joinDL, closeDL)
 where
 
 -- a difference list is a function that given a list returns the original

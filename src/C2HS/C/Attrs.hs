@@ -52,7 +52,7 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module CAttrs (-- attributed C
+module C2HS.C.Attrs (-- attributed C
 	       --
 	       AttrC, emptyAttrC, enterNewRangeC, enterNewObjRangeC,
 	       leaveRangeC, leaveObjRangeC, addDefObjC, lookupDefObjC,
@@ -69,15 +69,15 @@ where
 import Data.Char  (toUpper)
 import Data.Maybe (mapMaybe)
 
-import Position   (Pos(posOf), nopos, dontCarePos, builtinPos)
-import Errors     (interr)
-import Idents	  (Ident, getIdentAttrs, identToLexeme, onlyPosIdent)
-import Attributes (Attr(..), AttrTable, getAttr, setAttr, updAttr,
+import Data.Position   (Pos(posOf), nopos, dontCarePos, builtinPos)
+import Data.Errors     (interr)
+import Data.Idents	  (Ident, getIdentAttrs, identToLexeme, onlyPosIdent)
+import Data.Attributes (Attr(..), AttrTable, getAttr, setAttr, updAttr,
 		   newAttrTable, freezeAttrTable, softenAttrTable)
-import NameSpaces (NameSpace, nameSpace, enterNewRange, leaveRange, defLocal,
+import Data.NameSpaces (NameSpace, nameSpace, enterNewRange, leaveRange, defLocal,
 		   defGlobal, find, nameSpaceToList)
 
-import CAST
+import C2HS.C.AST
 
 
 -- attributed C structure tree

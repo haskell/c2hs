@@ -41,7 +41,7 @@
 --
 -- * Ideally, `ghFrag[s]' should be tail recursive
 
-module GenHeader (
+module C2HS.Gen.Header (
   genHeader
 ) where 
 
@@ -49,18 +49,18 @@ module GenHeader (
 import Control.Monad (when)
 
 -- Compiler Toolkit
-import Position  (Position, Pos(..), nopos)
-import DLists	 (DList, openDL, closeDL, zeroDL, unitDL, joinDL, snocDL)
-import Errors	 (interr)
-import Idents	 (onlyPosIdent)
-import UNames    (Name, names)
+import Data.Position  (Position, Pos(..), nopos)
+import Data.DLists	 (DList, openDL, closeDL, zeroDL, unitDL, joinDL, snocDL)
+import Data.Errors	 (interr)
+import Data.Idents	 (onlyPosIdent)
+import Data.UNames    (Name, names)
 
 -- C->Haskell
-import C2HSState (CST, getNameSupply, runCST, transCST, raiseError, catchExc,
+import C2HS.State (CST, getNameSupply, runCST, transCST, raiseError, catchExc,
 		  throwExc, errorsPresent, showErrors, fatal)
 
 -- friends
-import CHS	 (CHSModule(..), CHSFrag(..))
+import C2HS.CHS	 (CHSModule(..), CHSFrag(..))
 
 
 -- The header generation monad

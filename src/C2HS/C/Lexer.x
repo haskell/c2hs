@@ -62,16 +62,16 @@
 
 {
 
-module CLexer (lexC, parseError) where
+module C2HS.C.Lexer (lexC, parseError) where
 
 import Data.Char (isDigit)
 import Numeric   (readDec, readOct, readHex)
 
-import Position  (Position(..), Pos(posOf))
-import Idents    (lexemeToIdent)
+import Data.Position  (Position(..), Pos(posOf))
+import Data.Idents    (lexemeToIdent)
 
-import CTokens
-import CParserMonad
+import C2HS.C.Tokens
+import C2HS.C.ParserMonad
 
 }
 

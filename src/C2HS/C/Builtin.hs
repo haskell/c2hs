@@ -29,14 +29,14 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module CBuiltin (
+module C2HS.C.Builtin (
   builtinTypeNames
 ) where
 
-import Position (builtinPos)
-import Idents (Ident, onlyPosIdent)
+import Data.Position (builtinPos)
+import Data.Idents (Ident, onlyPosIdent)
 
-import CAttrs (CObj(BuiltinCO))
+import C2HS.C.Attrs (CObj(BuiltinCO))
 
 
 -- predefined type names

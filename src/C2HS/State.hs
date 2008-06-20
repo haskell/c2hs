@@ -35,9 +35,9 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module C2HSState (-- re-exports all of `State'
+module C2HS.State (-- re-exports all of `State'
 		  --
-		  module State,
+		  module Control.State,
 		  --
 		  -- instantiation of `PreCST' with C2HS's extra state
 		  --
@@ -51,9 +51,9 @@ where
 
 import Control.Monad (when)
 
-import State
+import Control.State
 
-import Switches (SwitchBoard(..), Traces(..), 
+import C2HS.Switches (SwitchBoard(..), Traces(..), 
 		 initialSwitchBoard)
 
 

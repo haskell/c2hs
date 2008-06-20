@@ -52,7 +52,7 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module CInfo (
+module C2HS.C.Info (
   CPrimType(..), size, alignment, getPlatform
 ) where 
 
@@ -60,10 +60,10 @@ import Foreign    (Ptr, FunPtr)
 import qualified Foreign.Storable as Storable (Storable(sizeOf, alignment))
 import Foreign.C
 
-import C2HSConfig (PlatformSpec(..))
-import C2HSState  (getSwitch)
-import Switches   (platformSB)
-import GBMonad    (GB)
+import C2HS.Config (PlatformSpec(..))
+import C2HS.State  (getSwitch)
+import C2HS.Switches   (platformSB)
+import C2HS.Gen.Monad    (GB)
 
 
 -- calibration of C's primitive types

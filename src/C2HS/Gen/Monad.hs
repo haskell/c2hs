@@ -61,7 +61,7 @@
 --    costs much, but at some point a little profiling might be beneficial.
 --
 
-module GBMonad (
+module C2HS.Gen.Monad (
   TransFun, transTabToTransFun,
 
   HsObject(..), GB, initialGBState, setContext, getLibrary, getPrefix,
@@ -75,17 +75,17 @@ import Data.List  (find)
 import Data.Maybe (fromMaybe)
 
 -- Compiler Toolkit
-import Position   (Position, Pos(posOf), nopos)
-import Errors	  (interr)
-import Idents     (Ident, identToLexeme, onlyPosIdent)
+import Data.Position   (Position, Pos(posOf), nopos)
+import Data.Errors	  (interr)
+import Data.Idents     (Ident, identToLexeme, onlyPosIdent)
 import qualified Data.Map as Map (empty, insert, lookup, union, toList, fromList)
 import Data.Map   (Map)
 
 -- C -> Haskell
-import C	  (CT, readCT, transCT, raiseErrorCTExc)
+import C2HS.C	  (CT, readCT, transCT, raiseErrorCTExc)
 
 -- friends
-import CHS	  (CHSFrag(..), CHSHook(..), CHSTrans(..),
+import C2HS.CHS	  (CHSFrag(..), CHSHook(..), CHSTrans(..),
 		   CHSChangeCase(..), CHSPtrType(..))
 
 

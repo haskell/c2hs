@@ -59,7 +59,7 @@
 --    errors into exceptions
 --
 
-module StateTrans (-- the monad and the generic operations
+module Control.StateTrans (-- the monad and the generic operations
 		   --
 		   STB,
 		   --

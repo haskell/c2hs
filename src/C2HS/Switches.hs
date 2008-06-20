@@ -51,11 +51,11 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module Switches (
+module C2HS.Switches (
   SwitchBoard(..), Traces(..), initialSwitchBoard
 ) where
 
-import C2HSConfig (PlatformSpec, defaultPlatformSpec)
+import C2HS.Config (PlatformSpec, defaultPlatformSpec)
 
 
 -- the switch board contains all toolkit switches

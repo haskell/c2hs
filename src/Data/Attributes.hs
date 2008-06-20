@@ -71,7 +71,7 @@
 --    precedence over the array entries)
 --
 
-module Attributes (-- attribute management
+module Data.Attributes (-- attribute management
 		   --
 		   Attrs, newAttrsOnlyPos, newAttrs,
 		   Attributed(attrsOf), eqOfAttrsOf, posOfAttrsOf,
@@ -88,9 +88,9 @@ where
 
 import Data.Array
 import Control.Exception (assert)
-import Position   (Position, Pos(posOf))
-import Errors     (interr)
-import UNames	  (Name)
+import Data.Position   (Position, Pos(posOf))
+import Data.Errors     (interr)
+import Data.UNames	  (Name)
 import qualified Data.Map as Map (fromList, toList, insert, findWithDefault, empty)
 import Data.Map (Map)
 

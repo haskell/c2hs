@@ -22,7 +22,7 @@
  *  TODO ----------------------------------------------------------------------
  */
 
-#include "c2hs_config.h"
+#include "config.h"
 
 /* compute the direction in which bitfields are growing
  * ====================================================

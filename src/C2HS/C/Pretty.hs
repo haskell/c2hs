@@ -16,12 +16,12 @@
 --  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 --  GNU General Public License for more details.
 --
-module CPretty (
+module C2HS.C.Pretty (
     Pretty (..)
 ) where
 
-import CAST
-import Idents
+import C2HS.C.AST
+import Data.Idents
 import Text.PrettyPrint.HughesPJ
 
 -- provide a Show instance for CDecl for backward compatibility

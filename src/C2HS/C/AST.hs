@@ -38,16 +38,16 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module CAST (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..), CBlockItem(..),
+module C2HS.C.AST (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..), CBlockItem(..),
 	     CDecl(..), CDeclSpec(..), CStorageSpec(..), CTypeSpec(..),
 	     CTypeQual(..), CStructUnion(..),  CStructTag(..), CEnum(..),
              CDeclr(..), CInit(..), CInitList, CDesignator(..), CExpr(..),
              CAssignOp(..), CBinaryOp(..), CUnaryOp(..), CConst (..))
 where
 
-import Position   (Pos(posOf))
-import Idents     (Ident)
-import Attributes (Attrs)
+import Data.Position   (Pos(posOf))
+import Data.Idents     (Ident)
+import Data.Attributes (Attrs)
 
 
 -- a complete C header file (K&R A10) (EXPORTED)

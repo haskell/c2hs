@@ -35,7 +35,7 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module State (-- the PreCST monad
+module Control.State (-- the PreCST monad
 	      --
 	      PreCST,					   -- reexport ABSTRACT
 	      throwExc, fatal, catchExc, fatalsHandledBy,  -- reexport lifted
@@ -43,7 +43,7 @@ module State (-- the PreCST monad
 	      --
 	      -- reexport compiler I/O
 	      --
-	      module CIO,
+	      module System.CIO,
 	      liftIO,
 	      --
 	      -- error management
@@ -63,17 +63,16 @@ where
 import Control.Monad (when)
 import Data.List     (sort)
 
-import Position    (Position)
-import UNames      (NameSupply,
+import Data.Position    (Position)
+import Data.UNames      (NameSupply,
 	            rootSupply, splitSupply)
-import StateTrans  (readBase, transBase, runSTB)
-import qualified
-       StateTrans  (interleave, throwExc, fatal, catchExc, fatalsHandledBy)
-import StateBase   (PreCST(..), ErrorState(..), BaseState(..),
+import Control.StateTrans  (readBase, transBase, runSTB)
+import qualified Control.StateTrans as StateTrans (interleave, throwExc, fatal, catchExc, fatalsHandledBy)
+import Control.StateBase   (PreCST(..), ErrorState(..), BaseState(..),
 		    unpackCST, readCST, writeCST, transCST,
 		    liftIO)
-import CIO
-import Errors      (ErrorLvl(..), Error, makeError, errorLvl, showError)
+import System.CIO
+import Data.Errors      (ErrorLvl(..), Error, makeError, errorLvl, showError)
 
 
 -- state used in the whole compiler

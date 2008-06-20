@@ -92,27 +92,27 @@
 --
 
 {
-module CParser (parseC) where
+module C2HS.C.Parser (parseC) where
 
 import Prelude    hiding (reverse)
 import qualified Data.List as List
 
-import Position   (Position, Pos(..), nopos)
-import UNames     (names)
-import Idents     (Ident)
-import Attributes (Attrs, newAttrs, newAttrsOnlyPos)
+import Data.Position   (Position, Pos(..), nopos)
+import Data.UNames     (names)
+import Data.Idents     (Ident)
+import Data.Attributes (Attrs, newAttrs, newAttrsOnlyPos)
 
-import State      (PreCST, raiseFatal, getNameSupply)
-import CLexer     (lexC, parseError)
-import CAST       (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..),
+import Control.State      (PreCST, raiseFatal, getNameSupply)
+import C2HS.C.Lexer     (lexC, parseError)
+import C2HS.C.AST       (CHeader(..), CExtDecl(..), CFunDef(..), CStat(..),
                    CBlockItem(..), CDecl(..), CDeclSpec(..), CStorageSpec(..),
                    CTypeSpec(..), CTypeQual(..), CStructUnion(..),
                    CStructTag(..), CEnum(..), CDeclr(..), CInit(..), CInitList,
                    CDesignator(..), CExpr(..), CAssignOp(..), CBinaryOp(..),
                    CUnaryOp(..), CConst (..))
-import CBuiltin   (builtinTypeNames)
-import CTokens    (CToken(..), GnuCTok(..))
-import CParserMonad (P, execParser, getNewName, addTypedef, shadowTypedef,
+import C2HS.C.Builtin   (builtinTypeNames)
+import C2HS.C.Tokens    (CToken(..), GnuCTok(..))
+import C2HS.C.ParserMonad (P, execParser, getNewName, addTypedef, shadowTypedef,
                      enterScope, leaveScope )
 }
 

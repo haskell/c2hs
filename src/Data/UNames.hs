@@ -48,7 +48,7 @@
 --- TODO
 --
 
-module UNames (NameSupply, Name,
+module Data.UNames (NameSupply, Name,
 	       rootSupply, splitSupply, names)
 where
 

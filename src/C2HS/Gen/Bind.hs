@@ -102,7 +102,7 @@
 --    from `evalConstCExpr'.  Haskell 98 FFI standardises `Bits'; use that.
 --
 
-module GenBind (expandHooks) 
+module C2HS.Gen.Bind (expandHooks)
 where 
 
 -- standard libraries
@@ -112,16 +112,16 @@ import Data.Maybe    (isNothing, fromJust, fromMaybe)
 import Control.Monad (when, unless, liftM, mapAndUnzipM)
 
 -- Compiler Toolkit
-import Position   (Position, Pos(posOf), nopos, builtinPos)
-import Errors	  (interr, todo)
-import Idents     (Ident, identToLexeme, onlyPosIdent)
-import Attributes (newAttrsOnlyPos)
+import Data.Position   (Position, Pos(posOf), nopos, builtinPos)
+import Data.Errors	  (interr, todo)
+import Data.Idents     (Ident, identToLexeme, onlyPosIdent)
+import Data.Attributes (newAttrsOnlyPos)
 
 -- C->Haskell
-import C2HSConfig (PlatformSpec(..))
-import C2HSState  (CST, errorsPresent, showErrors, fatal,
+import C2HS.Config (PlatformSpec(..))
+import C2HS.State  (CST, errorsPresent, showErrors, fatal,
 		   SwitchBoard(..), Traces(..), putTraceStr, getSwitch)
-import C	  (AttrC, CObj(..), CTag(..),
+import C2HS.C	  (AttrC, CObj(..), CTag(..),
 		   CDecl(..), CDeclSpec(..), CTypeSpec(..), 
 		   CStructUnion(..), CStructTag(..), CEnum(..), CDeclr(..),
 		   CExpr(..), CBinaryOp(..), CUnaryOp(..), CConst (..),
@@ -137,11 +137,11 @@ import C	  (AttrC, CObj(..), CTag(..),
 		   refersToNewDef, CDef(..))
 
 -- friends
-import CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..),
+import C2HS.CHS	  (CHSModule(..), CHSFrag(..), CHSHook(..),
 		   CHSParm(..), CHSArg(..), CHSAccess(..), CHSAPath(..),
 		   CHSPtrType(..), showCHSParm, apathToIdent) 
-import CInfo      (CPrimType(..), size, alignment, getPlatform)
-import GBMonad    (TransFun, transTabToTransFun, HsObject(..), GB,
+import C2HS.C.Info      (CPrimType(..), size, alignment, getPlatform)
+import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
 		   initialGBState, setContext, getPrefix, 
 		   delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
 		   queryClass, queryPointer, mergeMaps, dumpMaps)

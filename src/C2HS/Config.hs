@@ -25,7 +25,7 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module C2HSConfig (
+module C2HS.Config (
   --
   -- programs and paths
   --
@@ -141,7 +141,7 @@ platformSpecDB =
 bitfieldDirection :: Int
 bitfieldDirection  = fromIntegral bitfield_direction
 
-foreign import ccall "c2hs_config.h" bitfield_direction :: CInt
+foreign import ccall "config.h" bitfield_direction :: CInt
 
 -- indicates whether a bitfield that does not fit into a partially filled
 -- storage unit in its entirety introduce padding or split over two storage
@@ -153,7 +153,7 @@ foreign import ccall "c2hs_config.h" bitfield_direction :: CInt
 bitfieldPadding :: Bool
 bitfieldPadding  = toBool bitfield_padding
 
-foreign import ccall "c2hs_config.h" bitfield_padding :: CInt
+foreign import ccall "config.h" bitfield_padding :: CInt
 
 -- indicates whether a bitfield of type `int' is signed in the targeted C
 -- compiler (EXPORTED)
@@ -161,7 +161,7 @@ foreign import ccall "c2hs_config.h" bitfield_padding :: CInt
 bitfieldIntSigned :: Bool
 bitfieldIntSigned  = toBool bitfield_int_signed
 
-foreign import ccall "c2hs_config.h" bitfield_int_signed :: CInt
+foreign import ccall "config.h" bitfield_int_signed :: CInt
 
 -- the alignment constraint for a bitfield (EXPORTED)
 --
@@ -171,4 +171,4 @@ foreign import ccall "c2hs_config.h" bitfield_int_signed :: CInt
 bitfieldAlignment :: Int
 bitfieldAlignment  = fromIntegral bitfield_alignment
 
-foreign import ccall "c2hs_config.h" bitfield_alignment :: CInt
+foreign import ccall "config.h" bitfield_alignment :: CInt

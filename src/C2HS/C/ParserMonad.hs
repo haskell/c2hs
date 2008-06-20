@@ -38,7 +38,7 @@
 --
 --
 
-module CParserMonad ( 
+module C2HS.C.ParserMonad (
   P, 
   execParser,
   failP,
@@ -56,15 +56,15 @@ module CParserMonad (
   setLastToken,      -- :: CToken -> P ()
   ) where
 
-import Position  (Position(..))
-import Errors    (interr)
-import UNames	 (Name)
-import Idents    (Ident)
+import Data.Position  (Position(..))
+import Data.Errors    (interr)
+import Data.UNames	 (Name)
+import Data.Idents    (Ident)
 
 import Data.Set  (Set)
 import qualified Data.Set as Set (fromList, insert, member, delete)
 
-import CTokens (CToken)
+import C2HS.C.Tokens (CToken)
 
 data ParseResult a
   = POk !PState a

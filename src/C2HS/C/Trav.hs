@@ -59,7 +59,7 @@
 --   we have a user error, but currently an internal error is raised
 --
 
-module CTrav (CT, readCT, transCT, runCT, throwCTExc, ifCTExc,
+module C2HS.C.Trav (CT, readCT, transCT, runCT, throwCTExc, ifCTExc,
 	      raiseErrorCTExc,
 	      enter, enterObjs, leave, leaveObjs, defObj, findObj,
 	      findObjShadow, defTag, findTag, findTagShadow,
@@ -82,15 +82,15 @@ import Data.List         (find)
 import Control.Monad     (liftM)
 import Control.Exception (assert)
 
-import Position   (Position, Pos(..), nopos)
-import Errors	  (interr)
-import Idents	  (Ident, identToLexeme)
-import Attributes (Attr(..), newAttrsOnlyPos)
+import Data.Position   (Position, Pos(..), nopos)
+import Data.Errors	  (interr)
+import Data.Idents	  (Ident, identToLexeme)
+import Data.Attributes (Attr(..), newAttrsOnlyPos)
 
-import C2HSState  (CST, readCST, transCST, runCST, raiseError, catchExc,
+import C2HS.State  (CST, readCST, transCST, runCST, raiseError, catchExc,
 		   throwExc, Traces(..), putTraceStr)
-import CAST
-import CAttrs     (AttrC, enterNewRangeC, enterNewObjRangeC,
+import C2HS.C.AST
+import C2HS.C.Attrs     (AttrC, enterNewRangeC, enterNewObjRangeC,
 		   leaveRangeC, leaveObjRangeC, addDefObjC, lookupDefObjC,
 		   lookupDefObjCShadow, addDefTagC, lookupDefTagC,
 		   lookupDefTagCShadow, applyPrefix, getDefOfIdentC,

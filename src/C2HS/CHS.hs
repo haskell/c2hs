@@ -86,7 +86,7 @@
 --- TODO ----------------------------------------------------------------------
 --
 
-module CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
+module C2HS.CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
 	    CHSChangeCase(..), CHSParm(..), CHSArg(..), CHSAccess(..),
 	    CHSAPath(..), CHSPtrType(..), 
 	    loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI, chisuffix,
@@ -100,18 +100,18 @@ import Control.Monad (when)
 import System.FilePath ((<.>), (</>))
 
 -- Compiler Toolkit
-import Position  (Position(..), Pos(posOf), nopos, isBuiltinPos)
-import Errors	 (interr)
-import Idents    (Ident, identToLexeme, onlyPosIdent)
+import Data.Position  (Position(..), Pos(posOf), nopos, isBuiltinPos)
+import Data.Errors	 (interr)
+import Data.Idents    (Ident, identToLexeme, onlyPosIdent)
 
 -- C->Haskell
-import C2HSState (CST, doesFileExistCIO, readFileCIO, writeFileCIO,
+import C2HS.State (CST, doesFileExistCIO, readFileCIO, writeFileCIO,
 		  getSwitch, chiPathSB, catchExc, throwExc, raiseError, 
 		  fatal, errorsPresent, showErrors, Traces(..), putTraceStr) 
-import Version    (version)
+import C2HS.Version    (version)
 
 -- friends
-import CHSLexer  (CHSToken(..), lexCHS)
+import C2HS.CHS.Lexer  (CHSToken(..), lexCHS)
 
 
 -- CHS abstract syntax

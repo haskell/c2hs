@@ -127,7 +127,7 @@
 --    definiton and it might be worthwhile to offer it as a variant.
 --
 
-module Lexers (Regexp, Lexer, Action, epsilon, char, (+>), lexaction,
+module Text.Lexers (Regexp, Lexer, Action, epsilon, char, (+>), lexaction,
 	       lexactionErr, lexmeta, (>|<), (>||<), ctrlChars, ctrlLexer,
 	       star, plus, quest, alt, string, LexerState, execLexer)
 where 
@@ -135,9 +135,9 @@ where
 import Data.Maybe (fromMaybe)
 import Data.Array (Array, (!), assocs, accumArray)
 
-import Position (Position(..), incPos, tabPos, retPos)
-import DLists (zeroDL, snocDL, closeDL)
-import Errors (interr, ErrorLvl(..), Error, makeError)
+import Data.Position (Position(..), incPos, tabPos, retPos)
+import Data.DLists (zeroDL, snocDL, closeDL)
+import Data.Errors (interr, ErrorLvl(..), Error, makeError)
 
 
 infixr 4 `quest`, `star`, `plus`

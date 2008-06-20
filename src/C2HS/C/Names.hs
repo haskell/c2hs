@@ -32,19 +32,19 @@
 --   eventually, the consistency of the declarations should be checked
 --
 
-module CNames (nameAnalysis)
+module C2HS.C.Names (nameAnalysis)
 where
 
 import Control.Monad (mapM_)
 
-import Position  (Position, posOf)
-import Idents	 (Ident, identToLexeme)
+import Data.Position  (Position, posOf)
+import Data.Idents	 (Ident, identToLexeme)
 
-import C2HSState (CST)
-import CAST
-import CAttrs    (AttrC, emptyAttrC, CObj(..), CTag(..), CDef(..))
-import CBuiltin  (builtinTypeNames)
-import CTrav     (CT, runCT, enterObjs, leaveObjs,
+import C2HS.State (CST)
+import C2HS.C.AST
+import C2HS.C.Attrs    (AttrC, emptyAttrC, CObj(..), CTag(..), CDef(..))
+import C2HS.C.Builtin  (builtinTypeNames)
+import C2HS.C.Trav     (CT, runCT, enterObjs, leaveObjs,
 		  ifCTExc, raiseErrorCTExc, defObj, findTypeObj, findValueObj,
 		  defTag, refersToDef, isTypedef) 
 
