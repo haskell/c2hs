@@ -29,11 +29,11 @@
  */
 
 union bitfield_direction_union {
-  unsigned int			        allbits;
+  unsigned int                          allbits;
   struct {
     unsigned int first_bit  : 1;
     unsigned int second_bit : 1;
-  }					twobits;
+  }                                     twobits;
 };
 
 int bitfield_direction ()
@@ -42,7 +42,7 @@ int bitfield_direction ()
 
   /* if setting the second bit in a bitfield makes the storeage unit contain
    * the value `2', the direction of bitfields must be increasing towards the
-   * MSB 
+   * MSB
    */
   v.allbits            = 0;
   v.twobits.second_bit = 1;
@@ -51,7 +51,7 @@ int bitfield_direction ()
 }
 
 
-/* use padding for overspilling bitfields?  
+/* use padding for overspilling bitfields?
  * =======================================
  */
 
@@ -59,11 +59,11 @@ union bitfield_padding_union {
   struct {
     unsigned int allbits1;
     unsigned int allbits2;
-  }					allbits;
+  }                                     allbits;
   struct {
     unsigned int first_bit : 1;
-	     int full_unit : sizeof (int) * 8;
-  }					somebits;
+             int full_unit : sizeof (int) * 8;
+  }                                     somebits;
 };
 
 int bitfield_padding ()
@@ -87,10 +87,10 @@ union bitfield_int_signed_union {
   struct {
     unsigned int first_bit  : 1;
     unsigned int second_bit : 1;
-  }					two_single_bits;
+  }                                     two_single_bits;
   struct {
     int two_bits : 2;
-  }					two_bits;
+  }                                     two_bits;
 };
 
 int bitfield_int_signed ()
@@ -107,14 +107,14 @@ int bitfield_int_signed ()
 }
 
 
-/* alignment constraint for bitfields	    
+/* alignment constraint for bitfields
  * ==================================
  */
 
 struct bitfield_alignment_struct {
   char         start;
   unsigned int bit : 1;
-  char	       end;
+  char         end;
 };
 
 int bitfield_alignment ()

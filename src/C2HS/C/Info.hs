@@ -54,7 +54,7 @@
 
 module C2HS.C.Info (
   CPrimType(..), size, alignment, getPlatform
-) where 
+) where
 
 import Foreign    (Ptr, FunPtr)
 import qualified Foreign.Storable as Storable (Storable(sizeOf, alignment))
@@ -74,25 +74,25 @@ import C2HS.Gen.Monad    (GB)
 -- * `CFunPtrPT' doesn't occur in Haskell representations of C types, but we
 --   need to know their size, which may be different from `CPtrPT'
 --
-data CPrimType = CPtrPT		-- void *
-	       | CFunPtrPT	-- void *()
-	       | CCharPT	-- char
-	       | CUCharPT	-- unsigned char
-	       | CSCharPT	-- signed char
-	       | CIntPT		-- int
-	       | CShortPT	-- short int
-	       | CLongPT	-- long int
-	       | CLLongPT	-- long long int
-	       | CUIntPT	-- unsigned int
-	       | CUShortPT	-- unsigned short int
-	       | CULongPT	-- unsigned long int
-	       | CULLongPT	-- unsigned long long int
-	       | CFloatPT	-- float
-	       | CDoublePT	-- double
-	       | CLDoublePT	-- long double
-	       | CSFieldPT  Int -- signed bit field
-	       | CUFieldPT  Int -- unsigned bit field
-	       deriving (Eq)
+data CPrimType = CPtrPT         -- void *
+               | CFunPtrPT      -- void *()
+               | CCharPT        -- char
+               | CUCharPT       -- unsigned char
+               | CSCharPT       -- signed char
+               | CIntPT         -- int
+               | CShortPT       -- short int
+               | CLongPT        -- long int
+               | CLLongPT       -- long long int
+               | CUIntPT        -- unsigned int
+               | CUShortPT      -- unsigned short int
+               | CULongPT       -- unsigned long int
+               | CULLongPT      -- unsigned long long int
+               | CFloatPT       -- float
+               | CDoublePT      -- double
+               | CLDoublePT     -- long double
+               | CSFieldPT  Int -- signed bit field
+               | CUFieldPT  Int -- unsigned bit field
+               deriving (Eq)
 
 -- size of primitive type of C (EXPORTED)
 --
@@ -165,7 +165,7 @@ alignment (CUFieldPT bs)  = fieldAlignment bs
 --
 fieldAlignment :: Int -> GB Int
 fieldAlignment 0  = return $ - (size CIntPT - 1)
-fieldAlignment bs = 
+fieldAlignment bs =
   do
     PlatformSpec {bitfieldPaddingPS = bitfieldPadding} <- getPlatform
     return $ if bitfieldPadding then - bs else 0

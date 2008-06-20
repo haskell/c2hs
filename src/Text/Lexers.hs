@@ -49,7 +49,7 @@
 --
 --  Given such a Haskelized regular expression `hre', we can use
 --
---    (1) hre `lexaction` \lexeme -> Nothing 
+--    (1) hre `lexaction` \lexeme -> Nothing
 --    (2) hre `lexaction` \lexeme -> Just token
 --    (3) hre `lexmeta`   \lexeme pos s -> (res, pos', s', Nothing)
 --    (4) hre `lexmeta`   \lexeme pos s -> (res, pos', s', Just l)
@@ -97,7 +97,7 @@
 --  * Unicode posses a problem as the character domain becomes too big for
 --    using arrays to represent transition tables and even sparse structures
 --    will posse a significant overhead when character ranges are naively
---    represented.  So, it might be time for finite maps again.  
+--    represented.  So, it might be time for finite maps again.
 --
 --    Regarding the character ranges, there seem to be at least two
 --    possibilities.  Doaitse explicitly uses ranges and avoids expanding
@@ -114,7 +114,7 @@
 --    around.
 --
 --  * Ken Shan <ken@digitas.harvard.edu> writes ``Section 4.3 of your paper
---    computes the definition 
+--    computes the definition
 --
 --      re1 `star` re2 = \l' -> let self = re1 self >||< re2 l' in self
 --
@@ -128,9 +128,9 @@
 --
 
 module Text.Lexers (Regexp, Lexer, Action, epsilon, char, (+>), lexaction,
-	       lexactionErr, lexmeta, (>|<), (>||<), ctrlChars, ctrlLexer,
-	       star, plus, quest, alt, string, LexerState, execLexer)
-where 
+               lexactionErr, lexmeta, (>|<), (>||<), ctrlChars, ctrlLexer,
+               star, plus, quest, alt, string, LexerState, execLexer)
+where
 
 import Data.Maybe (fromMaybe)
 import Data.Array (Array, (!), assocs, accumArray)
@@ -149,7 +149,7 @@ infixl 2 >|<, >||<
 -- constants
 -- ---------
 
--- we use the dense representation if a table has at least the given number of 
+-- we use the dense representation if a table has at least the given number of
 -- (non-error) elements
 --
 denseMin :: Int
@@ -190,16 +190,16 @@ type ActionErr t = String -> Position -> Either Error t
 -- Meta actions transform the lexeme, position, and a user-defined state; they
 -- may return a lexer, which is then used for accepting the next token (this
 -- is important to implement non-regular behaviour like nested comments)
--- (EXPORTED) 
+-- (EXPORTED)
 --
 type Meta s t = String -> Position -> s -> (Maybe (Either Error t), -- err/tok?
-					    Position,		    -- new pos
-					    s,			    -- state
-					    Maybe (Lexer s t))	    -- lexer?
+                                            Position,               -- new pos
+                                            s,                      -- state
+                                            Maybe (Lexer s t))      -- lexer?
 
--- tree structure used to represent the lexer table (EXPORTED ABSTRACTLY) 
+-- tree structure used to represent the lexer table (EXPORTED ABSTRACTLY)
 --
--- * each node in the tree corresponds to a state of the lexer; the associated 
+-- * each node in the tree corresponds to a state of the lexer; the associated
 --   actions are those that apply when the corresponding state is reached
 --
 data Lexer s t = Lexer (LexAction s t) (Cont s t)
@@ -207,25 +207,25 @@ data Lexer s t = Lexer (LexAction s t) (Cont s t)
 -- represent the continuation of a lexer
 --
 data Cont s t = -- on top of the tree, where entries are dense, we use arrays
-		--
-		Dense BoundsNum (Array Char (Lexer s t))
-		--
-		-- further down, where the valid entries are sparse, we
-		-- use association lists, to save memory (the first argument
-		-- is the length of the list)
-		--
-	      | Sparse BoundsNum [(Char, Lexer s t)]
-		--
-		-- end of a automaton
-		--
-	      | Done
---	      deriving Show
+                --
+                Dense BoundsNum (Array Char (Lexer s t))
+                --
+                -- further down, where the valid entries are sparse, we
+                -- use association lists, to save memory (the first argument
+                -- is the length of the list)
+                --
+              | Sparse BoundsNum [(Char, Lexer s t)]
+                --
+                -- end of a automaton
+                --
+              | Done
+--            deriving Show
 
 -- lexical action (EXPORTED ABSTRACTLY)
 --
 data LexAction s t = Action   (Meta s t)
-		   | NoAction
---		   deriving Show
+                   | NoAction
+--                 deriving Show
 
 -- a regular expression (EXPORTED)
 --
@@ -240,7 +240,7 @@ type Regexp s t = Lexer s t -> Lexer s t
 epsilon :: Regexp s t
 epsilon  = id
 
--- One character regexp (EXPORTED) 
+-- One character regexp (EXPORTED)
 --
 char   :: Char -> Regexp s t
 char c  = \l -> Lexer NoAction (Sparse (1, c, c) [(c, l)])
@@ -254,27 +254,27 @@ char c  = \l -> Lexer NoAction (Sparse (1, c, c) [(c, l)])
 -- token (EXPORTED)
 --
 -- * Note: After the application of the action, the position is advanced
---	   according to the length of the lexeme.  This implies that normal
---	   actions should not be used in the case where a lexeme might contain 
---	   control characters that imply non-standard changes of the position, 
---	   such as newlines or tabs.
+--         according to the length of the lexeme.  This implies that normal
+--         actions should not be used in the case where a lexeme might contain
+--         control characters that imply non-standard changes of the position,
+--         such as newlines or tabs.
 --
 lexaction      :: Regexp s t -> Action t -> Lexer s t
 lexaction re a  = re `lexmeta` a'
   where
-    a' lexeme pos@(Position fname row col) s = 
+    a' lexeme pos@(Position fname row col) s =
        let col' = col + length lexeme
        in
        col' `seq` case a lexeme pos of
-		    Nothing -> (Nothing, (Position fname row col'), s, Nothing)
-		    Just t  -> (Just (Right t), (Position fname row col'), s, Nothing)
+                    Nothing -> (Nothing, (Position fname row col'), s, Nothing)
+                    Just t  -> (Just (Right t), (Position fname row col'), s, Nothing)
 
 -- Variant for actions that may returns an error (EXPORTED)
 --
 lexactionErr      :: Regexp s t -> ActionErr t -> Lexer s t
 lexactionErr re a  = re `lexmeta` a'
   where
-     a' lexeme pos@(Position fname row col) s = 
+     a' lexeme pos@(Position fname row col) s =
        let col' = col + length lexeme
        in
        col' `seq` (Just (a lexeme pos), (Position fname row col'), s, Nothing)
@@ -282,7 +282,7 @@ lexactionErr re a  = re `lexmeta` a'
 -- Close a regular expression with a meta action (EXPORTED)
 --
 -- * Note: Meta actions have to advance the position in dependence of the
---	   lexeme by themselves.
+--         lexeme by themselves.
 --
 lexmeta      :: Regexp s t -> Meta s t -> Lexer s t
 lexmeta re a  = re (Lexer (Action a) Done)
@@ -303,23 +303,23 @@ joinConts :: Cont s t -> Cont s t -> Cont s t
 joinConts Done c'   = c'
 joinConts c    Done = c
 joinConts c    c'   = let (bn , cls ) = listify c
-			  (bn', cls') = listify c'
-		      in
-		      -- note: `addsBoundsNum' can, at this point, only
-		      --       approx. the number of *non-overlapping* cases;
-		      --       however, the bounds are correct 
-		      --
+                          (bn', cls') = listify c'
+                      in
+                      -- note: `addsBoundsNum' can, at this point, only
+                      --       approx. the number of *non-overlapping* cases;
+                      --       however, the bounds are correct
+                      --
                       aggregate (addBoundsNum bn bn') (cls ++ cls')
   where
     listify (Dense  n arr) = (n, assocs arr)
     listify (Sparse n cls) = (n, cls)
-    listify _		   = interr "Lexers.listify: Impossible argument!"
+    listify _              = interr "Lexers.listify: Impossible argument!"
 
 -- combine two actions
 --
 joinActions :: LexAction s t -> LexAction s t -> LexAction s t
 joinActions NoAction a'       = a'
-joinActions a	     NoAction = a
+joinActions a        NoAction = a
 joinActions _        _        = interr "Lexers.>||<: Overlapping actions!"
 
 -- Note: `n' is only an upper bound of the number of non-overlapping cases
@@ -335,17 +335,17 @@ aggregate bn@(n, lc, hc) cls
 --
 accum :: Eq a => (b -> b -> b) -> [(a, b)] -> [(a, b)]
 accum f []           = []
-accum f ((k, e):kes) = 
+accum f ((k, e):kes) =
   let (ke, kes') = gather k e kes
   in
   ke : accum f kes'
   where
     gather k e []                             = ((k, e), [])
     gather k e (ke'@(k', e'):kes) | k == k'   = gather k (f e e') kes
-				  | otherwise = let 
-						  (ke'', kes') = gather k e kes
-						in
-						(ke'', ke':kes')
+                                  | otherwise = let
+                                                  (ke'', kes') = gather k e kes
+                                                in
+                                                (ke'', ke':kes')
 
 
 -- handling of control characters
@@ -362,7 +362,7 @@ ctrlChars  = ['\n', '\r', '\f', '\t']
 --   layout control characters
 --
 ctrlLexer :: Lexer s t
-ctrlLexer  =     
+ctrlLexer  =
        char '\n' `lexmeta` newline
   >||< char '\r' `lexmeta` newline
   >||< char '\v' `lexmeta` newline
@@ -371,7 +371,7 @@ ctrlLexer  =
   where
     newline  _ pos s = (Nothing, retPos pos  , s, Nothing)
     formfeed _ pos s = (Nothing, incPos pos 1, s, Nothing)
-    tab      _ pos s = (Nothing, tabPos pos  , s, Nothing) 
+    tab      _ pos s = (Nothing, tabPos pos  , s, Nothing)
 
 
 -- non-basic combinators
@@ -382,7 +382,7 @@ ctrlLexer  =
 star :: Regexp s t -> Regexp s t -> Regexp s t
 --
 -- The definition used below can be obtained by equational reasoning from this
--- one (which is much easier to understand): 
+-- one (which is much easier to understand):
 --
 --   star re1 re2 = let self = (re1 +> self >|< epsilon) in self +> re2
 --
@@ -393,8 +393,8 @@ star :: Regexp s t -> Regexp s t -> Regexp s t
 -- the functional recursion.
 --
 star re1 re2  = \l -> let self = re1 self >||< re2 l
-		      in 
-		      self
+                      in
+                      self
 
 -- x `plus` y corresponds to the regular expression x+y (EXPORTED)
 --
@@ -414,8 +414,8 @@ alt    :: [Char] -> Regexp s t
 --
 alt []  = interr "Lexers.alt: Empty character set!"
 alt cs  = \l -> let bnds = (length cs, minimum cs, maximum cs)
-		in
-		Lexer NoAction (aggregate bnds [(c, l) | c <- cs])
+                in
+                Lexer NoAction (aggregate bnds [(c, l) | c <- cs])
 
 -- accept a character sequence (EXPORTED)
 --
@@ -434,7 +434,7 @@ type LexerState s = (String, Position, s)
 
 -- apply a lexer, yielding a token sequence and a list of errors (EXPORTED)
 --
--- * Currently, all errors are fatal; thus, the result is undefined in case of 
+-- * Currently, all errors are fatal; thus, the result is undefined in case of
 --   an error (this changes when error correction is added).
 --
 -- * The final lexer state is returned.
@@ -446,74 +446,74 @@ execLexer :: Lexer s t -> LexerState s -> ([t], LexerState s, [Error])
 -- * the following is moderately tuned
 --
 execLexer l state@([], _, _) = ([], state, [])
-execLexer l state            = 
+execLexer l state            =
   case lexOne l state of
     (Nothing , _ , state') -> execLexer l state'
     (Just res, l', state') -> let (ts, final, allErrs) = execLexer l' state'
-			      in case res of
-			        (Left  err) -> (ts  , final, err:allErrs)
-				(Right t  ) -> (t:ts, final, allErrs)
+                              in case res of
+                                (Left  err) -> (ts  , final, err:allErrs)
+                                (Right t  ) -> (t:ts, final, allErrs)
   where
     -- accept a single lexeme
     --
     -- lexOne :: Lexer s t -> LexerState s t
-    --	      -> (Either Error (Maybe t), Lexer s t, LexerState s t)
+    --        -> (Either Error (Maybe t), Lexer s t, LexerState s t)
     lexOne l0 state = oneLexeme l0 state DL.zero lexErr
       where
         -- the result triple of `lexOne' that signals a lexical error;
         -- the result state is advanced by one character for error correction
         --
-	lexErr = let (cs, pos@(Position fname row col), s) = state
-	             err = makeError ErrorErr pos
-			     ["Lexical error!", 
-			      "The character " ++ show (head cs) 
-			      ++ " does not fit here; skipping it."]
-		 in
-		 (Just (Left err), l, (tail cs, (Position fname row (col + 1)), s))
+        lexErr = let (cs, pos@(Position fname row col), s) = state
+                     err = makeError ErrorErr pos
+                             ["Lexical error!",
+                              "The character " ++ show (head cs)
+                              ++ " does not fit here; skipping it."]
+                 in
+                 (Just (Left err), l, (tail cs, (Position fname row (col + 1)), s))
 
-	-- we take an open list of characters down, where we accumulate the
-	-- lexeme; this function returns maybe a token, the next lexer to use
-	-- (can be altered by a meta action), the new lexer state, and a list
-	-- of errors
-	--
-	-- we implement the "principle of the longest match" by taking a
-	-- potential result quadruple down (in the last argument); the
-	-- potential result quadruple is updated whenever we pass by an action 
-	-- (different from `NoAction'); initially it is an error result
-	--
-	-- oneLexeme :: Lexer s t
-	--	     -> LexerState
-	--	     -> DList Char 
-	--	     -> (Maybe (Either Error t), Maybe (Lexer s t), 
-	--		 LexerState s t)
-	--	     -> (Maybe (Either Error t), Maybe (Lexer s t), 
-	--		 LexerState s t)
-	oneLexeme (Lexer a cont) state@(cs, pos, s) csDL last =
-	  let last' = action a csDL state last
-	  in case cs of
-	    []      -> last'
-	    (c:cs') -> oneChar cont c (cs', pos, s) csDL last'
+        -- we take an open list of characters down, where we accumulate the
+        -- lexeme; this function returns maybe a token, the next lexer to use
+        -- (can be altered by a meta action), the new lexer state, and a list
+        -- of errors
+        --
+        -- we implement the "principle of the longest match" by taking a
+        -- potential result quadruple down (in the last argument); the
+        -- potential result quadruple is updated whenever we pass by an action
+        -- (different from `NoAction'); initially it is an error result
+        --
+        -- oneLexeme :: Lexer s t
+        --           -> LexerState
+        --           -> DList Char
+        --           -> (Maybe (Either Error t), Maybe (Lexer s t),
+        --               LexerState s t)
+        --           -> (Maybe (Either Error t), Maybe (Lexer s t),
+        --               LexerState s t)
+        oneLexeme (Lexer a cont) state@(cs, pos, s) csDL last =
+          let last' = action a csDL state last
+          in case cs of
+            []      -> last'
+            (c:cs') -> oneChar cont c (cs', pos, s) csDL last'
 
         oneChar Done            c state csDL last = last
         oneChar (Dense  bn arr) c state csDL last
-	  | c `inBounds` bn = cont (arr!c) c state csDL last
-	  | otherwise       = last
-	oneChar (Sparse bn cls) c state csDL last
-	  | c `inBounds` bn = case lookup c cls of
-			        Nothing -> last
-				Just l' -> cont l' c state csDL last
+          | c `inBounds` bn = cont (arr!c) c state csDL last
+          | otherwise       = last
+        oneChar (Sparse bn cls) c state csDL last
+          | c `inBounds` bn = case lookup c cls of
+                                Nothing -> last
+                                Just l' -> cont l' c state csDL last
           | otherwise       = last
 
-	-- continue within the current lexeme
-	--
-	cont l' c state csDL last = oneLexeme l' state (csDL `DL.snoc` c) last
+        -- continue within the current lexeme
+        --
+        cont l' c state csDL last = oneLexeme l' state (csDL `DL.snoc` c) last
 
-	-- execute the action if present and finalise the current lexeme
-	--
-	action (Action f) csDL (cs, pos, s) last = 
-	  case f (DL.close csDL) pos s of
-	    (Nothing, pos', s', l') 
-	      | not . null $ cs     -> lexOne (fromMaybe l0 l') (cs, pos', s')
-	    (res    , pos', s', l') -> (res, (fromMaybe l0 l'), (cs, pos', s'))
-	action NoAction csDL state last =
-	  last						-- no change
+        -- execute the action if present and finalise the current lexeme
+        --
+        action (Action f) csDL (cs, pos, s) last =
+          case f (DL.close csDL) pos s of
+            (Nothing, pos', s', l')
+              | not . null $ cs     -> lexOne (fromMaybe l0 l') (cs, pos', s')
+            (res    , pos', s', l') -> (res, (fromMaybe l0 l'), (cs, pos', s'))
+        action NoAction csDL state last =
+          last                                          -- no change

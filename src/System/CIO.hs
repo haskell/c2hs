@@ -1,4 +1,4 @@
---  Compiler Toolkit: Compiler I/O 
+--  Compiler Toolkit: Compiler I/O
 --
 --  Author : Manuel M T Chakravarty
 --  Created: 2 November 95
@@ -24,7 +24,7 @@
 --
 -- language: Haskell 98
 --
---  * the usage of the `...CIO' functions is exactly as that of the 
+--  * the usage of the `...CIO' functions is exactly as that of the
 --    corresponding `...' functions from the Haskell 98 prelude and library
 --
 --  * error handling can be found in the module `StateTrans' and `State'
@@ -36,25 +36,25 @@
 --
 
 module System.CIO (
-	    --
-	    -- file handling
-	    --
-	    openFile, hClose,
-	    --
-	    -- text I/O
-	    --
-	    putChar, putStr, putStrLn, hPutStr, hPutStrLn,
-	    writeFile, readFile, print, getChar, hFlush,
-	    hPutChar, hSetBuffering, hGetBuffering, newline,
-	    --
-	    -- `Directory'
-	    --
-	    doesFileExist, removeFile,
-	    --
-	    -- `System'
-	    --
-	    IO.ExitCode(..), exitWith, getArgs, getProgName, system,
-	    )
+            --
+            -- file handling
+            --
+            openFile, hClose,
+            --
+            -- text I/O
+            --
+            putChar, putStr, putStrLn, hPutStr, hPutStrLn,
+            writeFile, readFile, print, getChar, hFlush,
+            hPutChar, hSetBuffering, hGetBuffering, newline,
+            --
+            -- `Directory'
+            --
+            doesFileExist, removeFile,
+            --
+            -- `System'
+            --
+            IO.ExitCode(..), exitWith, getArgs, getProgName, system,
+            )
 where
 
 import Prelude (Bool, Char, String, FilePath, (.), Show)
@@ -95,7 +95,7 @@ hPutStr h s  = liftIO (IO.hPutStr h s)
 hPutStrLn     :: IO.Handle -> String -> PreCST e s ()
 hPutStrLn h s  = liftIO (IO.hPutStrLn h s)
 
-writeFile		    :: FilePath -> String -> PreCST e s ()
+writeFile                   :: FilePath -> String -> PreCST e s ()
 writeFile fname contents  = liftIO (IO.writeFile fname contents)
 
 readFile       :: FilePath -> PreCST e s String

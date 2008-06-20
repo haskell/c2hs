@@ -1,4 +1,4 @@
---								  -*-haskell-*-
+--                                                                -*-haskell-*-
 --  ** @configure_input@ **
 --  ===========================================================================
 --  C -> Haskell Compiler: configuration
@@ -80,16 +80,16 @@ hpaths  = [".", "/usr/include", "/usr/local/include"]
 -- targeted C compiler
 --
 data PlatformSpec = PlatformSpec {
-		      identPS             :: String,  -- platform identifier
-		      bitfieldDirectionPS :: Int,     -- to fill bitfields
-		      bitfieldPaddingPS   :: Bool,    -- padding or split?
-		      bitfieldIntSignedPS :: Bool,    -- `int' signed bitf.?
-		      bitfieldAlignmentPS :: Int      -- alignment constraint
-		    }
+                      identPS             :: String,  -- platform identifier
+                      bitfieldDirectionPS :: Int,     -- to fill bitfields
+                      bitfieldPaddingPS   :: Bool,    -- padding or split?
+                      bitfieldIntSignedPS :: Bool,    -- `int' signed bitf.?
+                      bitfieldAlignmentPS :: Int      -- alignment constraint
+                    }
 
 instance Show PlatformSpec where
   show (PlatformSpec ident dir pad intSig align) =
-    show ident ++ " <" ++ show dir ++ ", " ++ show pad ++ ", " ++ 
+    show ident ++ " <" ++ show dir ++ ", " ++ show pad ++ ", " ++
     show intSig ++ ", " ++ show align ++ ">"
 
 -- Platform specification for the C compiler used to compile c2hs (which is
@@ -97,12 +97,12 @@ instance Show PlatformSpec where
 --
 defaultPlatformSpec :: PlatformSpec
 defaultPlatformSpec = PlatformSpec {
-		        identPS             = arch ++ "-" ++ os,
-			bitfieldDirectionPS = bitfieldDirection,
-			bitfieldPaddingPS   = bitfieldPadding,
-			bitfieldIntSignedPS = bitfieldIntSigned,
-			bitfieldAlignmentPS = bitfieldAlignment
-		      }
+                        identPS             = arch ++ "-" ++ os,
+                        bitfieldDirectionPS = bitfieldDirection,
+                        bitfieldPaddingPS   = bitfieldPadding,
+                        bitfieldIntSignedPS = bitfieldIntSigned,
+                        bitfieldAlignmentPS = bitfieldAlignment
+                      }
 
 -- The set of platform specification that may be choosen for cross compiling
 -- bindings.

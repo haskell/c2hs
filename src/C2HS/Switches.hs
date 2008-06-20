@@ -64,33 +64,33 @@ import C2HS.Config (PlatformSpec, defaultPlatformSpec)
 -- all switches of the toolkit (EXPORTED)
 --
 data SwitchBoard = SwitchBoard {
-		     cppOptsSB :: String,	-- cpp options
-		     cppSB     :: FilePath,	-- cpp executable
-		     keepSB    :: Bool,		-- keep intermediate file
-		     librarySB :: Bool,		-- copy library in
-		     tracesSB  :: Traces,	-- trace flags
-		     outputSB  :: FilePath,	-- basename of generated files
-		     outDirSB  :: FilePath,	-- dir where generated files go
-		     platformSB:: PlatformSpec,	-- target platform spec.
-		     headerSB  :: FilePath,	-- generated header file
-		     chiPathSB :: [FilePath]	-- .chi file directories
-		   }
+                     cppOptsSB :: String,       -- cpp options
+                     cppSB     :: FilePath,     -- cpp executable
+                     keepSB    :: Bool,         -- keep intermediate file
+                     librarySB :: Bool,         -- copy library in
+                     tracesSB  :: Traces,       -- trace flags
+                     outputSB  :: FilePath,     -- basename of generated files
+                     outDirSB  :: FilePath,     -- dir where generated files go
+                     platformSB:: PlatformSpec, -- target platform spec.
+                     headerSB  :: FilePath,     -- generated header file
+                     chiPathSB :: [FilePath]    -- .chi file directories
+                   }
 
 -- switch states on startup (EXPORTED)
 --
 initialSwitchBoard :: SwitchBoard
 initialSwitchBoard  = SwitchBoard {
-			cppOptsSB  = "",
-			cppSB      = "cpp",
-			keepSB	   = False,
-			librarySB  = False,
-		        tracesSB   = initialTraces,
-			outputSB   = "",
-			outDirSB   = "",
-			platformSB = defaultPlatformSpec,
-			headerSB   = "",
-			chiPathSB  = ["."]
-		      }
+                        cppOptsSB  = "",
+                        cppSB      = "cpp",
+                        keepSB     = False,
+                        librarySB  = False,
+                        tracesSB   = initialTraces,
+                        outputSB   = "",
+                        outDirSB   = "",
+                        platformSB = defaultPlatformSpec,
+                        headerSB   = "",
+                        chiPathSB  = ["."]
+                      }
 
 
 -- traces
@@ -99,11 +99,11 @@ initialSwitchBoard  = SwitchBoard {
 -- different kinds of traces possible (EXPORTED)
 --
 data Traces = Traces {
-	        tracePhasesSW  :: Bool,
-	        traceGenBindSW :: Bool,
-	        traceCTravSW   :: Bool,
-		dumpCHSSW      :: Bool
-	      }
+                tracePhasesSW  :: Bool,
+                traceGenBindSW :: Bool,
+                traceCTravSW   :: Bool,
+                dumpCHSSW      :: Bool
+              }
 
 -- trace setting on startup
 --
@@ -111,8 +111,8 @@ data Traces = Traces {
 --
 initialTraces :: Traces
 initialTraces  = Traces {
-		   tracePhasesSW  = False,
-		   traceGenBindSW = False,
-		   traceCTravSW   = False,
-		   dumpCHSSW	  = False
-		 }
+                   tracePhasesSW  = False,
+                   traceGenBindSW = False,
+                   traceCTravSW   = False,
+                   dumpCHSSW      = False
+                 }

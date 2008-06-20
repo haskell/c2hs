@@ -27,9 +27,9 @@
 
 /* routines querying C compiler properties
  */
-int bitfield_direction  ();	/* direction in which bitfields are growing */
-int bitfield_padding    ();	/* use padding for overspilling bitfields?  */
-int bitfield_int_signed ();     /* is an `int' bitfield signed?		    */
-int bitfield_alignment  ();     /* alignment constraint for bitfields	    */
+int bitfield_direction  ();     /* direction in which bitfields are growing */
+int bitfield_padding    ();     /* use padding for overspilling bitfields?  */
+int bitfield_int_signed ();     /* is an `int' bitfield signed?             */
+int bitfield_alignment  ();     /* alignment constraint for bitfields       */
 
 #endif /* C2HS_CONFIG*/

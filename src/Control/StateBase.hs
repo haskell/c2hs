@@ -39,17 +39,17 @@
 --
 --  * The following state components are maintained:
 --
---    + errorsBS (type `ErrorState')    -- keeps track of raised errors 
+--    + errorsBS (type `ErrorState')    -- keeps track of raised errors
 --    + namesBS (type `NameSupply')     -- provides unique names
---    + extraBS (generic type)		-- extra compiler-dependent state 
---					   information, e.g., for compiler
---					   switches 
+--    + extraBS (generic type)          -- extra compiler-dependent state
+--                                         information, e.g., for compiler
+--                                         switches
 --
 --- TODO ----------------------------------------------------------------------
 --
 
 module Control.StateBase (PreCST(..), ErrorState(..), BaseState(..),
-		  unpackCST, readCST, writeCST, transCST, liftIO)
+                  unpackCST, readCST, writeCST, transCST, liftIO)
 where
 
 import Data.UNames     (NameSupply)
@@ -66,19 +66,19 @@ import Data.Errors     (ErrorLvl(..), Error)
 -- * when no error was raised yet, the error level is the lowest possible one
 --
 data ErrorState = ErrorState ErrorLvl    -- worst error level that was raised
-			     Int	 -- number of errors (excl warnings)
-			     [Error]     -- already raised errors
+                             Int         -- number of errors (excl warnings)
+                             [Error]     -- already raised errors
 
 -- base state (EXPORTED)
 --
 data BaseState e = BaseState {
-		     errorsBS   :: ErrorState, 
-		     suppliesBS :: [NameSupply],
-		     extraBS    :: e			      -- extra state
-		 }
+                     errorsBS   :: ErrorState,
+                     suppliesBS :: [NameSupply],
+                     extraBS    :: e                          -- extra state
+                 }
 
 -- the compiler state transformer (EXPORTED)
--- 
+--
 
 newtype PreCST e s a = CST (STB (BaseState e) s a)
 
@@ -121,7 +121,7 @@ writeCST    :: s -> PreCST e s ()
 writeCST s'  = CST $ writeGeneric s'
 
 -- given a transformer function for the state, wrap it into an CST monad
--- (EXPORTED) 
+-- (EXPORTED)
 --
 transCST   :: (s -> (s, a)) -> PreCST e s a
 transCST f  = CST $ transGeneric f

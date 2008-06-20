@@ -21,7 +21,7 @@
 --  used by all modules that are not directly involved in implementing the
 --  state base. It provides a state transformer that is capable of doing I/O
 --  and provides facilities such as error handling and compiler switch
---  management. 
+--  management.
 --
 --- DOCU ----------------------------------------------------------------------
 --
@@ -36,27 +36,27 @@
 --
 
 module Control.State (-- the PreCST monad
-	      --
-	      PreCST,					   -- reexport ABSTRACT
-	      throwExc, fatal, catchExc, fatalsHandledBy,  -- reexport lifted
-	      readCST, writeCST, transCST, run, runCST, 
-	      --
-	      -- more compiler I/O
-	      --
-	      liftIO,
-	      --
-	      -- error management
-	      --
-	      raise, raiseWarning, raiseError, raiseFatal, showErrors,
-	      errorsPresent,
-	      --
-	      -- extra state management
-	      --
-	      readExtra, updExtra,
-	      --
-	      -- name supplies
-	      --
-	      getNameSupply)
+              --
+              PreCST,                                      -- reexport ABSTRACT
+              throwExc, fatal, catchExc, fatalsHandledBy,  -- reexport lifted
+              readCST, writeCST, transCST, run, runCST,
+              --
+              -- more compiler I/O
+              --
+              liftIO,
+              --
+              -- error management
+              --
+              raise, raiseWarning, raiseError, raiseFatal, showErrors,
+              errorsPresent,
+              --
+              -- extra state management
+              --
+              readExtra, updExtra,
+              --
+              -- name supplies
+              --
+              getNameSupply)
 where
 
 import Control.Monad (when)
@@ -65,12 +65,12 @@ import System.Exit   (ExitCode(ExitFailure))
 
 import Data.Position    (Position)
 import Data.UNames      (NameSupply,
-	            rootSupply, splitSupply)
+                    rootSupply, splitSupply)
 import Control.StateTrans  (readBase, transBase, runSTB)
 import qualified Control.StateTrans as StateTrans (interleave, throwExc, fatal, catchExc, fatalsHandledBy)
 import Control.StateBase   (PreCST(..), ErrorState(..), BaseState(..),
-		    unpackCST, readCST, writeCST, transCST,
-		    liftIO)
+                    unpackCST, readCST, writeCST, transCST,
+                    liftIO)
 import qualified System.CIO as CIO
 import Data.Errors      (ErrorLvl(..), Error, makeError, errorLvl, showError)
 
@@ -78,16 +78,16 @@ import Data.Errors      (ErrorLvl(..), Error, makeError, errorLvl, showError)
 -- state used in the whole compiler
 -- --------------------------------
 
--- initialization 
+-- initialization
 --
 -- * it gets the version information and the initial extra state as arguments
 --
 initialBaseState   :: e -> BaseState e
 initialBaseState es = BaseState {
-			     errorsBS   = initialErrorState, 
-			     suppliesBS = splitSupply rootSupply,
-			     extraBS    = es
-			}
+                             errorsBS   = initialErrorState,
+                             suppliesBS = splitSupply rootSupply,
+                             extraBS    = es
+                        }
 
 
 -- executing state transformers
@@ -103,17 +103,17 @@ run       :: e -> PreCST e () a -> IO a
 run es cst = runSTB m (initialBaseState es) ()
   where
     m = unpackCST (
-	  cst
-	  `fatalsHandledBy` \err ->
-	    CIO.putStr ("Uncaught fatal error: " ++ show err)	>>
-	    CIO.exitWith (ExitFailure 1)
-	)
+          cst
+          `fatalsHandledBy` \err ->
+            CIO.putStr ("Uncaught fatal error: " ++ show err)   >>
+            CIO.exitWith (ExitFailure 1)
+        )
 
 -- run a PreCST in the context of another PreCST (EXPORTED)
 --
 -- the generic state of the enclosing PreCST is preserved while the
 -- computation of the PreCST passed as an argument is interleaved in the
--- execution of the enclosing one 
+-- execution of the enclosing one
 --
 runCST     :: PreCST e s a -> s -> PreCST e s' a
 runCST m s  = CST $ StateTrans.interleave (unpackCST m) s
@@ -143,9 +143,9 @@ fatal  = CST . StateTrans.fatal
 --   semantics is the only reasonable when it should be possible to use
 --   updating for maintaining the state)
 --
-catchExc     :: PreCST e s a 
-	     -> (String, String -> PreCST e s a) 
-	     -> PreCST e s a
+catchExc     :: PreCST e s a
+             -> (String, String -> PreCST e s a)
+             -> PreCST e s a
 catchExc m (s, h)  = CST $ StateTrans.catchExc (unpackCST m) (s, unpackCST . h)
 
 -- given a state transformer that may raise fatal errors and an error handler
@@ -160,9 +160,9 @@ catchExc m (s, h)  = CST $ StateTrans.catchExc (unpackCST m) (s, unpackCST . h)
 --
 fatalsHandledBy :: PreCST e s a -> (IOError -> PreCST e s a) -> PreCST e s a
 fatalsHandledBy m h  = CST $ StateTrans.fatalsHandledBy m' h'
-		       where
-		         m' = unpackCST m
-			 h' = unpackCST . h
+                       where
+                         m' = unpackCST m
+                         h' = unpackCST . h
 
 
 -- manipulating the error state
@@ -180,9 +180,9 @@ initialErrorState  = ErrorState WarningErr 0 []
 --
 raise     :: Error -> PreCST e s ()
 raise err  = case errorLvl err of
-	       WarningErr  -> raise0 err
-	       ErrorErr    -> raise0 err
-	       FatalErr    -> raiseFatal0 "Generic fatal error." err
+               WarningErr  -> raise0 err
+               ErrorErr    -> raise0 err
+               FatalErr    -> raiseFatal0 "Generic fatal error." err
 
 -- raise a warning (see `raiseErr') (EXPORTED)
 --
@@ -212,9 +212,9 @@ raiseFatal short pos long  = raiseFatal0 short (makeError FatalErr pos long)
 --
 raiseFatal0           :: String -> Error -> PreCST e s a
 raiseFatal0 short err  = do
-			   raise0 err
-			   errmsgs <- showErrors
-			   fatal (short ++ "\n\n" ++ errmsgs)
+                           raise0 err
+                           errmsgs <- showErrors
+                           fatal (short ++ "\n\n" ++ errmsgs)
 
 -- raise an error; internal version, doesn't check whether the error is fatal
 --
@@ -223,70 +223,70 @@ raiseFatal0 short err  = do
 --
 raise0     :: Error -> PreCST e s ()
 raise0 err  = do
-	        noOfErrs <- CST $ transBase doRaise
-		when (noOfErrs >= errorLimit) $ do
-		  errmsgs <- showErrors
-		  fatal ("Error limit of " ++ show errorLimit 
-			 ++ " errors has been reached.\n" ++ errmsgs)
+                noOfErrs <- CST $ transBase doRaise
+                when (noOfErrs >= errorLimit) $ do
+                  errmsgs <- showErrors
+                  fatal ("Error limit of " ++ show errorLimit
+                         ++ " errors has been reached.\n" ++ errmsgs)
   where
     errorLimit = 20
 
     doRaise    :: BaseState e -> (BaseState e, Int)
     doRaise bs  = let
-		    lvl			       = errorLvl err
-		    ErrorState wlvl no errs    = errorsBS bs
-		    wlvl'		       = max wlvl lvl
-		    no'			       = no + if lvl > WarningErr
-						      then 1 else 0
-		    errs'		       = err : errs
-		  in
-		    (bs {errorsBS = (ErrorState wlvl' no' errs')}, no')
+                    lvl                        = errorLvl err
+                    ErrorState wlvl no errs    = errorsBS bs
+                    wlvl'                      = max wlvl lvl
+                    no'                        = no + if lvl > WarningErr
+                                                      then 1 else 0
+                    errs'                      = err : errs
+                  in
+                    (bs {errorsBS = (ErrorState wlvl' no' errs')}, no')
 
 -- yield a string containing the collected error messages (EXPORTED)
 --
---  * the error state is reset in this process 
+--  * the error state is reset in this process
 --
 showErrors :: PreCST e s String
 showErrors  = CST $ do
-	        ErrorState wlvl no errs <- transBase extractErrs
-		return $ foldr (.) id (map showString (errsToStrs errs)) ""
-	      where
-		extractErrs    :: BaseState e -> (BaseState e, ErrorState)
-		extractErrs bs  = (bs {errorsBS = initialErrorState}, 
-				   errorsBS bs)
+                ErrorState wlvl no errs <- transBase extractErrs
+                return $ foldr (.) id (map showString (errsToStrs errs)) ""
+              where
+                extractErrs    :: BaseState e -> (BaseState e, ErrorState)
+                extractErrs bs  = (bs {errorsBS = initialErrorState},
+                                   errorsBS bs)
 
-		errsToStrs      :: [Error] -> [String]
-		errsToStrs errs  = (map showError . sort) errs
+                errsToStrs      :: [Error] -> [String]
+                errsToStrs errs  = (map showError . sort) errs
 
 -- inquire if there was already an error of at least level `ErrorErr' raised
 -- (EXPORTED)
 --
 errorsPresent :: PreCST e s Bool
-errorsPresent  = CST $ do 
-		   ErrorState wlvl no _ <- readBase errorsBS
-		   return $ wlvl >= ErrorErr
+errorsPresent  = CST $ do
+                   ErrorState wlvl no _ <- readBase errorsBS
+                   return $ wlvl >= ErrorErr
 
 
 -- manipulating the extra state
 -- ----------------------------
 
 -- apply a reader function to the extra state and yield the reader's result
--- (EXPORTED) 
+-- (EXPORTED)
 --
 readExtra    :: (e -> a) -> PreCST e s a
 readExtra rf  = CST $ readBase (\bs ->
-		        (rf . extraBS) bs
-		      )
+                        (rf . extraBS) bs
+                      )
 
 -- apply an update function to the extra state (EXPORTED)
 --
 updExtra    :: (e -> e) -> PreCST e s ()
 updExtra uf  = CST $ transBase (\bs ->
-		       let
-			 es = extraBS bs
-		       in 
-		       (bs {extraBS = uf es}, ())
-		     )
+                       let
+                         es = extraBS bs
+                       in
+                       (bs {extraBS = uf es}, ())
+                     )
 
 
 -- name supplies
@@ -296,8 +296,8 @@ updExtra uf  = CST $ transBase (\bs ->
 --
 getNameSupply :: PreCST e s NameSupply
 getNameSupply  = CST $ transBase (\bs ->
-		         let
-			   supply : supplies = suppliesBS bs
-			 in 
-			 (bs {suppliesBS = supplies}, supply)
-		       )
+                         let
+                           supply : supplies = suppliesBS bs
+                         in
+                         (bs {suppliesBS = supplies}, supply)
+                       )

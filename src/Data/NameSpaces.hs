@@ -36,7 +36,7 @@
 --
 
 module Data.NameSpaces (NameSpace, nameSpace, defGlobal, enterNewRange, leaveRange,
-		   defLocal, find, nameSpaceToList)
+                   defLocal, find, nameSpaceToList)
 where
 
 import qualified Data.Map as Map (empty, insert, lookup, toList)
@@ -64,7 +64,7 @@ import Data.Errors     (interr)
 --   of the most recently defined local identifiers
 --
 data NameSpace a = NameSpace (Map Ident a)  -- defs in global range
-			     [[(Ident, a)]]       -- stack of local ranges
+                             [[(Ident, a)]]       -- stack of local ranges
 
 -- create a name space (EXPORTED)
 --
@@ -73,7 +73,7 @@ nameSpace  = NameSpace Map.empty []
 
 -- add global definition (EXPORTED)
 --
--- * returns the modfied name space 
+-- * returns the modfied name space
 --
 -- * if the identfier is already declared, the resulting name space contains
 --   the new binding and the second component of the result contains the
@@ -81,24 +81,24 @@ nameSpace  = NameSpace Map.empty []
 --   name space anymore)
 --
 defGlobal :: NameSpace a -> Ident -> a -> (NameSpace a, Maybe a)
-defGlobal (NameSpace gs lss) id def  = (NameSpace (Map.insert id def gs) lss, 
-				        Map.lookup id gs)
+defGlobal (NameSpace gs lss) id def  = (NameSpace (Map.insert id def gs) lss,
+                                        Map.lookup id gs)
 
 -- add new range (EXPORTED)
 --
-enterNewRange			 :: NameSpace a -> NameSpace a
+enterNewRange                    :: NameSpace a -> NameSpace a
 enterNewRange (NameSpace gs lss)  = NameSpace gs ([]:lss)
 
 -- pop topmost range and return its definitions (EXPORTED)
 --
 leaveRange :: NameSpace a -> (NameSpace a, [(Ident, a)])
 leaveRange (NameSpace gs [])        = interr "NameSpaces.leaveRange: \
-					     \No local range!"
+                                             \No local range!"
 leaveRange (NameSpace gs (ls:lss))  = (NameSpace gs lss, ls)
 
 -- add local definition (EXPORTED)
 --
--- * returns the modfied name space 
+-- * returns the modfied name space
 --
 -- * if there is no local range, the definition is entered globally
 --
@@ -109,13 +109,13 @@ leaveRange (NameSpace gs (ls:lss))  = (NameSpace gs lss, ls)
 --
 defLocal :: NameSpace a -> Ident -> a -> (NameSpace a, Maybe a)
 defLocal ns@(NameSpace gs []      ) id def = defGlobal ns id def
-defLocal (NameSpace    gs (ls:lss)) id def = 
+defLocal (NameSpace    gs (ls:lss)) id def =
   (NameSpace gs (((id, def):ls):lss),
    lookup ls)
   where
     lookup []                          = Nothing
     lookup ((id', def):ls) | id == id' = Just def
-			   | otherwise = lookup ls
+                           | otherwise = lookup ls
 
 -- search for a definition (EXPORTED)
 --
@@ -123,18 +123,18 @@ defLocal (NameSpace    gs (ls:lss)) id def =
 --
 find                       :: NameSpace a -> Ident -> Maybe a
 find (NameSpace gs lss) id  = case (lookup lss) of
-			        Nothing  -> Map.lookup id gs
-			        Just def -> Just def
-			      where
-			        lookup []       = Nothing
-			        lookup (ls:lss) = case (lookup' ls) of
-						    Nothing  -> lookup lss
-						    Just def -> Just def
+                                Nothing  -> Map.lookup id gs
+                                Just def -> Just def
+                              where
+                                lookup []       = Nothing
+                                lookup (ls:lss) = case (lookup' ls) of
+                                                    Nothing  -> lookup lss
+                                                    Just def -> Just def
 
-				lookup' []              = Nothing
-				lookup' ((id', def):ls)
-				        | id' == id     = Just def
-				        | otherwise     = lookup' ls
+                                lookup' []              = Nothing
+                                lookup' ((id', def):ls)
+                                        | id' == id     = Just def
+                                        | otherwise     = lookup' ls
 
 -- dump a name space into a list (EXPORTED)
 --

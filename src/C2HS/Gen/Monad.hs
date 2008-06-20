@@ -67,7 +67,7 @@ module C2HS.Gen.Monad (
   HsObject(..), GB, initialGBState, setContext, getLibrary, getPrefix,
   delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs, queryObj, queryClass,
   queryPointer, mergeMaps, dumpMaps
-) where 
+) where
 
 -- standard libraries
 import Data.Char  (toUpper, toLower, isSpace)
@@ -76,17 +76,17 @@ import Data.Maybe (fromMaybe)
 
 -- Compiler Toolkit
 import Data.Position   (Position, Pos(posOf), nopos)
-import Data.Errors	  (interr)
+import Data.Errors        (interr)
 import Data.Idents     (Ident, identToLexeme, onlyPosIdent)
 import qualified Data.Map as Map (empty, insert, lookup, union, toList, fromList)
 import Data.Map   (Map)
 
 -- C -> Haskell
-import C2HS.C	  (CT, readCT, transCT, raiseErrorCTExc)
+import C2HS.C     (CT, readCT, transCT, raiseErrorCTExc)
 
 -- friends
-import C2HS.CHS	  (CHSFrag(..), CHSHook(..), CHSTrans(..),
-		   CHSChangeCase(..), CHSPtrType(..))
+import C2HS.CHS   (CHSFrag(..), CHSHook(..), CHSTrans(..),
+                   CHSChangeCase(..), CHSPtrType(..))
 
 
 -- translation tables
@@ -100,17 +100,17 @@ type TransFun = Ident -> String
 -- translation function for the `underscoreToCase' flag
 --
 underscoreToCase :: String -> String
-underscoreToCase lexeme = 
-  let 
+underscoreToCase lexeme =
+  let
     ps = filter (not . null) . parts $ lexeme
   in
   concat . map adjustCase $ ps
   where
     parts s = let (l, s') = break (== '_') s
-	      in  
-	      l : case s' of
-		    []      -> []
-		    (_:s'') -> parts s''
+              in
+              l : case s' of
+                    []      -> []
+                    (_:s'') -> parts s''
 
     adjustCase (c:cs) = toUpper c : map toLower cs
 
@@ -136,36 +136,36 @@ downcaseFirstLetter (c:cs) = toLower c : cs
 --
 transTabToTransFun :: String -> CHSTrans -> TransFun
 transTabToTransFun prefix (CHSTrans _2Case chgCase table) =
-  \ide -> let 
+  \ide -> let
             caseTrafo = (if _2Case then underscoreToCase else id) .
-			(case chgCase of
-			   CHSSameCase -> id
-			   CHSUpCase   -> upcaseFirstLetter
-			   CHSDownCase -> downcaseFirstLetter)
-	    lexeme = identToLexeme ide
-	    dft    = caseTrafo lexeme             -- default uses case trafo
-	  in
-	  case lookup ide table of		    -- lookup original ident
-	    Just ide' -> identToLexeme ide'	    -- original ident matches
-	    Nothing   -> 
-	      case eat prefix lexeme of
-	        Nothing          -> dft		    -- no match & no prefix
-	        Just eatenLexeme -> 
-		  let 
-		    eatenIde = onlyPosIdent (posOf ide) eatenLexeme
-		    eatenDft = caseTrafo eatenLexeme 
-		  in
-		  case lookup eatenIde table of     -- lookup without prefix
-		    Nothing   -> eatenDft	    -- orig ide without prefix
-		    Just ide' -> identToLexeme ide' -- without prefix matched
+                        (case chgCase of
+                           CHSSameCase -> id
+                           CHSUpCase   -> upcaseFirstLetter
+                           CHSDownCase -> downcaseFirstLetter)
+            lexeme = identToLexeme ide
+            dft    = caseTrafo lexeme             -- default uses case trafo
+          in
+          case lookup ide table of                  -- lookup original ident
+            Just ide' -> identToLexeme ide'         -- original ident matches
+            Nothing   ->
+              case eat prefix lexeme of
+                Nothing          -> dft             -- no match & no prefix
+                Just eatenLexeme ->
+                  let
+                    eatenIde = onlyPosIdent (posOf ide) eatenLexeme
+                    eatenDft = caseTrafo eatenLexeme
+                  in
+                  case lookup eatenIde table of     -- lookup without prefix
+                    Nothing   -> eatenDft           -- orig ide without prefix
+                    Just ide' -> identToLexeme ide' -- without prefix matched
   where
     -- try to eat prefix and return `Just partialLexeme' if successful
     --
     eat []         ('_':cs)                        = eat [] cs
     eat []         cs                              = Just cs
     eat (p:prefix) (c:cs) | toUpper p == toUpper c = eat prefix cs
-			  | otherwise		   = Nothing
-    eat _          _				   = Nothing
+                          | otherwise              = Nothing
+    eat _          _                               = Nothing
 
 
 -- the local monad
@@ -193,33 +193,33 @@ type PointerMap = Map (Bool, Ident) (String, String)
 --     5.04.1
 --
 data HsObject    = Pointer {
-		     ptrTypeHO    :: CHSPtrType,   -- kind of pointer
-		     isNewtypeHO  :: Bool	   -- newtype?
-		   }
-		 | Class {
-		     superclassHO :: (Maybe Ident),-- superclass
-		     ptrHO	  :: Ident	   -- pointer
-		   }
+                     ptrTypeHO    :: CHSPtrType,   -- kind of pointer
+                     isNewtypeHO  :: Bool          -- newtype?
+                   }
+                 | Class {
+                     superclassHO :: (Maybe Ident),-- superclass
+                     ptrHO        :: Ident         -- pointer
+                   }
                  deriving (Show, Read)
 type HsObjectMap = Map Ident HsObject
 
 {- FIXME: What a mess...
 instance Show HsObject where
-  show (Pointer ptrType isNewtype) = 
+  show (Pointer ptrType isNewtype) =
     "Pointer " ++ show ptrType ++ show isNewtype
-  show (Class   osuper  pointer  ) = 
+  show (Class   osuper  pointer  ) =
     "Class " ++ show ptrType ++ show isNewtype
 -}
 -- super kludgy (depends on Show instance of Ident)
 instance Read Ident where
   readsPrec _ ('`':lexeme) = let (ideChars, rest) = span (/= '\'') lexeme
-			     in
-			     if null ideChars 
-			     then []
-			     else [(onlyPosIdent nopos ideChars, tail rest)]
+                             in
+                             if null ideChars
+                             then []
+                             else [(onlyPosIdent nopos ideChars, tail rest)]
   readsPrec p (c:cs)
-    | isSpace c						     = readsPrec p cs
-  readsPrec _ _						     = []
+    | isSpace c                                              = readsPrec p cs
+  readsPrec _ _                                              = []
 
 -- the local state consists of
 --
@@ -230,36 +230,36 @@ instance Read Ident where
 --     that created them (the latter allows avoid duplication of foreign
 --     export declarations), and
 -- (4) a map associating C pointer types with their Haskell representation
---     
+--
 -- access to the attributes of the C structure tree is via the `CT' monad of
 -- which we use an instance here
 --
 data GBState  = GBState {
-		  lib     :: String,		   -- dynamic library
-		  prefix  :: String,		   -- prefix
-	          frags   :: [(CHSHook, CHSFrag)], -- delayed code (with hooks)
-		  ptrmap  :: PointerMap,	   -- pointer representation
-		  objmap  :: HsObjectMap	   -- generated Haskell objects
-	       }
+                  lib     :: String,               -- dynamic library
+                  prefix  :: String,               -- prefix
+                  frags   :: [(CHSHook, CHSFrag)], -- delayed code (with hooks)
+                  ptrmap  :: PointerMap,           -- pointer representation
+                  objmap  :: HsObjectMap           -- generated Haskell objects
+               }
 
 type GB a = CT GBState a
 
 initialGBState :: GBState
 initialGBState  = GBState {
-		    lib    = "",
-		    prefix = "",
-		    frags  = [],
-		    ptrmap = Map.empty,
-		    objmap = Map.empty
-		  }
+                    lib    = "",
+                    prefix = "",
+                    frags  = [],
+                    ptrmap = Map.empty,
+                    objmap = Map.empty
+                  }
 
 -- set the dynamic library and library prefix
 --
 setContext            :: (Maybe String) -> (Maybe String) -> GB ()
-setContext lib prefix  = 
+setContext lib prefix  =
   transCT $ \state -> (state {lib    = fromMaybe "" lib,
-			      prefix = fromMaybe "" prefix},
-		       ())
+                              prefix = fromMaybe "" prefix},
+                       ())
 
 -- get the dynamic library
 --
@@ -280,7 +280,7 @@ getPrefix  = readCT prefix
 --   specify the same flags (ie, produce the same delayed code)
 --
 delayCode          :: CHSHook -> String -> GB ()
-delayCode hook str  = 
+delayCode hook str  =
   do
     frags <- readCT frags
     frags' <- delay hook frags
@@ -289,15 +289,15 @@ delayCode hook str  =
       newEntry = (hook, (CHSVerb ("\n" ++ str) (posOf hook)))
       --
       delay hook@(CHSCall isFun isUns ide oalias _) frags =
-	case find (\(hook', _) -> hook' == hook) frags of
-	  Just (CHSCall isFun' isUns' ide' _ _, _) 
-	    |    isFun == isFun' 
-	      && isUns == isUns' 
-	      && ide   == ide'   -> return frags
-	    | otherwise		 -> err (posOf ide) (posOf ide')
-	  Nothing                -> return $ frags ++ [newEntry]
+        case find (\(hook', _) -> hook' == hook) frags of
+          Just (CHSCall isFun' isUns' ide' _ _, _)
+            |    isFun == isFun'
+              && isUns == isUns'
+              && ide   == ide'   -> return frags
+            | otherwise          -> err (posOf ide) (posOf ide')
+          Nothing                -> return $ frags ++ [newEntry]
       delay _ _                                  =
-	interr "GBMonad.delayCode: Illegal delay!"
+        interr "GBMonad.delayCode: Illegal delay!"
       --
       err = incompatibleCallHooksErr
 
@@ -310,31 +310,31 @@ getDelayedCode  = readCT (map snd . frags)
 --
 ptrMapsTo :: (Bool, Ident) -> (String, String) -> GB ()
 (isStar, cName) `ptrMapsTo` hsRepr =
-  transCT (\state -> (state { 
-		        ptrmap = Map.insert (isStar, cName) hsRepr (ptrmap state)
-		      }, ()))
+  transCT (\state -> (state {
+                        ptrmap = Map.insert (isStar, cName) hsRepr (ptrmap state)
+                      }, ()))
 
 -- query the pointer map
 --
 queryPtr        :: (Bool, Ident) -> GB (Maybe (String, String))
 queryPtr pcName  = do
-		     fm <- readCT ptrmap
-		     return $ Map.lookup pcName fm
+                     fm <- readCT ptrmap
+                     return $ Map.lookup pcName fm
 
 -- add an entry to the Haskell object map
 --
 objIs :: Ident -> HsObject -> GB ()
 hsName `objIs` obj =
-  transCT (\state -> (state { 
-		        objmap = Map.insert hsName obj (objmap state)
-		      }, ()))
+  transCT (\state -> (state {
+                        objmap = Map.insert hsName obj (objmap state)
+                      }, ()))
 
 -- query the Haskell object map
 --
 queryObj        :: Ident -> GB (Maybe HsObject)
 queryObj hsName  = do
-		     fm <- readCT objmap
-		     return $ Map.lookup hsName fm
+                     fm <- readCT objmap
+                     return $ Map.lookup hsName fm
 
 -- query the Haskell object map for a class
 --
@@ -342,12 +342,12 @@ queryObj hsName  = do
 --
 queryClass        :: Ident -> GB HsObject
 queryClass hsName  = do
-		       let pos = posOf hsName
-		       oobj <- queryObj hsName
-		       case oobj of
-		         Just obj@(Class _ _) -> return obj
-			 Just _		      -> classExpectedErr hsName
-			 Nothing	      -> hsObjExpectedErr hsName
+                       let pos = posOf hsName
+                       oobj <- queryObj hsName
+                       case oobj of
+                         Just obj@(Class _ _) -> return obj
+                         Just _               -> classExpectedErr hsName
+                         Nothing              -> hsObjExpectedErr hsName
 
 -- query the Haskell object map for a pointer
 --
@@ -355,12 +355,12 @@ queryClass hsName  = do
 --
 queryPointer        :: Ident -> GB HsObject
 queryPointer hsName  = do
-		       let pos = posOf hsName
-		       oobj <- queryObj hsName
-		       case oobj of
-		         Just obj@(Pointer _ _) -> return obj
-			 Just _		        -> pointerExpectedErr hsName
-			 Nothing	        -> hsObjExpectedErr hsName
+                       let pos = posOf hsName
+                       oobj <- queryObj hsName
+                       case oobj of
+                         Just obj@(Pointer _ _) -> return obj
+                         Just _                 -> pointerExpectedErr hsName
+                         Nothing                -> hsObjExpectedErr hsName
 
 -- merge the pointer and Haskell object maps
 --
@@ -370,36 +370,36 @@ queryPointer hsName  = do
 --   entries are entered after all import hooks anyway
 --
 -- FIXME: This currently has several shortcomings:
---	  * It just dies in case of a corrupted .chi file
---	  * We should at least have the option to raise a warning if two
---	    entries collide in the `objmap'.  But it would be better to
---	    implement qualified names.
---	  * Do we want position information associated with the read idents?
+--        * It just dies in case of a corrupted .chi file
+--        * We should at least have the option to raise a warning if two
+--          entries collide in the `objmap'.  But it would be better to
+--          implement qualified names.
+--        * Do we want position information associated with the read idents?
 --
 mergeMaps     :: String -> GB ()
 mergeMaps str  =
-  transCT (\state -> (state { 
-		        ptrmap = Map.union readPtrMap (ptrmap state),
-		        objmap = Map.union readObjMap (objmap state)
-		      }, ()))
+  transCT (\state -> (state {
+                        ptrmap = Map.union readPtrMap (ptrmap state),
+                        objmap = Map.union readObjMap (objmap state)
+                      }, ()))
   where
     (ptrAssoc, objAssoc) = read str
     readPtrMap           = Map.fromList [((isStar, onlyPosIdent nopos ide), repr)
-				        | ((isStar, ide), repr) <- ptrAssoc]
+                                        | ((isStar, ide), repr) <- ptrAssoc]
     readObjMap           = Map.fromList [(onlyPosIdent nopos ide, obj)
-				        | (ide, obj)            <- objAssoc]
+                                        | (ide, obj)            <- objAssoc]
 
 -- convert the whole pointer and Haskell object maps into printable form
 --
 dumpMaps :: GB String
 dumpMaps  = do
-	      ptrFM <- readCT ptrmap
-	      objFM <- readCT objmap
-	      let dumpable = ([((isStar, identToLexeme ide), repr)
-			      | ((isStar, ide), repr) <- Map.toList ptrFM],
-			      [(identToLexeme ide, obj)
-			      | (ide, obj)            <- Map.toList objFM])
-	      return $ show dumpable
+              ptrFM <- readCT ptrmap
+              objFM <- readCT objmap
+              let dumpable = ([((isStar, identToLexeme ide), repr)
+                              | ((isStar, ide), repr) <- Map.toList ptrFM],
+                              [(identToLexeme ide, obj)
+                              | (ide, obj)            <- Map.toList objFM])
+              return $ show dumpable
 
 
 -- error messages
@@ -407,7 +407,7 @@ dumpMaps  = do
 
 incompatibleCallHooksErr            :: Position -> Position -> GB a
 incompatibleCallHooksErr here there  =
-  raiseErrorCTExc here 
+  raiseErrorCTExc here
     ["Incompatible call hooks!",
      "There is a another call hook for the same C function at " ++ show there,
      "The flags and C function name of the two hooks should be identical,",

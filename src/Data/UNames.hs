@@ -21,8 +21,8 @@
 --  & D. Synek ``Functional pearl: On generating unique names'', Journal of
 --  Functional Programming 4(1), pp 117-123, 1994.
 --
---  WARNING: DON'T tinker with the implementation!  It uses UNSAFE low-level 
---	     operations!
+--  WARNING: DON'T tinker with the implementation!  It uses UNSAFE low-level
+--           operations!
 --
 --- DOCU ----------------------------------------------------------------------
 --
@@ -33,10 +33,10 @@
 --    are generated from the name space.  Furthermore, names are instances of
 --    `Ix' to allow to use them as indicies.
 --
---  * A supply should be used *at most* once to *either* split it or extract a 
+--  * A supply should be used *at most* once to *either* split it or extract a
 --    stream of names.  A supply used repeatedly will always generate the same
 --    set of names (otherwise, the whole thing wouldn't be referential
---    transparent).  
+--    transparent).
 --
 --  * If you ignored the warning below, looked at the implementation, and lost
 --    faith, consider that laziness means call-by-need *and* sharing, and that
@@ -49,7 +49,7 @@
 --
 
 module Data.UNames (NameSupply, Name,
-	       rootSupply, splitSupply, names)
+               rootSupply, splitSupply, names)
 where
 
 import Data.Ix
@@ -79,7 +79,7 @@ instance Show Name where
   show (Name i) = show i
 
 
---	  	      *** DON'T TOUCH THE FOLLOWING *** 
+--                    *** DON'T TOUCH THE FOLLOWING ***
 --  and if you believe in the lambda calculus better also don't look at it
 --          ! here lives the daemon of unordered destructive updates !
 
@@ -98,14 +98,14 @@ splitSupply s  = repeat s
 --
 names                :: NameSupply -> [Name]
 --
---  The recursion of `theNames' where `s' is passed as an argument is crucial, 
+--  The recursion of `theNames' where `s' is passed as an argument is crucial,
 --  as it forces the creation of a new closure for `unsafeReadAndIncIntRef s'
 --  in each recursion step.  Sharing a single closure or building a cyclic
 --  graph for a nullary `theNames' would always result in the same name!  If
 --  the compiler ever gets clever enough to optimize this, we have to prevent
 --  it from doing so.
 --
-names (NameSupply s)  = 
+names (NameSupply s)  =
   theNames s
   where
     theNames s = Name (unsafeReadAndIncIntRef s) : theNames s
@@ -115,10 +115,10 @@ names (NameSupply s)  =
 -- ------------------------
 
 -- WARNING: The following does not exist, or at least, it belongs to another
---	    world.  And if you believe into the lambda calculus, you don't
---	    want to know about this other world.
+--          world.  And if you believe into the lambda calculus, you don't
+--          want to know about this other world.
 --
---		   *** DON'T TOUCH NOR USE THIS STUFF *** 
+--                 *** DON'T TOUCH NOR USE THIS STUFF ***
 --              (unless you really know what you are doing!)
 
 -- UNSAFELY create a mutable integer (EXPORTED)
@@ -131,6 +131,6 @@ unsafeNewIntRef i  = unsafePerformIO (newIORef i)
 --
 unsafeReadAndIncIntRef    :: IORef Int -> Int
 unsafeReadAndIncIntRef mv  = unsafePerformIO $ do
-			       v <- readIORef mv
-			       writeIORef mv (v + 1)
-			       return v
+                               v <- readIORef mv
+                               writeIORef mv (v + 1)
+                               return v

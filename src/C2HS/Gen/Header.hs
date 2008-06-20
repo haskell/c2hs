@@ -18,7 +18,7 @@
 --- DESCRIPTION ---------------------------------------------------------------
 --
 --  This module implements the generation of a custom header from a binding
---  module. 
+--  module.
 --
 --- DOCU ----------------------------------------------------------------------
 --
@@ -43,7 +43,7 @@
 
 module C2HS.Gen.Header (
   genHeader
-) where 
+) where
 
 -- standard libraries
 import Control.Monad (when)
@@ -52,16 +52,16 @@ import Control.Monad (when)
 import Data.Position  (Position, Pos(..), nopos)
 import Data.DLists (DList)
 import qualified Data.DLists as DL
-import Data.Errors	 (interr)
-import Data.Idents	 (onlyPosIdent)
+import Data.Errors       (interr)
+import Data.Idents       (onlyPosIdent)
 import Data.UNames    (Name, names)
 
 -- C->Haskell
 import C2HS.State (CST, getNameSupply, runCST, transCST, raiseError, catchExc,
-		  throwExc, errorsPresent, showErrors, fatal)
+                  throwExc, errorsPresent, showErrors, fatal)
 
 -- friends
-import C2HS.CHS	 (CHSModule(..), CHSFrag(..))
+import C2HS.CHS  (CHSModule(..), CHSFrag(..))
 
 
 -- The header generation monad
@@ -76,22 +76,22 @@ type GH a = CST [Name] a
 --   conditionals are replaced by structured conditionals
 --
 genHeader :: CHSModule -> CST s ([String], CHSModule, String)
-genHeader mod = 
+genHeader mod =
   do
     supply <- getNameSupply
     (header, mod) <- runCST (ghModule mod) (names supply)
-		     `ifGHExc` return ([], CHSModule [])
+                     `ifGHExc` return ([], CHSModule [])
 
     -- check for errors and finalise
     --
     errs <- errorsPresent
     if errs
       then do
-	errmsgs <- showErrors
-	fatal ("Errors during generation of C header:\n\n"   -- fatal error
-	       ++ errmsgs)
+        errmsgs <- showErrors
+        fatal ("Errors during generation of C header:\n\n"   -- fatal error
+               ++ errmsgs)
       else do
-	warnmsgs <- showErrors
+        warnmsgs <- showErrors
         return (header, mod, warnmsgs)
 
 -- Obtain a new base name that may be used, in C, to encode the result of a
@@ -104,17 +104,17 @@ newName = transCST $
 -- Various forms of processed fragments
 --
 data FragElem = Frag  CHSFrag
-	      | Elif  String Position
-	      | Else  Position
-	      | Endif Position
-	      | EOF
+              | Elif  String Position
+              | Else  Position
+              | Endif Position
+              | EOF
 
 instance Pos FragElem where
   posOf (Frag frag    ) = posOf frag
   posOf (Elif _    pos) = pos
   posOf (Else      pos) = pos
   posOf (Endif     pos) = pos
-  posOf EOF	        = nopos
+  posOf EOF             = nopos
 
 -- check for end of file
 --
@@ -145,15 +145,15 @@ ghModule (CHSModule frags) =
 --
 ghFrags :: [CHSFrag] -> GH (DList String, [CHSFrag], FragElem, [CHSFrag])
 ghFrags []    = return (DL.zero, [], EOF, [])
-ghFrags frags = 
+ghFrags frags =
   do
     (header, frag, rest) <- ghFrag frags
     case frag of
       Frag aFrag -> do
-		      (header2, frags', frag', rest) <- ghFrags rest
-		      -- FIXME: Not tail rec
-		      return (header `DL.join` header2, aFrag:frags',
-			      frag', rest)
+                      (header2, frags', frag', rest) <- ghFrags rest
+                      -- FIXME: Not tail rec
+                      return (header `DL.join` header2, aFrag:frags',
+                              frag', rest)
       _          -> return (header, [], frag, rest)
 
 -- Process a single fragment *structure*; i.e., if the first fragment
@@ -161,11 +161,11 @@ ghFrags frags =
 -- the first fragment
 --
 ghFrag :: [CHSFrag] -> GH (DList String, -- partial header file
-			   FragElem,	 -- processed fragment
-			   [CHSFrag])	 -- not yet processed fragments
+                           FragElem,     -- processed fragment
+                           [CHSFrag])    -- not yet processed fragments
 ghFrag []                              =
   return (DL.zero, EOF, [])
-ghFrag (frag@(CHSVerb  _ _  ) : frags) = 
+ghFrag (frag@(CHSVerb  _ _  ) : frags) =
   return (DL.zero, Frag frag, frags)
 ghFrag (frag@(CHSHook  _    ) : frags) =
   return (DL.zero, Frag frag, frags)
@@ -173,7 +173,7 @@ ghFrag (frag@(CHSLine  _    ) : frags) =
   return (DL.zero, Frag frag, frags)
 ghFrag (     (CHSC    s  _  ) : frags) =
   do
-    (header, frag, frags' ) <- ghFrag frags	-- scan for next CHS fragment
+    (header, frag, frags' ) <- ghFrag frags     -- scan for next CHS fragment
     return (DL.unit s `DL.join` header, frag, frags')
     -- FIXME: this is not tail recursive...
 ghFrag (     (CHSCond _  _  ) : frags) =
@@ -181,11 +181,11 @@ ghFrag (     (CHSCond _  _  ) : frags) =
 ghFrag (frag@(CHSCPP  s  pos) : frags) =
   let
     (directive, _) =   break (`elem` " \t")
-		     . dropWhile (`elem` " \t") 
-		     $ s
+                     . dropWhile (`elem` " \t")
+                     $ s
   in
   case directive of
-    "if"     ->	openIf s pos frags
+    "if"     -> openIf s pos frags
     "ifdef"  -> openIf s pos frags
     "ifndef" -> openIf s pos frags
     "else"   -> return (DL.zero              , Else   pos               , frags)
@@ -198,43 +198,43 @@ ghFrag (frag@(CHSCPP  s  pos) : frags) =
     -- * Arguments are the lexeme of the directive `s', the position of that
     --   directive `pos', and the fragments following the directive `frags'
     --
-    openIf s pos frags = 
+    openIf s pos frags =
       do
         (headerTh, fragsTh, last, rest) <- ghFrags frags
-	case last of
-	  Else    pos -> do
-			   (headerEl, fragsEl, last, rest) <- ghFrags rest
-			   case last of
-	 	       	     Else    pos -> notOpenCondErr pos
-	 	       	     Elif  _ pos -> notOpenCondErr pos
-	 	       	     Endif   pos -> closeIf 
-					      ((headerTh 
-					        `DL.snoc` "#else\n")
-					       `DL.join`
-					       (headerEl
-					        `DL.snoc` "#endif\n"))
-		       	      		      (s, fragsTh)
-					      []
-					      (Just fragsEl)
-					      rest
-	 	       	     EOF         -> notClosedCondErr pos
-	  Elif s' pos -> do
-			   (headerEl, condFrag, rest) <- openIf s' pos rest
-			   case condFrag of
-			     Frag (CHSCond alts dft) -> 
-			       closeIf (headerTh `DL.join` headerEl)
-				       (s, fragsTh)
-				       alts
-				       dft
-				       rest
-			     _		             -> 
-			       interr "GenHeader.ghFrag: Expected CHSCond!"
-	  Endif   pos -> closeIf (headerTh `DL.snoc` "#endif\n")
-				 (s, fragsTh)
-				 []
-				 (Just []) 
-				 rest
-	  EOF         -> notClosedCondErr pos
+        case last of
+          Else    pos -> do
+                           (headerEl, fragsEl, last, rest) <- ghFrags rest
+                           case last of
+                             Else    pos -> notOpenCondErr pos
+                             Elif  _ pos -> notOpenCondErr pos
+                             Endif   pos -> closeIf
+                                              ((headerTh
+                                                `DL.snoc` "#else\n")
+                                               `DL.join`
+                                               (headerEl
+                                                `DL.snoc` "#endif\n"))
+                                              (s, fragsTh)
+                                              []
+                                              (Just fragsEl)
+                                              rest
+                             EOF         -> notClosedCondErr pos
+          Elif s' pos -> do
+                           (headerEl, condFrag, rest) <- openIf s' pos rest
+                           case condFrag of
+                             Frag (CHSCond alts dft) ->
+                               closeIf (headerTh `DL.join` headerEl)
+                                       (s, fragsTh)
+                                       alts
+                                       dft
+                                       rest
+                             _                       ->
+                               interr "GenHeader.ghFrag: Expected CHSCond!"
+          Endif   pos -> closeIf (headerTh `DL.snoc` "#endif\n")
+                                 (s, fragsTh)
+                                 []
+                                 (Just [])
+                                 rest
+          EOF         -> notClosedCondErr pos
     --
     -- turn a completed conditional into a `CHSCond' fragment
     --
@@ -242,17 +242,17 @@ ghFrag (frag@(CHSCPP  s  pos) : frags) =
     --   which `fragTh' should be executed; `alts' are alternative branches
     --   (with conditions); and `oelse' is an optional else-branch
     --
-    closeIf headerTail (s, fragsTh) alts oelse rest = 
+    closeIf headerTail (s, fragsTh) alts oelse rest =
       do
         sentryName <- newName
-	let sentry = onlyPosIdent nopos sentryName
-		       -- don't use an internal ident, as we need to test for
-		       -- equality with identifiers read from the .i file
-		       -- during binding hook expansion
-	    header = DL.open ['#':s, "\n",
-			     "struct ", sentryName, ";\n"] 
-			    `DL.join` headerTail
-	return (header, Frag (CHSCond ((sentry, fragsTh):alts) oelse), rest)
+        let sentry = onlyPosIdent nopos sentryName
+                       -- don't use an internal ident, as we need to test for
+                       -- equality with identifiers read from the .i file
+                       -- during binding hook expansion
+            header = DL.open ['#':s, "\n",
+                             "struct ", sentryName, ";\n"]
+                            `DL.join` headerTail
+        return (header, Frag (CHSCond ((sentry, fragsTh):alts) oelse), rest)
 
 
 -- exception handling

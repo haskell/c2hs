@@ -19,7 +19,7 @@
 --
 --  This module instantiates the Compiler Toolkit's extra state with C2HS's
 --  uncommon state information that should be stored in the Toolkit's base
---  state. 
+--  state.
 --
 --  This modules re-exports everything provided by `State', and thus, should be
 --  used as the single reference to state related functionality within C2HS.
@@ -36,17 +36,17 @@
 --
 
 module C2HS.State (-- re-exports all of `State'
-		  --
-		  module Control.State,
-		  --
-		  -- instantiation of `PreCST' with C2HS's extra state
-		  --
-		  CST, runC2HS,
-		  --
-		  -- switches
-		  --
-		  SwitchBoard(..), Traces(..), setTraces, traceSet,
-		  putTraceStr, setSwitch, getSwitch) 
+                  --
+                  module Control.State,
+                  --
+                  -- instantiation of `PreCST' with C2HS's extra state
+                  --
+                  CST, runC2HS,
+                  --
+                  -- switches
+                  --
+                  SwitchBoard(..), Traces(..), setTraces, traceSet,
+                  putTraceStr, setSwitch, getSwitch)
 where
 
 import Control.Monad (when)
@@ -55,8 +55,8 @@ import System.IO (stderr)
 import Control.State
 import qualified System.CIO as CIO
 
-import C2HS.Switches (SwitchBoard(..), Traces(..), 
-		 initialSwitchBoard)
+import C2HS.Switches (SwitchBoard(..), Traces(..),
+                 initialSwitchBoard)
 
 
 -- instantiation of the extra state
@@ -90,9 +90,9 @@ traceSet t  = readExtra (t . tracesSB)
 --
 putTraceStr       :: (Traces -> Bool) -> String -> CST s ()
 putTraceStr t msg  = do
-		       set <- traceSet t
-		       when set $
-			 CIO.hPutStr stderr msg
+                       set <- traceSet t
+                       when set $
+                         CIO.hPutStr stderr msg
 
 -- set a switch value
 --

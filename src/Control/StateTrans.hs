@@ -23,7 +23,7 @@
 --  the intention to use the first one for the omnipresent compiler state
 --  consisting of the accumulated error messages etc. and to use the second as
 --  a generic component that can be used in different ways by the different
---  phases of the compiler. 
+--  phases of the compiler.
 --
 --  The module also supports the use of exceptions and fatal errors.
 --
@@ -60,21 +60,21 @@
 --
 
 module Control.StateTrans (-- the monad and the generic operations
-		   --
-		   STB,
-		   --
-		   -- monad specific operations
-		   --
-		   readBase, writeBase, transBase, readGeneric, writeGeneric,
-		   transGeneric, liftIO, runSTB, interleave, 
-		   --
-		   -- exception handling and fatal errors
-		   --
-		   throwExc, fatal, catchExc, fatalsHandledBy)
+                   --
+                   STB,
+                   --
+                   -- monad specific operations
+                   --
+                   readBase, writeBase, transBase, readGeneric, writeGeneric,
+                   transGeneric, liftIO, runSTB, interleave,
+                   --
+                   -- exception handling and fatal errors
+                   --
+                   throwExc, fatal, catchExc, fatalsHandledBy)
 where
 
 
--- BEWARE! You enter monad country. Read any of Wadler's or 
+-- BEWARE! You enter monad country. Read any of Wadler's or
 -- Launchbury/Peyton-Jones' texts before entering. Otherwise,
 -- your mental health my be in danger.  You have been warned!
 
@@ -92,7 +92,7 @@ where
 -- successful computations where
 --
 --   `Left (tag, msg)' -- stands for an exception identified by `tag' with
---			  error message `msg', and
+--                        error message `msg', and
 --   `Right a'         -- is a successfully delivered result
 --
 
@@ -113,15 +113,15 @@ yield a  = STB $ \bs gs -> return (bs, gs, Right a)
 --
 (+>=)   :: STB bs gs a -> (a -> STB bs gs b) -> STB bs gs b
 m +>= k  = let
-	     STB m' = m
-	   in
-	   STB $ \bs gs -> m' bs gs >>= \(bs', gs', res) ->
-		     case res of
-		       Left  exc -> return (bs', gs', Left exc)  -- prop exc
-		       Right a   -> let
-				      STB k' = k a
-				    in
-				    k' bs' gs'                   -- cont
+             STB m' = m
+           in
+           STB $ \bs gs -> m' bs gs >>= \(bs', gs', res) ->
+                     case res of
+                       Left  exc -> return (bs', gs', Left exc)  -- prop exc
+                       Right a   -> let
+                                      STB k' = k a
+                                    in
+                                    k' bs' gs'                   -- cont
 
 
 -- generic state manipulation
@@ -144,9 +144,9 @@ writeBase bs'  = STB $ \_ gs -> return (bs', gs, Right ())
 --
 transBase   :: (bs -> (bs, a)) -> STB bs gs a
 transBase f  = STB $ \bs gs -> let
-		                 (bs', a) = f bs
-		               in
-		                 return (bs', gs, Right a)
+                                 (bs', a) = f bs
+                               in
+                                 return (bs', gs, Right a)
 
 -- generic state:
 --
@@ -162,13 +162,13 @@ writeGeneric     :: gs -> STB bs gs ()
 writeGeneric gs'  = STB $ \bs _ -> return (bs, gs', Right ())
 
 -- given a transformer function for the generic state, wrap it into an STB
--- monad 
+-- monad
 --
 transGeneric   :: (gs -> (gs, a)) -> STB bs gs a
 transGeneric f  = STB $ \bs gs -> let
-			            (gs', a) = f gs
-				  in
-				  return (bs, gs', Right a)
+                                    (gs', a) = f gs
+                                  in
+                                  return (bs, gs', Right a)
 
 
 -- interaction with the encapsulated `IO' monad
@@ -187,27 +187,27 @@ liftIO m  = STB $ \bs gs -> m >>= \r -> return (bs, gs, Right r)
 --
 runSTB         :: STB bs gs a -> bs -> gs -> IO a
 runSTB m bs gs  = let
-		    STB m' = m
-		  in 
-		  m' bs gs >>= \(_, _, res) -> 
-		  case res of
-		    Left  (tag, msg) -> let
-					  err = userError ("Exception `" 
-							   ++ tag ++ "': "
-							   ++ msg)
-					in
-					ioError err 
-		    Right a          -> return a
+                    STB m' = m
+                  in
+                  m' bs gs >>= \(_, _, res) ->
+                  case res of
+                    Left  (tag, msg) -> let
+                                          err = userError ("Exception `"
+                                                           ++ tag ++ "': "
+                                                           ++ msg)
+                                        in
+                                        ioError err
+                    Right a          -> return a
 
 -- interleave the (complete) execution of an `STB' with another generic state
 -- component into an `STB'
 --
 interleave :: STB bs gs' a -> gs' -> STB bs gs a
 interleave m gs' = STB $ let
-		           STB m' = m
-			 in 
-		         \bs gs 
-			 -> (m' bs gs' >>= \(bs', _, a) -> return (bs', gs, a))
+                           STB m' = m
+                         in
+                         \bs gs
+                         -> (m' bs gs' >>= \(bs', _, a) -> return (bs', gs, a))
 
 
 -- error and exception handling
@@ -215,7 +215,7 @@ interleave m gs' = STB $ let
 
 -- * we exploit the `UserError' component of `IOError' for fatal errors
 --
--- * we distinguish exceptions and user-defined fatal errors 
+-- * we distinguish exceptions and user-defined fatal errors
 --
 --   - exceptions are meant to be caught in order to recover the currently
 --     executed operation; they turn into fatal errors if they are not caught;
@@ -252,25 +252,25 @@ fatal s  = liftIO (ioError (userError s))
 --   thrown (this semantics is the only reasonable when it should be possible
 --   to use updating for maintaining the state)
 --
-catchExc                  :: STB bs gs a 
-		          -> (String, String -> STB bs gs a) 
-		          -> STB bs gs a
-catchExc m (tag, handler)  = 
-  STB $ \bs gs 
-	-> let 
-	     STB m' = m
-	   in 
-	   m' bs gs >>= \state@(bs', gs', res) ->
-	   case res of
-	     Left (tag', msg) -> if (tag == tag')       -- exception with...
-				 then
-				   let
-				     STB handler' = handler msg 
-				   in
-				   handler' bs' gs'     -- correct tag, catch
-				 else
-				   return state         -- wrong tag, rethrow
-	     Right _          -> return state		-- no exception
+catchExc                  :: STB bs gs a
+                          -> (String, String -> STB bs gs a)
+                          -> STB bs gs a
+catchExc m (tag, handler)  =
+  STB $ \bs gs
+        -> let
+             STB m' = m
+           in
+           m' bs gs >>= \state@(bs', gs', res) ->
+           case res of
+             Left (tag', msg) -> if (tag == tag')       -- exception with...
+                                 then
+                                   let
+                                     STB handler' = handler msg
+                                   in
+                                   handler' bs' gs'     -- correct tag, catch
+                                 else
+                                   return state         -- wrong tag, rethrow
+             Right _          -> return state           -- no exception
 
 -- given a state transformer that may raise fatal errors and an error handler
 -- for fatal errors, execute the state transformer and apply the error handler
@@ -283,21 +283,21 @@ catchExc m (tag, handler)  =
 --   to `catch'* the state *before* the state transformer is applied
 --
 fatalsHandledBy :: STB bs gs a -> (IOError -> STB bs gs a) -> STB bs gs a
-fatalsHandledBy m handler  = 
-  STB $ \bs gs 
+fatalsHandledBy m handler  =
+  STB $ \bs gs
         -> (let
-	      STB m' = m
-	    in
-	    m' bs gs >>= \state@(gs', bs', res) ->
-	    case res of
-	      Left  (tag, msg) -> let
-				    err = userError ("Exception `" ++ tag 
-						     ++ "': " ++ msg)
-				  in
-				  ioError err
-	      Right a          -> return state
-	    )
-	    `catch` (\err -> let
-			       STB handler' = handler err
-			     in
-			     handler' bs gs)
+              STB m' = m
+            in
+            m' bs gs >>= \state@(gs', bs', res) ->
+            case res of
+              Left  (tag, msg) -> let
+                                    err = userError ("Exception `" ++ tag
+                                                     ++ "': " ++ msg)
+                                  in
+                                  ioError err
+              Right a          -> return state
+            )
+            `catch` (\err -> let
+                               STB handler' = handler err
+                             in
+                             handler' bs gs)

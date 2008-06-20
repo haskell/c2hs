@@ -33,7 +33,7 @@
 --  * Attributes may be associated to identifiers, except with `OnlyPos'
 --    identifiers, which have a position as their only attribute (they do not
 --    carry an attribute identifier, which can be used to index attribute
---    tables). 
+--    tables).
 --
 --- TODO ----------------------------------------------------------------------
 --
@@ -41,7 +41,7 @@
 --
 
 module Data.Idents (Ident, lexemeToIdent, internalIdent,
-	       onlyPosIdent, identToLexeme, getIdentAttrs)
+               onlyPosIdent, identToLexeme, getIdentAttrs)
 where
 
 import Data.Char
@@ -49,14 +49,14 @@ import Data.Position   (Position, Pos(posOf), nopos)
 import Data.UNames     (Name)
 import Data.Errors     (interr)
 import Data.Attributes (Attrs, newAttrsOnlyPos, newAttrs,
-		   Attributed(attrsOf), posOfAttrsOf)
+                   Attributed(attrsOf), posOfAttrsOf)
 
 
 -- simple identifier representation (EXPORTED)
 --
-data Ident = Ident String	-- lexeme
- {-# UNBOXED #-}   !Int		-- hash to speed up equality check
-		   Attrs    	-- attributes of this ident. incl. position
+data Ident = Ident String       -- lexeme
+ {-# UNBOXED #-}   !Int         -- hash to speed up equality check
+                   Attrs        -- attributes of this ident. incl. position
 
 -- the definition of the equality allows identifiers to be equal that are
 -- defined at different source text positions, and aims at speeding up the
@@ -89,17 +89,17 @@ instance Pos Ident where
 -- identifiers lexeme and store it in the identifiers representation
 
 -- hash function from the dragon book pp437; assumes 7 bit characters and needs
--- the (nearly) full range of values guaranteed for `Int' by the Haskell 
--- language definition; can handle 8 bit characters provided we have 29 bit 
+-- the (nearly) full range of values guaranteed for `Int' by the Haskell
+-- language definition; can handle 8 bit characters provided we have 29 bit
 -- for the `Int's without sign
 --
 quad                 :: String -> Int
 quad (c1:c2:c3:c4:s)  = ((ord c4 * bits21
-			  + ord c3 * bits14 
-			  + ord c2 * bits7
-			  + ord c1) 
-			 `mod` bits28)
-			+ (quad s `mod` bits28)
+                          + ord c3 * bits14
+                          + ord c2 * bits7
+                          + ord c1)
+                         `mod` bits28)
+                        + (quad s `mod` bits28)
 quad (c1:c2:c3:[]  )  = ord c3 * bits14 + ord c2 * bits7 + ord c1
 quad (c1:c2:[]     )  = ord c2 * bits7 + ord c1
 quad (c1:[]        )  = ord c1
@@ -138,7 +138,7 @@ onlyPosIdent pos s  = Ident s (quad s) (newAttrsOnlyPos pos)
 
 -- given an abstract identifier, yield its lexeme (EXPORTED)
 --
-identToLexeme	            :: Ident -> String
+identToLexeme               :: Ident -> String
 identToLexeme (Ident s _ _)  = s
 
 -- get the attribute identifier associated with the given identifier (EXPORTED)
@@ -150,4 +150,4 @@ getIdentAttrs (Ident _ _ as)  = as
 -- (EXPORTED)
 --
 dumpIdent     :: Ident -> String
-dumpIdent ide  = identToLexeme ide ++ " at " ++ show (posOf ide) 
+dumpIdent ide  = identToLexeme ide ++ " at " ++ show (posOf ide)

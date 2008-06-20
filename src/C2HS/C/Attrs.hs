@@ -23,7 +23,7 @@
 --    - `CObj' in `defObjsAC': The name space of objects, functions, typedef
 --        names, and enum constants.
 --    - `CTag' in `defTagsAC': The name space of tags of structures, unions,
---        and enumerations. 
+--        and enumerations.
 --
 --  * The final state of the names spaces are preserved in the attributed
 --    structure tree.  This allows further fast lookups for globally defined
@@ -53,17 +53,17 @@
 --
 
 module C2HS.C.Attrs (-- attributed C
-	       --
-	       AttrC, emptyAttrC, enterNewRangeC, enterNewObjRangeC,
-	       leaveRangeC, leaveObjRangeC, addDefObjC, lookupDefObjC,
-	       lookupDefObjCShadow, addDefTagC, lookupDefTagC,
-	       lookupDefTagCShadow, applyPrefix, getDefOfIdentC,
-	       setDefOfIdentC, updDefOfIdentC, freezeDefOfIdentsAttrC,
-	       softenDefOfIdentsAttrC,
-	       --
-	       -- C objects
-	       --
-	       CObj(..), CTag(..), CDef(..))
+               --
+               AttrC, emptyAttrC, enterNewRangeC, enterNewObjRangeC,
+               leaveRangeC, leaveObjRangeC, addDefObjC, lookupDefObjC,
+               lookupDefObjCShadow, addDefTagC, lookupDefTagC,
+               lookupDefTagCShadow, applyPrefix, getDefOfIdentC,
+               setDefOfIdentC, updDefOfIdentC, freezeDefOfIdentsAttrC,
+               softenDefOfIdentsAttrC,
+               --
+               -- C objects
+               --
+               CObj(..), CTag(..), CDef(..))
 where
 
 import Data.Char  (toUpper)
@@ -71,11 +71,11 @@ import Data.Maybe (mapMaybe)
 
 import Data.Position   (Pos(posOf), nopos, dontCarePos, builtinPos)
 import Data.Errors     (interr)
-import Data.Idents	  (Ident, getIdentAttrs, identToLexeme, onlyPosIdent)
+import Data.Idents        (Ident, getIdentAttrs, identToLexeme, onlyPosIdent)
 import Data.Attributes (Attr(..), AttrTable, getAttr, setAttr, updAttr,
-		   newAttrTable, freezeAttrTable, softenAttrTable)
+                   newAttrTable, freezeAttrTable, softenAttrTable)
 import Data.NameSpaces (NameSpace, nameSpace, enterNewRange, leaveRange, defLocal,
-		   defGlobal, find, nameSpaceToList)
+                   defGlobal, find, nameSpaceToList)
 
 import C2HS.C.AST
 
@@ -87,21 +87,21 @@ import C2HS.C.AST
 -- (EXPORTED ABSTRACT)
 --
 data AttrC = AttrC {
-		defObjsAC :: CObjNS,		-- defined objects
-		defTagsAC :: CTagNS,		-- defined tags
-		shadowsAC :: CShadowNS,		-- shadow definitions (prefix)
-		defsAC    :: CDefTable		-- ident-def associations
-	      }
+                defObjsAC :: CObjNS,            -- defined objects
+                defTagsAC :: CTagNS,            -- defined tags
+                shadowsAC :: CShadowNS,         -- shadow definitions (prefix)
+                defsAC    :: CDefTable          -- ident-def associations
+              }
 
 -- empty headder attribute set (EXPORTED)
 --
 emptyAttrC :: AttrC
 emptyAttrC  = AttrC {
-	     defObjsAC = cObjNS,
-	     defTagsAC = cTagNS,
-	     shadowsAC = cShadowNS,
-	     defsAC    = cDefTable
-	   }
+             defObjsAC = cObjNS,
+             defTagsAC = cTagNS,
+             shadowsAC = cShadowNS,
+             defsAC    = cDefTable
+           }
 
 
 -- the name space operations
@@ -111,31 +111,31 @@ emptyAttrC  = AttrC {
 --
 enterNewRangeC    :: AttrC -> AttrC
 enterNewRangeC ac  = ac {
-		      defObjsAC = enterNewRange . defObjsAC $ ac,
-		      defTagsAC = enterNewRange . defTagsAC $ ac
-		     }
+                      defObjsAC = enterNewRange . defObjsAC $ ac,
+                      defTagsAC = enterNewRange . defTagsAC $ ac
+                     }
 
 -- enter a new range, only for objects (EXPORTED)
 --
 enterNewObjRangeC    :: AttrC -> AttrC
 enterNewObjRangeC ac  = ac {
-		          defObjsAC = enterNewRange . defObjsAC $ ac
-		        }
+                          defObjsAC = enterNewRange . defObjsAC $ ac
+                        }
 
 -- leave the current range (EXPORTED)
 --
 leaveRangeC    :: AttrC -> AttrC
 leaveRangeC ac  = ac {
-		    defObjsAC = fst . leaveRange . defObjsAC $ ac,
-		    defTagsAC = fst . leaveRange . defTagsAC $ ac
-		   }
+                    defObjsAC = fst . leaveRange . defObjsAC $ ac,
+                    defTagsAC = fst . leaveRange . defTagsAC $ ac
+                   }
 
 -- leave the current range, only for objects (EXPORTED)
 --
 leaveObjRangeC    :: AttrC -> AttrC
 leaveObjRangeC ac  = ac {
-		       defObjsAC = fst . leaveRange . defObjsAC $ ac
-		     }
+                       defObjsAC = fst . leaveRange . defObjsAC $ ac
+                     }
 
 -- add another definitions to the object name space (EXPORTED)
 --
@@ -143,91 +143,91 @@ leaveObjRangeC ac  = ac {
 --
 addDefObjC            :: AttrC -> Ident -> CObj -> (AttrC, Maybe CObj)
 addDefObjC ac ide obj  = let om          = defObjsAC ac
-			     (ac', obj') = defLocal om ide obj
-			 in
-			 (ac {defObjsAC = ac'}, obj')
+                             (ac', obj') = defLocal om ide obj
+                         in
+                         (ac {defObjsAC = ac'}, obj')
 
 -- lookup an identifier in the object name space (EXPORTED)
 --
 lookupDefObjC        :: AttrC -> Ident -> Maybe CObj
 lookupDefObjC ac ide  = find (defObjsAC ac) ide
 
--- lookup an identifier in the object name space; if nothing found, try 
+-- lookup an identifier in the object name space; if nothing found, try
 -- whether there is a shadow identifier that matches (EXPORTED)
 --
 -- * the returned identifier is the _real_ identifier of the object
 --
 lookupDefObjCShadow        :: AttrC -> Ident -> Maybe (CObj, Ident)
-lookupDefObjCShadow ac ide  = 
+lookupDefObjCShadow ac ide  =
   case lookupDefObjC ac ide of
     Just obj -> Just (obj, ide)
     Nothing  -> case find (shadowsAC ac) ide of
-		  Nothing   -> Nothing
-		  Just ide' -> case lookupDefObjC ac ide' of
-			         Just obj -> Just (obj, ide')
-				 Nothing  -> Nothing
+                  Nothing   -> Nothing
+                  Just ide' -> case lookupDefObjC ac ide' of
+                                 Just obj -> Just (obj, ide')
+                                 Nothing  -> Nothing
 
 -- add another definition to the tag name space (EXPORTED)
 --
--- * if a definition of the same name was already present, it is returned 
+-- * if a definition of the same name was already present, it is returned
 --
 addDefTagC            :: AttrC -> Ident -> CTag -> (AttrC, Maybe CTag)
 addDefTagC ac ide obj  = let tm          = defTagsAC ac
-			     (ac', obj') = defLocal tm ide obj
-			 in
-			 (ac {defTagsAC = ac'}, obj')
+                             (ac', obj') = defLocal tm ide obj
+                         in
+                         (ac {defTagsAC = ac'}, obj')
 
 -- lookup an identifier in the tag name space (EXPORTED)
 --
 lookupDefTagC        :: AttrC -> Ident -> Maybe CTag
 lookupDefTagC ac ide  = find (defTagsAC ac) ide
 
--- lookup an identifier in the tag name space; if nothing found, try 
+-- lookup an identifier in the tag name space; if nothing found, try
 -- whether there is a shadow identifier that matches (EXPORTED)
 --
 -- * the returned identifier is the _real_ identifier of the tag
 --
 lookupDefTagCShadow        :: AttrC -> Ident -> Maybe (CTag, Ident)
-lookupDefTagCShadow ac ide  = 
+lookupDefTagCShadow ac ide  =
   case lookupDefTagC ac ide of
     Just tag -> Just (tag, ide)
     Nothing  -> case find (shadowsAC ac) ide of
-		  Nothing   -> Nothing
-		  Just ide' -> case lookupDefTagC ac ide' of
-			         Just tag -> Just (tag, ide')
-				 Nothing  -> Nothing
+                  Nothing   -> Nothing
+                  Just ide' -> case lookupDefTagC ac ide' of
+                                 Just tag -> Just (tag, ide')
+                                 Nothing  -> Nothing
 
 -- enrich the shadow name space with identifiers obtained by dropping
 -- the given prefix from the identifiers already in the object or tag name
 -- space (EXPORTED)
 --
 -- * in case of a collisions, a random entry is selected
--- 
+--
 -- * case is not relevant in the prefix and underscores between the prefix and
 --   the stem of an identifier are also dropped
--- 
+--
 applyPrefix           :: AttrC -> String -> AttrC
 applyPrefix ac prefix  =
-  let 
+  let
     shadows    = shadowsAC ac
     names      =    map fst (nameSpaceToList (defObjsAC ac))
-	         ++ map fst (nameSpaceToList (defTagsAC ac))
+                 ++ map fst (nameSpaceToList (defTagsAC ac))
     newShadows = mapMaybe (strip prefix) names
   in
   ac {shadowsAC = foldl define shadows newShadows}
   where
     strip prefix ide = case eat prefix (identToLexeme ide) of
-		         Nothing      -> Nothing
-			 Just ""      -> Nothing
-			 Just newName -> Just 
-					   (onlyPosIdent (posOf ide) newName,
-					    ide)
+                         Nothing      -> Nothing
+                         Just ""      -> Nothing
+                         Just newName -> Just
+                                           (onlyPosIdent (posOf ide) newName,
+                                            ide)
     --
     eat []         ('_':cs)                        = eat [] cs
     eat []         cs                              = Just cs
     eat (p:prefix) (c:cs) | toUpper p == toUpper c = eat prefix cs
-			  | otherwise		   = Nothing
-    eat _          _				   = Nothing
+                          | otherwise              = Nothing
+    eat _          _                               = Nothing
     --
     define ns (ide, def) = fst (defGlobal ns ide def)
 
@@ -241,13 +241,13 @@ getDefOfIdentC    :: AttrC -> Ident -> CDef
 getDefOfIdentC ac  = getAttr (defsAC ac) . getIdentAttrs
 
 setDefOfIdentC           :: AttrC -> Ident -> CDef -> AttrC
-setDefOfIdentC ac id def  = 
+setDefOfIdentC ac id def  =
   let tot' = setAttr (defsAC ac) (getIdentAttrs id) def
   in
   ac {defsAC = tot'}
 
 updDefOfIdentC            :: AttrC -> Ident -> CDef -> AttrC
-updDefOfIdentC ac id def  = 
+updDefOfIdentC ac id def  =
   let tot' = updAttr (defsAC ac) (getIdentAttrs id) def
   in
   ac {defsAC = tot'}
@@ -264,10 +264,10 @@ softenDefOfIdentsAttrC ac  = ac {defsAC = softenAttrTable (defsAC ac)}
 
 -- C objects data definition (EXPORTED)
 --
-data CObj = TypeCO    CDecl		-- typedef declaration
-	  | ObjCO     CDecl		-- object or function declaration
-	  | EnumCO    Ident CEnum	-- enumerator
-	  | BuiltinCO			-- builtin object
+data CObj = TypeCO    CDecl             -- typedef declaration
+          | ObjCO     CDecl             -- object or function declaration
+          | EnumCO    Ident CEnum       -- enumerator
+          | BuiltinCO                   -- builtin object
 
 -- two C objects are equal iff they are defined by the same structure
 -- tree node (i.e., the two nodes referenced have the same attribute
@@ -277,7 +277,7 @@ instance Eq CObj where
   (TypeCO decl1     ) == (TypeCO decl2     ) = decl1 == decl2
   (ObjCO  decl1     ) == (ObjCO  decl2     ) = decl1 == decl2
   (EnumCO ide1 enum1) == (EnumCO ide2 enum2) = ide1 == ide2 && enum1 == enum2
-  _		      == _		     = False
+  _                   == _                   = False
 
 instance Pos CObj where
   posOf (TypeCO    def  ) = posOf def
@@ -291,8 +291,8 @@ instance Pos CObj where
 
 -- C tagged objects data definition (EXPORTED)
 --
-data CTag = StructUnionCT CStructUnion	-- toplevel struct-union declaration
-	  | EnumCT        CEnum		-- toplevel enum declaration
+data CTag = StructUnionCT CStructUnion  -- toplevel struct-union declaration
+          | EnumCT        CEnum         -- toplevel enum declaration
 
 -- two C tag objects are equal iff they are defined by the same structure
 -- tree node (i.e., the two nodes referenced have the same attribute
@@ -301,7 +301,7 @@ data CTag = StructUnionCT CStructUnion	-- toplevel struct-union declaration
 instance Eq CTag where
   (StructUnionCT struct1) == (StructUnionCT struct2) = struct1 == struct2
   (EnumCT        enum1  ) == (EnumCT        enum2  ) = enum1 == enum2
-  _			  == _			     = False
+  _                       == _                       = False
 
 instance Pos CTag where
   posOf (StructUnionCT def) = posOf def
@@ -313,10 +313,10 @@ instance Pos CTag where
 
 -- C general definition (EXPORTED)
 --
-data CDef = UndefCD			-- undefined object
-	  | DontCareCD			-- don't care object
-	  | ObjCD      CObj		-- C object
-	  | TagCD      CTag		-- C tag
+data CDef = UndefCD                     -- undefined object
+          | DontCareCD                  -- don't care object
+          | ObjCD      CObj             -- C object
+          | TagCD      CTag             -- C tag
 
 -- two C definitions are equal iff they are defined by the same structure
 -- tree node (i.e., the two nodes referenced have the same attribute
@@ -326,23 +326,23 @@ data CDef = UndefCD			-- undefined object
 instance Eq CDef where
   (ObjCD obj1) == (ObjCD obj2) = obj1 == obj2
   (TagCD tag1) == (TagCD tag2) = tag1 == tag2
-  DontCareCD   == _	       = True
-  _	       == DontCareCD   = True
-  UndefCD      == _	       = 
+  DontCareCD   == _            = True
+  _            == DontCareCD   = True
+  UndefCD      == _            =
     interr "CAttrs: Attempt to compare an undefined C definition!"
-  _	       == UndefCD      = 
+  _            == UndefCD      =
     interr "CAttrs: Attempt to compare an undefined C definition!"
-  _	       == _	       = False
+  _            == _            = False
 
 instance Attr CDef where
   undef    = UndefCD
   dontCare = DontCareCD
 
   isUndef UndefCD = True
-  isUndef _	  = False
+  isUndef _       = False
 
   isDontCare DontCareCD = True
-  isDontCare _		= False
+  isDontCare _          = False
 
 instance Pos CDef where
   posOf UndefCD     = nopos
