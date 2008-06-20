@@ -105,9 +105,9 @@ import Data.Errors	 (interr)
 import Data.Idents    (Ident, identToLexeme, onlyPosIdent)
 
 -- C->Haskell
-import C2HS.State (CST, doesFileExistCIO, readFileCIO, writeFileCIO,
-		  getSwitch, chiPathSB, catchExc, throwExc, raiseError, 
+import C2HS.State (CST, getSwitch, chiPathSB, catchExc, throwExc, raiseError,
 		  fatal, errorsPresent, showErrors, Traces(..), putTraceStr) 
+import System.CIO (doesFileExistCIO, readFileCIO, writeFileCIO)
 import C2HS.Version    (version)
 
 -- friends

@@ -132,13 +132,13 @@ import Control.StateBase  (liftIO)
 
 -- c2hs modules
 import C2HS.State  (CST, runC2HS, fatal, fatalsHandledBy,
-		   ExitCode(..), stderr, putStrCIO, putStrLnCIO,
+		   SwitchBoard(..), Traces(..), setTraces,
+		   traceSet, setSwitch, getSwitch, putTraceStr)
+import System.CIO (ExitCode(..), stderr, putStrCIO, putStrLnCIO,
 		   hPutStrCIO, printCIO,
 		   hPutStrLnCIO, exitWithCIO, getArgsCIO, getProgNameCIO,
 		   ioeGetErrorString, ioeGetFileName, removeFileCIO,
-		   systemCIO, readFileCIO, writeFileCIO,
-		   SwitchBoard(..), Traces(..), setTraces,
-		   traceSet, setSwitch, getSwitch, putTraceStr)
+		   systemCIO, readFileCIO, writeFileCIO,)
 import C2HS.C	  (hsuffix, isuffix, loadAttrC)
 import C2HS.CHS	  (loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
 import C2HS.Gen.Header  (genHeader)

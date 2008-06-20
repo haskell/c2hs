@@ -52,6 +52,7 @@ where
 import Control.Monad (when)
 
 import Control.State
+import System.CIO
 
 import C2HS.Switches (SwitchBoard(..), Traces(..), 
 		 initialSwitchBoard)

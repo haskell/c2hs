@@ -41,9 +41,8 @@ module Control.State (-- the PreCST monad
 	      throwExc, fatal, catchExc, fatalsHandledBy,  -- reexport lifted
 	      readCST, writeCST, transCST, run, runCST, 
 	      --
-	      -- reexport compiler I/O
+	      -- more compiler I/O
 	      --
-	      module System.CIO,
 	      liftIO,
 	      --
 	      -- error management

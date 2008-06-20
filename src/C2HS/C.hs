@@ -65,9 +65,9 @@ import Data.Idents	  (Ident)
 import Data.Attributes (Attrs, Attr(..))
 
 import C2HS.State  (CST,
-		   readFileCIO,
 		   fatal, errorsPresent, showErrors,
 		   Traces(..), putTraceStr)
+import System.CIO (readFileCIO)
 import C2HS.C.AST
 import C2HS.C.Parser    (parseC)
 import C2HS.C.Pretty    () -- just Show instances
