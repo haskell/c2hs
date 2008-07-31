@@ -1091,6 +1091,14 @@ underscoreToCase ide upper pos  =
 -- | this is disambiguated and left factored
 --
 parsePath :: [CHSToken] -> CST s (CHSAPath, [CHSToken])
+parsePath (CHSTokLParen pos: toks) =
+  do
+    (inner_path, toks_rest) <- parsePath toks
+    toks_rest' <- case toks_rest of
+                    (CHSTokRParen pos : ts) -> return ts
+                    _ -> syntaxError toks_rest
+    (pathWithHole, toks') <- parsePath' toks_rest'
+    return (pathWithHole inner_path, toks')
 parsePath (CHSTokStar pos:toks) =
   do
     (path, toks') <- parsePath toks
