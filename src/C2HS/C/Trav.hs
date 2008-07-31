@@ -678,7 +678,7 @@ checkForOneCUName decl@(CDecl specs _ _)  =
         case declaredDeclr decl of
           Nothing                       -> n
           Just (CVarDeclr _ _         ) -> n
-          Just (CPtrDeclr _ (CVarDeclr _ _) _) -> Nothing
+          _                             -> Nothing
     _                                  -> Nothing
 
 -- smart lookup
