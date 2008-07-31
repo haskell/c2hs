@@ -166,7 +166,7 @@
 --  * Comments in the "gap" of a string are not yet supported.
 --
 
-module C2HS.CHS.Lexer (CHSToken(..), lexCHS)
+module C2HS.CHS.Lexer (CHSToken(..), lexCHS, keywordToIdent)
 where
 
 import Data.List     ((\\))
@@ -176,7 +176,7 @@ import Control.Monad (liftM)
 import Data.Position  (Position(..), Pos(posOf), incPos, retPos, tabPos)
 import Data.Errors    (ErrorLvl(..), makeError)
 import Data.UNames       (Name, names)
-import Data.Idents    (Ident, lexemeToIdent, identToLexeme)
+import Data.Idents    (Ident, lexemeToIdent, identToLexeme, onlyPosIdent)
 import Text.Lexers    (Regexp, Lexer, Action, epsilon, char, (+>), lexaction,
                   lexactionErr, lexmeta, (>|<), (>||<), ctrlLexer, star, plus,
                   alt, string, execLexer)
@@ -706,6 +706,38 @@ identOrKW  =
     idkwtok pos cs                 name = mkid pos cs name
     --
     mkid pos cs name = CHSTokIdent pos (lexemeToIdent pos cs name)
+
+keywordToIdent :: CHSToken -> CHSToken
+keywordToIdent tok =
+  case tok of
+    CHSTokAs      pos -> mkid pos "as"
+    CHSTokCall    pos -> mkid pos "call"
+    CHSTokClass   pos -> mkid pos "class"
+    CHSTokContext pos -> mkid pos "context"
+    CHSTokDerive  pos -> mkid pos "deriving"
+    CHSTokDown    pos -> mkid pos "downcaseFirstLetter"
+    CHSTokEnum    pos -> mkid pos "enum"
+    CHSTokForeign pos -> mkid pos "foreign"
+    CHSTokFun     pos -> mkid pos "fun"
+    CHSTokGet     pos -> mkid pos "get"
+    CHSTokImport  pos -> mkid pos "import"
+    CHSTokLib     pos -> mkid pos "lib"
+    CHSTokNewtype pos -> mkid pos "newtype"
+    CHSTokNocode  pos -> mkid pos "nocode"
+    CHSTokPointer pos -> mkid pos "pointer"
+    CHSTokPrefix  pos -> mkid pos "prefix"
+    CHSTokPure    pos -> mkid pos "pure"
+    CHSTokQualif  pos -> mkid pos "qualified"
+    CHSTokSet     pos -> mkid pos "set"
+    CHSTokSizeof  pos -> mkid pos "sizeof"
+    CHSTokStable  pos -> mkid pos "stable"
+    CHSTokType    pos -> mkid pos "type"
+    CHSTok_2Case  pos -> mkid pos "underscoreToCase"
+    CHSTokUnsafe  pos -> mkid pos "unsafe"
+    CHSTokUpper   pos -> mkid pos "upcaseFirstLetter"
+    CHSTokWith    pos -> mkid pos "with"
+    _ -> tok
+    where mkid pos str = CHSTokIdent pos (onlyPosIdent pos str)
 
 -- | reserved symbols
 --

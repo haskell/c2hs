@@ -111,7 +111,7 @@ import qualified System.CIO as CIO
 import C2HS.Version    (version)
 
 -- friends
-import C2HS.CHS.Lexer  (CHSToken(..), lexCHS)
+import C2HS.CHS.Lexer  (CHSToken(..), lexCHS, keywordToIdent)
 
 
 -- CHS abstract syntax
@@ -1095,27 +1095,28 @@ parsePath (CHSTokStar pos:toks) =
   do
     (path, toks') <- parsePath toks
     return (CHSDeref path pos, toks')
-parsePath (CHSTokIdent _ ide:toks) =
-  do
-    (pathWithHole, toks') <- parsePath' toks
-    return (pathWithHole (CHSRoot ide), toks')
+parsePath (tok:toks) =
+  case keywordToIdent tok of
+    (CHSTokIdent _ ide) ->
+      do
+        (pathWithHole, toks') <- parsePath' toks
+        return (pathWithHole (CHSRoot ide), toks')
+    _ -> syntaxError (tok:toks)
 parsePath toks = syntaxError toks
 
 -- | @s->m@ is represented by @(*s).m@ in the tree
 --
 parsePath' :: [CHSToken] -> CST s (CHSAPath -> CHSAPath, [CHSToken])
-parsePath' (CHSTokDot _:CHSTokIdent _ ide:toks) =
+parsePath' tokens@(CHSTokDot _:desig:toks) =
   do
+    ide <- case keywordToIdent desig of CHSTokIdent _ i -> return i; _ -> syntaxError tokens
     (pathWithHole, toks') <- parsePath' toks
     return (pathWithHole . (\hole -> CHSRef hole ide), toks')
-parsePath' (CHSTokDot _:toks) =
-  syntaxError toks
-parsePath' (CHSTokArrow pos:CHSTokIdent _ ide:toks) =
+parsePath' tokens@(CHSTokArrow pos:desig:toks) =
   do
+    ide <- case keywordToIdent desig of CHSTokIdent _ i -> return i; _ -> syntaxError tokens
     (pathWithHole, toks') <- parsePath' toks
     return (pathWithHole . (\hole -> CHSRef (CHSDeref hole pos) ide), toks')
-parsePath' (CHSTokArrow _:toks) =
-  syntaxError toks
 parsePath' toks =
     return (id,toks)
 
