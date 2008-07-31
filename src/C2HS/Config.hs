@@ -46,7 +46,9 @@ import System.Info (arch, os)
 -- | C preprocessor executable
 --
 cpp :: FilePath
-cpp  = "cpp"
+cpp  = case os of
+  "darwin" -> "gcc"
+  _        -> "cpp"
 
 -- | C preprocessor options
 --
@@ -57,11 +59,12 @@ cpp  = "cpp"
 -- * @-P@ would suppress @#line@ directives
 --
 cppopts :: String
-cppopts  = case os of
+cppopts  = case (os,cpp) of
   -- why is gcc different between all these platforms?
-  "darwin"  -> "-x=c"
-  "openbsd" -> "-xc"
-  _         -> "-x c"
+  ("openbsd","cpp") -> "-xc"
+  (_,"cpp")         -> "-x c"
+  (_,"gcc")         -> "-E -x c"
+  _                 -> ""
 
 -- | C2HS Library file name
 --
