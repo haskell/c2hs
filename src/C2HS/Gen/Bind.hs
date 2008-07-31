@@ -1060,18 +1060,18 @@ accessPath (CHSDeref path pos) =                        -- *a
   do
     (decl, offsets) <- accessPath path
     decl' <- derefOrErr decl
-    adecl <- replaceByAlias decl'
+    adecl  <- replaceByAlias decl'
     return (adecl, BitSize 0 0 : offsets)
   where
-    derefOrErr (CDecl specs [declr] at) =
-      case declr of
-        (Just (CPtrDeclr [_]       declr at), oinit, oexpr) ->
-          return $ CDecl specs [(Just declr, oinit, oexpr)] at
-        (Just (CPtrDeclr (_:quals) declr at), oinit, oexpr) ->
-          return $
-            CDecl specs [(Just (CPtrDeclr quals declr at), oinit, oexpr)] at
-        _                                                   ->
-          ptrExpectedErr pos
+    derefOrErr (CDecl specs [(Just declr, oinit, oexpr)] at) =
+      do
+        declr' <- derefDeclr declr
+        return $ CDecl specs [(Just declr', oinit, oexpr)] at
+    derefDeclr (CPtrDeclr _ i@(CVarDeclr _ _) _) = return i
+    derefDeclr (CPtrDeclr quals declr at) = liftM (\d -> CPtrDeclr quals d at) (derefDeclr declr)
+    derefDeclr (CArrDeclr declr q e at) = liftM (\d -> CArrDeclr d q e at) (derefDeclr declr)
+    derefDeclr (CFunDeclr declr p v at) = liftM (\d -> CFunDeclr d p v at) (derefDeclr declr)
+    derefDeclr (CVarDeclr _ at) = ptrExpectedErr (posOf at)
 
 -- | replaces a decleration by its alias if any
 --
