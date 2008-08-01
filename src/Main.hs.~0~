@@ -126,10 +126,8 @@ import System.Console.GetOpt
 import qualified System.FilePath as FilePath
                   (takeExtension, dropExtension, takeBaseName)
 import System.FilePath ((<.>), (</>))
-import System.Exit (ExitCode(..))
 import System.IO (stderr)
 import System.IO.Error (ioeGetErrorString, ioeGetFileName)
-import System.Process (runProcess, waitForProcess)
 
 -- c2hs modules
 import C2HS.State  (CST, runC2HS, fatal, fatalsHandledBy,
@@ -446,13 +444,7 @@ copyLibrary =
 -- | set the options for the C proprocessor
 --
 addCPPOpts      :: String -> CST s ()
-addCPPOpts opts  =
-  do
-    let iopts = [opt | opt <- words opts, "-I" `isPrefixOf` opt, "-I-" /= opt]
-    addOpts opts
-  where
-    addOpts opts  = setSwitch $
-                      \sb -> sb {cppOptsSB = cppOptsSB sb ++ (' ':opts)}
+addCPPOpts opts  = setSwitch $ \sb -> sb {cppOptsSB = cppOptsSB sb ++ (' ':opts)}
 
 -- | set the program name of the C proprocessor
 --
@@ -580,13 +572,9 @@ process headerFiles bndFile  =
     --
     cpp     <- getSwitch cppSB
     cppOpts <- getSwitch cppOptsSB
-    let args = cppOpts ++ [newHeaderFile]
-    tracePreproc (unwords (cpp:args))
-    exitCode <- liftIO $ do
-      preprocHnd <- openFile preprocFile WriteMode
-      process <- runProcess cpp args
-        Nothing Nothing Nothing (Just preprocHnd) Nothing
-      waitForProcess process
+    let cmd  = unwords [cpp, cppOpts, newHeaderFile, ">" ++ preprocFile]
+    tracePreproc cmd
+    exitCode <- CIO.system cmd
     case exitCode of
       CIO.ExitFailure _ -> fatal "Error during preprocessing custom header file"
       _                 -> return ()

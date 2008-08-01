@@ -64,7 +64,7 @@ import C2HS.Config (PlatformSpec, defaultPlatformSpec)
 -- | all switches of the toolkit
 --
 data SwitchBoard = SwitchBoard {
-                     cppOptsSB :: String,       -- cpp options
+                     cppOptsSB :: [String],     -- cpp options
                      cppSB     :: FilePath,     -- cpp executable
                      keepSB    :: Bool,         -- keep intermediate file
                      librarySB :: Bool,         -- copy library in
@@ -80,7 +80,7 @@ data SwitchBoard = SwitchBoard {
 --
 initialSwitchBoard :: SwitchBoard
 initialSwitchBoard  = SwitchBoard {
-                        cppOptsSB  = "",
+                        cppOptsSB  = [],
                         cppSB      = "cpp",
                         keepSB     = False,
                         librarySB  = False,
