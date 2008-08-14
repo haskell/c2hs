@@ -37,16 +37,17 @@ where
 
 import Control.Monad (mapM_)
 
-import Data.Position  (Position, posOf)
-import Data.Idents       (Ident, identToLexeme)
+import Language.C.Data.Ident
+import Language.C.Data.Position
+import Language.C.Syntax
+
 
 import C2HS.State (CST)
-import C2HS.C.AST
 import C2HS.C.Attrs    (AttrC, emptyAttrC, CObj(..), CTag(..), CDef(..))
-import C2HS.C.Builtin  (builtinTypeNames)
 import C2HS.C.Trav     (CT, runCT, enterObjs, leaveObjs,
                   ifCTExc, raiseErrorCTExc, defObj, findTypeObj, findValueObj,
                   defTag, refersToDef, isTypedef)
+import C2HS.C.Builtin
 
 
 -- monad and wrapper
@@ -58,9 +59,9 @@ type NA a = CT () a
 
 -- | name analysis of C header files
 --
-nameAnalysis         :: CHeader -> CST s AttrC
+nameAnalysis         :: CTranslUnit -> CST s AttrC
 nameAnalysis headder  = do
-                          (ac', _) <- runCT (naCHeader headder) emptyAttrC ()
+                          (ac', _) <- runCT (naCTranslUnit headder) emptyAttrC ()
                           return ac'
 
 
@@ -71,8 +72,8 @@ nameAnalysis headder  = do
 --
 -- * in case of an error, back off the current declaration
 --
-naCHeader :: CHeader -> NA ()
-naCHeader (CHeader decls _) = do
+naCTranslUnit :: CTranslUnit -> NA ()
+naCTranslUnit (CTranslUnit decls _) = do
                -- establish definitions for builtins
                --
                mapM_ (uncurry defObjOrErr) builtinTypeNames
@@ -118,38 +119,40 @@ naCTypeSpec (CTypeDef  ide  _) = do
 naCTypeSpec _                  = return ()
 
 naCStructUnion :: CTag -> CStructUnion -> NA ()
-naCStructUnion tag (CStruct _ oide decls _) =
+naCStructUnion tag (CStruct _ oide decls _ _) =
   do
     mapMaybeM_ (`defTagOrErr` tag) oide
     enterObjs                           -- enter local struct range for objects
-    mapM_ naCDecl decls
+    mapM_ naCDecl (maybe [] id decls)
     leaveObjs                           -- leave range
 
 naCEnum :: CTag -> CEnum -> NA ()
-naCEnum tag enum@(CEnum oide enumrs _) =
+naCEnum tag enum@(CEnum oide enumrs _ _) =
   do
     mapMaybeM_ (`defTagOrErr` tag) oide
-    mapM_ naEnumr enumrs
+    mapM_ naEnumr (maybe [] id enumrs)
   where
     naEnumr (ide, oexpr) = do
                              ide `defObjOrErr` EnumCO ide enum
                              mapMaybeM_ naCExpr oexpr
 
+-- Name analysis of a declarator
+-- The derivations are analysed in order, only THEN
+-- the object itself is entered into the symboltable
 naCDeclr :: CObj -> CDeclr -> NA ()
-naCDeclr obj (CVarDeclr oide _) =
-  mapMaybeM_ (`defObjOrErr` obj) oide
-naCDeclr obj (CPtrDeclr _ declr _   ) =
-  naCDeclr obj declr
-naCDeclr obj (CArrDeclr declr _ oexpr _   ) =
+naCDeclr obj (CDeclr oide derived _ _ _) =
   do
-    naCDeclr obj declr
-    mapMaybeM_ naCExpr oexpr
-naCDeclr obj (CFunDeclr declr decls _ _ ) =
+    mapM_ (naCDerivedDeclr obj) derived
+    mapMaybeM_ (`defObjOrErr` obj) oide
+naCDerivedDeclr :: CObj -> CDerivedDeclr -> NA ()
+naCDerivedDeclr obj (CFunDeclr (Right (params,_)) _ _) =
   do
-    naCDeclr obj declr
-    enterObjs                           -- enter range of function arguments
-    mapM_ naCDecl decls
-    leaveObjs                           -- end of function arguments
+    enterObjs
+    mapM_ naCDecl params
+    leaveObjs
+naCDerivedDeclr obj (CArrDeclr _ (CArrSize _ expr) _) =
+  naCExpr expr
+naCDerivedDeclr obj _ = return ()
 
 naCInit :: CInit -> NA ()
 naCInit (CInitExpr expr  _) = naCExpr expr
@@ -173,15 +176,17 @@ naCExpr (CMember      expr ide _       _) = naCExpr expr
 naCExpr (CVar         ide              _) = do
                                              (obj, _) <- findValueObj ide False
                                              ide `refersToDef` ObjCD obj
-naCExpr (CConst       _                _) = return ()
+naCExpr (CConst       _                 ) = return ()
 naCExpr (CCompoundLit _ inits          _) = mapM_ (naCInit . snd) inits
-
-
+naCExpr (CComplexImag expr             _) = naCExpr expr
+naCExpr (CComplexReal expr             _) = naCExpr expr
+naCExpr (CLabAddrExpr lab              _) = error "Names.hs: adress of label expression analysis isn't supported"
+naCExpr (CBuiltinExpr _                 ) = error "Names.hs: builtin expression analysis isn't supported"
+naCExpr (CStatExpr _                   _) = error "Names.hs: analysis of GNU statement - expression isn't supported"
 -- auxilliary functions
 -- --------------------
 
 -- | raise an error and exception if the identifier is defined twice
---
 defTagOrErr           :: Ident -> CTag -> NA ()
 ide `defTagOrErr` tag  = do
                            otag <- ide `defTag` tag
@@ -211,5 +216,5 @@ declaredTwiceErr              :: Ident -> Position -> NA a
 declaredTwiceErr ide otherPos  =
   raiseErrorCTExc (posOf ide)
     ["Identifier declared twice!",
-     "The identifier `" ++ identToLexeme ide ++ "' was already declared at "
+     "The identifier `" ++ identToString ide ++ "' was already declared at "
      ++ show otherPos ++ "."]

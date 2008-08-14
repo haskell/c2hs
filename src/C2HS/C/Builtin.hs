@@ -33,8 +33,8 @@ module C2HS.C.Builtin (
   builtinTypeNames
 ) where
 
-import Data.Position (builtinPos)
-import Data.Idents (Ident, onlyPosIdent)
+import Language.C.Data.Position (builtinPos)
+import Language.C.Data.Ident (Ident, builtinIdent)
 
 import C2HS.C.Attrs (CObj(BuiltinCO))
 
@@ -42,4 +42,4 @@ import C2HS.C.Attrs (CObj(BuiltinCO))
 -- | predefined type names
 --
 builtinTypeNames :: [(Ident, CObj)]
-builtinTypeNames  = [(onlyPosIdent builtinPos "__builtin_va_list", BuiltinCO)]
+builtinTypeNames  = [(builtinIdent "__builtin_va_list", BuiltinCO)]
