@@ -54,7 +54,7 @@
 
 module C2HS.C.Attrs (-- attributed C
                --
-               AttrC, emptyAttrC, enterNewRangeC, enterNewObjRangeC,
+               AttrC(..), emptyAttrC, enterNewRangeC, enterNewObjRangeC,
                leaveRangeC, leaveObjRangeC, addDefObjC, lookupDefObjC,
                lookupDefObjCShadow, addDefTagC, lookupDefTagC,
                lookupDefTagCShadow, applyPrefix, getDefOfIdentC,
@@ -68,16 +68,18 @@ where
 
 import Data.Char  (toUpper)
 import Data.Maybe (mapMaybe)
+import Language.C.Data.Node
+import Language.C.Data.Ident
+import Language.C.Data.Position
+import Language.C.Syntax
+import Language.C.Pretty
+import Text.PrettyPrint.HughesPJ
 
-import Data.Position   (Pos(posOf), nopos, dontCarePos, builtinPos)
 import Data.Errors     (interr)
-import Data.Idents        (Ident, getIdentAttrs, identToLexeme, onlyPosIdent)
 import Data.Attributes (Attr(..), AttrTable, getAttr, setAttr, updAttr,
                    newAttrTable, freezeAttrTable, softenAttrTable)
 import Data.NameSpaces (NameSpace, nameSpace, enterNewRange, leaveRange, defLocal,
                    defGlobal, find, nameSpaceToList)
-
-import C2HS.C.AST
 
 
 -- attributed C structure tree
@@ -90,7 +92,7 @@ data AttrC = AttrC {
                 defTagsAC :: CTagNS,            -- defined tags
                 shadowsAC :: CShadowNS,         -- shadow definitions (prefix)
                 defsAC    :: CDefTable          -- ident-def associations
-              }
+              } deriving (Show)
 
 -- | empty headder attribute set
 --
@@ -215,11 +217,11 @@ applyPrefix ac prefix  =
   in
   ac {shadowsAC = foldl define shadows newShadows}
   where
-    strip prefix ide = case eat prefix (identToLexeme ide) of
+    strip prefix ide = case eat prefix (identToString ide) of
                          Nothing      -> Nothing
                          Just ""      -> Nothing
                          Just newName -> Just
-                                           (onlyPosIdent (posOf ide) newName,
+                                           (internalIdentAt (posOf ide) newName,
                                             ide)
     --
     eat []         ('_':cs)                        = eat [] cs
@@ -237,17 +239,17 @@ applyPrefix ac prefix  =
 -- | get the definition associated with the given identifier
 --
 getDefOfIdentC    :: AttrC -> Ident -> CDef
-getDefOfIdentC ac  = getAttr (defsAC ac) . getIdentAttrs
+getDefOfIdentC ac  = getAttr (defsAC ac) . nodeInfo
 
 setDefOfIdentC           :: AttrC -> Ident -> CDef -> AttrC
 setDefOfIdentC ac id def  =
-  let tot' = setAttr (defsAC ac) (getIdentAttrs id) def
+  let tot' = setAttr (defsAC ac) (nodeInfo id) def
   in
   ac {defsAC = tot'}
 
 updDefOfIdentC            :: AttrC -> Ident -> CDef -> AttrC
 updDefOfIdentC ac id def  =
-  let tot' = updAttr (defsAC ac) (getIdentAttrs id) def
+  let tot' = updAttr (defsAC ac) (nodeInfo id) def
   in
   ac {defsAC = tot'}
 
@@ -257,6 +259,8 @@ freezeDefOfIdentsAttrC ac  = ac {defsAC = freezeAttrTable (defsAC ac)}
 softenDefOfIdentsAttrC    :: AttrC -> AttrC
 softenDefOfIdentsAttrC ac  = ac {defsAC = softenAttrTable (defsAC ac)}
 
+pshow :: (Pretty a) => a -> String
+pshow = renderStyle (Style OneLineMode 80 1.5) . pretty
 
 -- C objects including operations
 -- ------------------------------
@@ -267,15 +271,20 @@ data CObj = TypeCO    CDecl             -- typedef declaration
           | ObjCO     CDecl             -- object or function declaration
           | EnumCO    Ident CEnum       -- enumerator
           | BuiltinCO                   -- builtin object
+instance Show CObj where
+  show (TypeCO decl) = "TypeCO { " ++ pshow decl ++ " }"
+  show (ObjCO decl) = "ObjCO  { "++ pshow decl ++ " }"
+  show (EnumCO ide enum) = "EnumCO "++ show ide ++ " { " ++ pshow enum  ++ " }"
+  show BuiltinCO = "BuiltinCO"
 
 -- two C objects are equal iff they are defined by the same structure
 -- tree node (i.e., the two nodes referenced have the same attribute
 -- identifier)
 --
 instance Eq CObj where
-  (TypeCO decl1     ) == (TypeCO decl2     ) = decl1 == decl2
-  (ObjCO  decl1     ) == (ObjCO  decl2     ) = decl1 == decl2
-  (EnumCO ide1 enum1) == (EnumCO ide2 enum2) = ide1 == ide2 && enum1 == enum2
+  (TypeCO decl1     ) == (TypeCO decl2     ) = decl1 `eqByName` decl2
+  (ObjCO  decl1     ) == (ObjCO  decl2     ) = decl1 `eqByName` decl2
+  (EnumCO ide1 enum1) == (EnumCO ide2 enum2) = ide1 == ide2 && enum1 `eqByName` enum2
   _                   == _                   = False
 
 instance Pos CObj where
@@ -292,14 +301,17 @@ instance Pos CObj where
 --
 data CTag = StructUnionCT CStructUnion  -- toplevel struct-union declaration
           | EnumCT        CEnum         -- toplevel enum declaration
+instance Show CTag where
+  show (StructUnionCT su) = "StructUnionCT {" ++ pshow su ++ "}"
+  show (EnumCT e) = "EnumCT {"++ pshow e ++ "}"
 
 -- | two C tag objects are equal iff they are defined by the same structure
 -- tree node (i.e., the two nodes referenced have the same attribute
 -- identifier)
 --
 instance Eq CTag where
-  (StructUnionCT struct1) == (StructUnionCT struct2) = struct1 == struct2
-  (EnumCT        enum1  ) == (EnumCT        enum2  ) = enum1 == enum2
+  (StructUnionCT struct1) == (StructUnionCT struct2) = struct1 `eqByName` struct2
+  (EnumCT        enum1  ) == (EnumCT        enum2  ) = enum1 `eqByName` enum2
   _                       == _                       = False
 
 instance Pos CTag where
@@ -316,6 +328,11 @@ data CDef = UndefCD                     -- undefined object
           | DontCareCD                  -- don't care object
           | ObjCD      CObj             -- C object
           | TagCD      CTag             -- C tag
+instance Show CDef where
+  show UndefCD = "UndefCD"
+  show DontCareCD = "DontCareCD"
+  show (ObjCD cobj) = "ObjCD { " ++ show cobj ++ "}"
+  show (TagCD ctag) = "TagCD { " ++ show ctag ++ "}"
 
 -- two C definitions are equal iff they are defined by the same structure
 -- tree node (i.e., the two nodes referenced have the same attribute
@@ -345,7 +362,7 @@ instance Attr CDef where
 
 instance Pos CDef where
   posOf UndefCD     = nopos
-  posOf DontCareCD  = dontCarePos
+  posOf DontCareCD  = nopos
   posOf (ObjCD obj) = posOf obj
   posOf (TagCD tag) = posOf tag
 
