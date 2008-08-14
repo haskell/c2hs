@@ -73,7 +73,7 @@
 
 module Data.Attributes (-- attribute management
                    --
-                   Attrs, newAttrsOnlyPos, newAttrs,
+                   NodeInfo, newAttrsOnlyPos, newAttrs,
                    Attributed(attrsOf), eqOfAttrsOf, posOfAttrsOf,
                    --
                    -- attributes and attribute tables
@@ -88,47 +88,21 @@ where
 
 import Data.Array
 import Control.Exception (assert)
-import Data.Position   (Position, Pos(posOf))
-import Data.Errors     (interr)
-import Data.UNames        (Name)
-import qualified Data.Map as Map (fromList, toList, insert, findWithDefault, empty)
+import qualified Data.Map as Map (fromList, toList, insert, findWithDefault, empty, assocs)
 import Data.Map (Map)
-
+import Language.C.Data.Node
+import Language.C.Data.Position
+import Language.C.Data.Name
+import Data.Errors     (interr)
 
 -- attribute management data structures and operations
 -- ---------------------------------------------------
-
--- abstract data structure used in the structure tree to represent the
--- attribute identifier and the position
---
-data Attrs = OnlyPos Position           -- only pos (for internal stuff only)
-           | Attrs   Position Name      -- pos and unique name
-
--- get the position associated with an attribute identifier
---
-instance Pos Attrs where
-  posOf (OnlyPos pos  ) = pos
-  posOf (Attrs   pos _) = pos
-
--- equality of attributes is used to define the equality of objects
---
-instance Eq Attrs where
-  (Attrs   _ id1) == (Attrs   _ id2) = id1 == id2
-  _               == _               =
-    interr "Attributes: Attempt to compare `OnlyPos' attributes!"
-
--- attribute ordering is also lifted to objects
---
-instance Ord Attrs where
-  (Attrs   _ id1) <= (Attrs   _ id2) = id1 <= id2
-  _               <= _               =
-    interr "Attributes: Attempt to compare `OnlyPos' attributes!"
 
 -- a class for convenient access to the attributes of an attributed object
 --
 --
 class Attributed a where
-  attrsOf :: a -> Attrs
+  attrsOf :: a -> NodeInfo
 
 -- equality induced by attribution
 --
@@ -146,14 +120,14 @@ posOfAttrsOf  = posOf . attrsOf
 
 -- Given only a source position, create a new attribute identifier
 --
-newAttrsOnlyPos     :: Position -> Attrs
+newAttrsOnlyPos     :: Position -> NodeInfo
 newAttrsOnlyPos pos  = OnlyPos pos
 
 -- Given a source position and a unique name, create a new attribute
 -- identifier
 --
-newAttrs          :: Position -> Name -> Attrs
-newAttrs pos name  = Attrs pos name
+newAttrs          :: Position -> Name -> NodeInfo
+newAttrs pos name  = NodeInfo pos name
 
 
 -- attribute tables and operations on them
@@ -210,7 +184,11 @@ data Attr a =>
                  | FrozenTable (Array Name a)     -- attribute values
                                String             -- desc of the table
 
-
+instance (Attr a, Show a) => Show (AttrTable a) where
+  show tbl@(SoftTable mp descr) = -- freeze is disabled
+    "AttrTable "++ descr ++ " { " ++ (unwords . map show) (Map.assocs mp) ++ " }"
+  show tbl@(FrozenTable _ _) = show (softenAttrTable tbl)
+  
 -- | create an attribute table, where all attributes are 'undef'
 --
 -- the description string is used to identify the table in error messages
@@ -221,9 +199,9 @@ newAttrTable desc  = SoftTable Map.empty desc
 
 -- | get the value of an attribute from the given attribute table
 --
-getAttr                      :: Attr a => AttrTable a -> Attrs -> a
+getAttr                      :: Attr a => AttrTable a -> NodeInfo -> a
 getAttr at (OnlyPos pos    )  = onlyPosErr "getAttr" at pos
-getAttr at (Attrs   _   aid)  =
+getAttr at (NodeInfo   _   aid)  =  
   case at of
     (SoftTable   fm  _) -> Map.findWithDefault undef aid fm
     (FrozenTable arr _) -> let (lbd, ubd) = bounds arr
@@ -233,9 +211,9 @@ getAttr at (Attrs   _   aid)  =
 -- | set the value of an, up to now, undefined attribute from the given
 -- attribute table
 --
-setAttr :: Attr a => AttrTable a -> Attrs -> a -> AttrTable a
+setAttr :: Attr a => AttrTable a -> NodeInfo -> a -> AttrTable a
 setAttr at (OnlyPos pos    ) av = onlyPosErr "setAttr" at pos
-setAttr at (Attrs   pos aid) av =
+setAttr at (NodeInfo   pos aid) av =
   case at of
     (SoftTable fm desc) -> assert (isUndef (Map.findWithDefault undef aid fm)) $
                              SoftTable (Map.insert aid av fm) desc
@@ -246,9 +224,9 @@ setAttr at (Attrs   pos aid) av =
 
 -- | update the value of an attribute from the given attribute table
 --
-updAttr :: Attr a => AttrTable a -> Attrs -> a -> AttrTable a
+updAttr :: Attr a => AttrTable a -> NodeInfo -> a -> AttrTable a
 updAttr at (OnlyPos pos    ) av = onlyPosErr "updAttr" at pos
-updAttr at (Attrs   pos aid) av =
+updAttr at (NodeInfo   pos aid) av =
   case at of
     (SoftTable   fm  desc) -> SoftTable (Map.insert aid av fm) desc
     (FrozenTable arr _)    -> interr $ "Attributes.updAttr: Tried to\
@@ -259,11 +237,12 @@ updAttr at (Attrs   pos aid) av =
 --
 -- * undefined attributes are not copied, to avoid filling the table
 --
-copyAttr :: Attr a => AttrTable a -> Attrs -> Attrs -> AttrTable a
+copyAttr :: Attr a => AttrTable a -> NodeInfo -> NodeInfo -> AttrTable a
 copyAttr at ats ats'
   | isUndef av = assert (isUndef (getAttr at ats'))
                    at
-  | otherwise  = updAttr at ats' av
+  | otherwise  = 
+    updAttr at ats' av
   where
     av = getAttr at ats
 
@@ -285,7 +264,7 @@ errLoc at pos  = "  table `" ++ tableDesc at ++ "' for construct at\n\
 -- table is softened again
 --
 freezeAttrTable                        :: Attr a => AttrTable a -> AttrTable a
-freezeAttrTable (SoftTable   fm  desc)  =
+freezeAttrTable tbl@(SoftTable   fm  desc) =
   let contents = Map.toList fm
       keys     = map fst contents
       lbd      = minimum keys
@@ -333,7 +312,7 @@ instance Attr (StdAttr a) where
 -- * if the attribute can be "don't care", this should be checked before
 --   calling this function (using 'isDontCareStdAttr')
 --
-getStdAttr         :: AttrTable (StdAttr a) -> Attrs -> a
+getStdAttr         :: AttrTable (StdAttr a) -> NodeInfo -> a
 getStdAttr atab at  = getStdAttrDft atab at err
   where
     err = interr $ "Attributes.getStdAttr: Don't care in\n"
@@ -342,7 +321,7 @@ getStdAttr atab at  = getStdAttrDft atab at err
 -- | get an attribute value from a standard attribute table, where a default is
 -- substituted if the table is don't care
 --
-getStdAttrDft             :: AttrTable (StdAttr a) -> Attrs -> a -> a
+getStdAttrDft             :: AttrTable (StdAttr a) -> NodeInfo -> a -> a
 getStdAttrDft atab at dft  =
   case getAttr atab at of
     DontCareStdAttr -> dft
@@ -352,24 +331,24 @@ getStdAttrDft atab at dft  =
 
 -- | check if the attribue value is marked as "don't care"
 --
-isDontCareStdAttr         :: AttrTable (StdAttr a) -> Attrs -> Bool
+isDontCareStdAttr         :: AttrTable (StdAttr a) -> NodeInfo -> Bool
 isDontCareStdAttr atab at  = isDontCare (getAttr atab at)
 
 -- | check if the attribue value is still undefined
 --
 -- * we also regard "don't care" attributes as undefined
 --
-isUndefStdAttr         :: AttrTable (StdAttr a) -> Attrs -> Bool
+isUndefStdAttr         :: AttrTable (StdAttr a) -> NodeInfo -> Bool
 isUndefStdAttr atab at  = isUndef (getAttr atab at)
 
 -- | set an attribute value in a standard attribute table
 --
-setStdAttr :: AttrTable (StdAttr a) -> Attrs -> a -> AttrTable (StdAttr a)
+setStdAttr :: AttrTable (StdAttr a) -> NodeInfo -> a -> AttrTable (StdAttr a)
 setStdAttr atab at av = setAttr atab at (JustStdAttr av)
 
 -- | update an attribute value in a standard attribute table
 --
-updStdAttr :: AttrTable (StdAttr a) -> Attrs -> a -> AttrTable (StdAttr a)
+updStdAttr :: AttrTable (StdAttr a) -> NodeInfo -> a -> AttrTable (StdAttr a)
 updStdAttr atab at av = updAttr atab at (JustStdAttr av)
 
 
