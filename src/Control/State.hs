@@ -52,27 +52,20 @@ module Control.State (-- the PreCST monad
               --
               -- extra state management
               --
-              readExtra, updExtra,
-              --
-              -- name supplies
-              --
-              getNameSupply)
+              readExtra, updExtra)
 where
 
 import Control.Monad (when)
 import Data.List     (sort)
 import System.Exit   (ExitCode(ExitFailure))
-
-import Data.Position    (Position)
-import Data.UNames      (NameSupply,
-                    rootSupply, splitSupply)
+import Language.C.Data.Position
 import Control.StateTrans  (readBase, transBase, runSTB)
 import qualified Control.StateTrans as StateTrans (interleave, throwExc, fatal, catchExc, fatalsHandledBy)
 import Control.StateBase   (PreCST(..), ErrorState(..), BaseState(..),
                     unpackCST, readCST, writeCST, transCST,
                     liftIO)
 import qualified System.CIO as CIO
-import Data.Errors      (ErrorLvl(..), Error, makeError, errorLvl, showError)
+import Data.Errors      (ErrorLevel(..), Error, makeError, errorLevel, showError)
 
 
 -- state used in the whole compiler
@@ -85,7 +78,6 @@ import Data.Errors      (ErrorLvl(..), Error, makeError, errorLvl, showError)
 initialBaseState   :: e -> BaseState e
 initialBaseState es = BaseState {
                              errorsBS   = initialErrorState,
-                             suppliesBS = splitSupply rootSupply,
                              extraBS    = es
                         }
 
@@ -168,31 +160,31 @@ fatalsHandledBy m h  = CST $ StateTrans.fatalsHandledBy m' h'
 -- manipulating the error state
 -- ----------------------------
 
--- | the lowest level of errors is 'WarningErr', but it is meaningless as long as
+-- | the lowest level of errors is 'LevelWarn', but it is meaningless as long as
 -- the the list of errors is empty
 --
 initialErrorState :: ErrorState
-initialErrorState  = ErrorState WarningErr 0 []
+initialErrorState  = ErrorState LevelWarn 0 []
 
 -- | raise an error
 --
 -- * a fatal error is reported immediately; see 'raiseFatal'
 --
 raise     :: Error -> PreCST e s ()
-raise err  = case errorLvl err of
-               WarningErr  -> raise0 err
-               ErrorErr    -> raise0 err
-               FatalErr    -> raiseFatal0 "Generic fatal error." err
+raise err  = case errorLevel err of
+               LevelWarn  -> raise0 err
+               LevelError    -> raise0 err
+               LevelFatal    -> raiseFatal0 "Generic fatal error." err
 
 -- | raise a warning (see 'raiseErr')
 --
 raiseWarning         :: Position -> [String] -> PreCST e s ()
-raiseWarning pos msg  = raise0 (makeError WarningErr pos msg)
+raiseWarning pos msg  = raise0 (makeError LevelWarn pos msg)
 
 -- | raise an error (see 'raiseErr')
 --
 raiseError         :: Position -> [String] -> PreCST e s ()
-raiseError pos msg  = raise0 (makeError ErrorErr pos msg)
+raiseError pos msg  = raise0 (makeError LevelError pos msg)
 
 -- | raise a fatal compilation error
 --
@@ -206,7 +198,7 @@ raiseError pos msg  = raise0 (makeError ErrorErr pos msg)
 --   the second and third argument are like the two arguments to 'raise'
 --
 raiseFatal                :: String -> Position -> [String] -> PreCST e s a
-raiseFatal short pos long  = raiseFatal0 short (makeError FatalErr pos long)
+raiseFatal short pos long  = raiseFatal0 short (makeError LevelFatal pos long)
 
 -- | raise a fatal error; internal version that gets an abstract error
 --
@@ -233,10 +225,10 @@ raise0 err  = do
 
     doRaise    :: BaseState e -> (BaseState e, Int)
     doRaise bs  = let
-                    lvl                        = errorLvl err
+                    lvl                        = errorLevel err
                     ErrorState wlvl no errs    = errorsBS bs
                     wlvl'                      = max wlvl lvl
-                    no'                        = no + if lvl > WarningErr
+                    no'                        = no + if lvl > LevelWarn
                                                       then 1 else 0
                     errs'                      = err : errs
                   in
@@ -249,21 +241,18 @@ raise0 err  = do
 showErrors :: PreCST e s String
 showErrors  = CST $ do
                 ErrorState wlvl no errs <- transBase extractErrs
-                return $ foldr (.) id (map showString (errsToStrs errs)) ""
+                return $ foldr (.) id (map shows errs) ""
               where
                 extractErrs    :: BaseState e -> (BaseState e, ErrorState)
                 extractErrs bs  = (bs {errorsBS = initialErrorState},
                                    errorsBS bs)
 
-                errsToStrs      :: [Error] -> [String]
-                errsToStrs errs  = (map showError . sort) errs
-
--- | inquire if there was already an error of at least level 'ErrorErr' raised
+-- | inquire if there was already an error of at least level 'LevelError' raised
 --
 errorsPresent :: PreCST e s Bool
 errorsPresent  = CST $ do
                    ErrorState wlvl no _ <- readBase errorsBS
-                   return $ wlvl >= ErrorErr
+                   return $ wlvl >= LevelError
 
 
 -- manipulating the extra state
@@ -285,17 +274,3 @@ updExtra uf  = CST $ transBase (\bs ->
                        in
                        (bs {extraBS = uf es}, ())
                      )
-
-
--- name supplies
--- -------------
-
--- | Get a name supply out of the base state
---
-getNameSupply :: PreCST e s NameSupply
-getNameSupply  = CST $ transBase (\bs ->
-                         let
-                           supply : supplies = suppliesBS bs
-                         in
-                         (bs {suppliesBS = supplies}, supply)
-                       )

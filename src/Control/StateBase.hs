@@ -51,11 +51,9 @@
 module Control.StateBase (PreCST(..), ErrorState(..), BaseState(..),
                   unpackCST, readCST, writeCST, transCST, liftIO)
 where
-
-import Data.UNames     (NameSupply)
 import Control.StateTrans (STB, readGeneric, writeGeneric, transGeneric)
 import qualified Control.StateTrans as StateTrans (liftIO)
-import Data.Errors     (ErrorLvl(..), Error)
+import Data.Errors     (ErrorLevel(..), Error)
 
 
 -- state used in the whole compiler
@@ -65,7 +63,7 @@ import Data.Errors     (ErrorLvl(..), Error)
 --
 -- * when no error was raised yet, the error level is the lowest possible one
 --
-data ErrorState = ErrorState ErrorLvl    -- worst error level that was raised
+data ErrorState = ErrorState ErrorLevel    -- worst error level that was raised
                              Int         -- number of errors (excl warnings)
                              [Error]     -- already raised errors
 
@@ -73,7 +71,6 @@ data ErrorState = ErrorState ErrorLvl    -- worst error level that was raised
 --
 data BaseState e = BaseState {
                      errorsBS   :: ErrorState,
-                     suppliesBS :: [NameSupply],
                      extraBS    :: e                          -- extra state
                  }
 
