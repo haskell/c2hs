@@ -88,7 +88,7 @@ where
 
 import Data.Array
 import Control.Exception (assert)
-import qualified Data.Map as Map (fromList, toList, insert, findWithDefault, empty, assocs)
+import qualified Data.Map as Map (fromList, toList, insert, findWithDefault, empty, assocs, findMax)
 import Data.Map (Map)
 import Language.C.Data.Node
 import Language.C.Data.Position
@@ -245,6 +245,13 @@ copyAttr at ats ats'
     updAttr at ats' av
   where
     av = getAttr at ats
+
+-- | get a list of unused 'Name's
+--
+-- The table must not be frozen
+unusedNames :: Attr a => AttrTable a -> [Name]
+unusedNames (SoftTable fm _) = namesStartingFrom (succ . nameId . fst $ Map.findMax fm)
+unusedNames (FrozenTable _ _) = interr "unusedNames: frozen table"
 
 -- | auxiliary functions for error messages
 --
