@@ -173,15 +173,16 @@ import Data.List     ((\\))
 import Data.Char     (isDigit)
 import Control.Monad (liftM)
 
-import Data.Position  (Position(..), Pos(posOf), incPos, retPos, tabPos)
-import Data.Errors    (ErrorLvl(..), makeError)
-import Data.UNames       (Name, names)
-import Data.Idents    (Ident, lexemeToIdent, identToLexeme, onlyPosIdent)
+import Language.C.Data.Ident
+import Language.C.Data.Name
+import Language.C.Data.Position
+
+import Data.Errors    (ErrorLevel(..), makeError)
 import Text.Lexers    (Regexp, Lexer, Action, epsilon, char, (+>), lexaction,
                   lexactionErr, lexmeta, (>|<), (>||<), ctrlLexer, star, plus,
                   alt, string, execLexer)
 
-import C2HS.State (CST, raise, raiseError, getNameSupply)
+import C2HS.State (CST, raise, raiseError)
 
 
 -- token definition
@@ -382,7 +383,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokWith    _  ) = showString "with"
   showsPrec _ (CHSTokString  _ s) = showString ("\"" ++ s ++ "\"")
   showsPrec _ (CHSTokHSVerb  _ s) = showString ("`" ++ s ++ "'")
-  showsPrec _ (CHSTokIdent   _ i) = (showString . identToLexeme) i
+  showsPrec _ (CHSTokIdent   _ i) = (showString . identToString) i
   showsPrec _ (CHSTokHaskell _ s) = showString s
   showsPrec _ (CHSTokCPP     _ s) = showString s
   showsPrec _ (CHSTokLine    p  ) = id            --TODO show line num?
@@ -404,13 +405,13 @@ data CHSLexerState = CHSLS {
 -- | initial state
 --
 initialState :: CST s CHSLexerState
-initialState  = do
-                  namesup <- liftM names getNameSupply
-                  return $ CHSLS {
-                             nestLvl = 0,
-                             inHook  = False,
-                             namesup = namesup
-                           }
+initialState  = 
+  return CHSLS {
+                         nestLvl = 0,
+                         inHook  = False,
+                         -- warning: we need unique names
+                         namesup = namesStartingFrom 1000000000 
+                }
 
 -- | raise an error if the given state is not a final state
 --
@@ -479,7 +480,7 @@ haskell  = (    anyButSpecial`star` epsilon
            `lexaction` copyVerbatim
            >||< char '"'                                -- this is a bad kludge
                 `lexactionErr`
-                  \_ pos -> (Left $ makeError ErrorErr pos
+                  \_ pos -> (Left $ makeError LevelError pos
                                               ["Lexical error!",
                                               "Unclosed string."])
            where
@@ -528,7 +529,7 @@ nested  =
     copyVerbatim' cs pos  = Just $ Right (CHSTokHaskell pos cs)
     --
     commentCloseErr pos =
-      Just $ Left (makeError ErrorErr pos
+      Just $ Left (makeError LevelError pos
                              ["Lexical error!",
                              "`-}' not preceded by a matching `{-'."])
                              {- for Haskell emacs mode :-( -}
@@ -705,7 +706,7 @@ identOrKW  =
     idkwtok pos "with"             _    = CHSTokWith    pos
     idkwtok pos cs                 name = mkid pos cs name
     --
-    mkid pos cs name = CHSTokIdent pos (lexemeToIdent pos cs name)
+    mkid pos cs name = CHSTokIdent pos (mkIdent pos cs name)
 
 keywordToIdent :: CHSToken -> CHSToken
 keywordToIdent tok =
@@ -737,7 +738,7 @@ keywordToIdent tok =
     CHSTokUpper   pos -> mkid pos "upcaseFirstLetter"
     CHSTokWith    pos -> mkid pos "with"
     _ -> tok
-    where mkid pos str = CHSTokIdent pos (onlyPosIdent pos str)
+    where mkid pos str = CHSTokIdent pos (internalIdent str)
 
 -- | reserved symbols
 --
@@ -800,7 +801,7 @@ ctrlSet           = ['\n', '\f', '\r', '\t', '\v']
 --
 lexCHS        :: String -> Position -> CST s [CHSToken]
 lexCHS cs pos  =
-  do
+  do  
     state <- initialState
     let (ts, lstate, errs) = execLexer chslexer (cs, pos, state)
         (_, pos', state')  = lstate
