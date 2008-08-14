@@ -38,12 +38,10 @@
 module Data.NameSpaces (NameSpace, nameSpace, defGlobal, enterNewRange, leaveRange,
                    defLocal, find, nameSpaceToList)
 where
-
 import qualified Data.Map as Map (empty, insert, lookup, toList)
 import Data.Map   (Map)
-import Data.Idents     (Ident)
+import Language.C.Data.Ident
 import Data.Errors     (interr)
-
 
 -- | name space
 --
@@ -66,6 +64,8 @@ import Data.Errors     (interr)
 data NameSpace a = NameSpace (Map Ident a)  -- defs in global range
                              [[(Ident, a)]]       -- stack of local ranges
 
+instance (Show a) => Show (NameSpace a) where
+  show = show . nameSpaceToList
 -- | create a name space
 --
 nameSpace :: NameSpace a
