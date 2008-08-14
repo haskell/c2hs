@@ -54,6 +54,10 @@ module System.CIO (
             -- `System'
             --
             IO.ExitCode(..), exitWith, getArgs, getProgName, system,
+            --
+            -- lifting
+            --
+            liftIO
             )
 where
 
