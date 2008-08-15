@@ -88,12 +88,14 @@ where
 
 import Data.Array
 import Control.Exception (assert)
-import qualified Data.Map as Map (fromList, toList, insert, findWithDefault, empty, assocs, findMax)
-import Data.Map (Map)
+import qualified Data.IntMap as NameMap (fromList, toList, insert, findWithDefault, empty, assocs, findMax)
+import Data.IntMap (IntMap)
 import Language.C.Data.Node
 import Language.C.Data.Position
-import Language.C.Data.Name
+import Language.C.Data.Name (Name(..),nameId)
 import Data.Errors     (interr)
+
+type NameMap = IntMap
 
 -- attribute management data structures and operations
 -- ---------------------------------------------------
@@ -174,7 +176,7 @@ data Attr a =>
      AttrTable a = -- for all attribute identifiers not contained in the
                    -- finite map the value is 'undef'
                    --
-                   SoftTable (Map Name a)   -- updated attr.s
+                   SoftTable (NameMap a)   -- updated attr.s
                              String               -- desc of the table
 
                    -- the array contains 'undef' attributes for the undefined
@@ -186,16 +188,21 @@ data Attr a =>
 
 instance (Attr a, Show a) => Show (AttrTable a) where
   show tbl@(SoftTable mp descr) = -- freeze is disabled
-    "AttrTable "++ descr ++ " { " ++ (unwords . map show) (Map.assocs mp) ++ " }"
+    "AttrTable "++ descr ++ " { " ++ (unwords . map show) (NameMap.assocs mp) ++ " }"
   show tbl@(FrozenTable _ _) = show (softenAttrTable tbl)
-  
+
+nameMapToList :: NameMap a -> [(Name, a)]
+nameMapToList = map (\(k,v) -> (Name k, v)) . NameMap.assocs
+nameMapFromList :: [(Name, a)] -> NameMap a
+nameMapFromList = NameMap.fromList . map (\(k,v) -> (nameId k, v))
+
 -- | create an attribute table, where all attributes are 'undef'
 --
 -- the description string is used to identify the table in error messages
 -- (internal errors); a table is initially soft
 --
 newAttrTable      :: Attr a => String -> AttrTable a
-newAttrTable desc  = SoftTable Map.empty desc
+newAttrTable desc  = SoftTable NameMap.empty desc
 
 -- | get the value of an attribute from the given attribute table
 --
@@ -203,7 +210,7 @@ getAttr                      :: Attr a => AttrTable a -> NodeInfo -> a
 getAttr at (OnlyPos pos    )  = onlyPosErr "getAttr" at pos
 getAttr at (NodeInfo   _   aid)  =  
   case at of
-    (SoftTable   fm  _) -> Map.findWithDefault undef aid fm
+    (SoftTable   fm  _) -> NameMap.findWithDefault undef (nameId aid) fm
     (FrozenTable arr _) -> let (lbd, ubd) = bounds arr
                            in
                            if (aid < lbd || aid > ubd) then undef else arr!aid
@@ -215,8 +222,8 @@ setAttr :: Attr a => AttrTable a -> NodeInfo -> a -> AttrTable a
 setAttr at (OnlyPos pos    ) av = onlyPosErr "setAttr" at pos
 setAttr at (NodeInfo   pos aid) av =
   case at of
-    (SoftTable fm desc) -> assert (isUndef (Map.findWithDefault undef aid fm)) $
-                             SoftTable (Map.insert aid av fm) desc
+    (SoftTable fm desc) -> assert (isUndef (NameMap.findWithDefault undef (nameId aid) fm)) $
+                             SoftTable (NameMap.insert (nameId aid) av fm) desc
     (FrozenTable arr _) -> interr frozenErr
   where
     frozenErr     = "Attributes.setAttr: Tried to write frozen attribute in\n"
@@ -228,7 +235,7 @@ updAttr :: Attr a => AttrTable a -> NodeInfo -> a -> AttrTable a
 updAttr at (OnlyPos pos    ) av = onlyPosErr "updAttr" at pos
 updAttr at (NodeInfo   pos aid) av =
   case at of
-    (SoftTable   fm  desc) -> SoftTable (Map.insert aid av fm) desc
+    (SoftTable   fm  desc) -> SoftTable (NameMap.insert (nameId aid) av fm) desc
     (FrozenTable arr _)    -> interr $ "Attributes.updAttr: Tried to\
                                        \ update frozen attribute in\n"
                                        ++ errLoc at pos
@@ -245,13 +252,6 @@ copyAttr at ats ats'
     updAttr at ats' av
   where
     av = getAttr at ats
-
--- | get a list of unused 'Name's
---
--- The table must not be frozen
-unusedNames :: Attr a => AttrTable a -> [Name]
-unusedNames (SoftTable fm _) = namesStartingFrom (succ . nameId . fst $ Map.findMax fm)
-unusedNames (FrozenTable _ _) = interr "unusedNames: frozen table"
 
 -- | auxiliary functions for error messages
 --
@@ -272,7 +272,7 @@ errLoc at pos  = "  table `" ++ tableDesc at ++ "' for construct at\n\
 --
 freezeAttrTable                        :: Attr a => AttrTable a -> AttrTable a
 freezeAttrTable tbl@(SoftTable   fm  desc) =
-  let contents = Map.toList fm
+  let contents = nameMapToList fm
       keys     = map fst contents
       lbd      = minimum keys
       ubd      = maximum keys
@@ -291,7 +291,7 @@ softenAttrTable (SoftTable   fm  desc)  =
   interr ("Attributes.softenAttrTable: Attempt to soften the already \
           \softened\n  table `" ++ desc ++ "'!")
 softenAttrTable (FrozenTable arr desc)  =
-  SoftTable (Map.fromList . assocs $ arr) desc
+  SoftTable (nameMapFromList . assocs $ arr) desc
 
 
 -- standard attributes
