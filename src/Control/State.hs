@@ -50,6 +50,9 @@ module Control.State (-- the PreCST monad
               raise, raiseWarning, raiseError, raiseFatal, showErrors,
               errorsPresent,
               --
+              -- state management helpers
+              getNameSupply, setNameSupply,
+              --
               -- extra state management
               --
               readExtra, updExtra)
@@ -58,7 +61,6 @@ where
 import Control.Monad (when)
 import Data.List     (sort)
 import System.Exit   (ExitCode(ExitFailure))
-import Language.C.Data.Position
 import Control.StateTrans  (readBase, transBase, runSTB)
 import qualified Control.StateTrans as StateTrans (interleave, throwExc, fatal, catchExc, fatalsHandledBy)
 import Control.StateBase   (PreCST(..), ErrorState(..), BaseState(..),
@@ -66,6 +68,8 @@ import Control.StateBase   (PreCST(..), ErrorState(..), BaseState(..),
                     liftIO)
 import qualified System.CIO as CIO
 import Data.Errors      (ErrorLevel(..), Error, makeError, errorLevel, showError)
+import Language.C.Data.Name
+import Language.C.Data.Position
 
 
 -- state used in the whole compiler
@@ -77,6 +81,7 @@ import Data.Errors      (ErrorLevel(..), Error, makeError, errorLevel, showError
 --
 initialBaseState   :: e -> BaseState e
 initialBaseState es = BaseState {
+                             supplyBS   = newNameSupply,
                              errorsBS   = initialErrorState,
                              extraBS    = es
                         }
@@ -254,6 +259,16 @@ errorsPresent  = CST $ do
                    ErrorState wlvl no _ <- readBase errorsBS
                    return $ wlvl >= LevelError
 
+-- helpers for manipulating state
+-- ----------------------------
+
+-- | get a name supply
+getNameSupply :: PreCST e s [Name]
+getNameSupply = CST $ readBase supplyBS
+
+-- | update the name supply
+setNameSupply :: [Name] -> PreCST e s ()
+setNameSupply ns = CST $ transBase $ \st -> (st { supplyBS = ns }, ())
 
 -- manipulating the extra state
 -- ----------------------------

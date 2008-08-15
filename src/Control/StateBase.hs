@@ -54,6 +54,7 @@ where
 import Control.StateTrans (STB, readGeneric, writeGeneric, transGeneric)
 import qualified Control.StateTrans as StateTrans (liftIO)
 import Data.Errors     (ErrorLevel(..), Error)
+import Language.C.Data.Name
 
 
 -- state used in the whole compiler
@@ -71,6 +72,7 @@ data ErrorState = ErrorState ErrorLevel    -- worst error level that was raised
 --
 data BaseState e = BaseState {
                      errorsBS   :: ErrorState,
+                     supplyBS   :: [Name],                    -- unique names
                      extraBS    :: e                          -- extra state
                  }
 
