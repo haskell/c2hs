@@ -181,7 +181,7 @@ import Data.Errors    (ErrorLevel(..), makeError)
 import Text.Lexers    (Regexp, Lexer, Action, epsilon, char, (+>), lexaction,
                   lexactionErr, lexmeta, (>|<), (>||<), ctrlLexer, star, plus,
                   alt, string, execLexer)
-
+import Control.State (getNameSupply, setNameSupply)
 import C2HS.State (CST, raise, raiseError)
 
 
@@ -404,13 +404,13 @@ data CHSLexerState = CHSLS {
 
 -- | initial state
 --
-initialState :: CST s CHSLexerState
-initialState  = 
-  return CHSLS {
+initialState :: [Name] -> CST s CHSLexerState
+initialState nameSupply =
+  do
+    return CHSLS {
                          nestLvl = 0,
                          inHook  = False,
-                         -- warning: we need unique names
-                         namesup = namesStartingFrom 1000000000 
+                         namesup = nameSupply
                 }
 
 -- | raise an error if the given state is not a final state
@@ -799,12 +799,15 @@ ctrlSet           = ['\n', '\f', '\r', '\t', '\v']
 --
 -- * errors are entered into the compiler state
 --
+-- * on a successfull parse, the name supply is updated
 lexCHS        :: String -> Position -> CST s [CHSToken]
 lexCHS cs pos  =
-  do  
-    state <- initialState
+  do
+    nameSupply <- getNameSupply
+    state <- initialState nameSupply
     let (ts, lstate, errs) = execLexer chslexer (cs, pos, state)
         (_, pos', state')  = lstate
     mapM raise errs
     assertFinalState pos' state'
+    setNameSupply $ namesup state'
     return ts
