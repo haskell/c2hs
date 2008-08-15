@@ -73,13 +73,13 @@ module C2HS.Gen.Monad (
 import Data.Char  (toUpper, toLower, isSpace)
 import Data.List  (find)
 import Data.Maybe (fromMaybe)
-
--- Compiler Toolkit
-import Data.Position   (Position, Pos(posOf), nopos)
-import Data.Errors        (interr)
-import Data.Idents     (Ident, identToLexeme, onlyPosIdent)
 import qualified Data.Map as Map (empty, insert, lookup, union, toList, fromList)
 import Data.Map   (Map)
+
+-- Language.C
+import Language.C.Data.Position
+import Language.C.Data.Ident
+import Data.Errors
 
 -- C -> Haskell
 import C2HS.C     (CT, readCT, transCT, raiseErrorCTExc)
@@ -142,22 +142,22 @@ transTabToTransFun prefix (CHSTrans _2Case chgCase table) =
                            CHSSameCase -> id
                            CHSUpCase   -> upcaseFirstLetter
                            CHSDownCase -> downcaseFirstLetter)
-            lexeme = identToLexeme ide
+            lexeme = identToString ide
             dft    = caseTrafo lexeme             -- default uses case trafo
           in
           case lookup ide table of                  -- lookup original ident
-            Just ide' -> identToLexeme ide'         -- original ident matches
+            Just ide' -> identToString ide'         -- original ident matches
             Nothing   ->
               case eat prefix lexeme of
                 Nothing          -> dft             -- no match & no prefix
                 Just eatenLexeme ->
                   let
-                    eatenIde = onlyPosIdent (posOf ide) eatenLexeme
+                    eatenIde = internalIdentAt (posOf ide) eatenLexeme
                     eatenDft = caseTrafo eatenLexeme
                   in
                   case lookup eatenIde table of     -- lookup without prefix
                     Nothing   -> eatenDft           -- orig ide without prefix
-                    Just ide' -> identToLexeme ide' -- without prefix matched
+                    Just ide' -> identToString ide' -- without prefix matched
   where
     -- try to eat prefix and return `Just partialLexeme' if successful
     --
@@ -216,7 +216,7 @@ instance Read Ident where
                              in
                              if null ideChars
                              then []
-                             else [(onlyPosIdent nopos ideChars, tail rest)]
+                             else [(internalIdent ideChars, tail rest)]
   readsPrec p (c:cs)
     | isSpace c                                              = readsPrec p cs
   readsPrec _ _                                              = []
@@ -384,9 +384,9 @@ mergeMaps str  =
                       }, ()))
   where
     (ptrAssoc, objAssoc) = read str
-    readPtrMap           = Map.fromList [((isStar, onlyPosIdent nopos ide), repr)
+    readPtrMap           = Map.fromList [((isStar, internalIdent ide), repr)
                                         | ((isStar, ide), repr) <- ptrAssoc]
-    readObjMap           = Map.fromList [(onlyPosIdent nopos ide, obj)
+    readObjMap           = Map.fromList [(internalIdent ide, obj)
                                         | (ide, obj)            <- objAssoc]
 
 -- | convert the whole pointer and Haskell object maps into printable form
@@ -395,9 +395,9 @@ dumpMaps :: GB String
 dumpMaps  = do
               ptrFM <- readCT ptrmap
               objFM <- readCT objmap
-              let dumpable = ([((isStar, identToLexeme ide), repr)
+              let dumpable = ([((isStar, identToString ide), repr)
                               | ((isStar, ide), repr) <- Map.toList ptrFM],
-                              [(identToLexeme ide, obj)
+                              [(identToString ide, obj)
                               | (ide, obj)            <- Map.toList objFM])
               return $ show dumpable
 
@@ -417,20 +417,20 @@ classExpectedErr     :: Ident -> GB a
 classExpectedErr ide  =
   raiseErrorCTExc (posOf ide)
     ["Expected a class name!",
-     "Expected `" ++ identToLexeme ide ++ "' to refer to a class introduced",
+     "Expected `" ++ identToString ide ++ "' to refer to a class introduced",
      "by a class hook."]
 
 pointerExpectedErr     :: Ident -> GB a
 pointerExpectedErr ide  =
   raiseErrorCTExc (posOf ide)
     ["Expected a pointer name!",
-     "Expected `" ++ identToLexeme ide ++ "' to be a type name introduced by",
+     "Expected `" ++ identToString ide ++ "' to be a type name introduced by",
      "a pointer hook."]
 
 hsObjExpectedErr     :: Ident -> GB a
 hsObjExpectedErr ide  =
   raiseErrorCTExc (posOf ide)
     ["Unknown name!",
-     "`" ++ identToLexeme ide ++ "' is unknown; it has *not* been defined by",
+     "`" ++ identToString ide ++ "' is unknown; it has *not* been defined by",
      "a previous hook."]
 

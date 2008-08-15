@@ -48,16 +48,16 @@ module C2HS.Gen.Header (
 -- standard libraries
 import Control.Monad (when)
 
--- Compiler Toolkit
-import Data.Position  (Position, Pos(..), nopos)
+-- Language.C / Compiler Toolkit
+import Language.C.Data.Position
+import Language.C.Data.Ident
+import Language.C.Data.Name
+import Data.Errors       (interr)
 import Data.DLists (DList)
 import qualified Data.DLists as DL
-import Data.Errors       (interr)
-import Data.Idents       (onlyPosIdent)
-import Data.UNames    (Name, names)
 
 -- C->Haskell
-import C2HS.State (CST, getNameSupply, runCST, transCST, raiseError, catchExc,
+import C2HS.State (CST, runCST, transCST, raiseError, catchExc,
                   throwExc, errorsPresent, showErrors, fatal)
 
 -- friends
@@ -78,8 +78,7 @@ type GH a = CST [Name] a
 genHeader :: CHSModule -> CST s ([String], CHSModule, String)
 genHeader mod =
   do
-    supply <- getNameSupply
-    (header, mod) <- runCST (ghModule mod) (names supply)
+    (header, mod) <- runCST (ghModule mod) (namesStartingFrom 0)
                      `ifGHExc` return ([], CHSModule [])
 
     -- check for errors and finalise
@@ -245,7 +244,7 @@ ghFrag (frag@(CHSCPP  s  pos) : frags) =
     closeIf headerTail (s, fragsTh) alts oelse rest =
       do
         sentryName <- newName
-        let sentry = onlyPosIdent nopos sentryName
+        let sentry = internalIdent sentryName
                        -- don't use an internal ident, as we need to test for
                        -- equality with identifiers read from the .i file
                        -- during binding hook expansion
