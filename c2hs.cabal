@@ -1,5 +1,5 @@
 Name:           c2hs
-Version:        0.15.2
+Version:        0.15.3
 Cabal-Version:  >= 1.2
 Build-Type:     Simple
 --Versnick:     "Rainy Days"
@@ -36,7 +36,7 @@ Flag splitBase
     Description: Choose the new smaller, split-up base package.
 
 Executable c2hs
-    Build-Depends:  base, filepath
+    Build-Depends:  base, filepath, language-c >= 0.3.1
 
     if flag(splitBase)
         Build-Depends: base >= 3, process, directory, array, containers, pretty
@@ -47,12 +47,8 @@ Executable c2hs
     hs-source-dirs: src
     main-is:        Main.hs
     other-modules:
-      Data.Errors
       Data.DLists
-      Data.Position
-      Data.UNames
       Data.Attributes
-      Data.Idents
       Data.NameSpaces
       Control.StateBase
       Control.State
@@ -61,16 +57,9 @@ Executable c2hs
       Text.Lexers
 
       C2HS.C
-      C2HS.C.AST
-      C2HS.C.Builtin
-      C2HS.C.Lexer
-      C2HS.C.Parser
-      C2HS.C.Pretty
-      C2HS.C.Tokens
       C2HS.C.Attrs
       C2HS.C.Names
       C2HS.C.Trav
-      C2HS.C.ParserMonad
       C2HS.C.Info
       C2HS.CHS
       C2HS.CHS.Lexer
