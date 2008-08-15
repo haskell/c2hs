@@ -99,10 +99,13 @@ import Data.List (intersperse)
 import Control.Monad (when)
 import System.FilePath ((<.>), (</>))
 
--- Compiler Toolkit
-import Data.Position  (Position(..), Pos(posOf), nopos, isBuiltinPos)
+
+
+-- Language.C
+import Language.C.Data.Name
+import Language.C.Data.Ident
+import Language.C.Data.Position
 import Data.Errors       (interr)
-import Data.Idents    (Ident, identToLexeme, onlyPosIdent)
 
 -- C->Haskell
 import C2HS.State (CST, getSwitch, chiPathSB, catchExc, throwExc, raiseError,
@@ -476,7 +479,7 @@ showCHSHook (CHSEnum ide oalias trans oprefix derive _) =
   . showPrefix oprefix True
   . if null derive then id else showString $
       "deriving ("
-      ++ concat (intersperse ", " (map identToLexeme derive))
+      ++ concat (intersperse ", " (map identToString derive))
       ++ ") "
 showCHSHook (CHSCall isPure isUns ide oalias _) =
     showString "call "
@@ -602,7 +605,7 @@ showCHSAPath (CHSRef path ide) =
   . showCHSIdent ide
 
 showCHSIdent :: Ident -> ShowS
-showCHSIdent  = showString . identToLexeme
+showCHSIdent  = showString . identToString
 
 
 -- load and dump a CHI file
@@ -799,7 +802,7 @@ parseImport pos toks = do
         let (ide', toks') = rebuildModuleId ide toks
          in return (True , ide', toks')
       _                                      -> syntaxError toks
-  chi <- loadCHI . moduleNameToFileName . identToLexeme $ modid
+  chi <- loadCHI . moduleNameToFileName . identToString $ modid
   toks'' <- parseEndHook toks'
   frags <- parseFrags toks''
   return $ CHSHook (CHSImport qual modid chi pos) : frags
@@ -808,8 +811,8 @@ parseImport pos toks = do
 -- reconstruct it from a sequence of identifer and dot tokens.
 --
 rebuildModuleId ide (CHSTokDot _ : CHSTokIdent _ ide' : toks) =
-  let catIdent ide ide' = onlyPosIdent (posOf ide)  --FIXME: unpleasent hack
-                            (identToLexeme ide ++ '.' : identToLexeme ide')
+  let catIdent ide ide' = internalIdentAt (posOf ide)  --FIXME: unpleasent hack
+                            (identToString ide ++ '.' : identToString ide')
    in rebuildModuleId (catIdent ide ide') toks
 rebuildModuleId ide                                     toks  = (ide, toks)
 
@@ -928,15 +931,15 @@ normAP ide (Just ide') | apathToIdent ide == ide' = Nothing
 apathToIdent :: CHSAPath -> Ident
 apathToIdent (CHSRoot ide) =
     let lowerFirst (c:cs) = toLower c : cs
-    in onlyPosIdent (posOf ide) (lowerFirst $ identToLexeme ide)
+    in internalIdentAt (posOf ide) (lowerFirst $ identToString ide)
 apathToIdent (CHSDeref apath _) =
     let ide = apathToIdent apath
-    in onlyPosIdent (posOf ide) (identToLexeme ide ++ "_")
+    in internalIdentAt (posOf ide) (identToString ide ++ "_")
 apathToIdent (CHSRef apath ide') =
     let ide = apathToIdent apath
         upperFirst (c:cs) = toLower c : cs
-        sel = upperFirst $ identToLexeme ide'
-    in onlyPosIdent (posOf ide) (identToLexeme ide ++ sel)
+        sel = upperFirst $ identToString ide'
+    in internalIdentAt  (posOf ide) (identToString ide ++ sel)
 
 norm :: Ident -> Maybe Ident -> Maybe Ident
 norm ide Nothing                   = Nothing
@@ -1072,10 +1075,10 @@ parseOptAs _   _                                   toks  =
 --
 underscoreToCase               :: Ident -> Bool -> Position -> Ident
 underscoreToCase ide upper pos  =
-  let lexeme = identToLexeme ide
+  let lexeme = identToString ide
       ps     = filter (not . null) . parts $ lexeme
   in
-  onlyPosIdent pos . adjustHead . concat . map adjustCase $ ps
+  internalIdentAt pos . adjustHead . concat . map adjustCase $ ps
   where
     parts s = let (l, s') = break (== '_') s
               in
