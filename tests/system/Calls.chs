@@ -15,9 +15,10 @@ main :: IO ()
 main  = do
 	  let barfoo = {#call fun bar#} {#call fun foo#}
 	  {#call unsafe baz#} {#call fun foo#} barfoo
-	  {#call printString#} {#call fun MyString as myString#}
+	  -- BUG !
+	  {#call printString#} {# call pure  MyString as myString #}
 	  -- test typedef'ed args without argument variable in prototype
-	  {#call printString2#} {#call fun MyString as myString#}
+	  {#call printString2#} {# call pure MyString as myString #}
 
 {#fun foo as fooFun {} -> `Int'#}
 
@@ -25,7 +26,7 @@ main  = do
 
 {#fun baz as bazFun {`Int', `Float'} -> `()'#}
 
-{#fun MyString as myStringFun {} -> `String'#}
+{#fun pure MyString as myStringFun {} -> `String'#}
 
 {#fun printString as printStringFun {`String'} -> `()'#}
 

@@ -2,13 +2,12 @@
 #define __STRUCTS_H__
 
 typedef char bool, mychar;
-
 typedef struct _point *point;
-
+int _point(void);
 struct _point {
   int x, y;
 };
-
+int _point(void);
 typedef struct {
   struct _point pnt;
   int	        col;
