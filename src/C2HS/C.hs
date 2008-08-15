@@ -36,7 +36,7 @@ module C2HS.C (-- interface to KL for all non-KL modules
           --
           -- structure tree
           --
-          module C2HS.C.AST,
+          module Language.C.Syntax,
           --
           -- attributed structure tree with operations (reexported from
           -- `CAttrs')
@@ -53,24 +53,27 @@ module C2HS.C (-- interface to KL for all non-KL modules
           --
           -- misc. reexported stuff
           --
-          Ident, Attrs, Attr(..),
+          Ident, NodeInfo, Attr(..),
           --
           -- misc. own stuff
           --
           csuffix, hsuffix, isuffix)
 where
 
-import Data.Position   (Position(..), Pos(posOf))
-import Data.Idents        (Ident)
-import Data.Attributes (Attrs, Attr(..))
+import Language.C.Data
+import Language.C.Syntax
+import Language.C.Parser
+import Language.C.Pretty
+
+import Data.Attributes (Attr(..))
 
 import C2HS.State  (CST,
-                   fatal, errorsPresent, showErrors,
+                   fatal, errorsPresent, showErrors, raiseError,
+                   getNameSupply, setNameSupply,
                    Traces(..), putTraceStr)
-import qualified System.CIO as CIO
-import C2HS.C.AST
-import C2HS.C.Parser    (parseC)
-import C2HS.C.Pretty    () -- just Show instances
+import System.CIO as CIO (liftIO)
+
+
 import C2HS.C.Attrs       (AttrC, CObj(..), CTag(..), CDef(..),
                    lookupDefObjC, lookupDefTagC, getDefOfIdentC)
 import C2HS.C.Names     (nameAnalysis)
@@ -84,6 +87,15 @@ csuffix  = "c"
 hsuffix  = "h"
 isuffix  = "i"
 
+-- | parse a header file, raise an error if parsing failed
+parseHeader :: InputStream -> Position -> CST s CTranslUnit
+parseHeader is pos = 
+  do
+    ns <- getNameSupply
+    case execParser translUnitP is pos builtinTypeNames ns of
+      Left (ParseError (msgs,pos)) -> raiseError pos msgs >> undefined
+      Right (ct,ns') -> setNameSupply ns' >> return ct
+      
 -- | given a file name (with suffix), parse that file as a C header and do the
 -- static analysis (collect defined names)
 --
@@ -96,12 +108,12 @@ loadAttrC fname  = do
                      -- read file
                      --
                      traceInfoRead fname
-                     contents <- CIO.readFile fname
+                     contents <- liftIO (readInputStream fname)
 
                      -- parse
                      --
                      traceInfoParse
-                     header <- parseC contents (Position fname 1 1)
+                     header <- parseHeader contents (Position fname 1 1)
 
                      -- name analysis
                      --
