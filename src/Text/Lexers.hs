@@ -134,11 +134,11 @@ where
 
 import Data.Maybe (fromMaybe)
 import Data.Array (Array, (!), assocs, accumArray)
+import Language.C.Data.Position
 
-import Data.Position (Position(..), incPos, tabPos, retPos)
 import Data.DLists (DList)
 import qualified Data.DLists as DL
-import Data.Errors (interr, ErrorLvl(..), Error, makeError)
+import Data.Errors (interr, ErrorLevel(..), Error, makeError)
 
 
 infixr 4 `quest`, `star`, `plus`
@@ -463,7 +463,7 @@ execLexer l state            =
         -- the result state is advanced by one character for error correction
         --
         lexErr = let (cs, pos@(Position fname row col), s) = state
-                     err = makeError ErrorErr pos
+                     err = makeError LevelError pos
                              ["Lexical error!",
                               "The character " ++ show (head cs)
                               ++ " does not fit here; skipping it."]
