@@ -900,7 +900,7 @@ parseCall pos toks  =
     toks'''''            <- parseEndHook         toks''''
     frags                <- parseFrags           toks'''''
     return $
-      CHSHook (CHSCall isPure isUnsafe apath (normAP apath oalias) pos) : frags
+      CHSHook (CHSCall isPure isUnsafe apath oalias pos) : frags
 
 parseFun          :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseFun pos toks  =
@@ -916,7 +916,7 @@ parseFun pos toks  =
     frags              <- parseFrags           toks'8
     return $
       CHSHook
-        (CHSFun isPure isUnsafe apath (normAP apath oalias) octxt parms parm pos) :
+        (CHSFun isPure isUnsafe apath oalias octxt parms parm pos) :
       frags
   where
     parseOptContext (CHSTokHSVerb _ ctxt:CHSTokDArrow _:toks) =
@@ -950,6 +950,7 @@ parseIsUnsafe :: [CHSToken] -> CST s (Bool, [CHSToken])
 parseIsUnsafe (CHSTokUnsafe _:toks) = return (True , toks)
 parseIsUnsafe toks                  = return (False, toks)
 
+-- | normalize haskell name for C identifier
 normAP :: CHSAPath -> Maybe Ident -> Maybe Ident
 normAP ide Nothing                                = Nothing
 normAP ide (Just ide') | apathToIdent ide == ide' = Nothing
