@@ -1,0 +1,30 @@
+#!/bin/sh
+# Create directory and files for c2hs tests
+function die() {
+	echo $1 >&2
+	exit 1
+}
+DIR=$1
+mkdir $1 || die "mkdir '$1' failed"
+cd $1
+touch $1.h
+cat > $1.c <<EOF
+#include "$1.h"
+EOF
+cat > $1.chs <<EOF
+module Main where
+import Foreign
+import Foreign.C
+cIntConv = fromIntegral
+
+main :: IO ()
+main =
+  do
+     return ()
+EOF
+cat > Makefile <<EOF
+all: $1
+clean: $1.clean
+include ../bugs.mk
+EOF
+echo ".expect not yet initialized" > $1.expect

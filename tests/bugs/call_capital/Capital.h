@@ -1,0 +1,2 @@
+void c();
+void C();
