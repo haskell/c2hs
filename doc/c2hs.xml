@@ -416,14 +416,32 @@ gIntSize  = {#sizeof gint#}
 <programlisting>
 {#enum WindowType {underscoreToCase} deriving (Eq)#}
 </programlisting>
+ </para>
 
-    <note>
-      <para>The <literal>enum define</literal> hooks described in the &C2hs;
-      paper are not implemented yet.
-      </para>
-    </note>
-    </para>
   </sect2>
+    <sect2>
+	    <title><literal>enum define</literal> hooks</title>
+      <para>Many C libraries do not use enum types, but macro definitions to implement constants.	          
+c2hs provides <literal>enum define</literal> hooks generate a haskell datatype from a collection of macro definitions.											
+       </para>
+
+<programlisting>
+{#enum define <replaceable>hsid</replaceable> {<replaceable>alias1</replaceable> , ... , <replaceable>aliasn</replaceable>} [deriving (<replaceable>clid1</replaceable> , ... , <replaceable>clidn</replaceable>)]#}
+</programlisting>
+<para>
+Create a haskell datatype <replaceable>hsid</replaceable>, with nullary constructors as given by the aliases <replaceable>alias1</replaceable> through <replaceable>aliasn</replaceable>. Each alias has to be of the form <replaceable>macrodef as hsid</replaceable>, where <replaceable>hsid</replaceable> is the name of the nullary haskell constructor, and <replaceable>macrodef</replaceable> the C macro which the haskell constructor should map to. The deriving part is handled as in ordinary <literal>enum</literal> hooks.
+</para>
+<para>
+	Here's an example
+<programlisting>
+#define X 0
+#define Y 1
+</programlisting>	
+<programlisting>
+{#enum define Axis {X as Axis0, Y as Axis1} deriving (Eq,Ord) #}
+</programlisting>	
+</para>        
+    </sect2>
 
   <sect2>
     <title>Call Hooks</title>
