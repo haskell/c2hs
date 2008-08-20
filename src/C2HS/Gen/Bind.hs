@@ -408,6 +408,8 @@ expandHook (CHSSizeof ide pos) =
     traceInfoDump decl size = traceGenBind $
       "Size of declaration\n" ++ show decl ++ "\nis "
       ++ show (fromIntegral . padBits $ size) ++ "\n"
+expandHook (CHSEnumDefine _ _ _ pos) =
+  interr "Binding generation error : enum define hooks should be eliminated via preprocessing "
 expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
   do
     -- get the corresponding C declaration

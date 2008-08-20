@@ -71,7 +71,6 @@ type CST s a = PreCST SwitchBoard s a
 runC2HS :: CST () a -> IO a
 runC2HS  = run initialSwitchBoard
 
-
 -- switch management
 -- -----------------
 

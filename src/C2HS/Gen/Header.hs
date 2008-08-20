@@ -46,12 +46,12 @@ module C2HS.Gen.Header (
 ) where
 
 -- standard libraries
-import Control.Monad (when)
+import Control.Monad (when,liftM)
 
 -- Language.C / Compiler Toolkit
-import Language.C.Data.Position
-import Language.C.Data.Ident
-import Language.C.Data.Name
+import Language.C.Data
+import Language.C.Pretty
+import Language.C.Syntax
 import Data.Errors       (interr)
 import Data.DLists (DList)
 import qualified Data.DLists as DL
@@ -61,7 +61,7 @@ import C2HS.State (CST, runCST, transCST, raiseError, catchExc,
                   throwExc, errorsPresent, showErrors, fatal)
 
 -- friends
-import C2HS.CHS  (CHSModule(..), CHSFrag(..))
+import C2HS.CHS  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSChangeCase(..), CHSTrans(..))
 
 
 -- | The header generation monad
@@ -78,9 +78,8 @@ type GH a = CST [Name] a
 genHeader :: CHSModule -> CST s ([String], CHSModule, String)
 genHeader mod =
   do
-    (header, mod) <- runCST (ghModule mod) (namesStartingFrom 0)
+    (header, mod) <- runCST (ghModule mod) newNameSupply
                      `ifGHExc` return ([], CHSModule [])
-
     -- check for errors and finalise
     --
     errs <- errorsPresent
@@ -94,11 +93,11 @@ genHeader mod =
         return (header, mod, warnmsgs)
 
 -- | Obtain a new base name that may be used, in C, to encode the result of a
--- preprocessor conditionl.
+-- preprocessor conditional.
 --
 newName :: CST [Name] String
 newName = transCST $
-  \supply -> (tail supply, "C2HS_COND_SENTRY_" ++ show (head supply))
+  \supply -> (tail supply, "C2HS_COND_SENTRY_" ++ (show.nameId) (head supply))
 
 -- | Various forms of processed fragments
 --
@@ -166,6 +165,27 @@ ghFrag []                              =
   return (DL.zero, EOF, [])
 ghFrag (frag@(CHSVerb  _ _  ) : frags) =
   return (DL.zero, Frag frag, frags)
+
+-- generate an enum __c2hs__enum__'id { __c2hs_enr__'id = DEF1, ... } and then process an
+-- ordinary enum directive
+ghFrag ( frag@(CHSHook (CHSEnumDefine hsident trans instances pos)) : frags) =
+  do ide <- newEnumIdent
+     (enrs,trans') <- createEnumerators trans
+     return (DL.open [show.pretty $ enumDef ide enrs,";\n"], Frag (enumFrag (identToString ide) trans'), frags)
+  where
+  newEnumIdent = liftM internalIdent $ transCST $ \supply -> (tail supply, "__c2hs_enum__" ++ show (nameId $ head supply))
+  newEnrIdent  = liftM internalIdent $ transCST $ \supply -> (tail supply, "__c2hs_enr__" ++ show (nameId $ head supply))
+  createEnumerators (CHSTrans isUnderscore changeCase aliases)
+    | isUnderscore = raiseErrorGHExc pos ["underScoreToCase is meaningless for `enum define' hooks"]
+    | changeCase /= CHSSameCase = raiseErrorGHExc pos ["changing case is meaningless for `enum define' hooks"]
+    | otherwise =
+      do (enrs,transtbl') <- liftM unzip (mapM createEnumerator aliases)
+         return (enrs,CHSTrans False CHSSameCase transtbl')
+  createEnumerator (cid,hsid) = liftM (\enr -> ((enr,cid),(enr,hsid))) newEnrIdent
+  enumDef ide enrs = CEnum (Just ide) (Just$ map mkEnr enrs) [] internalNode
+    where mkEnr (name,value) = (name, Just $ CVar value internalNode)
+  enumFrag ide trans' = CHSHook (CHSEnum (internalIdent ide) (Just hsident) trans' Nothing instances pos)
+
 ghFrag (frag@(CHSHook  _    ) : frags) =
   return (DL.zero, Frag frag, frags)
 ghFrag (frag@(CHSLine  _    ) : frags) =
@@ -175,6 +195,7 @@ ghFrag (     (CHSC    s  _  ) : frags) =
     (header, frag, frags' ) <- ghFrag frags     -- scan for next CHS fragment
     return (DL.unit s `DL.join` header, frag, frags')
     -- FIXME: this is not tail recursive...
+
 ghFrag (     (CHSCond _  _  ) : frags) =
   interr "GenHeader.ghFrags: There can't be a structured conditional yet!"
 ghFrag (frag@(CHSCPP  s  pos) : frags) =

@@ -180,6 +180,10 @@ data CHSHook = CHSImport  Bool                  -- qualified?
                           (Maybe String)        -- local prefix
                           [Ident]               -- instance requests from user
                           Position
+             | CHSEnumDefine Ident              -- Haskell name
+                          CHSTrans              -- translation table
+                          [Ident]               -- instance requests from user
+                          Position
              | CHSCall    Bool                  -- is a pure function?
                           Bool                  -- is unsafe?
                           CHSAPath              -- C function
@@ -215,6 +219,7 @@ instance Pos CHSHook where
   posOf (CHSType    _             pos) = pos
   posOf (CHSSizeof  _             pos) = pos
   posOf (CHSEnum    _ _ _ _ _     pos) = pos
+  posOf (CHSEnumDefine _ _ _      pos) = pos
   posOf (CHSCall    _ _ _ _       pos) = pos
   posOf (CHSFun     _ _ _ _ _ _ _ pos) = pos
   posOf (CHSField   _ _           pos) = pos
@@ -235,6 +240,8 @@ instance Eq CHSHook where
     ide1 == ide2
   (CHSEnum ide1 oalias1 _ _ _  _) == (CHSEnum ide2 oalias2 _ _ _  _) =
     oalias1 == oalias2 && ide1 == ide2
+  (CHSEnumDefine ide1 _ _      _) == (CHSEnumDefine ide2 _ _      _) =
+    ide1 == ide2
   (CHSCall _ _ ide1 oalias1    _) == (CHSCall _ _ ide2 oalias2    _) =
     oalias1 == oalias2 && ide1 == ide2
   (CHSFun  _ _ ide1 oalias1 _ _ _ _)
@@ -290,7 +297,7 @@ data CHSAccess = CHSSet                         -- set structure field
 data CHSAPath = CHSRoot  Ident                  -- root of access path
               | CHSDeref CHSAPath Position      -- dereferencing
               | CHSRef   CHSAPath Ident         -- member referencing
-              deriving (Eq)
+              deriving (Eq,Show)
 
 instance Pos CHSAPath where
     posOf (CHSRoot ide)    = posOf ide
@@ -477,6 +484,14 @@ showCHSHook (CHSEnum ide oalias trans oprefix derive _) =
   . showIdAlias ide oalias
   . showCHSTrans trans
   . showPrefix oprefix True
+  . if null derive then id else showString $
+      "deriving ("
+      ++ concat (intersperse ", " (map identToString derive))
+      ++ ") "
+showCHSHook (CHSEnumDefine ide trans derive _) =
+    showString "enum define "
+  . showCHSIdent ide
+  . showCHSTrans trans
   . if null derive then id else showString $
       "deriving ("
       ++ concat (intersperse ", " (map identToString derive))
@@ -847,6 +862,19 @@ parseSizeof pos (CHSTokIdent _ ide:toks) =
 parseSizeof _ toks = syntaxError toks
 
 parseEnum :: Position -> [CHSToken] -> CST s [CHSFrag]
+
+-- {#enum define hsid {alias_1,...,alias_n}  [deriving (clid_1,...,clid_n)] #}
+parseEnum pos (CHSTokIdent _ def: CHSTokIdent _ hsid: toks)
+  | identToString def == "define" =
+  do
+    let alias = hsid
+    (trans , toks')   <- parseTrans          toks
+    (derive, toks'')  <- parseDerive         toks'
+    toks'''           <- parseEndHook        toks''
+    frags             <- parseFrags          toks'''
+    return $ CHSHook (CHSEnumDefine hsid trans derive pos) : frags
+
+-- {#enum cid [as hsid] {alias_1,...,alias_n}  [with prefix = pref] [deriving (clid_1,...,clid_n)] #}
 parseEnum pos (CHSTokIdent _ ide:toks) =
   do
     (oalias, toks' )   <- parseOptAs ide True toks
