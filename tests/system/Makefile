@@ -13,7 +13,6 @@ default: tests
 
 C2HS.o: ../../C2HS.hs
 	cp -p ../../C2HS.hs .
-	$(C2HS) --copy-library
 	$(HC) -c C2HS.hs
 
 simple: C2HS.o Simple.chs simple.h simple.c
