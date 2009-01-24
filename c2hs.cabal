@@ -13,6 +13,7 @@ Author:         Manuel M T Chakravarty
 Maintainer:     chak@cse.unsw.edu.au, duncan@haskell.org
 Stability:      Stable
 Homepage:       http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
+Bug-Reports:    http://hackage.haskell.org/trac/c2hs/
 Synopsis:       C->Haskell Interface Generator
 Description:    C->Haskell assists in the development of Haskell bindings to C
                 libraries.  It extracts C interface information from vanilla header
