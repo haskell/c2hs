@@ -58,13 +58,13 @@ cpp  = case os of
 --
 -- * @-P@ would suppress @#line@ directives
 --
-cppopts :: String
+cppopts :: [String]
 cppopts  = case (os,cpp) of
   -- why is gcc different between all these platforms?
-  ("openbsd","cpp") -> "-xc"
-  (_,"cpp")         -> "-x c"
-  (_,"gcc")         -> "-E -x c"
-  _                 -> ""
+  ("openbsd","cpp") -> ["-xc"]
+  (_,"cpp")         -> ["-x", "c"]
+  (_,"gcc")         -> ["-E", "-x", "c"]
+  _                 -> []
 
 -- | C2HS Library file name
 --

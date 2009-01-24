@@ -126,8 +126,7 @@ import System.Console.GetOpt
 import qualified System.FilePath as FilePath
                   (takeExtension, dropExtension, takeBaseName)
 import System.FilePath ((<.>), (</>))
-import System.Exit (ExitCode(..))
-import System.IO (stderr)
+import System.IO (stderr, openFile, IOMode(..))
 import System.IO.Error (ioeGetErrorString, ioeGetFileName)
 import System.Process (runProcess, waitForProcess)
 
@@ -391,7 +390,7 @@ help =
 -- * 'Help' cannot occur
 --
 processOpt :: Flag -> CST s ()
-processOpt (CPPOpts  cppopts) = addCPPOpts  cppopts
+processOpt (CPPOpts  cppopt ) = addCPPOpts  [cppopt]
 processOpt (CPP      cpp    ) = setCPP      cpp
 processOpt (Dump     dt     ) = setDump     dt
 processOpt (Keep            ) = setKeep
@@ -445,14 +444,8 @@ copyLibrary =
 
 -- | set the options for the C proprocessor
 --
-addCPPOpts      :: String -> CST s ()
-addCPPOpts opts  =
-  do
-    let iopts = [opt | opt <- words opts, "-I" `isPrefixOf` opt, "-I-" /= opt]
-    addOpts opts
-  where
-    addOpts opts  = setSwitch $
-                      \sb -> sb {cppOptsSB = cppOptsSB sb ++ (' ':opts)}
+addCPPOpts      :: [String] -> CST s ()
+addCPPOpts opts  = setSwitch $ \sb -> sb {cppOptsSB = cppOptsSB sb ++ opts}
 
 -- | set the program name of the C proprocessor
 --
@@ -582,7 +575,7 @@ process headerFiles bndFile  =
     cppOpts <- getSwitch cppOptsSB
     let args = cppOpts ++ [newHeaderFile]
     tracePreproc (unwords (cpp:args))
-    exitCode <- liftIO $ do
+    exitCode <- CIO.liftIO $ do
       preprocHnd <- openFile preprocFile WriteMode
       process <- runProcess cpp args
         Nothing Nothing Nothing (Just preprocHnd) Nothing
