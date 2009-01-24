@@ -105,6 +105,8 @@
 module C2HS.Gen.Bind (expandHooks)
 where
 
+import Prelude hiding (exp)
+
 -- standard libraries
 import Data.Char     (toLower)
 import Data.List     (deleteBy, intersperse, find)
@@ -145,7 +147,8 @@ import C2HS.C     (AttrC, CObj(..), CTag(..),
 import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..),
                    CHSParm(..), CHSArg(..), CHSAccess(..), CHSAPath(..),
                    CHSPtrType(..), showCHSParm, apathToIdent)
-import C2HS.C.Info      (CPrimType(..), size, alignment, getPlatform)
+import C2HS.C.Info      (CPrimType(..), alignment, getPlatform)
+import qualified C2HS.C.Info as CInfo
 import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
                    initialGBState, setContext, getPrefix,
                    delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
@@ -297,8 +300,8 @@ peekCStringLenIde = internalIdent "peekCStringLenIntConv"
 -- * also returns all warning messages encountered (last component of result)
 --
 expandHooks        :: AttrC -> CHSModule -> CST s (CHSModule, String, String)
-expandHooks ac mod  = do
-                        (_, res) <- runCT (expandModule mod) ac initialGBState
+expandHooks ac mod'  = do
+                        (_, res) <- runCT (expandModule mod') ac initialGBState
                         return res
 
 expandModule                   :: CHSModule -> GB (CHSModule, String, String)
@@ -355,15 +358,15 @@ expandFrag      (CHSCond alts dft) =
     traceInfoCond
     select alts
   where
-    select []                  = do
-                                   traceInfoDft dft
-                                   expandFrags (maybe [] id dft)
-    select ((ide, frags):alts) = do
+    select []                   = do
+                                    traceInfoDft dft
+                                    expandFrags (maybe [] id dft)
+    select ((ide, frags):alts') = do
                                    oobj <- findTag ide
                                    traceInfoVal ide oobj
                                    if isNothing oobj
                                      then
-                                       select alts
+                                       select alts'
                                      else            -- found right alternative
                                        expandFrags frags
     --
@@ -371,7 +374,7 @@ expandFrag      (CHSCond alts dft) =
     traceInfoVal ide oobj = traceGenBind $ identToString ide ++ " is " ++
                               (if isNothing oobj then "not " else "") ++
                               "defined.\n"
-    traceInfoDft dft      = if isNothing dft
+    traceInfoDft dft'     = if isNothing dft'
                             then
                               return ()
                             else
@@ -438,10 +441,10 @@ expandHook hook@(CHSCall isPure isUns (CHSRoot ide) oalias pos) =
     -- function; we use shadow identifiers, so the returned identifier is used
     -- afterwards instead of the original one
     --
-    (ObjCO cdecl, ide) <- findFunObj ide True
-    let ideLexeme = identToString ide  -- orignal name might have been a shadow
+    (ObjCO cdecl, ide') <- findFunObj ide True
+    let ideLexeme = identToString ide'  -- orignl name might have been a shadow
         hsLexeme  = ideLexeme `maybe` identToString $ oalias
-        cdecl'    = ide `simplifyDecl` cdecl
+        cdecl'    = ide' `simplifyDecl` cdecl
     callImport hook isPure isUns ideLexeme hsLexeme cdecl' pos
     return hsLexeme
   where
@@ -601,8 +604,8 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
         unless isStar $                         -- tags need an explicit `*'
           ptrExpectedErr (posOf cName)
         let hsType = case oRefType of
-                       Nothing     -> "()"
-                       Just hsType -> identToString hsType
+                       Nothing      -> "()"
+                       Just hsType' -> identToString hsType'
         traceInfoHsType hsName hsType
         pointerDef isStar cNameFull hsName ptrKind isNewtype hsType False emit
   where
@@ -640,9 +643,9 @@ expandHook (CHSClass oclassIde classIde typeIde pos) =
     collectClasses Nothing     = return []
     collectClasses (Just ide)  =
       do
-        Class oclassIde typeIde <- queryClass ide
-        ptr                     <- queryPointer typeIde
-        classes                 <- collectClasses oclassIde
+        Class oclassIde' typeIde' <- queryClass ide
+        ptr                       <- queryPointer typeIde'
+        classes                   <- collectClasses oclassIde'
         return $ (identToString ide, identToString typeIde, ptr) : classes
     --
     traceInfoClass = traceGenBind $ "** Class hook:\n"
@@ -668,17 +671,17 @@ enumDef (CEnum _ (Just list) _ _) hident trans userDerive =
     return $ defHead ++ defBody ++ inst
   where
     evalTagVals []                     = return ([], True)
-    evalTagVals ((ide, Nothing ):list) =
+    evalTagVals ((ide, Nothing ):list') =
       do
-        (list', derived) <- evalTagVals list
-        return ((ide, Nothing):list', derived)
-    evalTagVals ((ide, Just exp):list) =
+        (list'', derived) <- evalTagVals list'
+        return ((ide, Nothing):list'', derived)
+    evalTagVals ((ide, Just exp):list') =
       do
-        (list', _derived) <- evalTagVals list
+        (list'', _derived) <- evalTagVals list'
         val <- evalConstCExpr exp
         case val of
           IntResult val' ->
-            return ((ide, Just $ CConst (CIntConst (cInteger val') at1)):list',
+            return ((ide, Just $ CConst (CIntConst (cInteger val') at1)):list'',
                     False)
           FloatResult _ ->
             illegalConstExprErr (posOf exp) "a float result"
@@ -724,9 +727,9 @@ enumInst ident list =
   ++ fromDef list 0 ++ "\n" ++ toDef list 0
   where
     fromDef []                _ = ""
-    fromDef ((ide, exp):list) n =
+    fromDef ((ide, exp):list') n =
       "  fromEnum " ++ ide ++ " = " ++ show' (getCInteger val) ++ "\n"
-      ++ fromDef list (val + 1)
+      ++ fromDef list' (val + 1)
       where
         val = case exp of
                 Nothing                         -> n
@@ -739,9 +742,9 @@ enumInst ident list =
     toDef []                _ =
       "  toEnum unmatched = error (\"" ++ ident
       ++ ".toEnum: Cannot match \" ++ show unmatched)\n"
-    toDef ((ide, exp):list) n =
+    toDef ((ide, exp):list') n =
       "  toEnum " ++ show' val ++ " = " ++ ide ++ "\n"
-      ++ toDef list (val + 1)
+      ++ toDef list' (val + 1)
       where
         val = case exp of
                 Nothing                         -> n
@@ -831,7 +834,7 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
     traceMarsh parms' parm' isImpure
     let
       sig       = hsLexeme ++ " :: " ++ funTy parms' parm' ++ "\n"
-      marshs    = [marshArg i parm | (i, parm) <- zip [1..] parms']
+      marshs    = [marshArg i parm'' | (i, parm'') <- zip [1..] parms']
       funArgs   = [funArg   | (funArg, _, _, _, _)   <- marshs, funArg   /= ""]
       marshIns  = [marshIn  | (_, marshIn, _, _, _)  <- marshs]
       callArgs  = [callArg  | (_, _, cs, _, _)  <- marshs, callArg <- cs]
@@ -882,13 +885,13 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
     -- * specified types appear in the argument and result only if their "in"
     --   and "out" marshaller, respectively, is not the `void' marshaller
     --
-    funTy parms parm =
+    funTy parms' parm' =
       let
         ctxt   = case octxt of
                    Nothing      -> ""
                    Just ctxtStr -> ctxtStr ++ " => "
-        argTys = [ty | CHSParm im ty _ _  _ <- parms     , notVoid im]
-        resTys = [ty | CHSParm _  ty _ om _ <- parm:parms, notVoid om]
+        argTys = [ty | CHSParm im ty _ _  _ <- parms'      , notVoid im]
+        resTys = [ty | CHSParm _  ty _ om _ <- parm':parms', notVoid om]
         resTup = let
                    (lp, rp) = if isPure && length resTys == 1
                               then ("", "")
@@ -938,16 +941,16 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
       (funArg, marshIn, callArgs, marshOut, retArg)
     marshArg _ _ = interr "GenBind.funDef: Missing default?"
     --
-    traceMarsh parms parm isImpure = traceGenBind $
+    traceMarsh parms' parm' isImpure = traceGenBind $
       "Marshalling specification including defaults: \n" ++
-      showParms (parms ++ [parm]) "" ++
+      showParms (parms' ++ [parm']) "" ++
       "  The marshalling is " ++ if isImpure then "impure.\n" else "pure.\n"
       where
-        showParms []           = id
-        showParms (parm:parms) =   showString "  "
-                                 . showCHSParm parm
-                                 . showChar '\n'
-                                 . showParms parms
+        showParms []               = id
+        showParms (parm'':parms'') = showString "  "
+                                     . showCHSParm parm''
+                                     . showChar '\n'
+                                     . showParms parms''
 
 -- | add default marshallers for "in" and "out" marshalling
 --
@@ -964,14 +967,14 @@ addDftMarshaller pos parms parm extTy = do
     --
     -- * a default marshaller maybe used for "out" marshalling
     --
-    checkResMarsh (CHSParm (Just _) _  _    _       pos) _   =
-      resMarshIllegalInErr      pos
-    checkResMarsh (CHSParm _        _  True _       pos) _   =
-      resMarshIllegalTwoCValErr pos
-    checkResMarsh (CHSParm _        ty _    omMarsh pos) cTy = do
+    checkResMarsh (CHSParm (Just _) _  _    _       pos') _   =
+      resMarshIllegalInErr      pos'
+    checkResMarsh (CHSParm _        _  True _       pos') _   =
+      resMarshIllegalTwoCValErr pos'
+    checkResMarsh (CHSParm _        ty _    omMarsh pos') cTy = do
       (imMarsh', _       ) <- addDftVoid Nothing
-      (omMarsh', isImpure) <- addDftOut pos omMarsh ty [cTy]
-      return (CHSParm imMarsh' ty False omMarsh' pos, isImpure)
+      (omMarsh', isImpure) <- addDftOut pos' omMarsh ty [cTy]
+      return (CHSParm imMarsh' ty False omMarsh' pos', isImpure)
     --
     splitFunTy (FunET UnitET ty ) = splitFunTy ty
     splitFunTy (FunET ty1    ty2) = let
@@ -982,39 +985,40 @@ addDftMarshaller pos parms parm extTy = do
     --
     -- match Haskell with C arguments (and results)
     --
-    addDft ((CHSParm imMarsh hsTy False omMarsh p):parms) (cTy      :cTys) = do
+    addDft ((CHSParm imMarsh hsTy False omMarsh p):parms'') (cTy    :cTys) = do
       (imMarsh', isImpureIn ) <- addDftIn   p imMarsh hsTy [cTy]
       (omMarsh', isImpureOut) <- addDftVoid    omMarsh
-      (parms'  , isImpure   ) <- addDft parms cTys
+      (parms'  , isImpure   ) <- addDft parms'' cTys
       return (CHSParm imMarsh' hsTy False omMarsh' p : parms',
               isImpure || isImpureIn || isImpureOut)
-    addDft ((CHSParm imMarsh hsTy True  omMarsh p):parms) (cTy1:cTy2:cTys) = do
+    addDft ((CHSParm imMarsh hsTy True  omMarsh p):parms'') (cTy1:cTy2:cTys) =
+      do
       (imMarsh', isImpureIn ) <- addDftIn   p imMarsh hsTy [cTy1, cTy2]
       (omMarsh', isImpureOut) <- addDftVoid   omMarsh
-      (parms'  , isImpure   ) <- addDft parms cTys
+      (parms'  , isImpure   ) <- addDft parms'' cTys
       return (CHSParm imMarsh' hsTy True omMarsh' p : parms',
               isImpure || isImpureIn || isImpureOut)
     addDft []                                             []               =
       return ([], False)
-    addDft ((CHSParm _       _    _     _     pos):_)     []               =
-      marshArgMismatchErr pos "This parameter is in excess of the C arguments."
+    addDft ((CHSParm _       _    _     _     pos'):_)    []               =
+      marshArgMismatchErr pos' "This parameter is in excess of the C arguments."
     addDft []                                             (_:_)            =
       marshArgMismatchErr pos "Parameter marshallers are missing."
     --
-    addDftIn _   imMarsh@(Just (_, kind)) _    _    = return (imMarsh,
+    addDftIn _    imMarsh@(Just (_, kind)) _    _    = return (imMarsh,
                                                               kind == CHSIOArg)
-    addDftIn pos _imMarsh@Nothing         hsTy cTys = do
+    addDftIn pos'  _imMarsh@Nothing        hsTy cTys = do
       marsh <- lookupDftMarshIn hsTy cTys
       when (isNothing marsh) $
-        noDftMarshErr pos "\"in\"" hsTy cTys
+        noDftMarshErr pos' "\"in\"" hsTy cTys
       return (marsh, case marsh of {Just (_, kind) -> kind == CHSIOArg})
     --
-    addDftOut _   omMarsh@(Just (_, kind)) _    _    = return (omMarsh,
+    addDftOut _    omMarsh@(Just (_, kind)) _    _    = return (omMarsh,
                                                               kind == CHSIOArg)
-    addDftOut pos _omMarsh@Nothing         hsTy cTys = do
+    addDftOut pos' _omMarsh@Nothing         hsTy cTys = do
       marsh <- lookupDftMarshOut hsTy cTys
       when (isNothing marsh) $
-        noDftMarshErr pos "\"out\"" hsTy cTys
+        noDftMarshErr pos' "\"out\"" hsTy cTys
       return (marsh, case marsh of {Just (_, kind) -> kind == CHSIOArg})
     --
     -- add void marshaller if no explict one is given
@@ -1069,10 +1073,10 @@ accessPath (CHSRef path ide) =                          -- a.m
     adecl <- replaceByAlias decl'
     return (adecl, offset `addBitSize` addOffset : offsets)
   where
-    assertPrimDeclr ide (CDecl _ [declr] _) =
+    assertPrimDeclr ide' (CDecl _ [declr] _) =
       case declr of
         (Just (CDeclr _ [] _ _ _), _, _) -> return ()
-        _                                -> structExpectedErr ide
+        _                                -> structExpectedErr ide'
 accessPath (CHSDeref path _pos) =                        -- *a
   do
     (decl, offsets) <- accessPath path
@@ -1100,8 +1104,8 @@ replaceByAlias cdecl@(CDecl _ [(_, _, size)] _at)  =
     ocdecl <- checkForAlias cdecl
     case ocdecl of
       Nothing                                  -> return cdecl
-      Just (CDecl specs [(declr, init, _)] at) ->   -- form of an alias
-        return $ CDecl specs [(declr, init, size)] at
+      Just (CDecl specs [(declr, init', _)] at) ->   -- form of an alias
+        return $ CDecl specs [(declr, init', size)] at
 
 -- | given a structure declaration and member name, compute the offset of the
 -- member in the structure and the declaration of the referenced member
@@ -1173,7 +1177,7 @@ setGet pos access offsets ty =
                                 ++ show (bs + bitOffset) ++ ")) `shiftR` ("
                                 ++ bitsPerField ++ " - " ++ show bs
                                 ++ ")"
-              bitsPerField    = show $ size CIntPT * 8
+              bitsPerField    = show $ CInfo.size CIntPT * 8
               --
               insertBitfield  = "; let {val' = (org .&. " ++ middleMask
                                 ++ ") .|. (val `shiftL` "
@@ -1181,9 +1185,9 @@ setGet pos access offsets ty =
               middleMask      = "fromIntegral (((maxBound::CUInt) `shiftL` "
                                 ++ show bs ++ ") `rotateL` "
                                 ++ show bitOffset ++ ")"
-    setGetBody (BitSize offset 0 : offsets) =
+    setGetBody (BitSize offset 0 : offsetsrem) =
       do
-        code <- setGetBody offsets
+        code <- setGetBody offsetsrem
         return $ "ptr <- peekByteOff ptr " ++ show offset ++ "; " ++ code
     setGetBody (BitSize _      _ : _      ) =
       derefBitfieldErr pos
@@ -1274,7 +1278,7 @@ classDef pos className typeName ptrType isNewtype superClasses =
       classDefContext = case superClasses of
                           []                  -> ""
                           (superName, _, _):_ -> superName ++ " p => "
-      classDef        =
+      classDefStr     =
         "class " ++ classDefContext ++ className ++ " p where\n"
         ++ "  " ++ toMethodName   ++ " :: p -> " ++ typeName ++ "\n"
         ++ "  " ++ fromMethodName ++ " :: " ++ typeName ++ " -> p\n"
@@ -1283,7 +1287,7 @@ classDef pos className typeName ptrType isNewtype superClasses =
         ++ "  " ++ toMethodName   ++ " = id\n"
         ++ "  " ++ fromMethodName ++ " = id\n"
     instDefs <- castInstDefs superClasses
-    return $ classDef ++ instDefs ++ instDef
+    return $ classDefStr ++ instDefs ++ instDef
   where
     castInstDefs [] = return ""
     castInstDefs ((superName, ptrName, Pointer ptrType' isNewtype'):classes) =
@@ -1505,7 +1509,7 @@ extractPtrType cdecl = do
 --                   definition of that pointer.
 --
 extractCompType :: Bool -> Bool -> CDecl -> GB CompType
-extractCompType isResult usePtrAliases cdecl@(CDecl specs declrs ats)  =
+extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
   if length declrs > 1
   then interr "GenBind.extractCompType: Too many declarators!"
   else case declrs of
@@ -1519,7 +1523,7 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs declrs ats)  =
     ptrType declr = do
       tracePtrType
       let declrs' = dropPtrDeclr declr          -- remove indirection
-          cdecl'  = CDecl specs [(Just declrs', Nothing, Nothing)] ats
+          cdecl'  = CDecl specs' [(Just declrs', Nothing, Nothing)] ats
           oalias  = checkForOneAliasName cdecl' -- is only an alias remaining?
           osu     = checkForOneCUName cdecl'
           oname   = if oalias == Nothing then osu else oalias
@@ -1550,7 +1554,7 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs declrs ats)  =
     aliasOrSpecType size = do
       traceAliasOrSpecType size
       case checkForOneAliasName cdecl of
-        Nothing   -> specType (posOf cdecl) specs size
+        Nothing   -> specType (posOf cdecl) specs' size
         Just ide  -> do                    -- this is a typedef alias
           traceAlias ide
           oHsRepr <- queryPtr (False, ide) -- check for pointer hook alias
@@ -1559,9 +1563,9 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs declrs ats)  =
                -> ptrAlias repr    -- found a pointer hook alias
             _  -> do               -- skip current alias (only one)
                     cdecl' <- getDeclOf ide
-                    let CDecl specs [(declr, init, _)] at =
+                    let CDecl specs [(declr, init', _)] at =
                           ide `simplifyDecl` cdecl'
-                        sdecl = CDecl specs [(declr, init, size)] at
+                        sdecl = CDecl specs [(declr, init', size)] at
                         -- propagate `size' down (slightly kludgy)
                     extractCompType isResult usePtrAliases sdecl
     --
@@ -1634,8 +1638,8 @@ typeMap  = [([void]                      , UnitET           ),
 -- * may not be called for a specifier that defines a typedef alias
 --
 specType :: Position -> [CDeclSpec] -> Maybe CExpr -> GB CompType
-specType cpos specs osize =
-  let tspecs = [ts | CTypeSpec ts <- specs]
+specType cpos specs'' osize =
+  let tspecs = [ts | CTypeSpec ts <- specs'']
   in case lookupTSpec tspecs typeMap of
     Just et | isUnsupportedType et -> unsupportedTypeSpecErr cpos
             | isNothing osize      -> return $ ExtType et     -- not a bitfield
@@ -1649,7 +1653,8 @@ specType cpos specs osize =
   where
     lookupTSpec = lookupBy matches
     --
-    isUnsupportedType (PrimET et) = size et == 0  -- can't be a bitfield (yet)
+    -- can't be a bitfield (yet)
+    isUnsupportedType (PrimET et) = CInfo.size et == 0
     isUnsupportedType _           = False
     --
     -- check whether two type specifier lists denote the same type; handles
@@ -1731,7 +1736,7 @@ instance Ord BitSize where
 addBitSize                                 :: BitSize -> BitSize -> BitSize
 addBitSize (BitSize o1 b1) (BitSize o2 b2)  = BitSize (o1 + o2 + overflow) rest
   where
-    bitsPerBitfield  = size CIntPT * 8
+    bitsPerBitfield  = CInfo.size CIntPT * 8
     (overflow, rest) = (b1 + b2) `divMod` bitsPerBitfield
 
 -- | multiply a bit size by a constant (gives size of an array)
@@ -1741,14 +1746,14 @@ addBitSize (BitSize o1 b1) (BitSize o2 b2)  = BitSize (o1 + o2 + overflow) rest
 scaleBitSize                  :: Int -> BitSize -> BitSize
 scaleBitSize n (BitSize o1 b1) = BitSize (n * o1 + overflow) rest
   where
-    bitsPerBitfield  = size CIntPT * 8
+    bitsPerBitfield  = CInfo.size CIntPT * 8
     (overflow, rest) = (n * b1) `divMod` bitsPerBitfield
 
 -- | pad any storage unit that is partially used by a bitfield
 --
 padBits               :: BitSize -> Int
 padBits (BitSize o 0)  = o
-padBits (BitSize o _)  = o + size CIntPT
+padBits (BitSize o _)  = o + CInfo.size CIntPT
 
 -- | compute the offset of the declarator in the second argument when it is
 -- preceded by the declarators in the first argument
@@ -1810,14 +1815,14 @@ sizeAlignOfSingle :: CDecl -> GB (BitSize, Int)
 --   declared.  At this time I don't care.  -- U.S. 05/2006
 --
 sizeAlignOf (CDecl dclspec
-                   [(Just (CDeclr oide (CArrDeclr _ (CArrSize _ lexpr) _ : derived') _asm _ats n), init, expr)]
+                   [(Just (CDeclr oide (CArrDeclr _ (CArrSize _ lexpr) _ : derived') _asm _ats n), init', expr)]
                    attr) =
   do
     (bitsize, align) <- sizeAlignOf (CDecl dclspec
-                                           [(Just (CDeclr oide derived' Nothing [] n), init, expr)]
+                                           [(Just (CDeclr oide derived' Nothing [] n), init', expr)]
                                            attr)
-    IntResult length <- evalConstCExpr lexpr
-    return (fromIntegral length `scaleBitSize` bitsize, align)
+    IntResult len <- evalConstCExpr lexpr
+    return (fromIntegral len `scaleBitSize` bitsize, align)
 sizeAlignOf (CDecl _ [(Just (CDeclr _ (CArrDeclr _ (CNoArrSize _) _ : _) _ _ _), _init, _expr)] _) =
     interr "GenBind.sizeAlignOf: array of undeclared size."
 sizeAlignOf cdecl =
@@ -1862,17 +1867,17 @@ sizeAlignOfSingle cdecl  =
                      if (not . null $ fields) || isNothing ide
                      then return fields
                      else do                              -- get the real...
-                       tag <- findTag (fromJust ide)      -- ...definition
-                       case tag of
-                         Just (StructUnionCT su) -> return
-                                                     (fst . structMembers $ su)
+                       tag' <- findTag (fromJust ide)      -- ...definition
+                       case tag' of
+                         Just (StructUnionCT su') -> return
+                                                     (fst . structMembers $ su')
                          _                       -> return fields
           sizeAlignOfStructPad fields' tag
   where
     bitSize et | sz < 0    = BitSize 0  (-sz)   -- size is in bits
                | otherwise = BitSize sz 0
                where
-                 sz = size et
+                 sz = CInfo.size et
 
 -- | apply the given alignment constraint at the given offset
 --
@@ -1894,7 +1899,7 @@ alignOffset offset@(BitSize octetOffset bitOffset) align bitfieldAlignment
   | otherwise                   =               -- stays in current bitfield
     offset
   where
-    bitsPerBitfield     = size CIntPT * 8
+    bitsPerBitfield     = CInfo.size CIntPT * 8
     overflowingBitfield = bitOffset - align >= bitsPerBitfield
                                     -- note, `align' is negative
 
@@ -1949,12 +1954,12 @@ evalConstCExpr (CCall _ _ at) =
   illegalConstExprErr (posOf at) "function call"
 evalConstCExpr (CMember _ _ _ at) =
   illegalConstExprErr (posOf at) "a . or -> operator"
-evalConstCExpr (CVar ide at) =
+evalConstCExpr (CVar ide''' at) =
   do
-    (cobj, _) <- findValueObj ide False
+    (cobj, _) <- findValueObj ide''' False
     case cobj of
-      EnumCO ide (CEnum _ (Just enumrs) _ _) -> 
-        liftM IntResult $ enumTagValue ide enumrs 0
+      EnumCO ide'' (CEnum _ (Just enumrs) _ _) -> 
+        liftM IntResult $ enumTagValue ide'' enumrs 0
       _                             ->
         todo $ "GenBind.evalConstCExpr: variable names not implemented yet " ++
                show (posOf at)
@@ -1975,7 +1980,7 @@ evalConstCExpr (CVar ide at) =
                     do
                       val' <- evalConstCExpr exp
                       case val' of
-                        IntResult val' -> return val'
+                        IntResult val'' -> return val''
                         FloatResult _  ->
                           illegalConstExprErr (posOf exp) "a float result"
         if ide == ide'
