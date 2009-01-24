@@ -135,7 +135,7 @@ downcaseFirstLetter (c:cs) = toLower c : cs
 --   beginning of this file
 --
 transTabToTransFun :: String -> CHSTrans -> TransFun
-transTabToTransFun prefix (CHSTrans _2Case chgCase table) =
+transTabToTransFun prefx (CHSTrans _2Case chgCase table) =
   \ide -> let
             caseTrafo = (if _2Case then underscoreToCase else id) .
                         (case chgCase of
@@ -148,7 +148,7 @@ transTabToTransFun prefix (CHSTrans _2Case chgCase table) =
           case lookup ide table of                  -- lookup original ident
             Just ide' -> identToString ide'         -- original ident matches
             Nothing   ->
-              case eat prefix lexeme of
+              case eat prefx lexeme of
                 Nothing          -> dft             -- no match & no prefix
                 Just eatenLexeme ->
                   let
@@ -161,9 +161,9 @@ transTabToTransFun prefix (CHSTrans _2Case chgCase table) =
   where
     -- try to eat prefix and return `Just partialLexeme' if successful
     --
-    eat []         ('_':cs)                        = eat [] cs
-    eat []         cs                              = Just cs
-    eat (p:prefix) (c:cs) | toUpper p == toUpper c = eat prefix cs
+    eat []         ('_':cs)                         = eat [] cs
+    eat []         cs                               = Just cs
+    eat (p:prefx') (c:cs) | toUpper p == toUpper c  = eat prefx' cs
                           | otherwise              = Nothing
     eat _          _                               = Nothing
 
@@ -255,10 +255,10 @@ initialGBState  = GBState {
 
 -- | set the dynamic library and library prefix
 --
-setContext            :: (Maybe String) -> (Maybe String) -> GB ()
-setContext lib prefix  =
-  transCT $ \state -> (state {lib    = fromMaybe "" lib,
-                              prefix = fromMaybe "" prefix},
+setContext             :: (Maybe String) -> (Maybe String) -> GB ()
+setContext lib' prefix' =
+  transCT $ \state -> (state {lib    = fromMaybe "" lib',
+                              prefix = fromMaybe "" prefix'},
                        ())
 
 -- | get the dynamic library
@@ -282,20 +282,20 @@ getPrefix  = readCT prefix
 delayCode          :: CHSHook -> String -> GB ()
 delayCode hook str  =
   do
-    frags <- readCT frags
-    frags' <- delay hook frags
+    frags'' <- readCT frags
+    frags'  <- delay hook frags''
     transCT (\state -> (state {frags = frags'}, ()))
     where
       newEntry = (hook, (CHSVerb ("\n" ++ str) (posOf hook)))
       --
-      delay hook@(CHSCall isFun isUns ide _oalias _) frags =
-        case find (\(hook', _) -> hook' == hook) frags of
+      delay hook'@(CHSCall isFun isUns ide _oalias _) frags' =
+        case find (\(hook'', _) -> hook'' == hook') frags' of
           Just (CHSCall isFun' isUns' ide' _ _, _)
             |    isFun == isFun'
               && isUns == isUns'
-              && ide   == ide'   -> return frags
+              && ide   == ide'   -> return frags'
             | otherwise          -> err (posOf ide) (posOf ide')
-          Nothing                -> return $ frags ++ [newEntry]
+          Nothing                -> return $ frags' ++ [newEntry]
       delay _ _                                  =
         interr "GBMonad.delayCode: Illegal delay!"
       --
