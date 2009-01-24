@@ -233,7 +233,7 @@ instance Eq CHSHook where
   (CHSImport qual1 ide1 _      _) == (CHSImport qual2 ide2 _      _) =
     qual1 == qual2 && ide1 == ide2
   (CHSContext olib1 opref1  _   ) == (CHSContext olib2 opref2  _   ) =
-    olib1 == olib1 && opref1 == opref2
+    olib1 == olib2 && opref1 == opref2
   (CHSType ide1                _) == (CHSType ide2                _) =
     ide1 == ide2
   (CHSSizeof ide1              _) == (CHSSizeof ide2              _) =
