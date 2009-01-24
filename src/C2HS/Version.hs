@@ -2,7 +2,10 @@ module C2HS.Version (versnum, version, copyright, disclaimer)          -- -*-has
 where
 
 import qualified Paths_c2hs (version)
-import Data.Version (showVersion)
+import Data.Version (Version, showVersion)
+
+name, versnick, date, version, copyright, disclaimer :: String
+versnum :: Version
 
 name       = "C->Haskell Compiler"
 versnum    = Paths_c2hs.version

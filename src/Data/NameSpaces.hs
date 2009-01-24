@@ -92,7 +92,7 @@ enterNewRange (NameSpace gs lss)  = NameSpace gs ([]:lss)
 -- | pop topmost range and return its definitions
 --
 leaveRange :: NameSpace a -> (NameSpace a, [(Ident, a)])
-leaveRange (NameSpace gs [])        = interr "NameSpaces.leaveRange: \
+leaveRange (NameSpace _gs [])       = interr "NameSpaces.leaveRange: \
                                              \No local range!"
 leaveRange (NameSpace gs (ls:lss))  = (NameSpace gs lss, ls)
 
@@ -108,7 +108,7 @@ leaveRange (NameSpace gs (ls:lss))  = (NameSpace gs lss, ls)
 --   name space anymore)
 --
 defLocal :: NameSpace a -> Ident -> a -> (NameSpace a, Maybe a)
-defLocal ns@(NameSpace gs []      ) id def = defGlobal ns id def
+defLocal ns@(NameSpace _  []      ) id def = defGlobal ns id def
 defLocal (NameSpace    gs (ls:lss)) id def =
   (NameSpace gs (((id, def):ls):lss),
    lookup ls)

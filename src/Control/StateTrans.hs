@@ -287,14 +287,14 @@ fatalsHandledBy m handler  =
         -> (let
               STB m' = m
             in
-            m' bs gs >>= \state@(gs', bs', res) ->
+            m' bs gs >>= \state@(_gs', _bs', res) ->
             case res of
               Left  (tag, msg) -> let
                                     err = userError ("Exception `" ++ tag
                                                      ++ "': " ++ msg)
                                   in
                                   ioError err
-              Right a          -> return state
+              Right _a         -> return state
             )
             `catch` (\err -> let
                                STB handler' = handler err

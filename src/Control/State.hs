@@ -59,15 +59,13 @@ module Control.State (-- the PreCST monad
 where
 
 import Control.Monad (when)
-import Data.List     (sort)
-import System.Exit   (ExitCode(ExitFailure))
 import Control.StateTrans  (readBase, transBase, runSTB)
 import qualified Control.StateTrans as StateTrans (interleave, throwExc, fatal, catchExc, fatalsHandledBy)
 import Control.StateBase   (PreCST(..), ErrorState(..), BaseState(..),
                     unpackCST, readCST, writeCST, transCST,
                     liftIO)
 import qualified System.CIO as CIO
-import Data.Errors      (ErrorLevel(..), Error, makeError, errorLevel, showError)
+import Data.Errors      (ErrorLevel(..), Error, makeError, errorLevel)
 import Language.C.Data.Name
 import Language.C.Data.Position
 
@@ -103,7 +101,7 @@ run es cst = runSTB m (initialBaseState es) ()
           cst
           `fatalsHandledBy` \err ->
             CIO.putStr ("Uncaught fatal error: " ++ show err)   >>
-            CIO.exitWith (ExitFailure 1)
+            CIO.exitWith (CIO.ExitFailure 1)
         )
 
 -- | run a PreCST in the context of another PreCST
@@ -245,7 +243,7 @@ raise0 err  = do
 --
 showErrors :: PreCST e s String
 showErrors  = CST $ do
-                ErrorState wlvl no errs <- transBase extractErrs
+                ErrorState _ _ errs <- transBase extractErrs
                 return $ foldr (.) id (map shows errs) ""
               where
                 extractErrs    :: BaseState e -> (BaseState e, ErrorState)
@@ -256,7 +254,7 @@ showErrors  = CST $ do
 --
 errorsPresent :: PreCST e s Bool
 errorsPresent  = CST $ do
-                   ErrorState wlvl no _ <- readBase errorsBS
+                   ErrorState wlvl _ _ <- readBase errorsBS
                    return $ wlvl >= LevelError
 
 -- helpers for manipulating state

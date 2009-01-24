@@ -136,7 +136,6 @@ import Data.Maybe (fromMaybe)
 import Data.Array (Array, (!), assocs, accumArray)
 import Language.C.Data.Position
 
-import Data.DLists (DList)
 import qualified Data.DLists as DL
 import Data.Errors (interr, ErrorLevel(..), Error, makeError)
 
@@ -162,11 +161,6 @@ denseMin  = 20
 -- | represents the number of (non-error) elements and the bounds of a table
 --
 type BoundsNum = (Int, Char, Char)
-
--- empty bounds
---
-nullBoundsNum :: BoundsNum
-nullBoundsNum  = (0, maxBound, minBound)
 
 -- | combine two bounds
 --
@@ -333,7 +327,7 @@ aggregate bn@(n, lc, hc) cls
 -- | combine the elements in the association list that have the same key
 --
 accum :: Eq a => (b -> b -> b) -> [(a, b)] -> [(a, b)]
-accum f []           = []
+accum _ []           = []
 accum f ((k, e):kes) =
   let (ke, kes') = gather k e kes
   in
@@ -444,7 +438,7 @@ execLexer :: Lexer s t -> LexerState s -> ([t], LexerState s, [Error])
 --
 -- * the following is moderately tuned
 --
-execLexer l state@([], _, _) = ([], state, [])
+execLexer _ state@([], _, _) = ([], state, [])
 execLexer l state            =
   case lexOne l state of
     (Nothing , _ , state') -> execLexer l state'
@@ -493,7 +487,7 @@ execLexer l state            =
             []      -> last'
             (c:cs') -> oneChar cont c (cs', pos, s) csDL last'
 
-        oneChar Done            c state csDL last = last
+        oneChar Done            _ _     _    last = last
         oneChar (Dense  bn arr) c state csDL last
           | c `inBounds` bn = cont (arr!c) c state csDL last
           | otherwise       = last
@@ -509,10 +503,10 @@ execLexer l state            =
 
         -- execute the action if present and finalise the current lexeme
         --
-        action (Action f) csDL (cs, pos, s) last =
+        action (Action f) csDL (cs, pos, s) _last =
           case f (DL.close csDL) pos s of
             (Nothing, pos', s', l')
               | not . null $ cs     -> lexOne (fromMaybe l0 l') (cs, pos', s')
             (res    , pos', s', l') -> (res, (fromMaybe l0 l'), (cs, pos', s'))
-        action NoAction csDL state last =
+        action NoAction _csDL _state last =
           last                                          -- no change

@@ -33,7 +33,6 @@ module C2HS.C.Builtin (
   builtinTypeNames
 ) where
 
-import Language.C.Data.Position (builtinPos)
 import Language.C.Data.Ident (Ident, builtinIdent)
 
 import C2HS.C.Attrs (CObj(BuiltinCO))

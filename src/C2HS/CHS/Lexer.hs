@@ -171,7 +171,6 @@ where
 
 import Data.List     ((\\))
 import Data.Char     (isDigit)
-import Control.Monad (liftM)
 
 import Language.C.Data.Ident
 import Language.C.Data.Name
@@ -386,7 +385,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokIdent   _ i) = (showString . identToString) i
   showsPrec _ (CHSTokHaskell _ s) = showString s
   showsPrec _ (CHSTokCPP     _ s) = showString s
-  showsPrec _ (CHSTokLine    p  ) = id            --TODO show line num?
+  showsPrec _ (CHSTokLine    _  ) = id            --TODO show line num?
   showsPrec _ (CHSTokC       _ s) = showString s
   showsPrec _ (CHSTokCtrl    _ c) = showChar c
 

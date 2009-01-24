@@ -63,7 +63,6 @@ where
 import Language.C.Data
 import Language.C.Syntax
 import Language.C.Parser
-import Language.C.Pretty
 
 import Data.Attributes (Attr(..))
 

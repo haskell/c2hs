@@ -97,7 +97,6 @@ import C2HS.C.Attrs     (AttrC(..), enterNewRangeC, enterNewObjRangeC,
                    lookupDefTagCShadow, applyPrefix, getDefOfIdentC,
                    setDefOfIdentC, updDefOfIdentC, CObj(..), CTag(..),
                    CDef(..))
-import System.CIO (liftIO)
 
 -- the C traversal monad
 -- ---------------------
@@ -582,9 +581,9 @@ funResultAndArgs (CDecl specs [(Just declr, _, _)] _) =
   in
   (args, result, variadic)
   where
-    funArgs (CDeclr ide derived asm ats node) =
+    funArgs (CDeclr _ide derived _asm _ats node) =
       case derived of
-        (CFunDeclr (Right (args,variadic)) ats dnode : derived') -> 
+        (CFunDeclr (Right (args,variadic)) _ats _dnode : derived') -> 
           (args, CDeclr Nothing derived' Nothing [] node, variadic)
         (CFunDeclr (Left _) _ _ : _) ->
           interr "CTrav.funResultAndArgs: Old style function definition"

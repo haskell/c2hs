@@ -263,6 +263,10 @@ isFloatCPrimType  = (`elem` [CFloatPT, CDoublePT, CLDoublePT])
 
 -- | standard conversions
 --
+voidIde, cFromBoolIde, cToBoolIde, cIntConvIde, cFloatConvIde,
+  withIde, withCStringIde, withCStringLenIde, withIntConvIde,
+  withFloatConvIde, withFromBoolIde, peekIde, peekCStringIde,
+  peekCStringLenIde :: Ident
 voidIde           = internalIdent "void"         -- never appears in the output
 cFromBoolIde      = internalIdent "cFromBool"
 cToBoolIde        = internalIdent "cToBool"
@@ -396,19 +400,19 @@ expandHook (CHSType ide pos) =
     traceInfoDump decl ty = traceGenBind $
       "Declaration\n" ++ show decl ++ "\ntranslates to\n"
       ++ showExtType ty ++ "\n"
-expandHook (CHSSizeof ide pos) =
+expandHook (CHSSizeof ide _) =
   do
     traceInfoSizeof
     decl <- findAndChaseDecl ide False True     -- no indirection, but shadows
     (size, _) <- sizeAlignOf decl
     traceInfoDump (render $ pretty decl) size
-    return $ show (fromIntegral . padBits $ size)
+    return $ show (padBits size)
   where
     traceInfoSizeof         = traceGenBind "** Sizeof hook:\n"
     traceInfoDump decl size = traceGenBind $
       "Size of declaration\n" ++ show decl ++ "\nis "
-      ++ show (fromIntegral . padBits $ size) ++ "\n"
-expandHook (CHSEnumDefine _ _ _ pos) =
+      ++ show (padBits size) ++ "\n"
+expandHook (CHSEnumDefine _ _ _ _) =
   interr "Binding generation error : enum define hooks should be eliminated via preprocessing "
 expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
   do
@@ -473,7 +477,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) =
       "** Indirect call hook for `" ++ identToString (apathToIdent apath) ++ "':\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
-expandHook hook@(CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
+expandHook (CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
   do
     traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
@@ -494,7 +498,7 @@ expandHook hook@(CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
   where
     traceEnter = traceGenBind $
       "** Fun hook for `" ++ identToString ide ++ "':\n"
-expandHook hook@(CHSFun isPure isUns apath oalias ctxt parms parm pos) =
+expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) =
   do
     traceEnter
 
@@ -516,7 +520,7 @@ expandHook hook@(CHSFun isPure isUns apath oalias ctxt parms parm pos) =
         fiLexeme  = hsLexeme ++ "'_"   -- Urgh - probably unqiue...
         fiIde     = internalIdent fiLexeme
         -- cdecl'    = cide `simplifyDecl` cdecl
-        args      = concat [ " x" ++ show n | n <- [1..numArgs ty] ]
+        -- args      = concat [ " x" ++ show n | n <- [1..numArgs ty] ]
         callHook  = CHSCall isPure isUns apath (Just fiIde) pos
     callImportDyn callHook isPure isUns ideLexeme fiLexeme ty pos
 
@@ -605,7 +609,7 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
     --
     adjustPtr True  et                 = et
     adjustPtr False (PtrET et)         = et
-    adjustPtr False et@(DefinedET _ _) =
+    adjustPtr False (DefinedET _ _)    =
       interr "GenBind.adjustPtr: Can't adjust defined type"
     adjustPtr _     _                  =
       interr "GenBind.adjustPtr: Where is the Ptr?"
@@ -651,7 +655,7 @@ expandHook (CHSClass oclassIde classIde typeIde pos) =
 --   enumerators maye have different prefixes)
 --
 enumDef :: CEnum -> String -> TransFun -> [String] -> GB String
-enumDef cenum@(CEnum _ (Just list) _ _) hident trans userDerive =
+enumDef (CEnum _ (Just list) _ _) hident trans userDerive =
   do
     (list', enumAuto) <- evalTagVals list
     let enumVals = [(trans ide, cexpr) | (ide, cexpr) <-  list']  -- translate
@@ -662,8 +666,6 @@ enumDef cenum@(CEnum _ (Just list) _ _) hident trans userDerive =
                    if enumAuto then "\n" else "\n" ++ enumInst hident enumVals
     return $ defHead ++ defBody ++ inst
   where
-    cpos = posOf cenum
-    --
     evalTagVals []                     = return ([], True)
     evalTagVals ((ide, Nothing ):list) =
       do
@@ -671,7 +673,7 @@ enumDef cenum@(CEnum _ (Just list) _ _) hident trans userDerive =
         return ((ide, Nothing):list', derived)
     evalTagVals ((ide, Just exp):list) =
       do
-        (list', derived) <- evalTagVals list
+        (list', _derived) <- evalTagVals list
         val <- evalConstCExpr exp
         case val of
           IntResult val' ->
@@ -681,7 +683,6 @@ enumDef cenum@(CEnum _ (Just list) _ _) hident trans userDerive =
             illegalConstExprErr (posOf exp) "a float result"
       where
         at1 = newAttrsOnlyPos nopos
-        at2 = newAttrsOnlyPos nopos
     makeDerives [] = ""
     makeDerives dList = "deriving (" ++ concat (intersperse "," dList) ++")"
 
@@ -693,7 +694,7 @@ enumHead ident  = "data " ++ ident ++ " = "
 -- | Haskell code for the body of an enumeration definition
 --
 enumBody                        :: Int -> [(String, Maybe CExpr)] -> String
-enumBody indent []               = ""
+enumBody _      []               = ""
 enumBody indent ((ide, _):list)  =
   ide ++ "\n" ++ replicate indent ' '
   ++ (if null list then "" else "| " ++ enumBody indent list)
@@ -772,7 +773,7 @@ callImport hook isPure isUns ideLexeme hsLexeme cdecl pos =
 
 callImportDyn :: CHSHook -> Bool -> Bool -> String -> String -> ExtType
               -> Position -> GB ()
-callImportDyn hook isPure isUns ideLexeme hsLexeme ty pos =
+callImportDyn hook _isPure isUns ideLexeme hsLexeme ty pos =
   do
     -- compute the external type from the declaration, and delay the foreign
     -- export declaration
@@ -796,7 +797,7 @@ foreignImport header ident hsIdent isUnsafe ty  =
 -- | Haskell code for the foreign import dynamic declaration needed by a call hook
 --
 foreignImportDyn :: String -> String -> Bool -> ExtType -> String
-foreignImportDyn ident hsIdent isUnsafe ty  =
+foreignImportDyn _ident hsIdent isUnsafe ty  =
   "foreign import ccall " ++ safety ++ " \"dynamic\"\n  " ++
     hsIdent ++ " :: FunPtr( " ++ showExtType ty ++ " ) -> " ++
     showExtType ty ++ "\n"
@@ -849,12 +850,12 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
                                    join (take 1 callArgs) ++
                                    " >>= \\b1' ->\n"
       marshRes  = case parm' of
-                    CHSParm _ _ twoCVal (Just (_    , CHSVoidArg)) _ -> ""
-                    CHSParm _ _ twoCVal (Just (omIde, CHSIOVoidArg)) _ ->
+                    CHSParm _ _ _twoCVal (Just (_    , CHSVoidArg)) _ -> ""
+                    CHSParm _ _ _twoCVal (Just (omIde, CHSIOVoidArg)) _ ->
                       "  " ++ identToString omIde ++ " res >> \n"
-                    CHSParm _ _ twoCVal (Just (omIde, CHSIOArg  )) _ ->
+                    CHSParm _ _ _twoCVal (Just (omIde, CHSIOArg  )) _ ->
                       "  " ++ identToString omIde ++ " res >>= \\res' ->\n"
-                    CHSParm _ _ twoCVal (Just (omIde, CHSValArg )) _ ->
+                    CHSParm _ _ _twoCVal (Just (omIde, CHSValArg )) _ ->
                       "  let {res' = " ++ identToString omIde ++ " res} in\n"
                     CHSParm _ _ _       Nothing                    _ ->
                       interr "GenBind.funDef: marshRes: no default?"
@@ -908,7 +909,7 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
     marshArg i (CHSParm (Just (imIde, imArgKind)) _ twoCVal
                         (Just (omIde, omArgKind)) _        ) =
       let
-        a        = "a" ++ show i
+        a        = "a" ++ show (i :: Int)
         imStr    = identToString imIde
         imApp    = imStr ++ " " ++ a
         funArg   = if imArgKind == CHSVoidArg then "" else a
@@ -994,14 +995,14 @@ addDftMarshaller pos parms parm extTy = do
               isImpure || isImpureIn || isImpureOut)
     addDft []                                             []               =
       return ([], False)
-    addDft ((CHSParm _       _    _     _     pos):parms) []               =
+    addDft ((CHSParm _       _    _     _     pos):_)     []               =
       marshArgMismatchErr pos "This parameter is in excess of the C arguments."
     addDft []                                             (_:_)            =
       marshArgMismatchErr pos "Parameter marshallers are missing."
     --
     addDftIn _   imMarsh@(Just (_, kind)) _    _    = return (imMarsh,
                                                               kind == CHSIOArg)
-    addDftIn pos imMarsh@Nothing          hsTy cTys = do
+    addDftIn pos _imMarsh@Nothing         hsTy cTys = do
       marsh <- lookupDftMarshIn hsTy cTys
       when (isNothing marsh) $
         noDftMarshErr pos "\"in\"" hsTy cTys
@@ -1009,7 +1010,7 @@ addDftMarshaller pos parms parm extTy = do
     --
     addDftOut _   omMarsh@(Just (_, kind)) _    _    = return (omMarsh,
                                                               kind == CHSIOArg)
-    addDftOut pos omMarsh@Nothing          hsTy cTys = do
+    addDftOut pos _omMarsh@Nothing         hsTy cTys = do
       marsh <- lookupDftMarshOut hsTy cTys
       when (isNothing marsh) $
         noDftMarshErr pos "\"out\"" hsTy cTys
@@ -1046,7 +1047,7 @@ accessPath (CHSDeref (CHSRoot ide) _) =                 -- *t
   do
     decl <- findAndChaseDecl ide True True
     return (ide `simplifyDecl` decl, [BitSize 0 0])
-accessPath (CHSRef root@(CHSRoot ide1) ide2) =          -- t.m
+accessPath (CHSRef  (CHSRoot ide1) ide2) =              -- t.m
   do
     su <- lookupStructUnion ide1 False True
     (offset, decl') <- refStruct su ide2
@@ -1071,7 +1072,7 @@ accessPath (CHSRef path ide) =                          -- a.m
       case declr of
         (Just (CDeclr _ [] _ _ _), _, _) -> return ()
         _                                -> structExpectedErr ide
-accessPath (CHSDeref path pos) =                        -- *a
+accessPath (CHSDeref path _pos) =                        -- *a
   do
     (decl, offsets) <- accessPath path
     decl' <- derefOrErr decl
@@ -1083,7 +1084,7 @@ accessPath (CHSDeref path pos) =                        -- *a
         declr' <- derefDeclr declr
         return $ CDecl specs [(Just declr', oinit, oexpr)] at
     derefDeclr (CDeclr oid (CPtrDeclr _ _: derived') asm ats n) = return $ CDeclr oid derived' asm ats n
-    derefDeclr (CDeclr oid unexp_deriv _ _ n) = ptrExpectedErr (posOf n)
+    derefDeclr (CDeclr _oid _unexp_deriv _ _ n) = ptrExpectedErr (posOf n)
 
 -- | replaces a decleration by its alias if any
 --
@@ -1093,7 +1094,7 @@ accessPath (CHSDeref path pos) =                        -- *a
 -- * declaration must have exactly one declarator
 --
 replaceByAlias                                :: CDecl -> GB CDecl
-replaceByAlias cdecl@(CDecl _ [(_, _, size)] at)  =
+replaceByAlias cdecl@(CDecl _ [(_, _, size)] _at)  =
   do
     ocdecl <- checkForAlias cdecl
     case ocdecl of
@@ -1127,7 +1128,7 @@ refStruct su ide =
 -- | does the given declarator define the given name?
 --
 declNamed :: CDecl -> Ident -> Bool
-(CDecl _ [(Nothing   , _, _)] _) `declNamed` ide = False
+(CDecl _ [(Nothing   , _, _)] _) `declNamed` _   = False
 (CDecl _ [(Just declr, _, _)] _) `declNamed` ide = declr `declrNamed` ide
 (CDecl _ []                   _) `declNamed` _   =
   interr "GenBind.declNamed: Abstract declarator in structure!"
@@ -1808,7 +1809,7 @@ sizeAlignOfSingle :: CDecl -> GB (BitSize, Int)
 --   declared.  At this time I don't care.  -- U.S. 05/2006
 --
 sizeAlignOf (CDecl dclspec
-                   [(Just (CDeclr oide (CArrDeclr _ (CArrSize _ lexpr) _ : derived') asm ats n), init, expr)]
+                   [(Just (CDeclr oide (CArrDeclr _ (CArrSize _ lexpr) _ : derived') _asm _ats n), init, expr)]
                    attr) =
   do
     (bitsize, align) <- sizeAlignOf (CDecl dclspec
@@ -1816,7 +1817,7 @@ sizeAlignOf (CDecl dclspec
                                            attr)
     IntResult length <- evalConstCExpr lexpr
     return (fromIntegral length `scaleBitSize` bitsize, align)
-sizeAlignOf (CDecl _ [(Just (CDeclr _ (CArrDeclr _ (CNoArrSize _) _ : _) _ _ _), init, expr)] _) =
+sizeAlignOf (CDecl _ [(Just (CDeclr _ (CArrDeclr _ (CNoArrSize _) _ : _) _ _ _), _init, _expr)] _) =
     interr "GenBind.sizeAlignOf: array of undeclared size."
 sizeAlignOf cdecl =
     sizeAlignOfSingle cdecl
@@ -1986,9 +1987,9 @@ evalConstCExpr (CConst c) = evalCConst c
 evalCConst :: CConst -> GB ConstResult
 evalCConst (CIntConst   i _ ) = return $ IntResult (getCInteger i)
 evalCConst (CCharConst  c _ ) = return $ IntResult (getCCharAsInt c)
-evalCConst (CFloatConst s _ ) =
+evalCConst (CFloatConst _ _ ) =
   todo "GenBind.evalCConst: Float conversion from literal misses."
-evalCConst (CStrConst   s at) =
+evalCConst (CStrConst   _ at) =
   illegalConstExprErr (posOf at) "a string constant"
 
 usualArithConv :: ConstResult -> ConstResult -> (ConstResult, ConstResult)
@@ -2005,42 +2006,42 @@ applyBin :: Position
          -> ConstResult
          -> ConstResult
          -> GB ConstResult
-applyBin cpos CMulOp (IntResult   x)
+applyBin _    CMulOp (IntResult   x)
                      (IntResult   y) = return $ IntResult (x * y)
-applyBin cpos CMulOp (FloatResult x)
+applyBin _    CMulOp (FloatResult x)
                      (FloatResult y) = return $ FloatResult (x * y)
-applyBin cpos CDivOp (IntResult   x)
+applyBin _    CDivOp (IntResult   x)
                      (IntResult   y) = return $ IntResult (x `div` y)
-applyBin cpos CDivOp (FloatResult x)
+applyBin _    CDivOp (FloatResult x)
                      (FloatResult y) = return $ FloatResult (x / y)
-applyBin cpos CRmdOp (IntResult   x)
+applyBin _    CRmdOp (IntResult   x)
                      (IntResult   y) = return$ IntResult (x `mod` y)
-applyBin cpos CRmdOp (FloatResult x)
-                     (FloatResult y) =
+applyBin cpos CRmdOp (FloatResult _)
+                     (FloatResult _) =
   illegalConstExprErr cpos "a % operator applied to a float"
-applyBin cpos CAddOp (IntResult   x)
+applyBin _    CAddOp (IntResult   x)
                      (IntResult   y) = return $ IntResult (x + y)
-applyBin cpos CAddOp (FloatResult x)
+applyBin _    CAddOp (FloatResult x)
                      (FloatResult y) = return $ FloatResult (x + y)
-applyBin cpos CSubOp (IntResult   x)
+applyBin _    CSubOp (IntResult   x)
                      (IntResult   y) = return $ IntResult (x - y)
-applyBin cpos CSubOp (FloatResult x)
+applyBin _    CSubOp (FloatResult x)
                      (FloatResult y) = return $ FloatResult (x - y)
-applyBin cpos CShlOp (IntResult   x)
+applyBin _    CShlOp (IntResult   x)
                      (IntResult   y) = return $ IntResult (x * 2^y)
-applyBin cpos CShlOp (FloatResult x)
-                     (FloatResult y) =
+applyBin cpos CShlOp (FloatResult _)
+                     (FloatResult _) =
   illegalConstExprErr cpos "a << operator applied to a float"
-applyBin cpos CShrOp (IntResult   x)
+applyBin _    CShrOp (IntResult   x)
                      (IntResult   y) = return $ IntResult (x `div` 2^y)
-applyBin cpos CShrOp (FloatResult x)
-                     (FloatResult y) =
+applyBin cpos CShrOp (FloatResult _)
+                     (FloatResult _) =
   illegalConstExprErr cpos "a >> operator applied to a float"
-applyBin cpos _      (IntResult   x)
-                     (IntResult   y) =
+applyBin _    _      (IntResult   _)
+                     (IntResult   _) =
   todo "GenBind.applyBin: Not yet implemented operator in constant expression."
-applyBin cpos _      (FloatResult x)
-                     (FloatResult y) =
+applyBin _    _      (FloatResult _)
+                     (FloatResult _) =
   todo "GenBind.applyBin: Not yet implemented operator in constant expression."
 applyBin _    _      _ _             =
   interr "GenBind.applyBinOp: Illegal combination!"
@@ -2058,12 +2059,12 @@ applyUnary cpos CAdrOp     _               =
   illegalConstExprErr cpos "a & operator"
 applyUnary cpos CIndOp     _               =
   illegalConstExprErr cpos "a * operator"
-applyUnary cpos CPlusOp    arg             = return arg
-applyUnary cpos CMinOp     (IntResult   x) = return (IntResult (-x))
-applyUnary cpos CMinOp     (FloatResult x) = return (FloatResult (-x))
-applyUnary cpos CCompOp    _               =
+applyUnary _    CPlusOp    arg             = return arg
+applyUnary _    CMinOp     (IntResult   x) = return (IntResult (-x))
+applyUnary _    CMinOp     (FloatResult x) = return (FloatResult (-x))
+applyUnary _    CCompOp    _               =
   todo "GenBind.applyUnary: ~ not yet implemented."
-applyUnary cpos CNegOp     (IntResult   x) =
+applyUnary _    CNegOp     (IntResult   x) =
   let r = toInteger . fromEnum $ (x == 0)
   in return (IntResult r)
 applyUnary cpos CNegOp     (FloatResult _) =
@@ -2086,7 +2087,7 @@ lookupBy eq x  = fmap snd . find (eq x . fst)
 -- | maps some monad operation into a `Maybe', discarding the result
 --
 mapMaybeM_ :: Monad m => (a -> m b) -> Maybe a -> m ()
-mapMaybeM_ m Nothing   =        return ()
+mapMaybeM_ _ Nothing   =        return ()
 mapMaybeM_ m (Just a)  = m a >> return ()
 
 

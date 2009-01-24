@@ -288,7 +288,7 @@ delayCode hook str  =
     where
       newEntry = (hook, (CHSVerb ("\n" ++ str) (posOf hook)))
       --
-      delay hook@(CHSCall isFun isUns ide oalias _) frags =
+      delay hook@(CHSCall isFun isUns ide _oalias _) frags =
         case find (\(hook', _) -> hook' == hook) frags of
           Just (CHSCall isFun' isUns' ide' _ _, _)
             |    isFun == isFun'
@@ -342,7 +342,6 @@ queryObj hsName  = do
 --
 queryClass        :: Ident -> GB HsObject
 queryClass hsName  = do
-                       let pos = posOf hsName
                        oobj <- queryObj hsName
                        case oobj of
                          Just obj@(Class _ _) -> return obj
@@ -355,7 +354,6 @@ queryClass hsName  = do
 --
 queryPointer        :: Ident -> GB HsObject
 queryPointer hsName  = do
-                       let pos = posOf hsName
                        oobj <- queryObj hsName
                        case oobj of
                          Just obj@(Pointer _ _) -> return obj

@@ -129,7 +129,7 @@ isEOF _   = False
 ghModule :: CHSModule -> GH ([String], CHSModule)
 ghModule (CHSModule frags) =
   do
-    (header, frags, last, rest) <- ghFrags frags
+    (header, frags, last, _rest) <- ghFrags frags
     when (not . isEOF $ last) $
       notOpenCondErr (posOf last)
     return (DL.close header, CHSModule frags)
@@ -168,7 +168,7 @@ ghFrag (frag@(CHSVerb  _ _  ) : frags) =
 
 -- generate an enum __c2hs__enum__'id { __c2hs_enr__'id = DEF1, ... } and then process an
 -- ordinary enum directive
-ghFrag ( frag@(CHSHook (CHSEnumDefine hsident trans instances pos)) : frags) =
+ghFrag (_frag@(CHSHook (CHSEnumDefine hsident trans instances pos)) : frags) =
   do ide <- newEnumIdent
      (enrs,trans') <- createEnumerators trans
      return (DL.open [show.pretty $ enumDef ide enrs,";\n"], Frag (enumFrag (identToString ide) trans'), frags)
@@ -196,9 +196,9 @@ ghFrag (     (CHSC    s  _  ) : frags) =
     return (DL.unit s `DL.join` header, frag, frags')
     -- FIXME: this is not tail recursive...
 
-ghFrag (     (CHSCond _  _  ) : frags) =
+ghFrag (     (CHSCond _  _  ) : _    ) =
   interr "GenHeader.ghFrags: There can't be a structured conditional yet!"
-ghFrag (frag@(CHSCPP  s  pos) : frags) =
+ghFrag (     (CHSCPP  s  pos) : frags) =
   let
     (directive, _) =   break (`elem` " \t")
                      . dropWhile (`elem` " \t")
@@ -227,7 +227,7 @@ ghFrag (frag@(CHSCPP  s  pos) : frags) =
                            case last of
                              Else    pos -> notOpenCondErr pos
                              Elif  _ pos -> notOpenCondErr pos
-                             Endif   pos -> closeIf
+                             Endif   _   -> closeIf
                                               ((headerTh
                                                 `DL.snoc` "#else\n")
                                                `DL.join`
@@ -249,7 +249,7 @@ ghFrag (frag@(CHSCPP  s  pos) : frags) =
                                        rest
                              _                       ->
                                interr "GenHeader.ghFrag: Expected CHSCond!"
-          Endif   pos -> closeIf (headerTh `DL.snoc` "#endif\n")
+          Endif   _   -> closeIf (headerTh `DL.snoc` "#endif\n")
                                  (s, fragsTh)
                                  []
                                  (Just [])

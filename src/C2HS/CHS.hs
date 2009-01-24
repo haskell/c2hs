@@ -102,7 +102,6 @@ import System.FilePath ((<.>), (</>))
 
 
 -- Language.C
-import Language.C.Data.Name
 import Language.C.Data.Ident
 import Language.C.Data.Position
 import Data.Errors       (interr)
@@ -450,14 +449,14 @@ showCHSModule (CHSModule frags) pureHaskell  =
       . showString s
 --      . showChar '\n'
       . showFrags False Emit frags
-    showFrags pureHs _     (CHSLine s          : frags) =
+    showFrags pureHs _     (CHSLine _s         : frags) =
         showFrags pureHs Emit frags
     showFrags False  _     (CHSC    s    _     : frags) =
         showString "\n#c"
       . showString s
       . showString "\n#endc"
       . showFrags False Emit frags
-    showFrags False  _     (CHSCond _    _     : frags) =
+    showFrags False  _     (CHSCond _    _     : _    ) =
       interr "showCHSFrag: Cannot print `CHSCond'!"
     showFrags True   _     _                            =
       interr "showCHSFrag: Illegal hook, cpp directive, or inline C code!"
@@ -825,6 +824,7 @@ parseImport pos toks = do
 -- | Qualified module names do not get lexed as a single token so we need to
 -- reconstruct it from a sequence of identifer and dot tokens.
 --
+rebuildModuleId :: Ident -> [CHSToken] -> (Ident, [CHSToken])
 rebuildModuleId ide (CHSTokDot _ : CHSTokIdent _ ide' : toks) =
   let catIdent ide ide' = internalIdentAt (posOf ide)  --FIXME: unpleasent hack
                             (identToString ide ++ '.' : identToString ide')
@@ -867,7 +867,6 @@ parseEnum :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseEnum pos (CHSTokIdent _ def: CHSTokIdent _ hsid: toks)
   | identToString def == "define" =
   do
-    let alias = hsid
     (trans , toks')   <- parseTrans          toks
     (derive, toks'')  <- parseDerive         toks'
     toks'''           <- parseEndHook        toks''
@@ -950,13 +949,6 @@ parseIsUnsafe :: [CHSToken] -> CST s (Bool, [CHSToken])
 parseIsUnsafe (CHSTokUnsafe _:toks) = return (True , toks)
 parseIsUnsafe toks                  = return (False, toks)
 
--- | normalize haskell name for C identifier
-normAP :: CHSAPath -> Maybe Ident -> Maybe Ident
-normAP ide Nothing                                = Nothing
-normAP ide (Just ide') | apathToIdent ide == ide' = Nothing
-                       | otherwise                = Just ide'
-
-
 apathToIdent :: CHSAPath -> Ident
 apathToIdent (CHSRoot ide) =
     let lowerFirst (c:cs) = toLower c : cs
@@ -969,11 +961,6 @@ apathToIdent (CHSRef apath ide') =
         upperFirst (c:cs) = toLower c : cs
         sel = upperFirst $ identToString ide'
     in internalIdentAt  (posOf ide) (identToString ide ++ sel)
-
-norm :: Ident -> Maybe Ident -> Maybe Ident
-norm ide Nothing                   = Nothing
-norm ide (Just ide') | ide == ide' = Nothing
-                     | otherwise   = Just ide'
 
 parseParm :: [CHSToken] -> CST s (CHSParm, [CHSToken])
 parseParm toks =
@@ -1043,7 +1030,7 @@ parsePointer pos toks =
     parsePtrType (CHSTokStable _ :toks) = return (CHSStablePtr, toks)
     parsePtrType                  toks  = return (CHSPtr, toks)
 
-    norm ide Nothing                   = Nothing
+    norm _   Nothing                   = Nothing
     norm ide (Just ide') | ide == ide' = Nothing
                          | otherwise   = Just ide'
 
@@ -1123,11 +1110,11 @@ underscoreToCase ide upper pos  =
 -- | this is disambiguated and left factored
 --
 parsePath :: [CHSToken] -> CST s (CHSAPath, [CHSToken])
-parsePath (CHSTokLParen pos: toks) =
+parsePath (CHSTokLParen _pos: toks) =
   do
     (inner_path, toks_rest) <- parsePath toks
     toks_rest' <- case toks_rest of
-                    (CHSTokRParen pos : ts) -> return ts
+                    (CHSTokRParen _pos : ts) -> return ts
                     _ -> syntaxError toks_rest
     (pathWithHole, toks') <- parsePath' toks_rest'
     return (pathWithHole inner_path, toks')
@@ -1202,9 +1189,9 @@ parseTrans (CHSTokLBrace _:toks) =
     --
     parseAssoc (CHSTokIdent _ ide1:CHSTokAs _:CHSTokIdent _ ide2:toks) =
       return ((ide1, ide2), toks)
-    parseAssoc (CHSTokIdent _ ide1:CHSTokAs _:toks                   ) =
+    parseAssoc (CHSTokIdent _ _   :CHSTokAs _:toks                   ) =
       syntaxError toks
-    parseAssoc (CHSTokIdent _ ide1:toks                              ) =
+    parseAssoc (CHSTokIdent _ _   :toks                              ) =
       syntaxError toks
     parseAssoc toks                                                    =
       syntaxError toks
@@ -1224,10 +1211,6 @@ parseDerive (CHSTokDerive _ :CHSTokLParen _:toks)                =
     parseCommaIdent (CHSTokRParen _                 :toks) =
       return ([], toks)
 parseDerive toks = return ([],toks)
-
-parseIdent :: [CHSToken] -> CST s (Ident, [CHSToken])
-parseIdent (CHSTokIdent _ ide:toks) = return (ide, toks)
-parseIdent toks                     = syntaxError toks
 
 parseEndHook :: [CHSToken] -> CST s ([CHSToken])
 parseEndHook (CHSTokEndHook _:toks) = return toks
@@ -1251,13 +1234,6 @@ errorEOF  = do
                 ["Premature end of file!",
                  "The .chs file ends in the middle of a binding hook."]
               raiseSyntaxError
-
-errorCHINotFound     :: String -> CST s a
-errorCHINotFound ide  = do
-  raiseError nopos
-    ["Unknown .chi file!",
-     "Cannot find the .chi file for `" ++ ide ++ "'."]
-  raiseSyntaxError
 
 errorCHICorrupt      :: String -> CST s a
 errorCHICorrupt ide  = do

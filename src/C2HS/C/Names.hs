@@ -91,7 +91,7 @@ naCExtDecl :: CExtDecl -> NA ()
 naCExtDecl (CDeclExt decl                        ) = naCDecl decl
 naCExtDecl (CFDefExt (CFunDef specs declr _ _ at)) =
   naCDecl $ CDecl specs [(Just declr, Nothing, Nothing)] at
-naCExtDecl (CAsmExt at                           ) = return ()
+naCExtDecl (CAsmExt _at                          ) = return ()
 
 naCDecl :: CDecl -> NA ()
 naCDecl decl@(CDecl specs decls _) =
@@ -145,14 +145,14 @@ naCDeclr obj (CDeclr oide derived _ _ _) =
     mapM_ (naCDerivedDeclr obj) derived
     mapMaybeM_ (`defObjOrErr` obj) oide
 naCDerivedDeclr :: CObj -> CDerivedDeclr -> NA ()
-naCDerivedDeclr obj (CFunDeclr (Right (params,_)) _ _) =
+naCDerivedDeclr _obj (CFunDeclr (Right (params,_)) _ _) =
   do
     enterObjs
     mapM_ naCDecl params
     leaveObjs
-naCDerivedDeclr obj (CArrDeclr _ (CArrSize _ expr) _) =
+naCDerivedDeclr _obj (CArrDeclr _ (CArrSize _ expr) _) =
   naCExpr expr
-naCDerivedDeclr obj _ = return ()
+naCDerivedDeclr _obj _ = return ()
 
 naCInit :: CInit -> NA ()
 naCInit (CInitExpr expr  _) = naCExpr expr
@@ -172,7 +172,7 @@ naCExpr (CAlignofExpr expr             _) = naCExpr expr
 naCExpr (CAlignofType decl             _) = naCDecl decl
 naCExpr (CIndex       expr1 expr2      _) = naCExpr expr1 >> naCExpr expr2
 naCExpr (CCall        expr exprs       _) = naCExpr expr >> mapM_ naCExpr exprs
-naCExpr (CMember      expr ide _       _) = naCExpr expr
+naCExpr (CMember      expr _ide _      _) = naCExpr expr
 naCExpr (CVar         ide              _) = do
                                              (obj, _) <- findValueObj ide False
                                              ide `refersToDef` ObjCD obj
@@ -180,7 +180,7 @@ naCExpr (CConst       _                 ) = return ()
 naCExpr (CCompoundLit _ inits          _) = mapM_ (naCInit . snd) inits
 naCExpr (CComplexImag expr             _) = naCExpr expr
 naCExpr (CComplexReal expr             _) = naCExpr expr
-naCExpr (CLabAddrExpr lab              _) = error "Names.hs: adress of label expression analysis isn't supported"
+naCExpr (CLabAddrExpr _lab             _) = error "Names.hs: adress of label expression analysis isn't supported"
 naCExpr (CBuiltinExpr _                 ) = error "Names.hs: builtin expression analysis isn't supported"
 naCExpr (CStatExpr _                   _) = error "Names.hs: analysis of GNU statement - expression isn't supported"
 -- auxilliary functions
@@ -205,7 +205,7 @@ ide `defObjOrErr` obj  = ide `defObj` obj >> return ()
 -- | maps some monad operation into a 'Maybe', discarding the result
 --
 mapMaybeM_ :: Monad m => (a -> m b) -> Maybe a -> m ()
-mapMaybeM_ m Nothing   =        return ()
+mapMaybeM_ _ Nothing   =        return ()
 mapMaybeM_ m (Just a)  = m a >> return ()
 
 

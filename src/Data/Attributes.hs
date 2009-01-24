@@ -88,11 +88,11 @@ where
 
 import Data.Array
 import Control.Exception (assert)
-import qualified Data.IntMap as NameMap (fromList, toList, insert, findWithDefault, empty, assocs, findMax)
+import qualified Data.IntMap as NameMap (fromList, insert, findWithDefault, empty, assocs)
 import Data.IntMap (IntMap)
 import Language.C.Data.Node
 import Language.C.Data.Position
-import Language.C.Data.Name (Name(..),nameId)
+import Language.C.Data.Name (Name(Name, nameId))
 import Data.Errors     (interr)
 
 type NameMap = IntMap
@@ -187,7 +187,7 @@ data Attr a =>
                                String             -- desc of the table
 
 instance (Attr a, Show a) => Show (AttrTable a) where
-  show tbl@(SoftTable mp descr) = -- freeze is disabled
+  show     (SoftTable mp descr) = -- freeze is disabled
     "AttrTable "++ descr ++ " { " ++ (unwords . map show) (NameMap.assocs mp) ++ " }"
   show tbl@(FrozenTable _ _) = show (softenAttrTable tbl)
 
@@ -219,12 +219,12 @@ getAttr at (NodeInfo   _   aid)  =
 -- attribute table
 --
 setAttr :: Attr a => AttrTable a -> NodeInfo -> a -> AttrTable a
-setAttr at (OnlyPos pos    ) av = onlyPosErr "setAttr" at pos
+setAttr at (OnlyPos pos    )    _  = onlyPosErr "setAttr" at pos
 setAttr at (NodeInfo   pos aid) av =
   case at of
     (SoftTable fm desc) -> assert (isUndef (NameMap.findWithDefault undef (nameId aid) fm)) $
                              SoftTable (NameMap.insert (nameId aid) av fm) desc
-    (FrozenTable arr _) -> interr frozenErr
+    (FrozenTable _   _) -> interr frozenErr
   where
     frozenErr     = "Attributes.setAttr: Tried to write frozen attribute in\n"
                     ++ errLoc at pos
@@ -232,11 +232,11 @@ setAttr at (NodeInfo   pos aid) av =
 -- | update the value of an attribute from the given attribute table
 --
 updAttr :: Attr a => AttrTable a -> NodeInfo -> a -> AttrTable a
-updAttr at (OnlyPos pos    ) av = onlyPosErr "updAttr" at pos
+updAttr at (OnlyPos pos    )    _  = onlyPosErr "updAttr" at pos
 updAttr at (NodeInfo   pos aid) av =
   case at of
     (SoftTable   fm  desc) -> SoftTable (NameMap.insert (nameId aid) av fm) desc
-    (FrozenTable arr _)    -> interr $ "Attributes.updAttr: Tried to\
+    (FrozenTable _ _)      -> interr $ "Attributes.updAttr: Tried to\
                                        \ update frozen attribute in\n"
                                        ++ errLoc at pos
 
@@ -271,7 +271,7 @@ errLoc at pos  = "  table `" ++ tableDesc at ++ "' for construct at\n\
 -- table is softened again
 --
 freezeAttrTable                        :: Attr a => AttrTable a -> AttrTable a
-freezeAttrTable tbl@(SoftTable   fm  desc) =
+freezeAttrTable (SoftTable   fm  desc) =
   let contents = nameMapToList fm
       keys     = map fst contents
       lbd      = minimum keys
@@ -279,7 +279,7 @@ freezeAttrTable tbl@(SoftTable   fm  desc) =
   in
   assert (length keys < 1000 || (length . range) (lbd, ubd) > 3 * length keys)
   (FrozenTable (array (lbd, ubd) contents) desc)
-freezeAttrTable (FrozenTable arr desc)  =
+freezeAttrTable (FrozenTable _   desc)  =
   interr ("Attributes.freezeAttrTable: Attempt to freeze the already frozen\n\
           \  table `" ++ desc ++ "'!")
 
@@ -287,7 +287,7 @@ freezeAttrTable (FrozenTable arr desc)  =
 -- table is frozen again
 --
 softenAttrTable                        :: Attr a => AttrTable a -> AttrTable a
-softenAttrTable (SoftTable   fm  desc)  =
+softenAttrTable (SoftTable   _fm desc)  =
   interr ("Attributes.softenAttrTable: Attempt to soften the already \
           \softened\n  table `" ++ desc ++ "'!")
 softenAttrTable (FrozenTable arr desc)  =

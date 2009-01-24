@@ -74,3 +74,6 @@ Executable c2hs
       C2HS.Gen.Header
     extensions:     ForeignFunctionInterface
     c-sources:      src/C2HS/config.c
+    --TODO: eliminate the need to suppress these warnings:
+    ghc-options:    -Wall -fno-warn-incomplete-patterns
+                          -fno-warn-name-shadowing

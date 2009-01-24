@@ -118,20 +118,16 @@ module Main (main)
 where
 
 -- standard libraries
-import Data.List (isPrefixOf, intersperse, partition)
+import Data.List (intersperse, partition)
 import Control.Monad (when, unless)
 import Data.Version (showVersion)
 import System.Console.GetOpt
                   (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo, getOpt)
 import qualified System.FilePath as FilePath
-                  (takeExtension, dropExtension, takeDirectory, takeBaseName)
+                  (takeExtension, dropExtension, takeBaseName)
 import System.FilePath ((<.>), (</>))
-import System.Exit (ExitCode(..))
 import System.IO (stderr)
 import System.IO.Error (ioeGetErrorString, ioeGetFileName)
-
--- base libraries
-import Control.StateBase  (liftIO)
 
 -- c2hs modules
 import C2HS.State  (CST, runC2HS, fatal, fatalsHandledBy,
@@ -297,7 +293,7 @@ compile  =
     parseArgs :: [FilePath] -> Maybe (FilePath, [FilePath])
     parseArgs = parseArgs' [] Nothing
       where parseArgs' hs (Just chs) []    = Just (chs, reverse hs)
-            parseArgs' hs chs@Nothing (file:files)
+            parseArgs' hs Nothing (file:files)
                 | FilePath.takeExtension file == '.':chssuffix
                                            = parseArgs' hs (Just file) files
             parseArgs' hs chs (file:files)
@@ -308,7 +304,7 @@ compile  =
     doExecute opts args = do
                             execute opts args
                               `fatalsHandledBy` failureHandler
-                            CIO.exitWith ExitSuccess
+                            CIO.exitWith CIO.ExitSuccess
     --
     wrongNoOfArgsErr =
       "There must be exactly one binding file (suffix .chs),\n\
@@ -323,7 +319,7 @@ compile  =
                        Nothing -> ""
                        Just s  -> " (file: `" ++ s ++ "')"
         CIO.hPutStrLn stderr (msg ++ fnMsg)
-        CIO.exitWith $ ExitFailure 1
+        CIO.exitWith $ CIO.ExitFailure 1
 
 -- | set up base configuration
 --
@@ -338,7 +334,7 @@ raiseErrs      :: [String] -> CST s a
 raiseErrs errs = do
                    CIO.hPutStr stderr (concat errs)
                    CIO.hPutStr stderr errTrailer
-                   CIO.exitWith $ ExitFailure 1
+                   CIO.exitWith $ CIO.ExitFailure 1
 
 -- Process tasks
 -- -------------
@@ -374,7 +370,7 @@ execute opts args | Help `elem` opts = help
       do
         name <- CIO.getProgName
         CIO.putStr $ name ++ ": " ++ ioeGetErrorString ioerr ++ "\n"
-        CIO.exitWith $ ExitFailure 1
+        CIO.exitWith $ CIO.ExitFailure 1
 
 -- | emit help message
 --
@@ -430,11 +426,12 @@ computeOutputName bndFileNoSuffix =
 
 -- | Copy the C2HS library if requested
 --
+copyLibrary :: CST s ()
 copyLibrary =
   do
     outdir  <- getSwitch outDirSB
     library <- getSwitch librarySB
-    datadir <- liftIO getDataDir
+    datadir <- CIO.liftIO getDataDir
     let libFullName = datadir </> libfname
         libDestName = outdir  </> libfname
     when library $
@@ -447,13 +444,7 @@ copyLibrary =
 -- | set the options for the C proprocessor
 --
 addCPPOpts      :: String -> CST s ()
-addCPPOpts opts  =
-  do
-    let iopts = [opt | opt <- words opts, "-I" `isPrefixOf` opt, "-I-" /= opt]
-    addOpts opts
-  where
-    addOpts opts  = setSwitch $
-                      \sb -> sb {cppOptsSB = cppOptsSB sb ++ (' ':opts)}
+addCPPOpts opts  = setSwitch $ \sb -> sb {cppOptsSB = cppOptsSB sb ++ (' ':opts)}
 
 -- | set the program name of the C proprocessor
 --
@@ -585,8 +576,8 @@ process headerFiles bndFile  =
     tracePreproc cmd
     exitCode <- CIO.system cmd
     case exitCode of
-      ExitFailure _ -> fatal "Error during preprocessing custom header file"
-      _             -> return ()
+      CIO.ExitFailure _ -> fatal "Error during preprocessing custom header file"
+      _                 -> return ()
     --
     -- load and analyse the C header file
     --
@@ -600,7 +591,7 @@ process headerFiles bndFile  =
     unless keep $ do
       CIO.removeFile preprocFile
       case headerFiles of
-        [headerFile] | null header
+        [_headerFile] | null header
           -> CIO.removeFile newHeaderFile
         _ -> return () -- keep it since we'll need it to compile the .hs file
     --

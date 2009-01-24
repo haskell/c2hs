@@ -63,7 +63,6 @@ where
 
 import Prelude (Bool, Char, String, FilePath, (.), Show)
 import qualified System.IO as IO
-import qualified System.IO.Error as IO
 import qualified System.Directory   as IO (doesFileExist, removeFile)
 import qualified System.Environment as IO (getArgs, getProgName)
 import qualified System.Cmd  as IO (system)
