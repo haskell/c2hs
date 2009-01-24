@@ -39,7 +39,7 @@ Flag splitBase
     Description: Choose the new smaller, split-up base package.
 
 Executable c2hs
-    Build-Depends:  base, filepath, language-c >= 0.3.1
+    Build-Depends:  base, filepath, language-c >= 0.3.1 && < 0.4
 
     if flag(splitBase)
         Build-Depends: base >= 3, process, directory, array, containers, pretty
