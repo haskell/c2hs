@@ -364,7 +364,7 @@ ctrlLexer  =
   where
     newline  _ pos s = (Nothing, retPos pos  , s, Nothing)
     formfeed _ pos s = (Nothing, incPos pos 1, s, Nothing)
-    tab      _ pos s = (Nothing, tabPos pos  , s, Nothing)
+    tab      _ pos s = (Nothing, incPos pos 8, s, Nothing)
 
 
 -- non-basic combinators

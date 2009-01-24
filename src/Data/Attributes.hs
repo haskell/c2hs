@@ -123,14 +123,13 @@ posOfAttrsOf  = posOf . attrsOf
 -- Given only a source position, create a new attribute identifier
 --
 newAttrsOnlyPos     :: Position -> NodeInfo
-newAttrsOnlyPos pos  = OnlyPos pos
+newAttrsOnlyPos    = mkNodeInfoOnlyPos
 
 -- Given a source position and a unique name, create a new attribute
 -- identifier
 --
 newAttrs          :: Position -> Name -> NodeInfo
-newAttrs pos name  = NodeInfo pos name
-
+newAttrs           = mkNodeInfo
 
 -- attribute tables and operations on them
 -- ---------------------------------------
@@ -207,38 +206,44 @@ newAttrTable desc  = SoftTable NameMap.empty desc
 -- | get the value of an attribute from the given attribute table
 --
 getAttr                      :: Attr a => AttrTable a -> NodeInfo -> a
-getAttr at (OnlyPos pos    )  = onlyPosErr "getAttr" at pos
-getAttr at (NodeInfo   _   aid)  =  
-  case at of
-    (SoftTable   fm  _) -> NameMap.findWithDefault undef (nameId aid) fm
-    (FrozenTable arr _) -> let (lbd, ubd) = bounds arr
-                           in
-                           if (aid < lbd || aid > ubd) then undef else arr!aid
+getAttr at node =
+    case nameOfNode node of
+        Nothing  -> onlyPosErr "getAttr" at (posOfNode node)
+        Just aid ->
+          case at of
+            (SoftTable   fm  _) -> NameMap.findWithDefault undef (nameId aid) fm
+            (FrozenTable arr _) -> let (lbd, ubd) = bounds arr
+                                   in
+                                   if (aid < lbd || aid > ubd) then undef else arr!aid
 
 -- | set the value of an, up to now, undefined attribute from the given
 -- attribute table
 --
 setAttr :: Attr a => AttrTable a -> NodeInfo -> a -> AttrTable a
-setAttr at (OnlyPos pos    )    _  = onlyPosErr "setAttr" at pos
-setAttr at (NodeInfo   pos aid) av =
-  case at of
-    (SoftTable fm desc) -> assert (isUndef (NameMap.findWithDefault undef (nameId aid) fm)) $
-                             SoftTable (NameMap.insert (nameId aid) av fm) desc
-    (FrozenTable _   _) -> interr frozenErr
-  where
-    frozenErr     = "Attributes.setAttr: Tried to write frozen attribute in\n"
-                    ++ errLoc at pos
+setAttr at node av =
+    case nameOfNode node of
+        Nothing  -> onlyPosErr "setAttr" at (posOfNode node)
+        Just aid ->
+          case at of
+            (SoftTable fm desc) -> assert (isUndef (NameMap.findWithDefault undef (nameId aid) fm)) $
+                                     SoftTable (NameMap.insert (nameId aid) av fm) desc
+            (FrozenTable arr _) -> interr frozenErr
+          where
+            frozenErr     = "Attributes.setAttr: Tried to write frozen attribute in\n"
+                            ++ errLoc at (posOfNode node)
 
 -- | update the value of an attribute from the given attribute table
 --
 updAttr :: Attr a => AttrTable a -> NodeInfo -> a -> AttrTable a
-updAttr at (OnlyPos pos    )    _  = onlyPosErr "updAttr" at pos
-updAttr at (NodeInfo   pos aid) av =
-  case at of
-    (SoftTable   fm  desc) -> SoftTable (NameMap.insert (nameId aid) av fm) desc
-    (FrozenTable _ _)      -> interr $ "Attributes.updAttr: Tried to\
-                                       \ update frozen attribute in\n"
-                                       ++ errLoc at pos
+updAttr at node av =
+    case nameOfNode node of
+        Nothing  -> onlyPosErr "updAttr" at (posOfNode node)
+        Just aid ->
+          case at of
+            (SoftTable   fm  desc) -> SoftTable (NameMap.insert (nameId aid) av fm) desc
+            (FrozenTable arr _)    -> interr $ "Attributes.updAttr: Tried to\
+                                               \ update frozen attribute in\n"
+                                               ++ errLoc at (posOfNode node)
 
 -- | copy the value of an attribute to another one
 --

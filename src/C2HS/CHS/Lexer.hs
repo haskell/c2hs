@@ -567,7 +567,7 @@ ctrl  =
   where
     newline  [c] pos = ctrlResult pos c (retPos pos)
     formfeed [c] pos = ctrlResult pos c (incPos pos 1)
-    tab      [c] pos = ctrlResult pos c (tabPos pos)
+    tab      [c] pos = ctrlResult pos c (incPos pos 8)
 
     ctrlResult pos c pos' s =
       (Just $ Right (CHSTokCtrl pos c), pos', s, Nothing)
