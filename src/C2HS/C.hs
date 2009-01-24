@@ -92,7 +92,8 @@ parseHeader is pos =
   do
     ns <- getNameSupply
     case execParser translUnitP is pos builtinTypeNames ns of
-      Left (ParseError (msgs,pos)) -> raiseError pos msgs >> return (CTranslUnit [] internalNode)
+      Left (ParseError (msgs,pos')) -> raiseError pos' msgs >>
+                                       return (CTranslUnit [] internalNode)
       Right (ct,ns') -> setNameSupply ns' >> return ct
       
 -- | given a file name (with suffix), parse that file as a C header and do the
@@ -132,18 +133,19 @@ loadAttrC fname  = do
                          warnmsgs <- showErrors
                          return (headerWithAttrs, warnmsgs)
                     where
-                      traceInfoRead fname = putTraceStr tracePhasesSW
+                      traceInfoRead fname' = putTraceStr tracePhasesSW
                                               ("Attempting to read file `"
-                                               ++ fname ++ "'...\n")
-                      traceInfoParse      = putTraceStr tracePhasesSW
+                                               ++ fname' ++ "'...\n")
+                      traceInfoParse       = putTraceStr tracePhasesSW
                                               ("...parsing `"
                                                ++ fname ++ "'...\n")
-                      traceInfoNA         = putTraceStr tracePhasesSW
+                      traceInfoNA          = putTraceStr tracePhasesSW
                                               ("...name analysis of `"
                                                ++ fname ++ "'...\n")
-                      traceInfoErr        = putTraceStr tracePhasesSW
+                      traceInfoErr         = putTraceStr tracePhasesSW
                                               ("...error(s) detected in `"
                                                ++ fname ++ "'.\n")
-                      traceInfoOK         = putTraceStr tracePhasesSW
+                      traceInfoOK          = putTraceStr tracePhasesSW
                                               ("...successfully loaded `"
                                                ++ fname ++ "'.\n")
+
