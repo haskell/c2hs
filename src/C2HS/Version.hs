@@ -9,7 +9,9 @@ versnum    = Paths_c2hs.version
 versnick   = "Rainy Days"
 date       = "31 Aug 2007"
 version    = name ++ ", version " ++ showVersion versnum ++ " " ++ versnick ++ ", " ++ date
-copyright  = "Copyright (c) [1999..2007] Manuel M T Chakravarty"
+copyright  = "Copyright (c) 1999-2007 Manuel M T Chakravarty\n"
+          ++ "              2005-2008 Duncan Coutts\n"
+          ++ "              2008      Benedikt Huber"
 disclaimer = "This software is distributed under the \
              \terms of the GNU Public Licence.\n\
              \NO WARRANTY WHATSOEVER IS PROVIDED. \
