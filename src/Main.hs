@@ -140,8 +140,9 @@ import C2HS.CHS   (loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI)
 import C2HS.Gen.Header  (genHeader)
 import C2HS.Gen.Bind      (expandHooks)
 import C2HS.Version    (versnum, version, copyright, disclaimer)
-import C2HS.Config (cpp, cppopts, libfname, PlatformSpec(..),
+import C2HS.Config (cppopts, libfname, PlatformSpec(..),
                    defaultPlatformSpec, platformSpecDB)
+import qualified C2HS.Config as CConf
 import Paths_c2hs (getDataDir)
 
 
@@ -272,7 +273,7 @@ compile  =
       (opts, []  , [])
         | noCompOpts opts -> doExecute opts Nothing
       (opts, args, [])    -> case parseArgs args of
-        args@(Just _)     -> doExecute opts args
+        justargs@(Just _) -> doExecute opts justargs
         Nothing           -> raiseErrs [wrongNoOfArgsErr]
       (_   , _   , errs)  -> raiseErrs errs
   where
@@ -326,7 +327,7 @@ compile  =
 --
 setup :: CST s ()
 setup  = do
-           setCPP     cpp
+           setCPP     CConf.cpp
            addCPPOpts cppopts
 
 -- | output error message
@@ -483,10 +484,10 @@ setInclude str = do
   setSwitch $ \sb -> sb {chiPathSB = fp ++ (chiPathSB sb)}
   where
     makePath ('\\':r:em)   path = makePath em (path ++ ['\\',r])
-    makePath (' ':rem)     path = makePath rem path
-    makePath (':':rem)     ""   = makePath rem ""
-    makePath (':':rem)     path = path : makePath rem ""
-    makePath ('/':':':rem) path = path : makePath rem ""
+    makePath (' ':r)       path = makePath r path
+    makePath (':':r)       ""   = makePath r ""
+    makePath (':':r)       path = path : makePath r ""
+    makePath ('/':':':r)   path = path : makePath r ""
     makePath (r:emain)     path = makePath emain (path ++ [r])
     makePath ""            ""   = []
     makePath ""            path = [path]
@@ -544,8 +545,8 @@ process headerFiles bndFile  =
     -- inline-C fragments are removed from the .chs tree and conditionals are
     -- replaced by structured conditionals)
     --
-    (header, strippedCHSMod, warnmsgs) <- genHeader chsMod
-    CIO.putStr warnmsgs
+    (header', strippedCHSMod, headerwarnmsgs) <- genHeader chsMod
+    CIO.putStr headerwarnmsgs
     --
     -- create new header file, make it #include `headerFile', and emit
     -- CPP and inline-C of .chs file into the new header
@@ -558,7 +559,7 @@ process headerFiles bndFile  =
     CIO.writeFile newHeaderFile $ concat $
       [ "#include \"" ++ headerFile ++ "\"\n"
       | headerFile <- headerFiles ]
-      ++ header
+      ++ header'
     --
     -- Check if we can get away without having to keep a separate .chs.h file
     --
@@ -577,17 +578,17 @@ process headerFiles bndFile  =
     tracePreproc (unwords (cpp:args))
     exitCode <- CIO.liftIO $ do
       preprocHnd <- openFile preprocFile WriteMode
-      process <- runProcess cpp args
+      cppproc <- runProcess cpp args
         Nothing Nothing Nothing (Just preprocHnd) Nothing
-      waitForProcess process
+      waitForProcess cppproc
     case exitCode of
       CIO.ExitFailure _ -> fatal "Error during preprocessing custom header file"
       _                 -> return ()
     --
     -- load and analyse the C header file
     --
-    (cheader, warnmsgs) <- loadAttrC preprocFile
-    CIO.putStr warnmsgs
+    (cheader, preprocMsgs) <- loadAttrC preprocFile
+    CIO.putStr preprocMsgs
     --
     -- remove the pre-processed header and if we no longer need it, remove the
     -- custom header file too.
@@ -602,8 +603,8 @@ process headerFiles bndFile  =
     --
     -- expand binding hooks into plain Haskell
     --
-    (hsMod, chi, warnmsgs) <- expandHooks cheader strippedCHSMod
-    CIO.putStr warnmsgs
+    (hsMod, chi, hooksMsgs) <- expandHooks cheader strippedCHSMod
+    CIO.putStr hooksMsgs
     --
     -- output the result
     --
@@ -612,12 +613,12 @@ process headerFiles bndFile  =
   where
     tracePreproc cmd = putTraceStr tracePhasesSW $
                          "Invoking cpp as `" ++ cmd ++ "'...\n"
-    traceCHSDump mod = do
+    traceCHSDump mod' = do
                          flag <- traceSet dumpCHSSW
                          when flag $
                            (do
                               CIO.putStr ("...dumping CHS to `" ++ chsName
                                          ++ "'...\n")
-                              dumpCHS chsName mod False)
+                              dumpCHS chsName mod' False)
 
     chsName = FilePath.takeBaseName bndFile <.> "dump"
