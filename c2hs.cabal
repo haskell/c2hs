@@ -2,8 +2,6 @@ Name:           c2hs
 Version:        0.16.0
 Cabal-Version:  >= 1.2
 Build-Type:     Simple
---Versnick:     "Rainy Days"
---Versdate:     "31 Aug 2007"
 License:        GPL
 License-File:   COPYING
 Copyright:      Copyright (c) 1999-2007 Manuel M T Chakravarty
