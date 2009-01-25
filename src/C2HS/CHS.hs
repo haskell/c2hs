@@ -1102,7 +1102,8 @@ underscoreToCase ide upper pos  =
                     []      -> []
                     (_:s'') -> parts s''
     --
-    adjustCase (c:cs) = toUpper c : map toLower cs
+    adjustCase ""     = ""
+    adjustCase (c:cs) = toUpper c : cs
     --
     adjustHead ""     = ""
     adjustHead (c:cs) = if upper then toUpper c : cs else toLower c:cs
