@@ -109,6 +109,7 @@ where
 import Data.Char     (toLower)
 import Data.List     (deleteBy, intersperse, find)
 import Data.Maybe    (isNothing, fromJust, fromMaybe)
+import Data.Bits     ((.|.), (.&.))
 import Control.Monad (when, unless, liftM, mapAndUnzipM)
 
 -- Language.C / compiler toolkit
@@ -2037,6 +2038,10 @@ applyBin _    CShrOp (IntResult   x)
 applyBin cpos CShrOp (FloatResult _)
                      (FloatResult _) =
   illegalConstExprErr cpos "a >> operator applied to a float"
+applyBin _    COrOp  (IntResult   x)
+                     (IntResult   y) = return $ IntResult (x .|. y)
+applyBin _    CAndOp (IntResult   x)
+                     (IntResult   y) = return $ IntResult (x .&. y)
 applyBin _    _      (IntResult   _)
                      (IntResult   _) =
   todo "GenBind.applyBin: Not yet implemented operator in constant expression."
