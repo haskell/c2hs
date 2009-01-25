@@ -148,8 +148,8 @@ runCT m ac s  = runCST m' (ac, s)
                 where
                   m' = do
                          r <- m
-                         (ac, _) <- readCST id
-                         return (ac, r)
+                         (ac', _) <- readCST id
+                         return (ac', r)
 
 
 -- exception handling
@@ -264,15 +264,15 @@ defTag ide tag  =
     --   them here, one is arbitrarily selected to take the role of the full
     --   definition
     --
-    isRefinedOrUse     (StructUnionCT (CStruct _ (Just ide) Nothing _ _))
-                   tag@(StructUnionCT (CStruct _ (Just _  ) _  _ _)) =
-      Just (tag, ide)
-    isRefinedOrUse tag@(StructUnionCT (CStruct _ (Just _  ) _  _ _))
-                       (StructUnionCT (CStruct _ (Just ide) Nothing _ _)) =
-      Just (tag, ide)
-    isRefinedOrUse tag@(EnumCT        (CEnum (Just _  ) _  _ _))
-                       (EnumCT        (CEnum (Just ide) Nothing _ _))     =
-      Just (tag, ide)
+    isRefinedOrUse      (StructUnionCT (CStruct _ (Just ide') Nothing _ _))
+                   tag'@(StructUnionCT (CStruct _ (Just _  ) _  _ _)) =
+      Just (tag', ide')
+    isRefinedOrUse tag'@(StructUnionCT (CStruct _ (Just _  ) _  _ _))
+                        (StructUnionCT (CStruct _ (Just ide') Nothing _ _)) =
+      Just (tag', ide')
+    isRefinedOrUse tag'@(EnumCT        (CEnum (Just _  ) _  _ _))
+                        (EnumCT        (CEnum (Just ide') Nothing _ _))     =
+      Just (tag', ide')
     isRefinedOrUse _ _                                             = Nothing
 
 -- | find an definition in the tag name space
@@ -444,8 +444,8 @@ ide `simplifyDecl` (CDecl specs declrs at) =
     Nothing    -> err
     Just declr -> CDecl specs [declr] at
   where
-    (Just declr, _, _) `declrPlusNamed` ide = declr `declrNamed` ide
-    _                  `declrPlusNamed` _   = False
+    (Just declr, _, _) `declrPlusNamed` ide' = declr `declrNamed` ide'
+    _                  `declrPlusNamed` _    = False
     --
     err = interr $ "CTrav.simplifyDecl: Wrong C object!\n\
                    \  Looking for `" ++ identToString ide ++ "' in decl \
@@ -583,7 +583,7 @@ funResultAndArgs (CDecl specs [(Just declr, _, _)] _) =
   where
     funArgs (CDeclr _ide derived _asm _ats node) =
       case derived of
-        (CFunDeclr (Right (args,variadic)) _ats _dnode : derived') -> 
+        (CFunDeclr (Right (args,variadic)) _ats' _dnode : derived') -> 
           (args, CDeclr Nothing derived' Nothing [] node, variadic)
         (CFunDeclr (Left _) _ _ : _) ->
           interr "CTrav.funResultAndArgs: Old style function definition"
@@ -730,9 +730,9 @@ lookupDeclOrTag                :: Ident -> Bool -> CT s (Either CDecl CTag)
 lookupDeclOrTag ide useShadows  = do
   oobj <- findTypeObjMaybe ide useShadows
   case oobj of
-    Just (_, ide) -> liftM Left $ findAndChaseDecl ide False False
+    Just (_, ide') -> liftM Left $ findAndChaseDecl ide' False False
                                                    -- already did check shadows
-    Nothing       -> do
+    Nothing        -> do
                        otag <- if useShadows
                                then liftM (fmap fst) $ findTagShadow ide
                                else findTag ide
