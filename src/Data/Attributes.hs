@@ -227,7 +227,7 @@ setAttr at node av =
           case at of
             (SoftTable fm desc) -> assert (isUndef (NameMap.findWithDefault undef (nameId aid) fm)) $
                                      SoftTable (NameMap.insert (nameId aid) av fm) desc
-            (FrozenTable arr _) -> interr frozenErr
+            (FrozenTable _arr _) -> interr frozenErr
           where
             frozenErr     = "Attributes.setAttr: Tried to write frozen attribute in\n"
                             ++ errLoc at (posOfNode node)
@@ -241,7 +241,7 @@ updAttr at node av =
         Just aid ->
           case at of
             (SoftTable   fm  desc) -> SoftTable (NameMap.insert (nameId aid) av fm) desc
-            (FrozenTable arr _)    -> interr $ "Attributes.updAttr: Tried to\
+            (FrozenTable _arr _)    -> interr $ "Attributes.updAttr: Tried to\
                                                \ update frozen attribute in\n"
                                                ++ errLoc at (posOfNode node)
 
