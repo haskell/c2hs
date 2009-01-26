@@ -217,18 +217,18 @@ applyPrefix ac prefix  =
   in
   ac {shadowsAC = foldl define shadows newShadows}
   where
-    strip prefix ide = case eat prefix (identToString ide) of
-                         Nothing      -> Nothing
-                         Just ""      -> Nothing
-                         Just newName -> Just
-                                           (internalIdentAt (posOf ide) newName,
-                                            ide)
+    strip prefx ide = case eat prefx (identToString ide) of
+                        Nothing      -> Nothing
+                        Just ""      -> Nothing
+                        Just newName -> Just
+                                          (internalIdentAt (posOf ide) newName,
+                                           ide)
     --
-    eat []         ('_':cs)                        = eat [] cs
-    eat []         cs                              = Just cs
-    eat (p:prefix) (c:cs) | toUpper p == toUpper c = eat prefix cs
-                          | otherwise              = Nothing
-    eat _          _                               = Nothing
+    eat []        ('_':cs)                        = eat [] cs
+    eat []        cs                              = Just cs
+    eat (p:prefx) (c:cs) | toUpper p == toUpper c = eat prefx cs
+                         | otherwise              = Nothing
+    eat _         _                               = Nothing
     --
     define ns (ide, def) = fst (defGlobal ns ide def)
 
@@ -242,14 +242,14 @@ getDefOfIdentC    :: AttrC -> Ident -> CDef
 getDefOfIdentC ac  = getAttr (defsAC ac) . nodeInfo
 
 setDefOfIdentC           :: AttrC -> Ident -> CDef -> AttrC
-setDefOfIdentC ac id def  =
-  let tot' = setAttr (defsAC ac) (nodeInfo id) def
+setDefOfIdentC ac ide def  =
+  let tot' = setAttr (defsAC ac) (nodeInfo ide) def
   in
   ac {defsAC = tot'}
 
 updDefOfIdentC            :: AttrC -> Ident -> CDef -> AttrC
-updDefOfIdentC ac id def  =
-  let tot' = updAttr (defsAC ac) (nodeInfo id) def
+updDefOfIdentC ac ide def  =
+  let tot' = updAttr (defsAC ac) (nodeInfo ide) def
   in
   ac {defsAC = tot'}
 
