@@ -415,12 +415,12 @@ initialState nameSupply =
 -- | raise an error if the given state is not a final state
 --
 assertFinalState :: Position -> CHSLexerState -> CST s ()
-assertFinalState pos CHSLS {nestLvl = nestLvl, inHook = inHook}
-  | nestLvl > 0 = raiseError pos ["Unexpected end of file!",
-                                  "Unclosed nested comment."]
-  | inHook      = raiseError pos ["Unexpected end of file!",
-                                  "Unclosed binding hook."]
-  | otherwise   = return ()
+assertFinalState pos CHSLS {nestLvl = nestLvl', inHook = inHook'}
+  | nestLvl' > 0 = raiseError pos ["Unexpected end of file!",
+                                   "Unclosed nested comment."]
+  | inHook'      = raiseError pos ["Unexpected end of file!",
+                                   "Unclosed binding hook."]
+  | otherwise    = return ()
 
 -- | lexer and action type used throughout this specification
 --
