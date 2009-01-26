@@ -605,9 +605,9 @@ cpp = directive
                     retPos pos, s, Nothing)
 
 adjustPosByCLinePragma :: String -> Position -> Position
-adjustPosByCLinePragma str (Position fname _ _) =
-  (Position fname' row' 0)
+adjustPosByCLinePragma str pos = adjustPos fname' row' pos
   where
+    fname           = posFile pos
     str'            = dropWhite str
     (rowStr, str'') = span isDigit str'
     row'            = read rowStr

@@ -255,22 +255,21 @@ char c  = \l -> Lexer NoAction (Sparse (1, c, c) [(c, l)])
 lexaction      :: Regexp s t -> Action t -> Lexer s t
 lexaction re a  = re `lexmeta` a'
   where
-    a' lexeme pos@(Position fname row col) s =
-       let col' = col + length lexeme
-       in
-       col' `seq` case a lexeme pos of
-                    Nothing -> (Nothing, (Position fname row col'), s, Nothing)
-                    Just t  -> (Just (Right t), (Position fname row col'), s, Nothing)
+    a' lexeme pos s =
+       let pos' = incPos pos (length lexeme) in
+       pos' `seq`
+        case a lexeme pos of
+            Nothing -> (Nothing, pos', s, Nothing)
+            Just t  -> (Just (Right t), pos', s, Nothing)
 
 -- | Variant for actions that may returns an error
 --
 lexactionErr      :: Regexp s t -> ActionErr t -> Lexer s t
 lexactionErr re a  = re `lexmeta` a'
   where
-     a' lexeme pos@(Position fname row col) s =
-       let col' = col + length lexeme
-       in
-       col' `seq` (Just (a lexeme pos), (Position fname row col'), s, Nothing)
+     a' lexeme pos s =
+       let pos' = incPos pos (length lexeme) in
+       pos' `seq` (Just (a lexeme pos), pos', s, Nothing)
 
 -- | Close a regular expression with a meta action
 --
@@ -456,13 +455,13 @@ execLexer l state            =
         -- the result triple of `lexOne' that signals a lexical error;
         -- the result state is advanced by one character for error correction
         --
-        lexErr = let (cs, pos@(Position fname row col), s) = state
+        lexErr = let (cs, pos, s) = state
                      err = makeError LevelError pos
                              ["Lexical error!",
                               "The character " ++ show (head cs)
                               ++ " does not fit here; skipping it."]
                  in
-                 (Just (Left err), l, (tail cs, (Position fname row (col + 1)), s))
+                 (Just (Left err), l, (tail cs, incPos pos 1, s))
 
         -- we take an open list of characters down, where we accumulate the
         -- lexeme; this function returns maybe a token, the next lexer to use

@@ -354,7 +354,7 @@ loadCHS fname  = do
                    -- parse
                    --
                    traceInfoParse
-                   mod <- parseCHSModule (Position fullname 1 1) contents
+                   mod <- parseCHSModule (initPos fullname) contents
 
                    -- check for errors and finalize
                    --
@@ -427,7 +427,7 @@ showCHSModule (CHSModule frags) pureHaskell  =
     showFrags _      _     []                           = id
     showFrags pureHs state (CHSVerb s      pos : frags) =
       let
-        (Position fname line _) = pos
+        (fname,line)     = (posFile pos, posRow pos)
         generated        = isBuiltinPos pos
         emitNow          = state == Emit ||
                            (state == Wait && not (null s) && head s == '\n')

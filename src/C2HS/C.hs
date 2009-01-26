@@ -112,7 +112,7 @@ loadAttrC fname  = do
                      -- parse
                      --
                      traceInfoParse
-                     header <- parseHeader contents (Position fname 1 1)
+                     header <- parseHeader contents (initPos fname)
                      -- name analysis
                      --
                      traceInfoNA
