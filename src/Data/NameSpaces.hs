@@ -81,8 +81,9 @@ nameSpace  = NameSpace Map.empty []
 --   name space anymore)
 --
 defGlobal :: NameSpace a -> Ident -> a -> (NameSpace a, Maybe a)
-defGlobal (NameSpace gs lss) id def  = (NameSpace (Map.insert id def gs) lss,
-                                        Map.lookup id gs)
+defGlobal (NameSpace gs lss) ide def =
+                                     (NameSpace (Map.insert ide def gs) lss,
+                                      Map.lookup ide gs)
 
 -- | add new range
 --
@@ -108,33 +109,33 @@ leaveRange (NameSpace gs (ls:lss))  = (NameSpace gs lss, ls)
 --   name space anymore)
 --
 defLocal :: NameSpace a -> Ident -> a -> (NameSpace a, Maybe a)
-defLocal ns@(NameSpace _  []      ) id def = defGlobal ns id def
-defLocal (NameSpace    gs (ls:lss)) id def =
-  (NameSpace gs (((id, def):ls):lss),
-   lookup ls)
+defLocal ns@(NameSpace _  []      ) ide def = defGlobal ns ide def
+defLocal (NameSpace    gs (ls:lss)) ide def =
+  (NameSpace gs (((ide, def):ls):lss),
+   lookup' ls)
   where
-    lookup []                          = Nothing
-    lookup ((id', def):ls) | id == id' = Just def
-                           | otherwise = lookup ls
+    lookup' []                               = Nothing
+    lookup' ((ide', def'):ls') | ide == ide' = Just def'
+                               | otherwise   = lookup' ls'
 
 -- | search for a definition
 --
 -- * the definition from the innermost range is returned, if any
 --
 find                       :: NameSpace a -> Ident -> Maybe a
-find (NameSpace gs lss) id  = case (lookup lss) of
-                                Nothing  -> Map.lookup id gs
+find (NameSpace gs lss) ide  = case (lookup' lss) of
+                                Nothing  -> Map.lookup ide gs
                                 Just def -> Just def
                               where
-                                lookup []       = Nothing
-                                lookup (ls:lss) = case (lookup' ls) of
-                                                    Nothing  -> lookup lss
-                                                    Just def -> Just def
+                                lookup' []        = Nothing
+                                lookup' (ls:lss') = case (lookup'' ls) of
+                                                      Nothing  -> lookup' lss'
+                                                      Just def -> Just def
 
-                                lookup' []              = Nothing
-                                lookup' ((id', def):ls)
-                                        | id' == id     = Just def
-                                        | otherwise     = lookup' ls
+                                lookup'' []                = Nothing
+                                lookup'' ((ide', def):ls)
+                                         | ide' == ide     = Just def
+                                         | otherwise       = lookup'' ls
 
 -- | dump a name space into a list
 --
