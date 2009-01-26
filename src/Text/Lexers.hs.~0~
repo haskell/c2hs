@@ -332,12 +332,12 @@ accum f ((k, e):kes) =
   in
   ke : accum f kes'
   where
-    gather k' e' []                             = ((k', e'), [])
-    gather k' e' (ke'@(k'2, e'2):kes')
-      | k' == k'2 = gather k' (f e' e'2) kes'
-      | otherwise = let (ke'2, kes'2) = gather k' e' kes'
-                    in
-                    (ke'2, ke':kes'2)
+    gather k e []                             = ((k, e), [])
+    gather k e (ke'@(k', e'):kes) | k == k'   = gather k (f e e') kes
+                                  | otherwise = let
+                                                  (ke'', kes') = gather k e kes
+                                                in
+                                                (ke'', ke':kes')
 
 
 -- handling of control characters
@@ -450,12 +450,12 @@ execLexer l state            =
     --
     -- lexOne :: Lexer s t -> LexerState s t
     --        -> (Either Error (Maybe t), Lexer s t, LexerState s t)
-    lexOne l0 state' = oneLexeme l0 state' DL.zero lexErr
+    lexOne l0 state = oneLexeme l0 state DL.zero lexErr
       where
         -- the result triple of `lexOne' that signals a lexical error;
         -- the result state is advanced by one character for error correction
         --
-        lexErr = let (cs, pos@(Position fname row col), s) = state
+        lexErr = let (cs, pos, s) = state
                      err = makeError LevelError pos
                              ["Lexical error!",
                               "The character " ++ show (head cs)
@@ -480,26 +480,25 @@ execLexer l state            =
         --               LexerState s t)
         --           -> (Maybe (Either Error t), Maybe (Lexer s t),
         --               LexerState s t)
-        oneLexeme (Lexer a cont') state''@(cs, pos, s) csDL last' =
-          let last'' = action a csDL state'' last'
+        oneLexeme (Lexer a cont) state@(cs, pos, s) csDL last =
+          let last' = action a csDL state last
           in case cs of
-            []      -> last''
-            (c:cs') -> oneChar cont' c (cs', pos, s) csDL last''
+            []      -> last'
+            (c:cs') -> oneChar cont c (cs', pos, s) csDL last'
 
-        oneChar Done            _ _      _    last' = last'
-        oneChar (Dense  bn arr) c state'' csDL last'
-          | c `inBounds` bn = cont (arr!c) c state'' csDL last'
-          | otherwise       = last'
-        oneChar (Sparse bn cls) c state'' csDL last'
+        oneChar Done            _ _     _    last = last
+        oneChar (Dense  bn arr) c state csDL last
+          | c `inBounds` bn = cont (arr!c) c state csDL last
+          | otherwise       = last
+        oneChar (Sparse bn cls) c state csDL last
           | c `inBounds` bn = case lookup c cls of
-                                Nothing -> last'
-                                Just l' -> cont l' c state'' csDL last'
-          | otherwise       = last'
+                                Nothing -> last
+                                Just l' -> cont l' c state csDL last
+          | otherwise       = last
 
         -- continue within the current lexeme
         --
-        cont l' c state'' csDL last' = oneLexeme l' state''
-                                       (csDL `DL.snoc` c) last'
+        cont l' c state csDL last = oneLexeme l' state (csDL `DL.snoc` c) last
 
         -- execute the action if present and finalise the current lexeme
         --
@@ -508,5 +507,5 @@ execLexer l state            =
             (Nothing, pos', s', l')
               | not . null $ cs     -> lexOne (fromMaybe l0 l') (cs, pos', s')
             (res    , pos', s', l') -> (res, (fromMaybe l0 l'), (cs, pos', s'))
-        action NoAction _csDL _state last' =
-          last'                                          -- no change
+        action NoAction _csDL _state last =
+          last                                          -- no change
