@@ -354,7 +354,7 @@ loadCHS fname  = do
                    -- parse
                    --
                    traceInfoParse
-                   mod <- parseCHSModule (Position fullname 1 1) contents
+                   mod' <- parseCHSModule (initPos fullname) contents
 
                    -- check for errors and finalize
                    --

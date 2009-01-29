@@ -455,7 +455,7 @@ execLexer l state            =
         -- the result triple of `lexOne' that signals a lexical error;
         -- the result state is advanced by one character for error correction
         --
-        lexErr = let (cs, pos@(Position fname row col), s) = state
+        lexErr = let (cs, pos, s) = state'
                      err = makeError LevelError pos
                              ["Lexical error!",
                               "The character " ++ show (head cs)
