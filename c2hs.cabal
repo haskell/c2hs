@@ -25,17 +25,19 @@ Build-Type:     Simple
 Data-Files:     C2HS.hs
 Extra-Source-Files:
                 src/C2HS/config.h
-                AUTHORS INSTALL README README.CTKlight
+                AUTHORS INSTALL README
+                doc/c2hs.xml doc/c2hs.css doc/man1/c2hs.1 doc/Makefile
 
-                c2hs/tests/Calls.chs c2hs/tests/enums.h c2hs/tests/simple.c
-                c2hs/tests/calls.h c2hs/tests/Makefile c2hs/tests/Simple.chs
-                c2hs/tests/Calls.hs c2hs/tests/Marsh.chs c2hs/tests/simple.h
-                c2hs/tests/Cpp.chs c2hs/tests/marsh.h c2hs/tests/structs.c
-                c2hs/tests/cpp.h c2hs/tests/pointer.c c2hs/tests/Structs.chs
-                c2hs/tests/enums.c c2hs/tests/Pointer.chs c2hs/tests/structs.h
-                c2hs/tests/Enums.chs c2hs/tests/pointer.h
-
-                doc/c2hs.xml doc/man1/c2hs.1 doc/Makefile
+                tests/system/Calls.chs tests/system/calls.h
+                tests/system/Cpp.chs tests/system/cpp.h
+                tests/system/Enums.chs tests/system/enums.h tests/system/enums.c
+                tests/system/Marsh.chs tests/system/marsh.h
+                tests/system/Pointer.chs tests/system/pointer.h tests/system/pointer.c
+                tests/system/Simple.chs tests/system/simple.h tests/system/simple.c
+                tests/system/Sizeof.chs tests/system/sizeof.h tests/system/sizeof.c
+                tests/system/Structs.chs tests/system/structs.h tests/system/structs.c
+                tests/system/structs.expect
+                tests/system/Makefile
 
 flag base3
 
@@ -53,29 +55,32 @@ Executable c2hs
     hs-source-dirs: src
     main-is:        Main.hs
     other-modules:
-      Data.DLists
-      Data.Attributes
-      Data.NameSpaces
-      Control.StateBase
-      Control.State
-      Control.StateTrans
-      System.CIO
-      Text.Lexers
-
       C2HS.C
       C2HS.C.Attrs
+      C2HS.C.Builtin
+      C2HS.C.Info
       C2HS.C.Names
       C2HS.C.Trav
-      C2HS.C.Info
       C2HS.CHS
       C2HS.CHS.Lexer
+      C2HS.Gen.Monad
+      C2HS.Gen.Bind
+      C2HS.Gen.Header
       C2HS.State
       C2HS.Switches
       C2HS.Config
       C2HS.Version
-      C2HS.Gen.Monad
-      C2HS.Gen.Bind
-      C2HS.Gen.Header
+
+      Control.StateBase
+      Control.State
+      Control.StateTrans
+      Data.Attributes
+      Data.DLists
+      Data.Errors
+      Data.NameSpaces
+      System.CIO
+      Text.Lexers
+
     extensions:     ForeignFunctionInterface
     c-sources:      src/C2HS/config.c
     --TODO: eliminate the need to suppress these warnings:
