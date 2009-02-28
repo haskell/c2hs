@@ -1,7 +1,5 @@
 Name:           c2hs
 Version:        0.16.0
-Cabal-Version:  >= 1.2
-Build-Type:     Simple
 License:        GPL
 License-File:   COPYING
 Copyright:      Copyright (c) 1999-2007 Manuel M T Chakravarty
@@ -12,11 +10,17 @@ Maintainer:     chak@cse.unsw.edu.au, duncan@haskell.org
 Stability:      Stable
 Homepage:       http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
 Bug-Reports:    http://hackage.haskell.org/trac/c2hs/
-Synopsis:       C->Haskell Interface Generator
+Synopsis:       C->Haskell FFI tool that gives some cross-language type safety
 Description:    C->Haskell assists in the development of Haskell bindings to C
-                libraries.  It extracts C interface information from vanilla header
-                files and generates marshaling and signature code in Haskell.
+                libraries. It extracts interface information from C header
+                files and generates Haskell code with foreign imports and
+                marshaling. Unlike writing foreign imports by hand (or using
+                hsch2s), this ensures that C functions are imported with the
+                correct Haskell types.
 Category:       Development
+Cabal-Version:  >= 1.2
+Build-Type:     Simple
+
 --TODO: Cabal should allow 'Data-Files' in the executable stanza
 Data-Files:     C2HS.hs
 Extra-Source-Files:
@@ -33,13 +37,14 @@ Extra-Source-Files:
 
                 doc/c2hs.xml doc/man1/c2hs.1 doc/Makefile
 
-Flag splitBase
-    Description: Choose the new smaller, split-up base package.
+flag base3
 
 Executable c2hs
-    Build-Depends:  base, filepath, language-c >= 0.3.1.1 && < 0.4.0
+    Build-Depends:  base >= 2 && < 5,
+                    language-c >= 0.3.1.1 && < 0.4.0,
+                    filepath
 
-    if flag(splitBase)
+    if flag(base3)
         Build-Depends: base >= 3, process, directory, array, containers, pretty
     else
         Build-Depends: base < 3
