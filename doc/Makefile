@@ -25,24 +25,29 @@
 #
 default: html
 
+XMLLINT=xmllint
+XMLLINT_OPTIONS=--nonet --noout --valid
+
 XSLTPROC=xsltproc
 XSLTPROC_HTML_OUTDIR=users_guide/
-XSLTPROC_HTML_CSS=fptools.css
+XSLTPROC_HTML_CSS=c2hs.css
 XSLTPROC_HTML_PARAMS=\
-	--stringparam use.id.as.filename 1 \
+	--param use.id.as.filename 1 \
 	--stringparam base.dir $(XSLTPROC_HTML_OUTDIR) \
 	--stringparam html.stylesheet $(XSLTPROC_HTML_CSS)
-XSLTPROC_HTML_STYLESHEET=/usr/share/sgml/docbook/xsl-stylesheets-1.70.1/xhtml/chunk.xsl
+XSLTPROC_HTML_STYLESHEET=http://docbook.sourceforge.net/release/xsl/current/html/chunk.xsl
+XSLTPROC_OPTIONS=--nonet $(XSLTPROC_HTML_PARAMS) $(XSLTPROC_HTML_STYLESHEET)
 
 # build targets
 #
 .PHONY: html pdf
-html:
-	$(XSLTPROC) $(XSLTPROC_HTML_PARAMS) $(XSLTPROC_HTML_STYLESHEET) c2hs.xml
+html: c2hs.xml
+	$(XMLLINT) $(XMLLINT_OPTIONS) $<
+	$(XSLTPROC) $(XSLTPROC_OPTIONS) $<
 	cp $(XSLTPROC_HTML_CSS) $(XSLTPROC_HTML_OUTDIR)
 
-pdf:
-	sgml2pdf c2hs.xml
+pdf: c2hs.xml
+	sgml2pdf $<
 
 # auxiliary targets
 #

@@ -1037,7 +1037,7 @@ ptrkind  -> [`foreign' | `stable'] ['newtype' | '->' ident]
   <title>Bug Reports and Suggestions</title>
   <para>
   There is a tracker for bugs and feature requests:
-  <ulink ulr="http://hackage.haskell.org/trac/c2hs/" />.
+  <ulink url="http://hackage.haskell.org/trac/c2hs/" />.
   Alternatively if you prefer email please send your bug reports and
   suggestions to the C->Haskell List <email>c2hs@haskell.org</email>.
   </para>
