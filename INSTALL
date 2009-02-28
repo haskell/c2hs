@@ -1,30 +1,24 @@
-		     C->Haskell Installation Instructions	     -*-text-*-
-		     ------------------------------------
+                     C->Haskell Installation Instructions            -*-text-*-
+                     ------------------------------------
 
 Prerequisites
 ~~~~~~~~~~~~~
 
-You need a Haskell 98 compiler.  Currently, this has to be GHC 6.2 upwards,
+You need GHC, the Haskell compiler. Currently, this has to be GHC 6.8 upwards,
 which you can get from
 
   http://haskell.org/ghc
-
-Moreover, you need to have at least version 1.2 of the Haskell packaging
-system Cabal installed.  
 
 
 Simple install procedure
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-  % tar -xzf <package>.tar.gz		# unpack the sources
-  % cd <package>			# change to the toplevel directory
-  % runghc Setup.hs configure		# configure the build system
-  % runghc Setup.hs build		# build everything
+  % tar -xzf <package>.tar.gz           # unpack the sources
+  % cd <package>                        # change to the toplevel directory
+  % runghc Setup.hs configure           # configure the build system
+  % runghc Setup.hs build               # build everything
   [ Become root if necessary ]
-  % runghc Setup.hs install		# install c2hs
-
-If you are installing from darcs, please read the corresponding section below
-first.
+  % runghc Setup.hs install             # install c2hs
 
 
 The Nitty-Gritty
@@ -67,8 +61,11 @@ The man page is:
 
 Supported Systems and Porting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Tested with Glasgow Haskell Compiler, Version 6.4.2, 6.6.1 and 6.8.1.
-In principle it should work with any 6.x version since 6.2.
+
+Tested with GHC version 6.8.2 and 6.10.1.
+
+In principle it should work with any 6.x version since 6.4.2 however the
+current releases of the language-c package only work with ghc-6.8 and later.
 
 The actual c2hs sources might also compile with nhc98, but Cabal doesn't fully
 support nhc98 yet.
