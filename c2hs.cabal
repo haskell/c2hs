@@ -52,7 +52,6 @@ Executable c2hs
     else
         Build-Depends: base < 3
 
-    build-tools:    happy, alex
     hs-source-dirs: src
     main-is:        Main.hs
     other-modules:
