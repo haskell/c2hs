@@ -223,6 +223,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokQualif  Position          -- `qualified'
               | CHSTokSet     Position          -- `set'
               | CHSTokSizeof  Position          -- `sizeof'
+              | CHSTokAlignment  Position  -- `alignment'                
               | CHSTokStable  Position          -- `stable'
               | CHSTokType    Position          -- `type'
               | CHSTok_2Case  Position          -- `underscoreToCase'
@@ -273,6 +274,7 @@ instance Pos CHSToken where
   posOf (CHSTokQualif  pos  ) = pos
   posOf (CHSTokSet     pos  ) = pos
   posOf (CHSTokSizeof  pos  ) = pos
+  posOf (CHSTokAlignment  pos) = pos  
   posOf (CHSTokStable  pos  ) = pos
   posOf (CHSTokType    pos  ) = pos
   posOf (CHSTok_2Case  pos  ) = pos
@@ -323,6 +325,7 @@ instance Eq CHSToken where
   (CHSTokQualif   _  ) == (CHSTokQualif   _  ) = True
   (CHSTokSet      _  ) == (CHSTokSet      _  ) = True
   (CHSTokSizeof   _  ) == (CHSTokSizeof   _  ) = True
+  (CHSTokAlignment _) == (CHSTokAlignment _) = True  
   (CHSTokStable   _  ) == (CHSTokStable   _  ) = True
   (CHSTokType     _  ) == (CHSTokType     _  ) = True
   (CHSTok_2Case   _  ) == (CHSTok_2Case   _  ) = True
@@ -374,6 +377,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokQualif  _  ) = showString "qualified"
   showsPrec _ (CHSTokSet     _  ) = showString "set"
   showsPrec _ (CHSTokSizeof  _  ) = showString "sizeof"
+  showsPrec _ (CHSTokAlignment  _  ) = showString "alignment"  
   showsPrec _ (CHSTokStable  _  ) = showString "stable"
   showsPrec _ (CHSTokType    _  ) = showString "type"
   showsPrec _ (CHSTok_2Case  _  ) = showString "underscoreToCase"
@@ -697,6 +701,7 @@ identOrKW  =
     idkwtok pos "qualified"        _    = CHSTokQualif  pos
     idkwtok pos "set"              _    = CHSTokSet     pos
     idkwtok pos "sizeof"           _    = CHSTokSizeof  pos
+    idkwtok pos "alignment" _ = CHSTokAlignment pos
     idkwtok pos "stable"           _    = CHSTokStable  pos
     idkwtok pos "type"             _    = CHSTokType    pos
     idkwtok pos "underscoreToCase" _    = CHSTok_2Case  pos
@@ -730,6 +735,7 @@ keywordToIdent tok =
     CHSTokQualif  pos -> mkid pos "qualified"
     CHSTokSet     pos -> mkid pos "set"
     CHSTokSizeof  pos -> mkid pos "sizeof"
+    CHSTokAlignment pos -> mkid pos "alignment"    
     CHSTokStable  pos -> mkid pos "stable"
     CHSTokType    pos -> mkid pos "type"
     CHSTok_2Case  pos -> mkid pos "underscoreToCase"

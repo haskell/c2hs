@@ -404,6 +404,19 @@ expandHook (CHSType ide pos) =
     traceInfoDump decl ty = traceGenBind $
       "Declaration\n" ++ show decl ++ "\ntranslates to\n"
       ++ showExtType ty ++ "\n"
+expandHook (CHSAlignment ide _) = 
+  do
+    traceInfoSizeof
+    decl <- findAndChaseDecl ide False True     -- no indirection, but shadows
+    (size, _) <- sizeAlignOf decl
+    traceInfoDump (render $ pretty decl) size
+    return $ show (padBits size)
+  where
+    traceInfoSizeof         = traceGenBind "** alignment hook:\n"
+    traceInfoDump decl size = traceGenBind $
+      "Alignment of declaration\n" ++ show decl ++ "\nis "
+      ++ show (padBits size) ++ "\n"
+
 expandHook (CHSSizeof ide _) =
   do
     traceInfoSizeof
