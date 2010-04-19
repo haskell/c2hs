@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 --  Compiler Toolkit: Compiler I/O
 --
 --  Author : Manuel M T Chakravarty
@@ -61,7 +62,7 @@ module System.CIO (
             )
 where
 
-import Prelude (Bool, Char, String, FilePath, (.), Show)
+import Prelude (Bool, Char, String, FilePath, (.), ($), Show, return)
 import qualified System.IO as IO
 import qualified System.Directory   as IO (doesFileExist, removeFile)
 import qualified System.Environment as IO (getArgs, getProgName)
@@ -75,7 +76,16 @@ import Control.StateBase (PreCST, liftIO)
 -- -------------
 
 openFile     :: FilePath -> IO.IOMode -> PreCST e s IO.Handle
-openFile p m  = liftIO (IO.openFile p m)
+openFile p m  = liftIO $ do
+  hnd <- IO.openFile p m
+#if MIN_VERSION_base(4,2,0)
+  --FIXME: really we should be using utf8 for .chs and .hs files
+  --       however the current .chs lexer cannot cope with chars
+  --       that are over 255, it goes into an infinte loop.
+  --       As an workaround, use latin1 encoding for the moment:
+  IO.hSetEncoding hnd IO.latin1
+#endif
+  return hnd
 
 hClose   :: IO.Handle -> PreCST e s ()
 hClose h  = liftIO (IO.hClose h)
@@ -99,10 +109,18 @@ hPutStrLn     :: IO.Handle -> String -> PreCST e s ()
 hPutStrLn h s  = liftIO (IO.hPutStrLn h s)
 
 writeFile                   :: FilePath -> String -> PreCST e s ()
-writeFile fname contents  = liftIO (IO.writeFile fname contents)
+writeFile fname contents  = do
+  --FIXME: see encoding comment with openFile above
+  --       this isn't exception-safe
+  hnd <- openFile fname IO.WriteMode
+  hPutStr hnd contents
+  hClose hnd
 
 readFile       :: FilePath -> PreCST e s String
-readFile fname  = liftIO (IO.readFile fname)
+readFile fname  = do
+  --FIXME: see encoding comment with openFile above
+  hnd <- openFile fname IO.ReadMode
+  liftIO (IO.hGetContents hnd)
 
 print   :: Show a => a -> PreCST e s ()
 print a  = liftIO (IO.print a)
