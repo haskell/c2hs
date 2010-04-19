@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 --  C->Haskell Compiler: information about the C implementation
 --
 --  Author : Manuel M T Chakravarty
@@ -64,6 +65,7 @@ import C2HS.Config (PlatformSpec(..))
 import C2HS.State  (getSwitch)
 import C2HS.Switches   (platformSB)
 import C2HS.Gen.Monad    (GB)
+import Data.Errors
 
 
 -- calibration of C's primitive types
@@ -114,7 +116,11 @@ size CULongPT        = Storable.sizeOf (undefined :: CULong)
 size CULLongPT       = Storable.sizeOf (undefined :: CLLong)
 size CFloatPT        = Storable.sizeOf (undefined :: CFloat)
 size CDoublePT       = Storable.sizeOf (undefined :: CDouble)
+#if MIN_VERSION_base(4,2,0)
+size CLDoublePT      = 0  --marks it as an unsupported type, see 'specType'
+#else
 size CLDoublePT      = Storable.sizeOf (undefined :: CLDouble)
+#endif
 size (CSFieldPT bs)  = -bs
 size (CUFieldPT bs)  = -bs
 
@@ -139,7 +145,11 @@ alignment CULongPT        = return $ Storable.alignment (undefined :: CULong)
 alignment CULLongPT       = return $ Storable.alignment (undefined :: CULLong)
 alignment CFloatPT        = return $ Storable.alignment (undefined :: CFloat)
 alignment CDoublePT       = return $ Storable.alignment (undefined :: CDouble)
+#if MIN_VERSION_base(4,2,0)
+alignment CLDoublePT      = interr "Info.alignment: CLDouble not supported"
+#else
 alignment CLDoublePT      = return $ Storable.alignment (undefined :: CLDouble)
+#endif
 alignment (CSFieldPT bs)  = fieldAlignment bs
 alignment (CUFieldPT bs)  = fieldAlignment bs
 

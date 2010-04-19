@@ -2132,8 +2132,8 @@ unsupportedTypeSpecErr      :: Position -> GB a
 unsupportedTypeSpecErr cpos  =
   raiseErrorCTExc cpos
     ["Unsupported type!",
-     "The type specifier of this declaration is not supported by your C \
-     \compiler."
+     "The type specifier of this declaration is not supported by your \
+     \combination of C compiler and Haskell compiler."
     ]
 
 variadicErr          :: Position -> Position -> GB a
