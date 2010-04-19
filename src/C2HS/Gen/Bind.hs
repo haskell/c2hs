@@ -1454,9 +1454,6 @@ extractFunType pos cdecl isPure  =
 --
 -- * the declaration may have at most one declarator
 --
--- * C functions are represented as `Ptr (FunEt ...)' or `Addr' if in
---   compatibility mode (ie, `--old-ffi=yes')
---
 extractSimpleType                    :: Bool -> Position -> CDecl -> GB ExtType
 extractSimpleType isResult pos cdecl  =
   do
@@ -1491,9 +1488,6 @@ extractPtrType cdecl = do
 -- represented by function pointers
 --
 -- * the declaration may have at most one declarator
---
--- * all C pointers (including functions) are represented as 'Addr' if in
---   compatibility mode (--old-ffi)
 --
 -- * typedef'ed types are chased
 --
