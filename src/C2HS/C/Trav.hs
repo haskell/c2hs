@@ -574,10 +574,10 @@ structFromDecl pos (CDecl specs _ _)  =
 --
 -- * returns an abstract declarator
 funResultAndArgs :: CDecl -> ([CDecl], CDecl, Bool)
-funResultAndArgs (CDecl specs [(Just declr, _, _)] _) =
+funResultAndArgs cdecl@(CDecl specs [(Just declr, _, _)] _) =
   let (args, declr', variadic) = funArgs declr
       result                   = CDecl specs [(Just declr', Nothing, Nothing)]
-                                       (newAttrsOnlyPos nopos)
+                                       (newAttrsOnlyPos (posOf cdecl))
   in
   (args, result, variadic)
   where
