@@ -793,10 +793,12 @@ callImportDyn hook _isPure isUns ideLexeme hsLexeme ty pos =
 --
 foreignImport :: String -> String -> String -> Bool -> ExtType -> String
 foreignImport header ident hsIdent isUnsafe ty  =
-  "foreign import ccall " ++ safety ++ " " ++ show (header ++ " " ++ ident) ++
+  "foreign import ccall " ++ safety ++ " " ++ show entity ++
   "\n  " ++ hsIdent ++ " :: " ++ showExtType ty ++ "\n"
   where
     safety = if isUnsafe then "unsafe" else "safe"
+    entity | null header = ident
+           | otherwise   = header ++ " " ++ ident
 
 -- | Haskell code for the foreign import dynamic declaration needed by a call hook
 --
