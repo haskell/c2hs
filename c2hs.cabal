@@ -19,7 +19,7 @@ Description:    C->Haskell assists in the development of Haskell bindings to C
                 correct Haskell types.
 Category:       Development
 Tested-With:    GHC==6.8.2, GHC==6.10.1
-Cabal-Version:  >= 1.2
+Cabal-Version:  >= 1.6
 Build-Type:     Simple
 
 --TODO: Cabal should allow 'Data-Files' in the executable stanza
@@ -29,16 +29,13 @@ Extra-Source-Files:
                 AUTHORS INSTALL README
                 doc/c2hs.xml doc/c2hs.css doc/man1/c2hs.1 doc/Makefile
 
-                tests/system/Calls.chs tests/system/calls.h
-                tests/system/Cpp.chs tests/system/cpp.h
-                tests/system/Enums.chs tests/system/enums.h tests/system/enums.c
-                tests/system/Marsh.chs tests/system/marsh.h
-                tests/system/Pointer.chs tests/system/pointer.h tests/system/pointer.c
-                tests/system/Simple.chs tests/system/simple.h tests/system/simple.c
-                tests/system/Sizeof.chs tests/system/sizeof.h tests/system/sizeof.c
-                tests/system/Structs.chs tests/system/structs.h tests/system/structs.c
+                tests/system/*.chs tests/system/*.h tests/system/*.c
                 tests/system/structs.expect
                 tests/system/Makefile
+
+source-repository head
+  type:         darcs
+  location:     http://code.haskell.org/c2hs/
 
 flag base3
 
