@@ -1,5 +1,5 @@
 Name:           c2hs
-Version:        0.16.0
+Version:        0.16.1
 License:        GPL
 License-File:   COPYING
 Copyright:      Copyright (c) 1999-2007 Manuel M T Chakravarty
@@ -18,7 +18,7 @@ Description:    C->Haskell assists in the development of Haskell bindings to C
                 hsch2s), this ensures that C functions are imported with the
                 correct Haskell types.
 Category:       Development
-Tested-With:    GHC==6.8.2, GHC==6.10.1
+Tested-With:    GHC==6.10.4, GHC==6.12.1
 Cabal-Version:  >= 1.6
 Build-Type:     Simple
 
