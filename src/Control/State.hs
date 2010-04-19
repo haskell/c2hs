@@ -68,6 +68,7 @@ import qualified System.CIO as CIO
 import Data.Errors      (ErrorLevel(..), Error, makeError, errorLevel)
 import Language.C.Data.Name
 import Language.C.Data.Position
+import Language.C.Data.Error hiding (Error)
 
 
 -- state used in the whole compiler
@@ -244,7 +245,9 @@ raise0 err  = do
 showErrors :: PreCST e s String
 showErrors  = CST $ do
                 ErrorState _ _ errs <- transBase extractErrs
-                return $ foldr (.) id (map shows errs) ""
+                return $ concatMap (showErrorInfo "" . errorInfo) errs
+                --FIXME: should be using show here ^^, but Show instance
+                --       for CError from language-c is weird
               where
                 extractErrs    :: BaseState e -> (BaseState e, ErrorState)
                 extractErrs bs  = (bs {errorsBS = initialErrorState},

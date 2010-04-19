@@ -69,7 +69,12 @@ makeError lvl pos msgs = CError $ ErrorInfo lvl pos msgs
 
 
 errorAtPos         :: Position -> [String] -> a
-errorAtPos pos msg  = (error . show . makeError LevelError pos) msg
+errorAtPos pos      = error
+                      --FIXME: should be using show here, but Show instance
+                      --       for CError from language-c is wierd
+                    . showErrorInfo "" . errorInfo
+                    . makeError LevelError pos
+
 
 -- | indent the given multiline text by the given number of spaces
 --
