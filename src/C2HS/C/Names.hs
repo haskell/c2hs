@@ -35,8 +35,6 @@
 module C2HS.C.Names (nameAnalysis)
 where
 
-import Control.Monad (mapM_)
-
 import Language.C.Data.Ident
 import Language.C.Data.Position
 import Language.C.Syntax

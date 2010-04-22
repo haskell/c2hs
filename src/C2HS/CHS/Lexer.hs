@@ -806,7 +806,7 @@ lexCHS cs pos  =
     state <- initialState nameSupply
     let (ts, lstate, errs) = execLexer chslexer (cs, pos, state)
         (_, pos', state')  = lstate
-    mapM raise errs
+    mapM_ raise errs
     assertFinalState pos' state'
     setNameSupply $ namesup state'
     return ts

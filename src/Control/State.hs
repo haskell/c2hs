@@ -65,7 +65,7 @@ import Control.StateBase   (PreCST(..), ErrorState(..), BaseState(..),
                     unpackCST, readCST, writeCST, transCST,
                     liftIO)
 import qualified System.CIO as CIO
-import Data.Errors      (ErrorLevel(..), Error, makeError, errorLevel)
+import Data.Errors      (Error, makeError)
 import Language.C.Data.Name
 import Language.C.Data.Position
 import Language.C.Data.Error hiding (Error)
