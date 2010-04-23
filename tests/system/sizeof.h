@@ -3,6 +3,11 @@
 size_t size_of_s1();
 size_t size_of_s2();
 size_t size_of_s3();
+size_t size_of_s4();
+
+size_t align_of_s1();
+size_t align_of_s2();
+size_t align_of_s3();
 
 typedef struct s1 {
         int x;
@@ -15,7 +20,12 @@ typedef struct s2 {
         int (*f1)(void);
         int (*f2)[11];
 } S2;
+
 typedef struct s3 {
+        int a:7;
+} S3;
+
+typedef struct s4 {
   struct {
         int a : BFSZ(int,13);
         int b : BFSZ(int,13);
@@ -33,4 +43,4 @@ typedef struct s3 {
         long long g;
         long long h:BFSZ(long long, 15);
   */
-} S3;
+} S4;
