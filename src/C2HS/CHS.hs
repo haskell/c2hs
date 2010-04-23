@@ -173,6 +173,8 @@ data CHSHook = CHSImport  Bool                  -- qualified?
                           Position
              | CHSSizeof  Ident                 -- C type
                           Position
+             | CHSAlignof Ident                 -- C type
+                          Position
              | CHSEnum    Ident                 -- C enumeration type
                           (Maybe Ident)         -- Haskell name
                           CHSTrans              -- translation table
@@ -211,16 +213,13 @@ data CHSHook = CHSImport  Bool                  -- qualified?
                           Ident                 -- class name
                           Ident                 -- name of pointer type
                           Position
-             | CHSAlignment  
-                  Ident                 -- C type
-                  Position
 
 instance Pos CHSHook where
-  posOf (CHSAlignment _ pos) = pos
   posOf (CHSImport  _ _ _         pos) = pos
   posOf (CHSContext _ _           pos) = pos
   posOf (CHSType    _             pos) = pos
   posOf (CHSSizeof  _             pos) = pos
+  posOf (CHSAlignof _             pos) = pos
   posOf (CHSEnum    _ _ _ _ _     pos) = pos
   posOf (CHSEnumDefine _ _ _      pos) = pos
   posOf (CHSCall    _ _ _ _       pos) = pos
@@ -241,7 +240,7 @@ instance Eq CHSHook where
     ide1 == ide2
   (CHSSizeof ide1              _) == (CHSSizeof ide2              _) =
     ide1 == ide2
-  (CHSAlignment ide1              _) == (CHSSizeof ide2              _) =
+  (CHSAlignof ide1             _) == (CHSAlignof ide2             _) =
     ide1 == ide2    
   (CHSEnum ide1 oalias1 _ _ _  _) == (CHSEnum ide2 oalias2 _ _ _  _) =
     oalias1 == oalias2 && ide1 == ide2
@@ -484,8 +483,8 @@ showCHSHook (CHSType ide _) =
 showCHSHook (CHSSizeof ide _) =
     showString "sizeof "
   . showCHSIdent ide
-showCHSHook (CHSAlignment   ide _) = 
-   showString "alignment "
+showCHSHook (CHSAlignof   ide _) =
+   showString "alignof "
   . showCHSIdent ide
 showCHSHook (CHSEnum ide oalias trans oprefix derive _) =
     showString "enum "
@@ -784,7 +783,7 @@ parseFrags tokens  = do
     parseFrags0 (CHSTokContext pos  :toks) = parseContext pos        toks
     parseFrags0 (CHSTokType    pos  :toks) = parseType    pos        toks
     parseFrags0 (CHSTokSizeof  pos  :toks) = parseSizeof  pos        toks
-    parseFrags0 (CHSTokAlignment  pos  :toks) = parseAlignment pos toks    
+    parseFrags0 (CHSTokAlignof pos  :toks) = parseAlignof pos        toks
     parseFrags0 (CHSTokEnum    pos  :toks) = parseEnum    pos        toks
     parseFrags0 (CHSTokCall    pos  :toks) = parseCall    pos        toks
     parseFrags0 (CHSTokFun     pos  :toks) = parseFun     pos        toks
@@ -872,13 +871,13 @@ parseSizeof pos (CHSTokIdent _ ide:toks) =
     return $ CHSHook (CHSSizeof ide pos) : frags
 parseSizeof _ toks = syntaxError toks
 
-parseAlignment :: Position -> [CHSToken] -> CST s [CHSFrag]
-parseAlignment pos (CHSTokIdent _ ide:toks) =
+parseAlignof :: Position -> [CHSToken] -> CST s [CHSFrag]
+parseAlignof pos (CHSTokIdent _ ide:toks) =
   do
     toks' <- parseEndHook toks
     frags <- parseFrags toks'
-    return $ CHSHook (CHSAlignment ide pos) : frags
-parseAlignment _ toks = syntaxError toks    
+    return $ CHSHook (CHSAlignof ide pos) : frags
+parseAlignof _ toks = syntaxError toks
 
 parseEnum :: Position -> [CHSToken] -> CST s [CHSFrag]
 

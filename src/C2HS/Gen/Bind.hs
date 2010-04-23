@@ -404,18 +404,18 @@ expandHook (CHSType ide pos) =
     traceInfoDump decl ty = traceGenBind $
       "Declaration\n" ++ show decl ++ "\ntranslates to\n"
       ++ showExtType ty ++ "\n"
-expandHook (CHSAlignment ide _) = 
+expandHook (CHSAlignof ide _) =
   do
-    traceInfoSizeof
+    traceInfoAlignof
     decl <- findAndChaseDecl ide False True     -- no indirection, but shadows
-    (size, _) <- sizeAlignOf decl
-    traceInfoDump (render $ pretty decl) size
-    return $ show (padBits size)
+    (_, align) <- sizeAlignOf decl
+    traceInfoDump (render $ pretty decl) align
+    return $ show align
   where
-    traceInfoSizeof         = traceGenBind "** alignment hook:\n"
-    traceInfoDump decl size = traceGenBind $
+    traceInfoAlignof         = traceGenBind "** alignment hook:\n"
+    traceInfoDump decl align = traceGenBind $
       "Alignment of declaration\n" ++ show decl ++ "\nis "
-      ++ show (padBits size) ++ "\n"
+      ++ show align ++ "\n"
 
 expandHook (CHSSizeof ide _) =
   do
@@ -1791,6 +1791,7 @@ sizeAlignOfStruct decls CStructTag  =
         align'        = if align > 0 then align else bitfieldAlignment
         alignOfStruct = preAlign `max` align'
     return (sizeOfStruct, alignOfStruct)
+
 sizeAlignOfStruct decls CUnionTag   =
   do
     PlatformSpec {bitfieldAlignmentPS = bitfieldAlignment} <- getPlatform
