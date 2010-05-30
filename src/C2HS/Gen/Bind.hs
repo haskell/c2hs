@@ -1,5 +1,4 @@
 --  C->Haskell Compiler: binding generator
---  vim:ts=8:noexpandtab
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
 --

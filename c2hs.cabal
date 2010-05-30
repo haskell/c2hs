@@ -81,4 +81,4 @@ Executable c2hs
     extensions:     ForeignFunctionInterface
     c-sources:      src/C2HS/config.c
     --TODO: eliminate the need to suppress these warnings:
-    ghc-options:    -Wall -fno-warn-incomplete-patterns
+    ghc-options:    -Wall -fno-warn-incomplete-patterns -fwarn-tabs
