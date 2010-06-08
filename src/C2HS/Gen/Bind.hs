@@ -271,20 +271,24 @@ voidIde, cFromBoolIde, cToBoolIde, cIntConvIde, cFloatConvIde,
   withFloatConvIde, withFromBoolIde, peekIde, peekCStringIde,
   peekCStringLenIde :: Ident
 voidIde           = internalIdent "void"         -- never appears in the output
-cFromBoolIde      = internalIdent "cFromBool"
-cToBoolIde        = internalIdent "cToBool"
-cIntConvIde       = internalIdent "cIntConv"
-cFloatConvIde     = internalIdent "cFloatConv"
+cFromBoolIde      = internalIdent "fromBool"
+cToBoolIde        = internalIdent "toBool"
+cIntConvIde       = internalIdent "fromIntegral"
+cFloatConvIde     = internalIdent "realToFrac"
 withIde           = internalIdent "with"
 withCStringIde    = internalIdent "withCString"
-withCStringLenIde = internalIdent "withCStringLenIntConv"
-withIntConvIde    = internalIdent "withIntConv"
-withFloatConvIde  = internalIdent "withFloatConv"
-withFromBoolIde   = internalIdent "withFromBoolConv"
+withCStringLenIde = internalIdent "withCStringLenIntConv" --TODO: kill off
+withIntConvIde    = internalIdent "withIntConv"           --TODO: kill off
+withFloatConvIde  = internalIdent "withFloatConv"         --TODO: kill off
+withFromBoolIde   = internalIdent "withFromBoolConv"      --TODO: kill off
 peekIde           = internalIdent "peek"
 peekCStringIde    = internalIdent "peekCString"
-peekCStringLenIde = internalIdent "peekCStringLenIntConv"
+peekCStringLenIde = internalIdent "peekCStringLenIntConv" --TODO: kill off
 
+--TODO: c2hs should not generate these references to externally defined
+-- non-standard utility functions. It's annoying and they are all trivial.
+-- The solutionis to generate expressions inline, rather than requiring all
+-- marshalers be single identifiers.
 
 -- expansion of binding hooks
 -- --------------------------
