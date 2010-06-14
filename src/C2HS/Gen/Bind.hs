@@ -127,7 +127,7 @@ import C2HS.State  (CST, errorsPresent, showErrors, fatal,
                    SwitchBoard(..), Traces(..), putTraceStr, getSwitch)
 import C2HS.C     (AttrC, CObj(..), CTag(..),
                    CDecl(..), CDeclSpec(..), CTypeSpec(..),
-                   CStructUnion(..), CStructTag(..), CEnum(..), CDeclr(..),
+                   CStructUnion(..), CStructTag(..), CEnum(..), CDeclr(..), CAttr(..),
                    CDerivedDeclr(..),CArrSize(..),
                    CExpr(..), CBinaryOp(..), CUnaryOp(..), CConst (..),
                    CInteger(..),cInteger,getCInteger,getCCharAsInt,
@@ -140,7 +140,7 @@ import C2HS.C     (AttrC, CObj(..), CTag(..),
                    checkForAlias, checkForOneAliasName, checkForOneCUName,
                    lookupEnum, lookupStructUnion, lookupDeclOrTag, isPtrDeclr,
                    dropPtrDeclr, isPtrDecl, getDeclOf, isFunDeclr,
-                   refersToNewDef, CDef(..))
+                   refersToNewDef, partitionDeclSpecs, CDef(..))
 
 -- friends
 import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..),
@@ -784,7 +784,8 @@ callImport hook isPure isUns ideLexeme hsLexeme cdecl pos =
     extType <- extractFunType pos cdecl isPure
     header  <- getSwitch headerSB
     when (isVariadic extType) (variadicErr pos (posOf cdecl))
-    delayCode hook (foreignImport header ideLexeme hsLexeme isUns extType)
+    delayCode hook (foreignImport (extractCallingConvention cdecl)
+                    header ideLexeme hsLexeme isUns extType)
     traceFunType extType
   where
     traceFunType et = traceGenBind $
@@ -806,9 +807,10 @@ callImportDyn hook _isPure isUns ideLexeme hsLexeme ty pos =
 
 -- | Haskell code for the foreign import declaration needed by a call hook
 --
-foreignImport :: String -> String -> String -> Bool -> ExtType -> String
-foreignImport header ident hsIdent isUnsafe ty  =
-  "foreign import ccall " ++ safety ++ " " ++ show entity ++
+foreignImport :: CallingConvention -> String -> String -> String -> Bool -> ExtType -> String
+foreignImport cconv header ident hsIdent isUnsafe ty  =
+  "foreign import " ++ showCallingConvention cconv ++ " " ++ safety
+  ++ " " ++ show entity ++
   "\n  " ++ hsIdent ++ " :: " ++ showExtType ty ++ "\n"
   where
     safety = if isUnsafe then "unsafe" else "safe"
@@ -1724,6 +1726,26 @@ specType cpos specs'' osize =
               --
               int    = CIntType    undefined
               signed = CSignedType undefined
+
+-- handle calling convention
+-- -------------------------
+
+data CallingConvention = StdCall | C_Call -- remove ambiguity with C2HS.C.CCall
+                       deriving (Eq)
+
+-- | determine the calling convention for the provided decl
+extractCallingConvention :: CDecl -> CallingConvention
+extractCallingConvention (CDecl specs _ _) =
+  if hasStdCall then StdCall else C_Call
+    where hasStdCall' (CAttr x _ _) = identToString x == "__stdcall__"
+          hasStdCall = any hasStdCall' attributes
+          attributes = ((\(_,attrs,_,_,_) -> attrs) . partitionDeclSpecs) specs
+
+-- | generate the necessary parameter for "foreign import" for the
+-- provided calling convention
+showCallingConvention :: CallingConvention -> String
+showCallingConvention StdCall = "stdcall"
+showCallingConvention C_Call = "ccall"
 
 
 -- offset and size computations
