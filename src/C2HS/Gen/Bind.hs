@@ -1730,22 +1730,35 @@ specType cpos specs'' osize =
 -- handle calling convention
 -- -------------------------
 
-data CallingConvention = StdCall | C_Call -- remove ambiguity with C2HS.C.CCall
+data CallingConvention = StdCallConv
+                       | CCallConv
                        deriving (Eq)
 
 -- | determine the calling convention for the provided decl
 extractCallingConvention :: CDecl -> CallingConvention
-extractCallingConvention (CDecl specs _ _) =
-  if hasStdCall then StdCall else C_Call
-    where hasStdCall' (CAttr x _ _) = identToString x == "__stdcall__"
-          hasStdCall = any hasStdCall' attributes
-          attributes = ((\(_,attrs,_,_,_) -> attrs) . partitionDeclSpecs) specs
+extractCallingConvention cdecl
+  | hasStdCallAttr cdecl = StdCallConv
+  | otherwise            = CCallConv
+  where
+    isStdCallAttr (CAttr x _ _) = identToString x == "stdcall"
+                               || identToString x == "__stdcall__"
+
+    hasStdCallAttr = any isStdCallAttr . funAttrs
+
+    funAttrs (CDecl specs declrs _) =
+      let (_,attrs',_,_,_) = partitionDeclSpecs specs
+       in attrs' ++ funEndAttrs declrs
+
+    -- attrs after the function name, e.g. void foo() __attribute__((...));
+    funEndAttrs [(Just ((CDeclr _ (CFunDeclr _ _ _ : _) _ attrs _)), _, _)] = attrs
+    funEndAttrs _                                                           = []
+
 
 -- | generate the necessary parameter for "foreign import" for the
 -- provided calling convention
 showCallingConvention :: CallingConvention -> String
-showCallingConvention StdCall = "stdcall"
-showCallingConvention C_Call = "ccall"
+showCallingConvention StdCallConv = "stdcall"
+showCallingConvention CCallConv   = "ccall"
 
 
 -- offset and size computations
