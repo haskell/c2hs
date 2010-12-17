@@ -63,7 +63,8 @@
 --  prefix   -> `prefix' `=' string
 --  deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
 --  parms    -> [verbhs `=>'] `{' parm_1 `,' ... `,' parm_n `}' `->' parm
---  parm     -> [ident_1 [`*' | `-']] verbhs [`&'] [ident_2 [`*'] [`-']]
+--  parm     -> [ident_or_quot_1 [`*' | `-']] verbhs [`&'] [ident_or_quot_2 [`*'] [`-']]
+--  ident_or_quot -> ident | quoths
 --  apath    -> ident
 --            | `*' apath
 --            | apath `.' ident
@@ -87,7 +88,7 @@
 --
 
 module C2HS.CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
-            CHSChangeCase(..), CHSParm(..), CHSArg(..), CHSAccess(..),
+            CHSChangeCase(..), CHSParm(..), CHSMarsh, CHSArg(..), CHSAccess(..),
             CHSAPath(..), CHSPtrType(..),
             loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI, chisuffix,
             showCHSParm, apathToIdent)
@@ -114,7 +115,6 @@ import C2HS.Version    (version)
 
 -- friends
 import C2HS.CHS.Lexer  (CHSToken(..), lexCHS, keywordToIdent)
-
 
 -- CHS abstract syntax
 -- -------------------
@@ -271,15 +271,17 @@ data CHSChangeCase = CHSSameCase
                    | CHSDownCase
                    deriving Eq
 
+-- | marshaller consists of a function name or verbatim Haskell code
+--   and flag indicating whether it has to be executed in the IO monad
+--
+type CHSMarsh = Maybe (Either Ident String, CHSArg)
+
 -- | marshalling descriptor for function hooks
 --
--- * a marshaller consists of a function name and flag indicating whether it
---   has to be executed in the IO monad
---
-data CHSParm = CHSParm (Maybe (Ident, CHSArg))  -- "in" marshaller
-                       String                   -- Haskell type
-                       Bool                     -- C repr: two values?
-                       (Maybe (Ident, CHSArg))  -- "out" marshaller
+data CHSParm = CHSParm CHSMarsh  -- "in" marshaller
+                       String    -- Haskell type
+                       Bool      -- C repr: two values?
+                       CHSMarsh  -- "out" marshaller
                        Position
 
 -- | kinds of arguments in function hooks
@@ -582,12 +584,15 @@ showCHSParm (CHSParm oimMarsh hsTyStr twoCVals oomMarsh _)  =
   . showOMarsh oomMarsh
   where
     showOMarsh Nothing               = id
-    showOMarsh (Just (ide, argKind)) =   showCHSIdent ide
-                                       . (case argKind of
-                                           CHSValArg    -> id
-                                           CHSIOArg     -> showString "*"
-                                           CHSVoidArg   -> showString "-"
-                                           CHSIOVoidArg -> showString "*-")
+    showOMarsh (Just (body, argKind)) =   showMarshBody body
+                                        . (case argKind of
+                                             CHSValArg    -> id
+                                             CHSIOArg     -> showString "*"
+                                             CHSVoidArg   -> showString "-"
+                                             CHSIOVoidArg -> showString "*-")
+    --
+    showMarshBody (Left ide) = showCHSIdent ide
+    showMarshBody (Right str) = showChar '|' . showString str . showChar '|'
     --
     showHsVerb str = showChar '`' . showString str . showChar '\''
 
@@ -994,17 +999,26 @@ parseParm toks =
     (oomMarsh, toks'3) <- parseOptMarsh toks'2
     return (CHSParm oimMarsh hsTyStr twoCVals oomMarsh pos, toks'3)
   where
-    parseOptMarsh :: [CHSToken] -> CST s (Maybe (Ident, CHSArg), [CHSToken])
-    parseOptMarsh (CHSTokIdent _ ide:CHSTokStar _ :CHSTokMinus _:toks') =
-      return (Just (ide, CHSIOVoidArg) , toks')
-    parseOptMarsh (CHSTokIdent _ ide:CHSTokStar _ :toks') =
-      return (Just (ide, CHSIOArg) , toks')
-    parseOptMarsh (CHSTokIdent _ ide:CHSTokMinus _:toks') =
-      return (Just (ide, CHSVoidArg), toks')
-    parseOptMarsh (CHSTokIdent _ ide              :toks') =
-      return (Just (ide, CHSValArg) , toks')
-    parseOptMarsh toks'                                   =
+    parseOptMarsh :: [CHSToken] -> CST s (CHSMarsh, [CHSToken])
+    parseOptMarsh (CHSTokIdent _ ide:toks') =
+      do
+        (marshType, toks'2) <- parseOptMarshType toks'
+        return (Just (Left ide, marshType), toks'2)
+    parseOptMarsh (CHSTokHSQuot _ str:toks') =
+      do
+        (marshType, toks'2) <- parseOptMarshType toks'
+        return (Just (Right str, marshType), toks'2)
+    parseOptMarsh toks'                     =
       return (Nothing, toks')
+
+    parseOptMarshType (CHSTokStar _ :CHSTokMinus _:toks') =
+      return (CHSIOVoidArg , toks')
+    parseOptMarshType (CHSTokStar _ :toks') =
+      return (CHSIOArg , toks')
+    parseOptMarshType (CHSTokMinus _:toks') =
+      return (CHSVoidArg, toks')
+    parseOptMarshType toks' =
+      return (CHSValArg, toks')
 
 parseField :: Position -> CHSAccess -> [CHSToken] -> CST s [CHSFrag]
 parseField pos access toks =

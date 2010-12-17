@@ -144,7 +144,7 @@ import C2HS.C     (AttrC, CObj(..), CTag(..),
 
 -- friends
 import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..),
-                   CHSParm(..), CHSArg(..), CHSAccess(..), CHSAPath(..),
+                   CHSParm(..), CHSMarsh, CHSArg(..), CHSAccess(..), CHSAPath(..),
                    CHSPtrType(..), showCHSParm, apathToIdent)
 import C2HS.C.Info      (CPrimType(..), alignment, getPlatform)
 import qualified C2HS.C.Info as CInfo
@@ -152,7 +152,6 @@ import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
                    initialGBState, setContext, getPrefix,
                    delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
                    queryClass, queryPointer, mergeMaps, dumpMaps)
-
 
 -- default marshallers
 -- -------------------
@@ -165,55 +164,55 @@ import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
 
 -- | determine the default "in" marshaller for the given Haskell and C types
 --
-lookupDftMarshIn :: String -> [ExtType] -> GB (Maybe (Ident, CHSArg))
+lookupDftMarshIn :: String -> [ExtType] -> GB CHSMarsh
 lookupDftMarshIn "Bool"   [PrimET pt] | isIntegralCPrimType pt =
-  return $ Just (cFromBoolIde, CHSValArg)
+  return $ Just (Left cFromBoolIde, CHSValArg)
 lookupDftMarshIn hsTy     [PrimET pt] | isIntegralHsType hsTy
                                       &&isIntegralCPrimType pt =
-  return $ Just (cIntConvIde, CHSValArg)
+  return $ Just (Left cIntConvIde, CHSValArg)
 lookupDftMarshIn hsTy     [PrimET pt] | isFloatHsType hsTy
                                       &&isFloatCPrimType pt    =
-  return $ Just (cFloatConvIde, CHSValArg)
+  return $ Just (Left cFloatConvIde, CHSValArg)
 lookupDftMarshIn "String" [PtrET (PrimET CCharPT)]             =
-  return $ Just (withCStringIde, CHSIOArg)
+  return $ Just (Left withCStringIde, CHSIOArg)
 lookupDftMarshIn "String" [PtrET (PrimET CCharPT), PrimET pt]
   | isIntegralCPrimType pt                                     =
-  return $ Just (withCStringLenIde, CHSIOArg)
+  return $ Just (Left withCStringLenIde, CHSIOArg)
 lookupDftMarshIn hsTy     [PtrET ty]  | showExtType ty == hsTy =
-  return $ Just (withIde, CHSIOArg)
+  return $ Just (Left withIde, CHSIOArg)
 lookupDftMarshIn hsTy     [PtrET (PrimET pt)]
   | isIntegralHsType hsTy && isIntegralCPrimType pt            =
-  return $ Just (withIntConvIde, CHSIOArg)
+  return $ Just (Left withIntConvIde, CHSIOArg)
 lookupDftMarshIn hsTy     [PtrET (PrimET pt)]
   | isFloatHsType hsTy && isFloatCPrimType pt                  =
-  return $ Just (withFloatConvIde, CHSIOArg)
+  return $ Just (Left withFloatConvIde, CHSIOArg)
 lookupDftMarshIn "Bool"   [PtrET (PrimET pt)]
   | isIntegralCPrimType pt                                     =
-  return $ Just (withFromBoolIde, CHSIOArg)
+  return $ Just (Left withFromBoolIde, CHSIOArg)
 -- FIXME: handle array-list conversion
 lookupDftMarshIn _        _                                    =
   return Nothing
 
 -- | determine the default "out" marshaller for the given Haskell and C types
 --
-lookupDftMarshOut :: String -> [ExtType] -> GB (Maybe (Ident, CHSArg))
+lookupDftMarshOut :: String -> [ExtType] -> GB CHSMarsh
 lookupDftMarshOut "()"     _                                    =
-  return $ Just (voidIde, CHSVoidArg)
+  return $ Just (Left voidIde, CHSVoidArg)
 lookupDftMarshOut "Bool"   [PrimET pt] | isIntegralCPrimType pt =
-  return $ Just (cToBoolIde, CHSValArg)
+  return $ Just (Left cToBoolIde, CHSValArg)
 lookupDftMarshOut hsTy     [PrimET pt] | isIntegralHsType hsTy
                                        &&isIntegralCPrimType pt =
-  return $ Just (cIntConvIde, CHSValArg)
+  return $ Just (Left cIntConvIde, CHSValArg)
 lookupDftMarshOut hsTy     [PrimET pt] | isFloatHsType hsTy
                                        &&isFloatCPrimType pt    =
-  return $ Just (cFloatConvIde, CHSValArg)
+  return $ Just (Left cFloatConvIde, CHSValArg)
 lookupDftMarshOut "String" [PtrET (PrimET CCharPT)]             =
-  return $ Just (peekCStringIde, CHSIOArg)
+  return $ Just (Left peekCStringIde, CHSIOArg)
 lookupDftMarshOut "String" [PtrET (PrimET CCharPT), PrimET pt]
   | isIntegralCPrimType pt                                      =
-  return $ Just (peekCStringLenIde, CHSIOArg)
+  return $ Just (Left peekCStringLenIde, CHSIOArg)
 lookupDftMarshOut hsTy     [PtrET ty]  | showExtType ty == hsTy =
-  return $ Just (peekIde, CHSIOArg)
+  return $ Just (Left peekIde, CHSIOArg)
 -- FIXME: add combination, such as "peek" plus "cIntConv" etc
 -- FIXME: handle array-list conversion
 lookupDftMarshOut _        _                                    =
@@ -872,15 +871,19 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
                                    join (take 1 callArgs) ++
                                    " >>= \\b1' ->\n"
       marshRes  = case parm' of
-                    CHSParm _ _ _twoCVal (Just (_    , CHSVoidArg)) _ -> ""
-                    CHSParm _ _ _twoCVal (Just (omIde, CHSIOVoidArg)) _ ->
-                      "  " ++ identToString omIde ++ " res >> \n"
-                    CHSParm _ _ _twoCVal (Just (omIde, CHSIOArg  )) _ ->
-                      "  " ++ identToString omIde ++ " res >>= \\res' ->\n"
-                    CHSParm _ _ _twoCVal (Just (omIde, CHSValArg )) _ ->
-                      "  let {res' = " ++ identToString omIde ++ " res} in\n"
+                    CHSParm _ _ _twoCVal (Just (_     , CHSVoidArg  )) _ -> ""
+                    CHSParm _ _ _twoCVal (Just (omBody, CHSIOVoidArg)) _ ->
+                      "  " ++ marshBody omBody ++ " res >> \n"
+                    CHSParm _ _ _twoCVal (Just (omBody, CHSIOArg     )) _ ->
+                      "  " ++ marshBody omBody ++ " res >>= \\res' ->\n"
+                    CHSParm _ _ _twoCVal (Just (omBody, CHSValArg    )) _ ->
+                      "  let {res' = " ++ marshBody omBody ++ " res} in\n"
                     CHSParm _ _ _       Nothing                    _ ->
                       interr "GenBind.funDef: marshRes: no default?"
+
+      marshBody (Left ide) = identToString ide
+      marshBody (Right str) = str
+
       retArgs'  = case parm' of
                     CHSParm _ _ _ (Just (_, CHSVoidArg))   _ ->        retArgs
                     CHSParm _ _ _ (Just (_, CHSIOVoidArg)) _ ->        retArgs
@@ -928,11 +931,11 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
     -- for an argument marshaller, generate all "in" and "out" marshalling
     -- code fragments
     --
-    marshArg i (CHSParm (Just (imIde, imArgKind)) _ twoCVal
-                        (Just (omIde, omArgKind)) _        ) =
+    marshArg i (CHSParm (Just (imBody, imArgKind)) _ twoCVal
+                        (Just (omBody, omArgKind)) _        ) =
       let
         a        = "a" ++ show (i :: Int)
-        imStr    = identToString imIde
+        imStr    = marshBody imBody
         imApp    = imStr ++ " " ++ a
         funArg   = if imArgKind == CHSVoidArg then "" else a
         inBndr   = if twoCVal
@@ -946,7 +949,7 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
         callArgs = if twoCVal
                      then [a ++ "'1 ", a ++ "'2"]
                      else [a ++ "'"]
-        omApp    = identToString omIde ++ join callArgs
+        omApp    = marshBody omBody ++ " " ++ join callArgs
         outBndr  = a ++ "''"
         marshOut = case omArgKind of
                      CHSVoidArg   -> ""
@@ -955,6 +958,9 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
                      CHSValArg    -> "let {" ++ outBndr ++ " = " ++
                                    omApp ++ "} in "
         retArg   = if omArgKind == CHSVoidArg || omArgKind == CHSIOVoidArg then "" else outBndr
+
+        marshBody (Left ide) = identToString ide
+        marshBody (Right str) = str
       in
       (funArg, marshIn, callArgs, marshOut, retArg)
     marshArg _ _ = interr "GenBind.funDef: Missing default?"
@@ -1043,7 +1049,7 @@ addDftMarshaller pos parms parm extTy = do
     --
     addDftVoid marsh@(Just (_, kind)) = return (marsh, kind == CHSIOArg)
     addDftVoid        Nothing         = do
-      return (Just (internalIdent "void", CHSVoidArg), False)
+      return (Just (Left (internalIdent "void"), CHSVoidArg), False)
 
 -- | compute from an access path, the declarator finally accessed and the index
 -- path required for the access
