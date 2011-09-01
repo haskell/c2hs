@@ -2259,7 +2259,9 @@ resMarshIllegalInErr     :: Position -> GB a
 resMarshIllegalInErr pos  =
   raiseErrorCTExc pos
     ["Malformed result marshalling!",
-     "There may not be an \"in\" marshaller for the result."]
+     "An \"in\" marshaller is not allowed for the function result type.",
+     "Note that \"out\" marshallers are specified *after* the type, like:",
+     " {# fun ... -> `MyType' mkMyType #} "]
 
 resMarshIllegalTwoCValErr     :: Position -> GB a
 resMarshIllegalTwoCValErr pos  =
