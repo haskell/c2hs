@@ -884,7 +884,7 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
                       interr "GenBind.funDef: marshRes: no default?"
 
       marshBody (Left ide) = identToString ide
-      marshBody (Right str) = str
+      marshBody (Right str) = "(" ++ str ++ ")"
 
       retArgs'  = case parm' of
                     CHSParm _ _ _ (Just (_, CHSVoidArg))   _ ->        retArgs
@@ -962,7 +962,7 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
         retArg   = if omArgKind == CHSVoidArg || omArgKind == CHSIOVoidArg then "" else outBndr
 
         marshBody (Left ide) = identToString ide
-        marshBody (Right str) = str
+        marshBody (Right str) = "(" ++ str ++ ")"
       in
       (funArg, marshIn, callArgs, marshOut, retArg)
     marshArg _ _ = interr "GenBind.funDef: Missing default?"
