@@ -894,8 +894,8 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
       funBody   = joinLines marshIns  ++
                   mkMarsh2            ++
                   call                ++
-                  joinLines marshOuts ++
                   marshRes            ++
+                  joinLines marshOuts ++
                   "  " ++
                   (if isImpure || not isPure then "return " else "") ++ ret
     return $ sig ++ funHead ++ funBody
