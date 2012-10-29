@@ -37,7 +37,7 @@ module C2HS.Config (
 ) where
 
 import Foreign  (toBool)
-import Foreign.C (CInt)
+import Foreign.C (CInt(..))
 import System.Info (arch, os)
 
 -- program settings
