@@ -73,6 +73,7 @@ module Control.StateTrans (-- the monad and the generic operations
                    throwExc, fatal, catchExc, fatalsHandledBy)
 where
 
+import Control.Exception (catch)
 
 -- BEWARE! You enter monad country. Read any of Wadler's or
 -- Launchbury/Peyton-Jones' texts before entering. Otherwise,
