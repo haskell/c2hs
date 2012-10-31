@@ -18,7 +18,7 @@ Description:    C->Haskell assists in the development of Haskell bindings to C
                 hsch2s), this ensures that C functions are imported with the
                 correct Haskell types.
 Category:       Development
-Tested-With:    GHC==6.10.4, GHC==6.12.1
+Tested-With:    GHC==6.12.3, GHC==7.0.4, GHC==7.6.1
 Cabal-Version:  >= 1.6
 Build-Type:     Simple
 
