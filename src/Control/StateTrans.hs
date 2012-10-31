@@ -74,6 +74,7 @@ module Control.StateTrans (-- the monad and the generic operations
 where
 
 import Control.Exception (catch)
+import Prelude hiding (catch)
 
 -- BEWARE! You enter monad country. Read any of Wadler's or
 -- Launchbury/Peyton-Jones' texts before entering. Otherwise,
