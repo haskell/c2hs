@@ -93,7 +93,7 @@ parseHeader is pos =
     ns <- getNameSupply
     case execParser translUnitP is pos builtinTypeNames ns of
       Left (ParseError (msgs,pos')) -> raiseError pos' msgs >>
-                                       return (CTranslUnit [] internalNode)
+                                       return (CTranslUnit [] undefNode)
       Right (ct,ns') -> setNameSupply ns' >> return ct
       
 -- | given a file name (with suffix), parse that file as a C header and do the

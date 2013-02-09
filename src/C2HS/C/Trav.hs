@@ -246,7 +246,7 @@ defTag ide tag  =
       Just prevTag -> case isRefinedOrUse prevTag tag of
                          Nothing                 -> return otag
                          Just (fullTag, foreIde) -> do
-                           transAttrCCT $ \ac -> addDefTagC ac ide fullTag
+                           _ <- transAttrCCT $ \ac -> addDefTagC ac ide fullTag
                            foreIde `refersToDef` TagCD fullTag
                            return Nothing               -- transparent for env
   where

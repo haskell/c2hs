@@ -41,7 +41,7 @@ flag base3
 
 Executable c2hs
     Build-Depends:  base >= 2 && < 5,
-                    language-c >= 0.3.1.1 && < 0.4.0,
+                    language-c >= 0.4.2 && < 0.5,
                     filepath
 
     if flag(base3)
