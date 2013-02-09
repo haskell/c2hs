@@ -3,10 +3,10 @@ Version:        0.16.4
 License:        GPL-2
 License-File:   COPYING
 Copyright:      Copyright (c) 1999-2007 Manuel M T Chakravarty
-                              2005-2008 Duncan Coutts
+                              2005-2010 Duncan Coutts
                               2008      Benedikt Huber
 Author:         Manuel M T Chakravarty
-Maintainer:     chak@cse.unsw.edu.au, duncan@haskell.org
+Maintainer:     chak@cse.unsw.edu.au, duncan@community.haskell.org
 Stability:      Stable
 Homepage:       http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
 Bug-Reports:    http://hackage.haskell.org/trac/c2hs/
