@@ -913,8 +913,8 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
         ctxt   = case octxt of
                    Nothing      -> ""
                    Just ctxtStr -> ctxtStr ++ " => "
-        argTys = [ty | CHSParm im ty _ _  _ <- parms'      , notVoid im]
-        resTys = [ty | CHSParm _  ty _ om _ <- parm':parms', notVoid om]
+        argTys = ["(" ++ ty ++ ")" | CHSParm im ty _ _  _ <- parms'      , notVoid im]
+        resTys = ["(" ++ ty ++ ")" | CHSParm _  ty _ om _ <- parm':parms', notVoid om]
         resTup = let
                    (lp, rp) = if isPure && length resTys == 1
                               then ("", "")
