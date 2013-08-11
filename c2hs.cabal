@@ -3,13 +3,13 @@ Version:        0.16.5
 License:        GPL-2
 License-File:   COPYING
 Copyright:      Copyright (c) 1999-2007 Manuel M T Chakravarty
-                              2005-2010 Duncan Coutts
+                              2005-2013 Duncan Coutts
                               2008      Benedikt Huber
 Author:         Manuel M T Chakravarty
-Maintainer:     chak@cse.unsw.edu.au, duncan@community.haskell.org
+Maintainer:     chak@cse.unsw.edu.au, duncan@community.haskell.org, ian@skybluetrades.net
 Stability:      Stable
-Homepage:       http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
-Bug-Reports:    http://hackage.haskell.org/trac/c2hs/
+Homepage:       https://github.com/haskell/c2hs
+Bug-Reports:    https://github.com/haskell/c2hs/issues
 Synopsis:       C->Haskell FFI tool that gives some cross-language type safety
 Description:    C->Haskell assists in the development of Haskell bindings to C
                 libraries. It extracts interface information from C header
@@ -18,7 +18,7 @@ Description:    C->Haskell assists in the development of Haskell bindings to C
                 hsch2s), this ensures that C functions are imported with the
                 correct Haskell types.
 Category:       Development
-Tested-With:    GHC==6.12.3, GHC==7.0.4, GHC==7.6.1
+Tested-With:    GHC==6.12.3, GHC==7.0.4, GHC==7.6.1, GHC==7.6.3
 Cabal-Version:  >= 1.6
 Build-Type:     Simple
 
@@ -34,8 +34,8 @@ Extra-Source-Files:
                 tests/system/Makefile
 
 source-repository head
-  type:         darcs
-  location:     http://code.haskell.org/c2hs/
+  type:         git
+  location:     git://github.com/haskell/c2hs.git
 
 flag base3
 
