@@ -1,5 +1,3 @@
-# `c2hs` - Haskell Interface Generator
-
 `c2hs` is a interfacing tool that eases Haskell access to C libraries.
 The tool gets information about the C data type definitions and
 function signatures by analysing the C header files of the library.
@@ -8,12 +6,11 @@ template of a Haskell module &mdash; called the binding file &mdash;
 that implements a Haskell binding to the C library.  Hooks embedded in
 the binding file signal where, which, and how C objects are accessed
 from Haskell.  The Haskell code in the binding file determines Haskell
-types signatures and marshaling details.  Further information is at
+types signatures and marshaling details.
 
-  http://www.cse.unsw.edu.au/~chak/haskell/c2hs/
-
-Also see the
-[tutorial](https://github.com/haskell/c2hs/wiki/Tutorial.md) (also
+Further information is on the
+[wiki](https://github.com/haskell/c2hs/wiki/Home).  Also see the
+[user guide](https://github.com/haskell/c2hs/wiki/User-Guide) (also
 available in the `doc` directory of the repository).
 
 
