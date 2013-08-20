@@ -1,0 +1,9 @@
+/.shelly/*.txt
+/issues/*
+/tests/bugs/call_capital/Capital
+/tests/bugs/call_capital/Capital.chi
+/tests/bugs/call_capital/Capital.chs.h
+/tests/bugs/call_capital/Capital.hi
+/tests/bugs/call_capital/Capital.o
+/tests/bugs/call_capital/Capital.hs
+/tests/bugs/call_capital/Capital_c.o
