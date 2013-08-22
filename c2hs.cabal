@@ -94,3 +94,15 @@ Test-Suite test-bugs
                        HUnit,
                        shelly,
                        text
+
+Test-Suite test-system
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      tests
+  main-is:             test-system.hs
+  build-tools:         c2hs
+  build-depends:       base,
+                       test-framework,
+                       test-framework-hunit,
+                       HUnit,
+                       shelly,
+                       text

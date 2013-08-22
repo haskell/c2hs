@@ -4,8 +4,12 @@
 --   % ghc -fglasgow-exts '-#include<structs.h>' -o structs\
 --         -i../lib -L../lib Structs.hs structs.o -lc2hs
 
-import Monad (liftM, when)
-import C2HS
+import Control.Monad (liftM, when)
+import Foreign
+import Foreign.C
+
+cIntConv :: (Integral a, Integral b) => a -> b
+cIntConv  = fromIntegral
 
 newtype Point = Point {#type point#}
 

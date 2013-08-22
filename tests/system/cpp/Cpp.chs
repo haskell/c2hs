@@ -1,9 +1,9 @@
 -- -*-haskell-*-
 
-module Cpp
-where
+module Cpp where
 
-import C2HS
+import Foreign
+import Foreign.C
 
 -- CPP directive
 -- -

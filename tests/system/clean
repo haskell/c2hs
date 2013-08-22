@@ -1,0 +1,7 @@
+#!/bin/bash
+find . -name \*.o | xargs /bin/rm 2> /dev/null
+find . -name \*.hs | xargs /bin/rm 2> /dev/null
+find . -name \*.chi | xargs /bin/rm 2> /dev/null
+find . -name \*.chs.h | xargs /bin/rm 2> /dev/null
+find . -name \*.hi | xargs /bin/rm 2> /dev/null
+find . -mindepth 2 -type f -a -executable | xargs /bin/rm 2> /dev/null

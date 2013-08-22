@@ -8,6 +8,7 @@ size_t size_of_s4();
 size_t align_of_s1();
 size_t align_of_s2();
 size_t align_of_s3();
+size_t align_of_s4();
 
 typedef struct s1 {
         int x;
