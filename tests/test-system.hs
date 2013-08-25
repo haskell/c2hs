@@ -7,9 +7,9 @@ import Test.HUnit hiding (Test, assert)
 import Shelly
 import qualified Shelly as Sh
 import Control.Monad (forM_)
-import Data.Text (Text)
-import qualified Data.Text as T
-default (T.Text)
+import Data.Text.Lazy (Text)
+import qualified Data.Text.Lazy as LT
+default (LT.Text)
 
 main :: IO ()
 main = defaultMain tests
@@ -40,7 +40,7 @@ run_test_expect :: Sh.FilePath -> [(Sh.FilePath, [Text])] ->
 run_test_expect dir cmds expcmd expected = shelly $ chdir dir $ do
   forM_ cmds $ \(c, as) -> run c as
   res <- absPath expcmd >>= cmd
-  liftIO $ assertBool "" (T.lines res == expected)
+  liftIO $ assertBool "" (LT.lines res == expected)
 
 
 test_calls :: Assertion

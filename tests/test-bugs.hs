@@ -5,8 +5,9 @@ import Test.Framework (defaultMain, testGroup, Test)
 import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test, assert)
 import Shelly
-import qualified Data.Text as T
-default (T.Text)
+import Data.Text.Lazy (Text)
+import qualified Data.Text.Lazy as LT
+default (LT.Text)
 
 main :: IO ()
 main = defaultMain tests
@@ -25,4 +26,4 @@ call_capital = shelly $ chdir "tests/bugs/call_capital" $ do
   cmd "ghc" "--make" "-cpp" "Capital_c.o" "Capital.hs"
   res <- absPath "./Capital" >>= cmd
   let expected = ["upper C();", "lower c();", "upper C();"]
-  liftIO $ assertBool "" (T.lines res == expected)
+  liftIO $ assertBool "" (LT.lines res == expected)
