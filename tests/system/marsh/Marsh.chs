@@ -4,7 +4,8 @@
 --   % ghc -fglasgow-exts '-#include<marsh.h>' -o marsh\
 --         -i../lib -L../lib Marsh.hs {-marsh.o-} -lc2hs
 
-import C2HS
+import Foreign
+import Foreign.C
 
 main :: IO ()
 main  = do

@@ -1,6 +1,13 @@
 -- -*-haskell-*-
-import Monad
-import C2HS
+import Control.Monad
+import Foreign
+import Foreign.C
+
+cToEnum :: (Integral i, Enum e) => i -> e
+cToEnum  = toEnum . fromIntegral
+
+cFromEnum :: (Enum e, Integral i) => e -> i
+cFromEnum  = fromIntegral . fromEnum
 
 {#context prefix="enums"#}
 

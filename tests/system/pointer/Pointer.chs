@@ -1,6 +1,10 @@
 -- -*-haskell-*-
-import Monad
-import C2HS
+import Control.Monad
+import Foreign
+import Foreign.C
+
+cIntConv :: (Integral a, Integral b) => a -> b
+cIntConv  = fromIntegral
 
 {#pointer string as MyCString foreign newtype#}
 

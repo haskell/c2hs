@@ -19,7 +19,7 @@ Description:    C->Haskell assists in the development of Haskell bindings to C
                 correct Haskell types.
 Category:       Development
 Tested-With:    GHC==6.12.3, GHC==7.0.4, GHC==7.6.1, GHC==7.6.3
-Cabal-Version:  >= 1.6
+Cabal-Version:  >= 1.8
 Build-Type:     Simple
 
 --TODO: Cabal should allow 'Data-Files' in the executable stanza
@@ -82,3 +82,27 @@ Executable c2hs
     c-sources:      src/C2HS/config.c
     --TODO: eliminate the need to suppress these warnings:
     ghc-options:    -Wall -fno-warn-incomplete-patterns -fwarn-tabs
+
+Test-Suite test-bugs
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      tests
+  main-is:             test-bugs.hs
+  build-tools:         c2hs
+  build-depends:       base,
+                       test-framework,
+                       test-framework-hunit,
+                       HUnit,
+                       shelly >= 0.15.4.1 && < 1.0,
+                       text
+
+Test-Suite test-system
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      tests
+  main-is:             test-system.hs
+  build-tools:         c2hs
+  build-depends:       base,
+                       test-framework,
+                       test-framework-hunit,
+                       HUnit,
+                       shelly >= 0.15.4.1 && < 1.0,
+                       text
