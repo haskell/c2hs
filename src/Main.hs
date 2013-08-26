@@ -574,7 +574,8 @@ process headerFiles bndFile  =
     --
     cpp     <- getSwitch cppSB
     cppOpts <- getSwitch cppOptsSB
-    let args = cppOpts ++ [newHeaderFile]
+    let noGnuOpts = ["-U__GNUC__", "-U__GNUC_MINOR__", "-U__GNUC_PATCHLEVEL__"]
+        args = cppOpts ++ noGnuOpts ++ [newHeaderFile]
     tracePreproc (unwords (cpp:args))
     exitCode <- CIO.liftIO $ do
       preprocHnd <- openFile preprocFile WriteMode

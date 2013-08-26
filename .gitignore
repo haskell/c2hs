@@ -24,3 +24,5 @@
 /tests/system/sizeof/sizeof
 /tests/system/structs/Structs.hs
 /tests/system/structs/structs
+/tests/bugs/issue-51/Issue51
+/tests/bugs/issue-51/Issue51.hs
