@@ -48,6 +48,8 @@ issue47 = shelly $ chdir "tests/bugs/issue-47" $ do
 -- least make sure that paths with spaces work OK.
 issue30 :: Assertion
 issue30 = shelly $ chdir "tests/bugs/issue-30" $ do
+  mkdir_p "test 1"
+  mkdir_p "test 2"
   mapM_ rm_f ["Issue30.hs", "Issue30.chs.h", "Issue30.chi",
               "Issue30Aux1.hs", "Issue30Aux1.chs.h", "test 1/Issue30Aux1.chi",
               "Issue30Aux2.hs", "Issue30Aux2.chs.h", "test 2/Issue30Aux2.chi",
