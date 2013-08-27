@@ -26,3 +26,7 @@
 /tests/system/structs/structs
 /tests/bugs/issue-47/Issue47.hs
 /tests/bugs/issue-47/Issue47
+/tests/bugs/issue-30/Issue30.hs
+/tests/bugs/issue-30/Issue30Aux1.hs
+/tests/bugs/issue-30/Issue30Aux2.hs
+/tests/bugs/issue-30/Issue30
