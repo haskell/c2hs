@@ -219,6 +219,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokLib     Position          -- `lib'
               | CHSTokNewtype Position          -- `newtype'
               | CHSTokNocode  Position          -- `nocode'
+              | CHSTokOffsetof Position         -- `offsetof'
               | CHSTokPointer Position          -- `pointer'
               | CHSTokPrefix  Position          -- `prefix'
               | CHSTokPure    Position          -- `pure'
@@ -271,6 +272,7 @@ instance Pos CHSToken where
   posOf (CHSTokLib     pos  ) = pos
   posOf (CHSTokNewtype pos  ) = pos
   posOf (CHSTokNocode  pos  ) = pos
+  posOf (CHSTokOffsetof pos ) = pos
   posOf (CHSTokPointer pos  ) = pos
   posOf (CHSTokPrefix  pos  ) = pos
   posOf (CHSTokPure    pos  ) = pos
@@ -323,6 +325,7 @@ instance Eq CHSToken where
   (CHSTokLib      _  ) == (CHSTokLib      _  ) = True
   (CHSTokNewtype  _  ) == (CHSTokNewtype  _  ) = True
   (CHSTokNocode   _  ) == (CHSTokNocode   _  ) = True
+  (CHSTokOffsetof _  ) == (CHSTokOffsetof _  ) = True
   (CHSTokPointer  _  ) == (CHSTokPointer  _  ) = True
   (CHSTokPrefix   _  ) == (CHSTokPrefix   _  ) = True
   (CHSTokPure     _  ) == (CHSTokPure     _  ) = True
@@ -376,6 +379,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokLib     _  ) = showString "lib"
   showsPrec _ (CHSTokNewtype _  ) = showString "newtype"
   showsPrec _ (CHSTokNocode  _  ) = showString "nocode"
+  showsPrec _ (CHSTokOffsetof _ ) = showString "offsetof"
   showsPrec _ (CHSTokPointer _  ) = showString "pointer"
   showsPrec _ (CHSTokPrefix  _  ) = showString "prefix"
   showsPrec _ (CHSTokPure    _  ) = showString "pure"
@@ -698,6 +702,7 @@ identOrKW  =
     idkwtok pos "lib"              _    = CHSTokLib     pos
     idkwtok pos "newtype"          _    = CHSTokNewtype pos
     idkwtok pos "nocode"           _    = CHSTokNocode  pos
+    idkwtok pos "offsetof"         _    = CHSTokOffsetof pos
     idkwtok pos "pointer"          _    = CHSTokPointer pos
     idkwtok pos "prefix"           _    = CHSTokPrefix  pos
     idkwtok pos "pure"             _    = CHSTokPure    pos
@@ -732,6 +737,7 @@ keywordToIdent tok =
     CHSTokLib     pos -> mkid pos "lib"
     CHSTokNewtype pos -> mkid pos "newtype"
     CHSTokNocode  pos -> mkid pos "nocode"
+    CHSTokOffsetof pos -> mkid pos "offsetof"
     CHSTokPointer pos -> mkid pos "pointer"
     CHSTokPrefix  pos -> mkid pos "prefix"
     CHSTokPure    pos -> mkid pos "pure"

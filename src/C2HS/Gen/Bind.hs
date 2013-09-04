@@ -559,6 +559,28 @@ expandHook (CHSField access path pos) =
                                         ++ show (length offsets) ++ "\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
+expandHook (CHSOffsetof path pos) =
+  do
+    traceGenBind $ "** offsetof hook:\n"
+    (decl, offsets) <- accessPath path
+    traceGenBind $ "Depth of access path: " ++ show (length offsets) ++ "\n"
+    checkType decl offsets >>= \ offset -> return $ "(" ++ show offset ++ ")"
+  where
+    checkType decl [BitSize offset _] =
+        extractCompType True True decl >>= \ compTy ->
+        case compTy of
+          ExtType et ->
+            case et of
+              (VarFunET  _) -> variadicErr pos pos
+              (IOET      _) ->
+                interr "GenBind.expandHook(CHSOffsetOf): Illegal type!"
+              (UnitET     ) -> voidFieldErr pos
+              (DefinedET _ _) -> return offset
+              (PrimET (CUFieldPT _)) -> offsetBitfieldErr pos
+              (PrimET (CSFieldPT _)) -> offsetBitfieldErr pos
+              _             -> return offset
+          SUType _ -> return offset
+    checkType _ _ = offsetDerefErr pos
 expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
               pos) =
   do
@@ -2241,6 +2263,19 @@ derefBitfieldErr pos  =
   raiseErrorCTExc pos
     ["Illegal dereferencing of a bit field!",
      "Bit fields cannot be dereferenced."]
+
+offsetBitfieldErr :: Position -> GB a
+offsetBitfieldErr pos =
+    raiseErrorCTExc pos ["Illegal offset of a bit field!",
+                         "Bit fields do not necessarily lie " ++
+                         "on a whole-byte boundary."]
+
+offsetDerefErr :: Position -> GB a
+offsetDerefErr pos =
+    raiseErrorCTExc pos ["Disallowed offset of using a dereference!",
+                         "While calculable, it would almost certainly " ++
+                         "be confusing to give the offset from the " ++
+                         "beginning of a not-obviously-related struct"]
 
 resMarshIllegalInErr     :: Position -> GB a
 resMarshIllegalInErr pos  =

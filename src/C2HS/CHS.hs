@@ -201,6 +201,8 @@ data CHSHook = CHSImport  Bool                  -- qualified?
              | CHSField   CHSAccess             -- access type
                           CHSAPath              -- access path
                           Position
+             | CHSOffsetof CHSAPath             -- access path
+                           Position
              | CHSPointer Bool                  -- explicit '*' in hook
                           Ident                 -- C pointer name
                           (Maybe Ident)         -- Haskell name
@@ -225,6 +227,7 @@ instance Pos CHSHook where
   posOf (CHSCall    _ _ _ _       pos) = pos
   posOf (CHSFun     _ _ _ _ _ _ _ pos) = pos
   posOf (CHSField   _ _           pos) = pos
+  posOf (CHSOffsetof _            pos) = pos
   posOf (CHSPointer _ _ _ _ _ _ _ pos) = pos
   posOf (CHSClass   _ _ _         pos) = pos
 
@@ -241,7 +244,7 @@ instance Eq CHSHook where
   (CHSSizeof ide1              _) == (CHSSizeof ide2              _) =
     ide1 == ide2
   (CHSAlignof ide1             _) == (CHSAlignof ide2             _) =
-    ide1 == ide2    
+    ide1 == ide2
   (CHSEnum ide1 oalias1 _ _ _  _) == (CHSEnum ide2 oalias2 _ _ _  _) =
     oalias1 == oalias2 && ide1 == ide2
   (CHSEnumDefine ide1 _ _      _) == (CHSEnumDefine ide2 _ _      _) =
@@ -253,6 +256,8 @@ instance Eq CHSHook where
     oalias1 == oalias2 && ide1 == ide2
   (CHSField acc1 path1         _) == (CHSField acc2 path2         _) =
     acc1 == acc2 && path1 == path2
+  (CHSOffsetof path1           _) == (CHSOffsetof path2           _) =
+    path1 == path2
   (CHSPointer _ ide1 oalias1 _ _ _ _ _)
                                   == (CHSPointer _ ide2 oalias2 _ _ _ _ _) =
     ide1 == ide2 && oalias1 == oalias2
@@ -527,6 +532,9 @@ showCHSHook (CHSField acc path _) =
        CHSGet -> showString "get "
        CHSSet -> showString "set ")
   . showCHSAPath path
+showCHSHook (CHSOffsetof path _) =
+    showString "offsetof "
+  . showCHSAPath path
 showCHSHook (CHSPointer star ide oalias ptrType isNewtype oRefType emit _) =
     showString "pointer "
   . (if star then showString "*" else showString "")
@@ -794,6 +802,7 @@ parseFrags tokens  = do
     parseFrags0 (CHSTokFun     pos  :toks) = parseFun     pos        toks
     parseFrags0 (CHSTokGet     pos  :toks) = parseField   pos CHSGet toks
     parseFrags0 (CHSTokSet     pos  :toks) = parseField   pos CHSSet toks
+    parseFrags0 (CHSTokOffsetof pos :toks) = parseOffsetof pos       toks
     parseFrags0 (CHSTokClass   pos  :toks) = parseClass   pos        toks
     parseFrags0 (CHSTokPointer pos  :toks) = parsePointer pos        toks
     parseFrags0 toks                       = syntaxError toks
@@ -1027,6 +1036,14 @@ parseField pos access toks =
     toks''        <- parseEndHook toks'
     frags         <- parseFrags toks''
     return $ CHSHook (CHSField access path pos) : frags
+
+parseOffsetof :: Position -> [CHSToken] -> CST s [CHSFrag]
+parseOffsetof pos toks =
+  do
+    (path, toks') <- parsePath toks
+    toks''        <- parseEndHook toks'
+    frags         <- parseFrags toks''
+    return $ CHSHook (CHSOffsetof path pos) : frags
 
 parsePointer :: Position -> [CHSToken] -> CST s [CHSFrag]
 parsePointer pos toks =

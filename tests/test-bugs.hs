@@ -19,6 +19,7 @@ tests =
     [ testCase "call_capital (issue #??)" call_capital
     , testCase "Issue #47" issue47
     , testCase "Issue #30" issue30
+    , testCase "Issue #22" issue22
     ]
   ]
 
@@ -67,4 +68,15 @@ issue30 = shelly $ chdir "tests/bugs/issue-30" $ do
     "Issue30Aux1.hs" "Issue30Aux2.hs" "Issue30.hs"
   res <- absPath "./Issue30" >>= cmd
   let expected = ["3", "2", "4"]
+  liftIO $ assertBool "" (LT.lines res == expected)
+
+issue22 :: Assertion
+issue22 = shelly $ chdir "tests/bugs/issue-22" $ do
+  mapM_ rm_f ["Issue22.hs", "Issue22.chs.h", "Issue22.chi",
+              "issue22_c.o", "Issue22"]
+  cmd "c2hs" "Issue22.chs"
+  cmd "cc" "-c" "-o" "issue22_c.o" "issue22.c"
+  cmd "ghc" "-Wall" "-Werror" "--make" "issue22_c.o" "Issue22.hs"
+  res <- absPath "./Issue22" >>= cmd
+  let expected = ["abcdef", "2", "20"]
   liftIO $ assertBool "" (LT.lines res == expected)
