@@ -668,7 +668,7 @@ expandHook (CHSClass oclassIde classIde typeIde pos) =
         Class oclassIde' typeIde' <- queryClass ide
         ptr                       <- queryPointer typeIde'
         classes                   <- collectClasses oclassIde'
-        return $ (identToString ide, identToString typeIde, ptr) : classes
+        return $ (identToString ide, identToString typeIde', ptr) : classes
     --
     traceInfoClass = traceGenBind $ "** Class hook:\n"
 
