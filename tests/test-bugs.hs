@@ -7,6 +7,7 @@ import Test.HUnit hiding (Test, assert)
 import System.FilePath (searchPathSeparator)
 import Shelly
 import Data.Text.Lazy (Text)
+import Data.Monoid
 import qualified Data.Text.Lazy as LT
 default (LT.Text)
 
@@ -20,6 +21,7 @@ tests =
     , testCase "Issue #47" issue47
     , testCase "Issue #30" issue30
     , testCase "Issue #22" issue22
+    , testCase "Issue #54" issue54
     ]
   ]
 
@@ -35,15 +37,7 @@ call_capital = shelly $ chdir "tests/bugs/call_capital" $ do
   liftIO $ assertBool "" (LT.lines res == expected)
 
 issue47 :: Assertion
-issue47 = shelly $ chdir "tests/bugs/issue-47" $ do
-  mapM_ rm_f ["Issue47.hs", "Issue47.chs.h", "Issue47.chi",
-              "issue47_c.o", "Issue47"]
-  cmd "c2hs" "Issue47.chs"
-  cmd "cc" "-c" "-o" "issue47_c.o" "issue47.c"
-  errExit False $
-    cmd "ghc" "-Wall" "-Werror" "--make" "issue47_c.o" "Issue47.hs"
-  code <- lastExitCode
-  liftIO $ assertBool "" (code == 0)
+issue47 = build_issue 47
 
 -- This is tricky to test since it's Windows-specific, but we can at
 -- least make sure that paths with spaces work OK.
@@ -71,12 +65,34 @@ issue30 = shelly $ chdir "tests/bugs/issue-30" $ do
   liftIO $ assertBool "" (LT.lines res == expected)
 
 issue22 :: Assertion
-issue22 = shelly $ chdir "tests/bugs/issue-22" $ do
-  mapM_ rm_f ["Issue22.hs", "Issue22.chs.h", "Issue22.chi",
-              "issue22_c.o", "Issue22"]
-  cmd "c2hs" "Issue22.chs"
-  cmd "cc" "-c" "-o" "issue22_c.o" "issue22.c"
-  cmd "ghc" "-Wall" "-Werror" "--make" "issue22_c.o" "Issue22.hs"
-  res <- absPath "./Issue22" >>= cmd
-  let expected = ["abcdef", "2", "20"]
+issue22 = expect_issue 22 ["abcdef", "2", "20"]
+
+issue54 :: Assertion
+issue54 = expect_issue 54 ["2", "0.2", "3", "0.3"]
+
+
+
+do_issue_build :: Int -> Sh ()
+do_issue_build n =
+  let wdir = "tests/bugs" </> ("issue-" <> show n)
+      lc = "issue" <> show n
+      lcc = lc <> "_c"
+      uc = fromText $ LT.pack $ "Issue" <> show n
+  in do
+    cd wdir
+    mapM_ rm_f [uc <.> "hs", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
+    cmd "c2hs" $ uc <.> "chs"
+    cmd "cc" "-c" "-o" (lcc <.> "o") (lc <.> "c")
+    cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
+
+expect_issue :: Int -> [Text] -> Assertion
+expect_issue n expected = shelly $ do
+  do_issue_build n
+  res <- absPath ("." </> (fromText $ LT.pack $ "Issue" <> show n)) >>= cmd
   liftIO $ assertBool "" (LT.lines res == expected)
+
+build_issue :: Int -> Assertion
+build_issue n = shelly $ do
+  errExit False $ do_issue_build n
+  code <- lastExitCode
+  liftIO $ assertBool "" (code == 0)
