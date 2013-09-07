@@ -68,7 +68,7 @@ issue22 :: Assertion
 issue22 = expect_issue 22 ["abcdef", "2", "20"]
 
 issue54 :: Assertion
-issue54 = expect_issue 54 ["2", "0.2", "3", "0.3"]
+issue54 = expect_issue 54 ["2", "0.2", "2", "0.2", "3", "0.3", "3", "0.3"]
 
 
 

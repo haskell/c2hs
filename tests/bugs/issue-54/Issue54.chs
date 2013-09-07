@@ -14,12 +14,20 @@ import Foreign.C
 main :: IO ()
 main = do
   bar <- get_bar 2
-  c <- {#get bar->c#} bar
-  d <- {#get bar->d#} bar
-  print c
-  print d
+  c1 <- {#get bar->c#} bar
+  d1 <- {#get bar->d#} bar
+  print c1
+  print d1
+  c2 <- {#get bar.c#} bar
+  d2 <- {#get bar.d#} bar
+  print c2
+  print d2
   foo <- get_foo 3
-  a <- {#get foo->a#} foo
-  b <- {#get foo->b#} foo
-  print a
-  print b
+  a1 <- {#get foo->a#} foo
+  b1 <- {#get foo->b#} foo
+  print a1
+  print b1
+  a2 <- {#get foo.a#} foo
+  b2 <- {#get foo.b#} foo
+  print a2
+  print b2

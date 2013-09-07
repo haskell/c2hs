@@ -632,6 +632,7 @@ chaseDecl ide ind  =
 findAndChaseDecl                    :: Ident -> Bool -> Bool -> CT s CDecl
 findAndChaseDecl ide ind useShadows  =
   do
+    traceCTrav $ "findAndChaseDecl: " ++ show ide ++ "\n"
     (obj, ide') <- findTypeObj ide useShadows   -- is there an object def?
     ide  `refersToNewDef` ObjCD obj
     ide' `refersToNewDef` ObjCD obj             -- assoc needed for chasing
@@ -707,6 +708,7 @@ lookupStructUnion ide ind useShadows
   | ind       = chase
   | otherwise =
     do
+      traceCTrav $ "lookupStructUnion: " ++ show ide ++ "\n"
       otag <- if useShadows
               then liftM (fmap fst) $ findTagShadow ide
               else findTag ide

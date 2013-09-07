@@ -545,6 +545,7 @@ expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) =
 expandHook (CHSField access path pos) =
   do
     traceInfoField
+    traceGenBind $ "path = " ++ show path ++ "\n"
     (decl, offsets) <- accessPath path
     traceDepth offsets
     ty <- extractSimpleType False pos decl
@@ -1081,26 +1082,31 @@ addDftMarshaller pos parms parm extTy = do
 accessPath :: CHSAPath -> GB (CDecl, [BitSize])
 accessPath (CHSRoot ide) =                              -- t
   do
+    traceGenBind "accessPath: 1\n"
     decl <- findAndChaseDecl ide False True
     return (ide `simplifyDecl` decl, [BitSize 0 0])
 accessPath (CHSDeref (CHSRoot ide) _) =                 -- *t
   do
+    traceGenBind "accessPath: 2\n"
     decl <- findAndChaseDecl ide True True
     return (ide `simplifyDecl` decl, [BitSize 0 0])
 accessPath (CHSRef  (CHSRoot ide1) ide2) =              -- t.m
   do
+    traceGenBind "accessPath: 3\n"
     su <- lookupStructUnion ide1 False True
     (offset, decl') <- refStruct su ide2
     adecl <- replaceByAlias decl'
     return (adecl, [offset])
 accessPath (CHSRef (CHSDeref (CHSRoot ide1) _) ide2) =  -- t->m
   do
+    traceGenBind "accessPath: 4\n"
     su <- lookupStructUnion ide1 True True
     (offset, decl') <- refStruct su ide2
     adecl <- replaceByAlias decl'
     return (adecl, [offset])
 accessPath (CHSRef path ide) =                          -- a.m
   do
+    traceGenBind "accessPath: 5\n"
     (decl, offset:offsets) <- accessPath path
     assertPrimDeclr ide decl
     su <- structFromDecl (posOf ide) decl
@@ -1114,6 +1120,7 @@ accessPath (CHSRef path ide) =                          -- a.m
         _                                -> structExpectedErr ide'
 accessPath (CHSDeref path _pos) =                        -- *a
   do
+    traceGenBind "accessPath: 6\n"
     (decl, offsets) <- accessPath path
     decl' <- derefOrErr decl
     adecl  <- replaceByAlias decl'
