@@ -907,7 +907,13 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
                   joinLines marshOuts ++
                   "  " ++
                   (if isImpure || not isPure then "return " else "") ++ ret
-    return $ sig ++ funHead ++ funBody
+
+      pad code = let col = posColumn pos
+                     padding = replicate (col - 3) ' '
+                     (l:ls) = lines code
+                 in unlines $ l : map (padding ++) ls
+
+    return $ pad $ sig ++ funHead ++ funBody
   where
     join      = concatMap (' ':)
     joinLines = concatMap (\s -> "  " ++ s ++ "\n")
