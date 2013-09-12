@@ -23,6 +23,7 @@ tests =
     , testCase "Issue #22" issue22
 --    , testCase "Issue #54" issue54   -- KNOWN ISSUE: waiting to fix
     , testCase "Issue #45" issue45
+    , testCase "Issue #44" issue44
     ]
   ]
 
@@ -73,6 +74,9 @@ issue54 = expect_issue 54 ["2", "0.2", "3", "0.3"]
 
 issue45 :: Assertion
 issue45 = build_issue 45
+
+issue44 :: Assertion
+issue44 = build_issue 44
 
 
 

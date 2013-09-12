@@ -1289,8 +1289,9 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
       --
       withForeignFun
         | ptrKind == CHSForeignPtr =
-          "\n" ++
-          "with" ++ hsName ++ " (" ++ hsName ++ " fptr) = withForeignPtr fptr"
+          "\nwith" ++ hsName ++ " :: " ++
+          hsName ++ " -> (Ptr " ++ hsName ++ " -> IO b) -> IO b" ++
+          "\nwith" ++ hsName ++ " (" ++ hsName ++ " fptr) = withForeignPtr fptr"
         | otherwise                = ""
 
 -- | generate the class and instance definitions for a class hook
