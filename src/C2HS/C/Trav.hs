@@ -682,10 +682,16 @@ lookupEnum ide useShadows =
       Just (StructUnionCT _   ) -> enumExpectedErr ide  -- wrong tag definition
       Just (EnumCT        enum) -> return enum          -- enum tag definition
       Nothing                   -> do                   -- no tag definition
-        (CDecl specs _ _) <- findAndChaseDecl ide False useShadows
-        case head [ts | CTypeSpec ts <- specs] of
-          CEnumType enum _ -> return enum
-          _                -> enumExpectedErr ide
+        oobj <- if useShadows
+                then liftM (fmap fst) $ findObjShadow ide
+                else findObj ide
+        case oobj of
+          Just (EnumCO _ enum) -> return enum           -- anonymous enum
+          _                    -> do                    -- no value definition
+            (CDecl specs _ _) <- findAndChaseDecl ide False useShadows
+            case head [ts | CTypeSpec ts <- specs] of
+              CEnumType enum _ -> return enum
+              _                -> enumExpectedErr ide
 
 -- | for the given identifier, either find a struct/union in the tag name space
 -- or a type definition referring to a struct/union in the object name space;
