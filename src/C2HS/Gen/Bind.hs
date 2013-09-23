@@ -908,7 +908,13 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
                   joinLines marshOuts ++
                   "  " ++
                   (if isImpure || not isPure then "return " else "") ++ ret
-    return $ sig ++ funHead ++ funBody
+
+      pad code = let col = posColumn pos
+                     padding = replicate (col - 3) ' '
+                     (l:ls) = lines code
+                 in unlines $ l : map (padding ++) ls
+
+    return $ pad $ sig ++ funHead ++ funBody
   where
     join      = concatMap (' ':)
     joinLines = concatMap (\s -> "  " ++ s ++ "\n")
@@ -1290,8 +1296,9 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
       --
       withForeignFun
         | ptrKind == CHSForeignPtr =
-          "\n" ++
-          "with" ++ hsName ++ " (" ++ hsName ++ " fptr) = withForeignPtr fptr"
+          "\nwith" ++ hsName ++ " :: " ++
+          hsName ++ " -> (Ptr " ++ hsName ++ " -> IO b) -> IO b" ++
+          "\nwith" ++ hsName ++ " (" ++ hsName ++ " fptr) = withForeignPtr fptr"
         | otherwise                = ""
 
 -- | generate the class and instance definitions for a class hook
