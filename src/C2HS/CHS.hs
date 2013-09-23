@@ -54,8 +54,8 @@
 --            | `enum' idalias trans [`with' prefix] [deriving]
 --            | `call' [`pure'] [`unsafe'] idalias
 --            | `fun' [`pure'] [`unsafe'] idalias parms
---            | `get' apath
---            | `set' apath
+--            | `get' [`struct'] apath
+--            | `set' [`struct'] apath
 --            | `pointer' ['*'] idalias ptrkind ['nocode']
 --            | `class' [ident `=>'] ident ident
 --  ctxt     -> [`lib' `=' string] [prefix]
@@ -199,6 +199,7 @@ data CHSHook = CHSImport  Bool                  -- qualified?
                           CHSParm               -- result marshalling
                           Position
              | CHSField   CHSAccess             -- access type
+                          Bool                  -- structure special?
                           CHSAPath              -- access path
                           Position
              | CHSOffsetof CHSAPath             -- access path
@@ -226,7 +227,7 @@ instance Pos CHSHook where
   posOf (CHSEnumDefine _ _ _      pos) = pos
   posOf (CHSCall    _ _ _ _       pos) = pos
   posOf (CHSFun     _ _ _ _ _ _ _ pos) = pos
-  posOf (CHSField   _ _           pos) = pos
+  posOf (CHSField   _ _ _         pos) = pos
   posOf (CHSOffsetof _            pos) = pos
   posOf (CHSPointer _ _ _ _ _ _ _ pos) = pos
   posOf (CHSClass   _ _ _         pos) = pos
@@ -254,8 +255,8 @@ instance Eq CHSHook where
   (CHSFun  _ _ ide1 oalias1 _ _ _ _)
                                   == (CHSFun _ _ ide2 oalias2 _ _ _ _) =
     oalias1 == oalias2 && ide1 == ide2
-  (CHSField acc1 path1         _) == (CHSField acc2 path2         _) =
-    acc1 == acc2 && path1 == path2
+  (CHSField acc1 str1 path1       _) == (CHSField acc2 str2 path2   _) =
+    acc1 == acc2 && str1 == str2 && path1 == path2
   (CHSOffsetof path1           _) == (CHSOffsetof path2           _) =
     path1 == path2
   (CHSPointer _ ide1 oalias1 _ _ _ _ _)
@@ -527,10 +528,13 @@ showCHSHook (CHSFun isPure isUns ide oalias octxt parms parm _) =
   . foldr (.) id (intersperse (showString ", ") (map showCHSParm parms))
   . showString "} -> "
   . showCHSParm parm
-showCHSHook (CHSField acc path _) =
+showCHSHook (CHSField acc str path _) =
     (case acc of
        CHSGet -> showString "get "
        CHSSet -> showString "set ")
+  . (case str of
+        True -> showString "struct "
+        _    -> showString "")
   . showCHSAPath path
 showCHSHook (CHSOffsetof path _) =
     showString "offsetof "
@@ -1032,10 +1036,13 @@ parseParm toks =
 parseField :: Position -> CHSAccess -> [CHSToken] -> CST s [CHSFrag]
 parseField pos access toks =
   do
-    (path, toks') <- parsePath  toks
+    let (str, tokss) = case toks of
+          (CHSTokStruct _:ts) -> (True, ts)
+          _                   -> (False, toks)
+    (path, toks') <- parsePath  tokss
     toks''        <- parseEndHook toks'
     frags         <- parseFrags toks''
-    return $ CHSHook (CHSField access path pos) : frags
+    return $ CHSHook (CHSField access str path pos) : frags
 
 parseOffsetof :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseOffsetof pos toks =

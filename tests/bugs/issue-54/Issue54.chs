@@ -23,8 +23,8 @@ main = do
   print c2
   print d2
   foo <- get_foo 3
-  a1 <- {#get foo->a#} foo
-  b1 <- {#get foo->b#} foo
+  a1 <- {#get struct foo->a#} foo
+  b1 <- {#get struct foo->b#} foo
   print a1
   print b1
   a2 <- {#get foo.a#} foo
