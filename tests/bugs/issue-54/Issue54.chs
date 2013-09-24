@@ -27,7 +27,15 @@ main = do
   b1 <- {#get struct foo->b#} foo
   print a1
   print b1
-  a2 <- {#get foo.a#} foo
-  b2 <- {#get foo.b#} foo
+  a2 <- {#get struct foo.a#} foo
+  b2 <- {#get struct foo.b#} foo
   print a2
   print b2
+  a3 <- {#get foo->a#} foo
+  b3 <- {#get foo->b#} foo
+  print a3
+  print b3
+  a4 <- {#get foo.a#} foo
+  b4 <- {#get foo.b#} foo
+  print a4
+  print b4

@@ -434,7 +434,7 @@ expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
     let trans = transTabToTransFun prefix chsTrans
         hide  = identToString . fromMaybe cide $ oalias
     enumDef enum hide trans (map identToString derive)
-expandHook hook@(CHSCall isPure isUns (CHSRoot ide) oalias pos) =
+expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) =
   do
     traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
@@ -454,7 +454,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) =
   do
     traceEnter
 
-    (decl, offsets) <- accessPath False apath
+    (decl, offsets) <- accessPath apath
     ptrTy <- extractSimpleType False pos decl
     ty <- case ptrTy of
         PtrET f@(FunET _ _) -> return f
@@ -481,7 +481,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) =
       "** Indirect call hook for `" ++ identToString (apathToIdent apath) ++ "':\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
-expandHook (CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
+expandHook (CHSFun isPure isUns (CHSRoot _ ide) oalias ctxt parms parm pos) =
   do
     traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
@@ -494,7 +494,7 @@ expandHook (CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
         fiLexeme  = hsLexeme ++ "'_"   -- Urgh - probably unqiue...
         fiIde     = internalIdent fiLexeme
         cdecl'    = cide `simplifyDecl` cdecl
-        callHook  = CHSCall isPure isUns (CHSRoot cide) (Just fiIde) pos
+        callHook  = CHSCall isPure isUns (CHSRoot False cide) (Just fiIde) pos
     callImport callHook isPure isUns (identToString cide) fiLexeme cdecl' pos
 
     extTy <- extractFunType pos cdecl' True
@@ -506,7 +506,7 @@ expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) =
   do
     traceEnter
 
-    (decl, offsets) <- accessPath False apath
+    (decl, offsets) <- accessPath apath
     ptrTy <- extractSimpleType False pos decl
     ty <- case ptrTy of
         PtrET f@(FunET _ _) -> return f
@@ -542,11 +542,11 @@ expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) =
       "** Fun hook for `" ++ identToString (apathToIdent apath) ++ "':\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
-expandHook (CHSField access str path pos) =
+expandHook (CHSField access path pos) =
   do
     traceInfoField
     traceGenBind $ "path = " ++ show path ++ "\n"
-    (decl, offsets) <- accessPath str path
+    (decl, offsets) <- accessPath path
     traceDepth offsets
     ty <- extractSimpleType False pos decl
     traceValueType ty
@@ -563,7 +563,7 @@ expandHook (CHSField access str path pos) =
 expandHook (CHSOffsetof path pos) =
   do
     traceGenBind $ "** offsetof hook:\n"
-    (decl, offsets) <- accessPath False path
+    (decl, offsets) <- accessPath path
     traceGenBind $ "Depth of access path: " ++ show (length offsets) ++ "\n"
     checkType decl offsets >>= \ offset -> return $ "(" ++ show offset ++ ")"
   where
@@ -1085,35 +1085,30 @@ addDftMarshaller pos parms parm extTy = do
 --   impossible access paths, as in Haskell we always have a pointer to a
 --   structure, we can never have the structure as a value itself
 --
-accessPath :: Bool -> CHSAPath -> GB (CDecl, [BitSize])
-accessPath _ (CHSRoot ide) =                              -- t
+accessPath :: CHSAPath -> GB (CDecl, [BitSize])
+accessPath (CHSRoot _ ide) =                            -- t
   do
-    traceGenBind "accessPath: 1\n"
     decl <- findAndChaseDecl ide False True
     return (ide `simplifyDecl` decl, [BitSize 0 0])
-accessPath _ (CHSDeref (CHSRoot ide) _) =                 -- *t
+accessPath (CHSDeref (CHSRoot _ ide) _) =               -- *t
   do
-    traceGenBind "accessPath: 2\n"
     decl <- findAndChaseDecl ide True True
     return (ide `simplifyDecl` decl, [BitSize 0 0])
-accessPath _ (CHSRef  (CHSRoot ide1) ide2) =              -- t.m
+accessPath (CHSRef (CHSRoot str ide1) ide2) =           -- t.m
   do
-    traceGenBind "accessPath: 3\n"
-    su <- lookupStructUnion ide1 False True
+    su <- lookupStructUnion ide1 str True
     (offset, decl') <- refStruct su ide2
     adecl <- replaceByAlias decl'
     return (adecl, [offset])
-accessPath str (CHSRef (CHSDeref (CHSRoot ide1) _) ide2) =  -- t->m
+accessPath (CHSRef (CHSDeref (CHSRoot str ide1) _) ide2) =  -- t->m
   do
-    traceGenBind "accessPath: 4\n"
-    su <- lookupStructUnion ide1 (not str) True
+    su <- lookupStructUnion ide1 str True
     (offset, decl') <- refStruct su ide2
     adecl <- replaceByAlias decl'
     return (adecl, [offset])
-accessPath str (CHSRef path ide) =                          -- a.m
+accessPath (CHSRef path ide) =                          -- a.m
   do
-    traceGenBind "accessPath: 5\n"
-    (decl, offset:offsets) <- accessPath str path
+    (decl, offset:offsets) <- accessPath path
     assertPrimDeclr ide decl
     su <- structFromDecl (posOf ide) decl
     (addOffset, decl') <- refStruct su ide
@@ -1124,10 +1119,9 @@ accessPath str (CHSRef path ide) =                          -- a.m
       case declr of
         (Just (CDeclr _ [] _ _ _), _, _) -> return ()
         _                                -> structExpectedErr ide'
-accessPath str (CHSDeref path _pos) =                        -- *a
+accessPath (CHSDeref path _pos) =                        -- *a
   do
-    traceGenBind "accessPath: 6\n"
-    (decl, offsets) <- accessPath str path
+    (decl, offsets) <- accessPath path
     decl' <- derefOrErr decl
     adecl  <- replaceByAlias decl'
     return (adecl, BitSize 0 0 : offsets)

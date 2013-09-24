@@ -199,7 +199,6 @@ data CHSHook = CHSImport  Bool                  -- qualified?
                           CHSParm               -- result marshalling
                           Position
              | CHSField   CHSAccess             -- access type
-                          Bool                  -- structure special?
                           CHSAPath              -- access path
                           Position
              | CHSOffsetof CHSAPath             -- access path
@@ -227,7 +226,7 @@ instance Pos CHSHook where
   posOf (CHSEnumDefine _ _ _      pos) = pos
   posOf (CHSCall    _ _ _ _       pos) = pos
   posOf (CHSFun     _ _ _ _ _ _ _ pos) = pos
-  posOf (CHSField   _ _ _         pos) = pos
+  posOf (CHSField   _ _           pos) = pos
   posOf (CHSOffsetof _            pos) = pos
   posOf (CHSPointer _ _ _ _ _ _ _ pos) = pos
   posOf (CHSClass   _ _ _         pos) = pos
@@ -255,8 +254,8 @@ instance Eq CHSHook where
   (CHSFun  _ _ ide1 oalias1 _ _ _ _)
                                   == (CHSFun _ _ ide2 oalias2 _ _ _ _) =
     oalias1 == oalias2 && ide1 == ide2
-  (CHSField acc1 str1 path1       _) == (CHSField acc2 str2 path2   _) =
-    acc1 == acc2 && str1 == str2 && path1 == path2
+  (CHSField acc1 path1            _) == (CHSField acc2 path2        _) =
+    acc1 == acc2 && path1 == path2
   (CHSOffsetof path1           _) == (CHSOffsetof path2           _) =
     path1 == path2
   (CHSPointer _ ide1 oalias1 _ _ _ _ _)
@@ -306,13 +305,15 @@ data CHSAccess = CHSSet                         -- set structure field
 
 -- | structure access path
 --
-data CHSAPath = CHSRoot  Ident                  -- root of access path
+data CHSAPath = CHSRoot Bool Ident
+                -- root of access path with flag indicating presence
+                -- of "struct" keyword
               | CHSDeref CHSAPath Position      -- dereferencing
               | CHSRef   CHSAPath Ident         -- member referencing
               deriving (Eq,Show)
 
 instance Pos CHSAPath where
-    posOf (CHSRoot ide)    = posOf ide
+    posOf (CHSRoot _ ide)  = posOf ide
     posOf (CHSDeref _ pos) = pos
     posOf (CHSRef _ ide)   = posOf ide
 
@@ -528,13 +529,10 @@ showCHSHook (CHSFun isPure isUns ide oalias octxt parms parm _) =
   . foldr (.) id (intersperse (showString ", ") (map showCHSParm parms))
   . showString "} -> "
   . showCHSParm parm
-showCHSHook (CHSField acc str path _) =
+showCHSHook (CHSField acc path _) =
     (case acc of
        CHSGet -> showString "get "
        CHSSet -> showString "set ")
-  . (case str of
-        True -> showString "struct "
-        _    -> showString "")
   . showCHSAPath path
 showCHSHook (CHSOffsetof path _) =
     showString "offsetof "
@@ -629,7 +627,10 @@ showCHSChangeCase CHSUpCase   = showString "upcaseFirstLetter"
 showCHSChangeCase CHSDownCase = showString "downcaseFirstLetter"
 
 showCHSAPath :: CHSAPath -> ShowS
-showCHSAPath (CHSRoot ide) =
+showCHSAPath (CHSRoot True ide) =
+    showString "struct "
+  . showCHSIdent ide
+showCHSAPath (CHSRoot False ide) =
   showCHSIdent ide
 showCHSAPath (CHSDeref path _) =
     showString "* "
@@ -986,7 +987,7 @@ parseIsUnsafe (CHSTokUnsafe _:toks) = return (True , toks)
 parseIsUnsafe toks                  = return (False, toks)
 
 apathToIdent :: CHSAPath -> Ident
-apathToIdent (CHSRoot ide) =
+apathToIdent (CHSRoot _ ide) =
     let lowerFirst (c:cs) = toLower c : cs
     in internalIdentAt (posOf ide) (lowerFirst $ identToString ide)
 apathToIdent (CHSDeref apath _) =
@@ -1036,13 +1037,10 @@ parseParm toks =
 parseField :: Position -> CHSAccess -> [CHSToken] -> CST s [CHSFrag]
 parseField pos access toks =
   do
-    let (str, tokss) = case toks of
-          (CHSTokStruct _:ts) -> (True, ts)
-          _                   -> (False, toks)
-    (path, toks') <- parsePath  tokss
+    (path, toks') <- parsePath  toks
     toks''        <- parseEndHook toks'
     frags         <- parseFrags toks''
-    return $ CHSHook (CHSField access str path pos) : frags
+    return $ CHSHook (CHSField access path pos) : frags
 
 parseOffsetof :: Position -> [CHSToken] -> CST s [CHSFrag]
 parseOffsetof pos toks =
@@ -1179,12 +1177,19 @@ parsePath (CHSTokStar pos:toks) =
   do
     (path, toks') <- parsePath toks
     return (CHSDeref path pos, toks')
+parsePath (CHSTokStruct _pos:tok:toks) =
+  case keywordToIdent tok of
+    (CHSTokIdent _ ide) ->
+      do
+        (pathWithHole, toks') <- parsePath' toks
+        return (pathWithHole (CHSRoot True ide), toks')
+    _ -> syntaxError (tok:toks)
 parsePath (tok:toks) =
   case keywordToIdent tok of
     (CHSTokIdent _ ide) ->
       do
         (pathWithHole, toks') <- parsePath' toks
-        return (pathWithHole (CHSRoot ide), toks')
+        return (pathWithHole (CHSRoot False ide), toks')
     _ -> syntaxError (tok:toks)
 parsePath toks = syntaxError toks
 
