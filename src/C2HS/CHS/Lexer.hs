@@ -87,7 +87,7 @@
 --    transfers control to the following binding-hook lexer:
 --
 --      ident       -> letter (letter | digit | `\'')*
---      reservedid  -> `as' | `call' | `class' | `context' | `deriving'
+--      reservedid  -> `add' | `as' | `call' | `class' | `context' | `deriving'
 --                   | `enum' | `foreign' | `fun' | `get' | `lib'
 --                   | `downcaseFirstLetter'
 --                   | `newtype' | `nocode' | `pointer' | `prefix' | `pure'
@@ -205,6 +205,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokLParen  Position          -- `('
               | CHSTokRParen  Position          -- `)'
               | CHSTokEndHook Position          -- `#}'
+              | CHSTokAdd     Position          -- `add'
               | CHSTokAs      Position          -- `as'
               | CHSTokCall    Position          -- `call'
               | CHSTokClass   Position          -- `class'
@@ -258,6 +259,7 @@ instance Pos CHSToken where
   posOf (CHSTokLParen  pos  ) = pos
   posOf (CHSTokRParen  pos  ) = pos
   posOf (CHSTokEndHook pos  ) = pos
+  posOf (CHSTokAdd     pos  ) = pos
   posOf (CHSTokAs      pos  ) = pos
   posOf (CHSTokCall    pos  ) = pos
   posOf (CHSTokClass   pos  ) = pos
@@ -311,6 +313,7 @@ instance Eq CHSToken where
   (CHSTokLParen   _  ) == (CHSTokLParen   _  ) = True
   (CHSTokRParen   _  ) == (CHSTokRParen   _  ) = True
   (CHSTokEndHook  _  ) == (CHSTokEndHook  _  ) = True
+  (CHSTokAdd      _  ) == (CHSTokAdd      _  ) = True
   (CHSTokAs       _  ) == (CHSTokAs       _  ) = True
   (CHSTokCall     _  ) == (CHSTokCall     _  ) = True
   (CHSTokClass    _  ) == (CHSTokClass    _  ) = True
@@ -365,6 +368,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokLParen  _  ) = showString "("
   showsPrec _ (CHSTokRParen  _  ) = showString ")"
   showsPrec _ (CHSTokEndHook _  ) = showString "#}"
+  showsPrec _ (CHSTokAdd     _  ) = showString "add"
   showsPrec _ (CHSTokAs      _  ) = showString "as"
   showsPrec _ (CHSTokCall    _  ) = showString "call"
   showsPrec _ (CHSTokClass   _  ) = showString "class"
@@ -688,6 +692,7 @@ identOrKW  =
        (letter +> (letter >|< digit >|< char '\'')`star` epsilon
        `lexactionName` \cs pos name -> (idkwtok $!pos) cs name)
   where
+    idkwtok pos "add"              _    = CHSTokAdd     pos
     idkwtok pos "as"               _    = CHSTokAs      pos
     idkwtok pos "call"             _    = CHSTokCall    pos
     idkwtok pos "class"            _    = CHSTokClass   pos
@@ -723,6 +728,7 @@ identOrKW  =
 keywordToIdent :: CHSToken -> CHSToken
 keywordToIdent tok =
   case tok of
+    CHSTokAdd     pos -> mkid pos "add"
     CHSTokAs      pos -> mkid pos "as"
     CHSTokCall    pos -> mkid pos "call"
     CHSTokClass   pos -> mkid pos "class"

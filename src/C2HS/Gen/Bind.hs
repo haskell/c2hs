@@ -373,7 +373,8 @@ expandHook (CHSImport qual ide chi _) =
     mergeMaps chi
     return $
       "import " ++ (if qual then "qualified " else "") ++ identToString ide
-expandHook (CHSContext olib oprefix _) =
+-- ====> TODO HERE!!!
+expandHook (CHSContext olib oprefix orepprefix _) =
   do
     setContext olib oprefix                   -- enter context information
     mapMaybeM_ applyPrefixToNameSpaces oprefix -- use the prefix on name spaces
@@ -418,7 +419,8 @@ expandHook (CHSSizeof ide _) =
       ++ show (padBits size) ++ "\n"
 expandHook (CHSEnumDefine _ _ _ _) =
   interr "Binding generation error : enum define hooks should be eliminated via preprocessing "
-expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
+-- ====> TODO HERE!!!
+expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive _) =
   do
     -- get the corresponding C declaration
     --
