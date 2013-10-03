@@ -25,6 +25,7 @@ tests =
     , testCase "Issue #45" issue45
     , testCase "Issue #44" issue44
     , testCase "Issue #43" issue43
+    , testCase "Issue #19" issue19
     ]
   ]
 
@@ -82,6 +83,9 @@ issue44 = build_issue 44
 issue43 :: Assertion
 issue43 = expect_issue 43 ["Test1A=0", "Test1B=1", "Test1C=5", "Test1D=6",
                            "AnonA=8", "AnonB=9", "AnonC=15", "AnonD=16"]
+
+issue19 :: Assertion
+issue19 = expect_issue 19 ["Did it!"]
 
 
 do_issue_build :: Int -> Sh ()
