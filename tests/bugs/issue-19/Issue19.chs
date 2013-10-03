@@ -1,6 +1,6 @@
+module Main where
+
 import Control.Monad
-import Foreign
-import Foreign.C
 
 #include "issue19.h"
 
@@ -8,7 +8,7 @@ import Foreign.C
 
 {#enum enums1 as Enums1 {underscoreToCase}#}
 
-{#enum enums2 as Enums2 {underscoreToCase} add prefix="Test"#}
+{#enum enums2 as Enums2 {underscoreToCase} add prefix="TEST"#}
 
 main :: IO ()
 main  = do

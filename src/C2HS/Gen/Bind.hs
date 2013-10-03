@@ -109,7 +109,7 @@ import Prelude hiding (exp)
 -- standard libraries
 import Data.Char     (toLower)
 import Data.List     (deleteBy, intersperse, find)
-import Data.Maybe    (isNothing, fromJust, fromMaybe)
+import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
 import Control.Monad (when, unless, liftM, mapAndUnzipM)
 
@@ -134,7 +134,7 @@ import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..),
 import C2HS.C.Info      (CPrimType(..), alignment, getPlatform)
 import qualified C2HS.C.Info as CInfo
 import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
-                   initialGBState, setContext, getPrefix,
+                   initialGBState, setContext, getPrefix, getReplacementPrefix,
                    delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
                    queryClass, queryPointer, mergeMaps, dumpMaps)
 
@@ -373,11 +373,12 @@ expandHook (CHSImport qual ide chi _) =
     mergeMaps chi
     return $
       "import " ++ (if qual then "qualified " else "") ++ identToString ide
--- ====> TODO HERE!!!
 expandHook (CHSContext olib oprefix orepprefix _) =
   do
-    setContext olib oprefix                   -- enter context information
-    mapMaybeM_ applyPrefixToNameSpaces oprefix -- use the prefix on name spaces
+    setContext olib oprefix orepprefix         -- enter context information
+    -- use the prefix on name spaces
+    when (isJust oprefix) $
+      applyPrefixToNameSpaces (fromJust oprefix) (maybe "" id orepprefix)
     return ""
 expandHook (CHSType ide pos) =
   do
@@ -419,7 +420,6 @@ expandHook (CHSSizeof ide _) =
       ++ show (padBits size) ++ "\n"
 expandHook (CHSEnumDefine _ _ _ _) =
   interr "Binding generation error : enum define hooks should be eliminated via preprocessing "
--- ====> TODO HERE!!!
 expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive _) =
   do
     -- get the corresponding C declaration
@@ -432,8 +432,12 @@ expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive _) =
     let prefix = case oprefix of
                    Nothing -> gprefix
                    Just pref -> pref
+    grepprefix <- getReplacementPrefix
+    let repprefix = case orepprefix of
+                   Nothing -> grepprefix
+                   Just pref -> pref
 
-    let trans = transTabToTransFun prefix chsTrans
+    let trans = transTabToTransFun prefix repprefix chsTrans
         hide  = identToString . fromMaybe cide $ oalias
     enumDef enum hide trans (map identToString derive)
 expandHook hook@(CHSCall isPure isUns (CHSRoot ide) oalias pos) =
@@ -2165,12 +2169,6 @@ traceGenBind  = putTraceStr traceGenBindSW
 --
 lookupBy      :: (a -> a -> Bool) -> a -> [(a, b)] -> Maybe b
 lookupBy eq x  = fmap snd . find (eq x . fst)
-
--- | maps some monad operation into a `Maybe', discarding the result
---
-mapMaybeM_ :: Monad m => (a -> m b) -> Maybe a -> m ()
-mapMaybeM_ _ Nothing   =        return ()
-mapMaybeM_ m (Just a)  = m a >> return ()
 
 
 -- error messages

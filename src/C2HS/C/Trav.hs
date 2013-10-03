@@ -293,9 +293,9 @@ findTagShadow ide  = readAttrCCT $ \ac -> lookupDefTagCShadow ac ide
 --   discarded, ie, all associations that existed before the transformation
 --   started are still in effect after the transformation
 --
-applyPrefixToNameSpaces        :: String -> CT s ()
-applyPrefixToNameSpaces prefix  =
-  transAttrCCT $ \ac -> (applyPrefix ac prefix, ())
+applyPrefixToNameSpaces        :: String -> String -> CT s ()
+applyPrefixToNameSpaces prefix repprefix  =
+  transAttrCCT $ \ac -> (applyPrefix ac prefix repprefix, ())
 
 -- definition attribute
 --
