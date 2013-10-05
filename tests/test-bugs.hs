@@ -21,7 +21,7 @@ tests =
     , testCase "Issue #47" issue47
     , testCase "Issue #30" issue30
     , testCase "Issue #22" issue22
---    , testCase "Issue #54" issue54   -- KNOWN ISSUE: waiting to fix
+    , testCase "Issue #54" issue54
     , testCase "Issue #45" issue45
     , testCase "Issue #44" issue44
     , testCase "Issue #43" issue43
@@ -72,7 +72,9 @@ issue22 :: Assertion
 issue22 = expect_issue 22 ["abcdef", "2", "20"]
 
 issue54 :: Assertion
-issue54 = expect_issue 54 ["2", "0.2", "3", "0.3"]
+issue54 = expect_issue 54 ["2", "0.2", "2", "0.2",
+                           "3", "0.3", "3", "0.3",
+                           "3", "0.3", "3", "0.3"]
 
 issue45 :: Assertion
 issue45 = build_issue 45

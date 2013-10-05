@@ -54,8 +54,8 @@
 --            | `enum' idalias trans [`with' prefix] [`add' prefix] [deriving]
 --            | `call' [`pure'] [`unsafe'] idalias
 --            | `fun' [`pure'] [`unsafe'] idalias parms
---            | `get' apath
---            | `set' apath
+--            | `get' [`struct'] apath
+--            | `set' [`struct'] apath
 --            | `pointer' ['*'] idalias ptrkind ['nocode']
 --            | `class' [ident `=>'] ident ident
 --  ctxt     -> [`lib' `=' string] [prefix]
@@ -306,13 +306,15 @@ data CHSAccess = CHSSet                         -- set structure field
 
 -- | structure access path
 --
-data CHSAPath = CHSRoot  Ident                  -- root of access path
+data CHSAPath = CHSRoot Bool Ident
+                -- root of access path with flag indicating presence
+                -- of "struct" keyword
               | CHSDeref CHSAPath Position      -- dereferencing
               | CHSRef   CHSAPath Ident         -- member referencing
               deriving (Eq,Show)
 
 instance Pos CHSAPath where
-    posOf (CHSRoot ide)    = posOf ide
+    posOf (CHSRoot _ ide)  = posOf ide
     posOf (CHSDeref _ pos) = pos
     posOf (CHSRef _ ide)   = posOf ide
 
@@ -634,7 +636,10 @@ showCHSChangeCase CHSUpCase   = showString "upcaseFirstLetter"
 showCHSChangeCase CHSDownCase = showString "downcaseFirstLetter"
 
 showCHSAPath :: CHSAPath -> ShowS
-showCHSAPath (CHSRoot ide) =
+showCHSAPath (CHSRoot True ide) =
+    showString "struct "
+  . showCHSIdent ide
+showCHSAPath (CHSRoot False ide) =
   showCHSIdent ide
 showCHSAPath (CHSDeref path _) =
     showString "* "
@@ -994,7 +999,7 @@ parseIsUnsafe (CHSTokUnsafe _:toks) = return (True , toks)
 parseIsUnsafe toks                  = return (False, toks)
 
 apathToIdent :: CHSAPath -> Ident
-apathToIdent (CHSRoot ide) =
+apathToIdent (CHSRoot _ ide) =
     let lowerFirst (c:cs) = toLower c : cs
     in internalIdentAt (posOf ide) (lowerFirst $ identToString ide)
 apathToIdent (CHSDeref apath _) =
@@ -1194,12 +1199,19 @@ parsePath (CHSTokStar pos:toks) =
   do
     (path, toks') <- parsePath toks
     return (CHSDeref path pos, toks')
+parsePath (CHSTokStruct _pos:tok:toks) =
+  case keywordToIdent tok of
+    (CHSTokIdent _ ide) ->
+      do
+        (pathWithHole, toks') <- parsePath' toks
+        return (pathWithHole (CHSRoot True ide), toks')
+    _ -> syntaxError (tok:toks)
 parsePath (tok:toks) =
   case keywordToIdent tok of
     (CHSTokIdent _ ide) ->
       do
         (pathWithHole, toks') <- parsePath' toks
-        return (pathWithHole (CHSRoot ide), toks')
+        return (pathWithHole (CHSRoot False ide), toks')
     _ -> syntaxError (tok:toks)
 parsePath toks = syntaxError toks
 

@@ -41,7 +41,7 @@ main  = do
           -- bitfields
           bitStructPtr <- {#call get_bit_struct#}
           {#set bit_struct.bit#} bitStructPtr 0
-          bit          <- {#get bit_struct.bit#} bitStructPtr
+          bit          <- {#get struct bit_struct.bit#} bitStructPtr
           when (bit /= 0) $
             error "bit /= 0: Panic!"
           smallInt     <- {#get bit_struct.very_small_int#} bitStructPtr

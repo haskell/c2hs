@@ -440,7 +440,7 @@ expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive _) =
     let trans = transTabToTransFun prefix repprefix chsTrans
         hide  = identToString . fromMaybe cide $ oalias
     enumDef enum hide trans (map identToString derive)
-expandHook hook@(CHSCall isPure isUns (CHSRoot ide) oalias pos) =
+expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) =
   do
     traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
@@ -487,7 +487,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) =
       "** Indirect call hook for `" ++ identToString (apathToIdent apath) ++ "':\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
-expandHook (CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
+expandHook (CHSFun isPure isUns (CHSRoot _ ide) oalias ctxt parms parm pos) =
   do
     traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
@@ -500,7 +500,7 @@ expandHook (CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
         fiLexeme  = hsLexeme ++ "'_"   -- Urgh - probably unqiue...
         fiIde     = internalIdent fiLexeme
         cdecl'    = cide `simplifyDecl` cdecl
-        callHook  = CHSCall isPure isUns (CHSRoot cide) (Just fiIde) pos
+        callHook  = CHSCall isPure isUns (CHSRoot False cide) (Just fiIde) pos
     callImport callHook isPure isUns (identToString cide) fiLexeme cdecl' pos
 
     extTy <- extractFunType pos cdecl' True
@@ -551,6 +551,7 @@ expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) =
 expandHook (CHSField access path pos) =
   do
     traceInfoField
+    traceGenBind $ "path = " ++ show path ++ "\n"
     (decl, offsets) <- accessPath path
     traceDepth offsets
     ty <- extractSimpleType False pos decl
@@ -1091,23 +1092,23 @@ addDftMarshaller pos parms parm extTy = do
 --   structure, we can never have the structure as a value itself
 --
 accessPath :: CHSAPath -> GB (CDecl, [BitSize])
-accessPath (CHSRoot ide) =                              -- t
+accessPath (CHSRoot _ ide) =                            -- t
   do
     decl <- findAndChaseDecl ide False True
     return (ide `simplifyDecl` decl, [BitSize 0 0])
-accessPath (CHSDeref (CHSRoot ide) _) =                 -- *t
+accessPath (CHSDeref (CHSRoot _ ide) _) =               -- *t
   do
     decl <- findAndChaseDecl ide True True
     return (ide `simplifyDecl` decl, [BitSize 0 0])
-accessPath (CHSRef  (CHSRoot ide1) ide2) =              -- t.m
+accessPath (CHSRef (CHSRoot str ide1) ide2) =           -- t.m
   do
-    su <- lookupStructUnion ide1 False True
+    su <- lookupStructUnion ide1 str True
     (offset, decl') <- refStruct su ide2
     adecl <- replaceByAlias decl'
     return (adecl, [offset])
-accessPath (CHSRef (CHSDeref (CHSRoot ide1) _) ide2) =  -- t->m
+accessPath (CHSRef (CHSDeref (CHSRoot str ide1) _) ide2) =  -- t->m
   do
-    su <- lookupStructUnion ide1 True True
+    su <- lookupStructUnion ide1 str True
     (offset, decl') <- refStruct su ide2
     adecl <- replaceByAlias decl'
     return (adecl, [offset])

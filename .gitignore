@@ -33,6 +33,8 @@
 /tests/bugs/issue-22/Issue22
 /tests/bugs/issue-22/Issue22.hs
 /tests/system/pointer/pointer
+/tests/bugs/issue-54/Issue54
+/tests/bugs/issue-54/Issue54.hs
 /tests/bugs/issue-45/Issue45.hs
 /tests/bugs/issue-45/Issue45
 /tests/bugs/issue-44/Issue44
