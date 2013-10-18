@@ -293,9 +293,9 @@ findTagShadow ide  = readAttrCCT $ \ac -> lookupDefTagCShadow ac ide
 --   discarded, ie, all associations that existed before the transformation
 --   started are still in effect after the transformation
 --
-applyPrefixToNameSpaces        :: String -> CT s ()
-applyPrefixToNameSpaces prefix  =
-  transAttrCCT $ \ac -> (applyPrefix ac prefix, ())
+applyPrefixToNameSpaces        :: String -> String -> CT s ()
+applyPrefixToNameSpaces prefix repprefix  =
+  transAttrCCT $ \ac -> (applyPrefix ac prefix repprefix, ())
 
 -- definition attribute
 --
@@ -632,6 +632,7 @@ chaseDecl ide ind  =
 findAndChaseDecl                    :: Ident -> Bool -> Bool -> CT s CDecl
 findAndChaseDecl ide ind useShadows  =
   do
+    traceCTrav $ "findAndChaseDecl: " ++ show ide ++ "\n"
     (obj, ide') <- findTypeObj ide useShadows   -- is there an object def?
     ide  `refersToNewDef` ObjCD obj
     ide' `refersToNewDef` ObjCD obj             -- assoc needed for chasing
@@ -682,20 +683,23 @@ lookupEnum ide useShadows =
       Just (StructUnionCT _   ) -> enumExpectedErr ide  -- wrong tag definition
       Just (EnumCT        enum) -> return enum          -- enum tag definition
       Nothing                   -> do                   -- no tag definition
-        (CDecl specs _ _) <- findAndChaseDecl ide False useShadows
-        case head [ts | CTypeSpec ts <- specs] of
-          CEnumType enum _ -> return enum
-          _                -> enumExpectedErr ide
+        oobj <- if useShadows
+                then liftM (fmap fst) $ findObjShadow ide
+                else findObj ide
+        case oobj of
+          Just (EnumCO _ enum) -> return enum           -- anonymous enum
+          _                    -> do                    -- no value definition
+            (CDecl specs _ _) <- findAndChaseDecl ide False useShadows
+            case head [ts | CTypeSpec ts <- specs] of
+              CEnumType enum _ -> return enum
+              _                -> enumExpectedErr ide
 
 -- | for the given identifier, either find a struct/union in the tag name space
 -- or a type definition referring to a struct/union in the object name space;
 -- raises an error and exception if the identifier is not defined
 --
--- * if `ind = True', the identifier names a reference type to the searched
---   for struct/union
---
--- * typedef chasing is used only if there is no tag of the same name or an
---   indirection (ie, `ind = True') is explicitly required
+-- * the parameter `preferTag' determines whether tags or typedefs are
+--   searched first
 --
 -- * if the third argument is `True', use `findTagShadow'
 --
@@ -703,19 +707,30 @@ lookupEnum ide useShadows =
 --   definition
 --
 lookupStructUnion :: Ident -> Bool -> Bool -> CT s CStructUnion
-lookupStructUnion ide ind useShadows
-  | ind       = chase
-  | otherwise =
-    do
-      otag <- if useShadows
-              then liftM (fmap fst) $ findTagShadow ide
-              else findTag ide
-      maybe chase (extractStruct (posOf ide)) otag  -- `chase' if `Nothing'
-  where
-    chase =
-      do
-        decl <- findAndChaseDecl ide ind useShadows
+lookupStructUnion ide preferTag useShadows = do
+  otag <- if useShadows
+          then liftM (fmap fst) $ findTagShadow ide
+          else findTag ide
+  mobj <- if useShadows
+          then findObjShadow ide
+          else liftM (fmap (\obj -> (obj, ide))) $ findObj ide
+  let oobj = case mobj of
+        Just obj@(TypeCO _ , _) -> Just obj
+        Just obj@(BuiltinCO, _) -> Just obj
+        _                       -> Nothing
+  case preferTag of
+    True -> case otag of
+      Just tag -> extractStruct (posOf ide) tag
+      Nothing -> do
+        decl <- findAndChaseDecl ide True useShadows
         structFromDecl (posOf ide) decl
+    False -> case oobj of
+      Just _ -> do
+        decl <- findAndChaseDecl ide True useShadows
+        structFromDecl (posOf ide) decl
+      Nothing -> case otag of
+        Just tag -> extractStruct (posOf ide) tag
+        Nothing  -> unknownObjErr ide
 
 -- | for the given identifier, check for the existance of both a type definition
 -- or a struct, union, or enum definition

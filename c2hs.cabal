@@ -89,6 +89,7 @@ Test-Suite test-bugs
   main-is:             test-bugs.hs
   build-tools:         c2hs
   build-depends:       base,
+                       filepath,
                        test-framework,
                        test-framework-hunit,
                        HUnit,

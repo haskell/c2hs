@@ -69,8 +69,8 @@
 --
 --  -i DIRS
 --  --include=DIRS
---        Search the colon separated list of directories DIRS when searching
---        for .chi files.
+--        Search the colon (Linux) or semicolon (Windows) separated
+--        list of directories DIRS when searching for .chi files.
 --
 --  -k
 --  --keep
@@ -125,7 +125,7 @@ import System.Console.GetOpt
                   (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo, getOpt)
 import qualified System.FilePath as FilePath
                   (takeExtension, dropExtension, takeBaseName)
-import System.FilePath ((<.>), (</>))
+import System.FilePath ((<.>), (</>), splitSearchPath)
 import System.IO (stderr, openFile, IOMode(..))
 import System.IO.Error (ioeGetErrorString, ioeGetFileName)
 import System.Process (runProcess, waitForProcess)
@@ -479,18 +479,8 @@ setLibrary  = setSwitch $ \sb -> sb {librarySB = True}
 --   standard value in the compiler state.
 --
 setInclude :: String -> CST s ()
-setInclude str = do
-  let fp = makePath str ""
-  setSwitch $ \sb -> sb {chiPathSB = fp ++ (chiPathSB sb)}
-  where
-    makePath ('\\':r:em)   path = makePath em (path ++ ['\\',r])
-    makePath (' ':r)       path = makePath r path
-    makePath (':':r)       ""   = makePath r ""
-    makePath (':':r)       path = path : makePath r ""
-    makePath ('/':':':r)   path = path : makePath r ""
-    makePath (r:emain)     path = makePath emain (path ++ [r])
-    makePath ""            ""   = []
-    makePath ""            path = [path]
+setInclude str =
+  setSwitch $ \sb -> sb {chiPathSB = splitSearchPath str ++ (chiPathSB sb)}
 
 -- | set the output file name
 --

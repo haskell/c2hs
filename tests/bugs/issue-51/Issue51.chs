@@ -1,6 +1,5 @@
 module Main where
 
-import Foreign
 import Foreign.C
 
 #include "issue51.h"
@@ -12,4 +11,5 @@ foo = {#call pure fooGnu#}
 foo = {#call pure fooNonGnu#}
 #endif
 
-main = print $ foo (fromIntegral 0)
+main :: IO ()
+main = print $ foo 0

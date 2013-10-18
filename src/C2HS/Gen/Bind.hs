@@ -109,7 +109,7 @@ import Prelude hiding (exp)
 -- standard libraries
 import Data.Char     (toLower)
 import Data.List     (deleteBy, intersperse, find)
-import Data.Maybe    (isNothing, fromJust, fromMaybe)
+import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
 import Control.Monad (when, unless, liftM, mapAndUnzipM)
 
@@ -134,7 +134,7 @@ import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..),
 import C2HS.C.Info      (CPrimType(..), alignment, getPlatform)
 import qualified C2HS.C.Info as CInfo
 import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
-                   initialGBState, setContext, getPrefix,
+                   initialGBState, setContext, getPrefix, getReplacementPrefix,
                    delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
                    queryClass, queryPointer, mergeMaps, dumpMaps)
 
@@ -373,10 +373,12 @@ expandHook (CHSImport qual ide chi _) =
     mergeMaps chi
     return $
       "import " ++ (if qual then "qualified " else "") ++ identToString ide
-expandHook (CHSContext olib oprefix _) =
+expandHook (CHSContext olib oprefix orepprefix _) =
   do
-    setContext olib oprefix                   -- enter context information
-    mapMaybeM_ applyPrefixToNameSpaces oprefix -- use the prefix on name spaces
+    setContext olib oprefix orepprefix         -- enter context information
+    -- use the prefix on name spaces
+    when (isJust oprefix) $
+      applyPrefixToNameSpaces (fromJust oprefix) (maybe "" id orepprefix)
     return ""
 expandHook (CHSType ide pos) =
   do
@@ -418,7 +420,7 @@ expandHook (CHSSizeof ide _) =
       ++ show (padBits size) ++ "\n"
 expandHook (CHSEnumDefine _ _ _ _) =
   interr "Binding generation error : enum define hooks should be eliminated via preprocessing "
-expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
+expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive _) =
   do
     -- get the corresponding C declaration
     --
@@ -430,11 +432,15 @@ expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
     let prefix = case oprefix of
                    Nothing -> gprefix
                    Just pref -> pref
+    grepprefix <- getReplacementPrefix
+    let repprefix = case orepprefix of
+                   Nothing -> grepprefix
+                   Just pref -> pref
 
-    let trans = transTabToTransFun prefix chsTrans
+    let trans = transTabToTransFun prefix repprefix chsTrans
         hide  = identToString . fromMaybe cide $ oalias
     enumDef enum hide trans (map identToString derive)
-expandHook hook@(CHSCall isPure isUns (CHSRoot ide) oalias pos) =
+expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) =
   do
     traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
@@ -481,7 +487,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) =
       "** Indirect call hook for `" ++ identToString (apathToIdent apath) ++ "':\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
-expandHook (CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
+expandHook (CHSFun isPure isUns (CHSRoot _ ide) oalias ctxt parms parm pos) =
   do
     traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
@@ -494,7 +500,7 @@ expandHook (CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
         fiLexeme  = hsLexeme ++ "'_"   -- Urgh - probably unqiue...
         fiIde     = internalIdent fiLexeme
         cdecl'    = cide `simplifyDecl` cdecl
-        callHook  = CHSCall isPure isUns (CHSRoot cide) (Just fiIde) pos
+        callHook  = CHSCall isPure isUns (CHSRoot False cide) (Just fiIde) pos
     callImport callHook isPure isUns (identToString cide) fiLexeme cdecl' pos
 
     extTy <- extractFunType pos cdecl' True
@@ -545,6 +551,7 @@ expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) =
 expandHook (CHSField access path pos) =
   do
     traceInfoField
+    traceGenBind $ "path = " ++ show path ++ "\n"
     (decl, offsets) <- accessPath path
     traceDepth offsets
     ty <- extractSimpleType False pos decl
@@ -559,6 +566,28 @@ expandHook (CHSField access path pos) =
                                         ++ show (length offsets) ++ "\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
+expandHook (CHSOffsetof path pos) =
+  do
+    traceGenBind $ "** offsetof hook:\n"
+    (decl, offsets) <- accessPath path
+    traceGenBind $ "Depth of access path: " ++ show (length offsets) ++ "\n"
+    checkType decl offsets >>= \ offset -> return $ "(" ++ show offset ++ ")"
+  where
+    checkType decl [BitSize offset _] =
+        extractCompType True True decl >>= \ compTy ->
+        case compTy of
+          ExtType et ->
+            case et of
+              (VarFunET  _) -> variadicErr pos pos
+              (IOET      _) ->
+                interr "GenBind.expandHook(CHSOffsetOf): Illegal type!"
+              (UnitET     ) -> voidFieldErr pos
+              (DefinedET _ _) -> return offset
+              (PrimET (CUFieldPT _)) -> offsetBitfieldErr pos
+              (PrimET (CSFieldPT _)) -> offsetBitfieldErr pos
+              _             -> return offset
+          SUType _ -> return offset
+    checkType _ _ = offsetDerefErr pos
 expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
               pos) =
   do
@@ -646,7 +675,7 @@ expandHook (CHSClass oclassIde classIde typeIde pos) =
         Class oclassIde' typeIde' <- queryClass ide
         ptr                       <- queryPointer typeIde'
         classes                   <- collectClasses oclassIde'
-        return $ (identToString ide, identToString typeIde, ptr) : classes
+        return $ (identToString ide, identToString typeIde', ptr) : classes
     --
     traceInfoClass = traceGenBind $ "** Class hook:\n"
 
@@ -848,7 +877,9 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
                   if isPure && isImpure then "  unsafePerformIO $\n" else ""
       call      = if isPure
                   then "  let {res = " ++ fiLexeme ++ joinCallArgs ++ "} in\n"
-                  else "  " ++ fiLexeme ++ joinCallArgs ++ " >>= \\res ->\n"
+                  else "  " ++ fiLexeme ++ joinCallArgs ++ case parm of
+                    CHSParm _ "()" _ _ _ -> " >>\n"
+                    _                    -> " >>= \\res ->\n"
       joinCallArgs = case marsh2 of
                         Nothing -> join callArgs
                         Just _  -> join ("b1'" : drop 1 callArgs)
@@ -883,7 +914,13 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
                   joinLines marshOuts ++
                   "  " ++
                   (if isImpure || not isPure then "return " else "") ++ ret
-    return $ sig ++ funHead ++ funBody
+
+      pad code = let col = posColumn pos
+                     padding = replicate (col - 3) ' '
+                     (l:ls) = lines code
+                 in unlines $ l : map (padding ++) ls
+
+    return $ pad $ sig ++ funHead ++ funBody
   where
     join      = concatMap (' ':)
     joinLines = concatMap (\s -> "  " ++ s ++ "\n")
@@ -1055,23 +1092,23 @@ addDftMarshaller pos parms parm extTy = do
 --   structure, we can never have the structure as a value itself
 --
 accessPath :: CHSAPath -> GB (CDecl, [BitSize])
-accessPath (CHSRoot ide) =                              -- t
+accessPath (CHSRoot _ ide) =                            -- t
   do
     decl <- findAndChaseDecl ide False True
     return (ide `simplifyDecl` decl, [BitSize 0 0])
-accessPath (CHSDeref (CHSRoot ide) _) =                 -- *t
+accessPath (CHSDeref (CHSRoot _ ide) _) =               -- *t
   do
     decl <- findAndChaseDecl ide True True
     return (ide `simplifyDecl` decl, [BitSize 0 0])
-accessPath (CHSRef  (CHSRoot ide1) ide2) =              -- t.m
+accessPath (CHSRef (CHSRoot str ide1) ide2) =           -- t.m
   do
-    su <- lookupStructUnion ide1 False True
+    su <- lookupStructUnion ide1 str True
     (offset, decl') <- refStruct su ide2
     adecl <- replaceByAlias decl'
     return (adecl, [offset])
-accessPath (CHSRef (CHSDeref (CHSRoot ide1) _) ide2) =  -- t->m
+accessPath (CHSRef (CHSDeref (CHSRoot str ide1) _) ide2) =  -- t->m
   do
-    su <- lookupStructUnion ide1 True True
+    su <- lookupStructUnion ide1 str True
     (offset, decl') <- refStruct su ide2
     adecl <- replaceByAlias decl'
     return (adecl, [offset])
@@ -1259,8 +1296,9 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
       --
       withForeignFun
         | ptrKind == CHSForeignPtr =
-          "\n" ++
-          "with" ++ hsName ++ " (" ++ hsName ++ " fptr) = withForeignPtr fptr"
+          "\nwith" ++ hsName ++ " :: " ++
+          hsName ++ " -> (Ptr " ++ hsName ++ " -> IO b) -> IO b" ++
+          "\nwith" ++ hsName ++ " (" ++ hsName ++ " fptr) = withForeignPtr fptr"
         | otherwise                = ""
 
 -- | generate the class and instance definitions for a class hook
@@ -2133,12 +2171,6 @@ traceGenBind  = putTraceStr traceGenBindSW
 lookupBy      :: (a -> a -> Bool) -> a -> [(a, b)] -> Maybe b
 lookupBy eq x  = fmap snd . find (eq x . fst)
 
--- | maps some monad operation into a `Maybe', discarding the result
---
-mapMaybeM_ :: Monad m => (a -> m b) -> Maybe a -> m ()
-mapMaybeM_ _ Nothing   =        return ()
-mapMaybeM_ m (Just a)  = m a >> return ()
-
 
 -- error messages
 -- --------------
@@ -2239,6 +2271,19 @@ derefBitfieldErr pos  =
   raiseErrorCTExc pos
     ["Illegal dereferencing of a bit field!",
      "Bit fields cannot be dereferenced."]
+
+offsetBitfieldErr :: Position -> GB a
+offsetBitfieldErr pos =
+    raiseErrorCTExc pos ["Illegal offset of a bit field!",
+                         "Bit fields do not necessarily lie " ++
+                         "on a whole-byte boundary."]
+
+offsetDerefErr :: Position -> GB a
+offsetDerefErr pos =
+    raiseErrorCTExc pos ["Disallowed offset of using a dereference!",
+                         "While calculable, it would almost certainly " ++
+                         "be confusing to give the offset from the " ++
+                         "beginning of a not-obviously-related struct"]
 
 resMarshIllegalInErr     :: Position -> GB a
 resMarshIllegalInErr pos  =

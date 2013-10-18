@@ -21,7 +21,7 @@ tests =
     , testCase "Cpp"     test_cpp
     , testCase "Enums"   test_enums
     , testCase "Marsh"   test_marsh
---    , testCase "Pointer" test_pointer   -- KNOWN FAILURE: ISSUE #21
+    , testCase "Pointer" test_pointer
     , testCase "Simple"  test_simple
 --    , testCase "Sizeof"  test_sizeof    -- KNOWN FAILURE: ISSUE #10
     , testCase "Structs" test_structs
