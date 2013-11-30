@@ -1772,7 +1772,7 @@ instance Ord BitSize where
 -- | add two bit size values
 --
 addBitSize                                 :: BitSize -> BitSize -> BitSize
-addBitSize (BitSize o1 b1) (BitSize o2 b2)  = BitSize (o1 + o2 + overflow) rest
+addBitSize (BitSize o1 b1) (BitSize o2 b2)  = BitSize (o1 + o2 + overflow * CInfo.size CIntPT) rest
   where
     bitsPerBitfield  = CInfo.size CIntPT * 8
     (overflow, rest) = (b1 + b2) `divMod` bitsPerBitfield
@@ -1939,7 +1939,7 @@ alignOffset offset@(BitSize octetOffset bitOffset) align bitfieldAlignment
     offset
   where
     bitsPerBitfield     = CInfo.size CIntPT * 8
-    overflowingBitfield = bitOffset - align >= bitsPerBitfield
+    overflowingBitfield = bitOffset - align > bitsPerBitfield
                                     -- note, `align' is negative
 
 
