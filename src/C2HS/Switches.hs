@@ -66,6 +66,7 @@ import C2HS.Config (PlatformSpec, defaultPlatformSpec)
 data SwitchBoard = SwitchBoard {
                      cppOptsSB :: [String],     -- cpp options
                      cppSB     :: FilePath,     -- cpp executable
+                     noGnuSB   :: Bool,         -- suppress GNU preproc. symbols
                      keepSB    :: Bool,         -- keep intermediate file
                      librarySB :: Bool,         -- copy library in
                      tracesSB  :: Traces,       -- trace flags
@@ -82,6 +83,7 @@ initialSwitchBoard :: SwitchBoard
 initialSwitchBoard  = SwitchBoard {
                         cppOptsSB  = [],
                         cppSB      = "cpp",
+                        noGnuSB    = False,
                         keepSB     = False,
                         librarySB  = False,
                         tracesSB   = initialTraces,

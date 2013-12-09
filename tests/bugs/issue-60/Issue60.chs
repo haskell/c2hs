@@ -1,8 +1,6 @@
 module Main where
 
-import Foreign.C
-
-#include "issue60.h"
+#include "stdlib.h"
 
 main :: IO ()
 main = putStrLn "OK"

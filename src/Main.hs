@@ -178,6 +178,7 @@ errTrailer = "Try the option `--help' on its own for more information.\n"
 --
 data Flag = CPPOpts  String     -- ^ additional options for C preprocessor
           | CPP      String     -- ^ program name of C preprocessor
+          | NoGNU               -- ^ suppress GNU preprocessor symbols
           | Dump     DumpType   -- ^ dump internal information
           | Help                -- ^ print brief usage information
           | Keep                -- ^ keep the .i file
@@ -209,6 +210,10 @@ options  = [
          ["cpp"]
          (ReqArg CPP "CPP")
          "use executable CPP to invoke C preprocessor",
+  Option ['n']
+         ["no-gnu"]
+         (NoArg NoGNU)
+         "suppress GNU preprocessor symbols",
   Option ['d']
          ["dump"]
          (ReqArg dumpArg "TYPE")
@@ -393,6 +398,7 @@ help =
 processOpt :: Flag -> CST s ()
 processOpt (CPPOpts  cppopt ) = addCPPOpts  [cppopt]
 processOpt (CPP      cpp    ) = setCPP      cpp
+processOpt (NoGNU           ) = setNoGNU
 processOpt (Dump     dt     ) = setDump     dt
 processOpt (Keep            ) = setKeep
 processOpt (Library         ) = setLibrary
@@ -452,6 +458,11 @@ addCPPOpts opts  = setSwitch $ \sb -> sb {cppOptsSB = cppOptsSB sb ++ opts}
 --
 setCPP       :: FilePath -> CST s ()
 setCPP fname  = setSwitch $ \sb -> sb {cppSB = fname}
+
+-- | set flag to suppress GNU preprocessor symbols
+--
+setNoGNU :: CST s ()
+setNoGNU  = setSwitch $ \sb -> sb {noGnuSB = True}
 
 -- set the given dump option
 --
@@ -564,7 +575,11 @@ process headerFiles bndFile  =
     --
     cpp     <- getSwitch cppSB
     cppOpts <- getSwitch cppOptsSB
-    let noGnuOpts = ["-U__GNUC__", "-U__GNUC_MINOR__", "-U__GNUC_PATCHLEVEL__"]
+    noGnu   <- getSwitch noGnuSB
+    let noGnuOpts =
+          if noGnu
+          then ["-U__GNUC__", "-U__GNUC_MINOR__", "-U__GNUC_PATCHLEVEL__"]
+          else []
         args = cppOpts ++ noGnuOpts ++ [newHeaderFile]
     tracePreproc (unwords (cpp:args))
     exitCode <- CIO.liftIO $ do

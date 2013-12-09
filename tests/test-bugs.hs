@@ -46,7 +46,7 @@ issue60 :: Assertion
 issue60 = build_issue 60
 
 issue51 :: Assertion
-issue51 = expect_issue 51 ["0"]
+issue51 = expect_issue_with 51 ["--no-gnu"] ["0"]
 
 issue47 :: Assertion
 issue47 = build_issue 47
@@ -98,8 +98,8 @@ issue19 :: Assertion
 issue19 = expect_issue 19 ["Did it!"]
 
 
-do_issue_build :: Int -> Sh ()
-do_issue_build n =
+do_issue_build :: Int -> [Text] -> Sh ()
+do_issue_build n c2hsargs =
   let wdir = "tests/bugs" </> ("issue-" <> show n)
       lc = "issue" <> show n
       lcc = lc <> "_c"
@@ -107,18 +107,24 @@ do_issue_build n =
   in do
     cd wdir
     mapM_ rm_f [uc <.> "hs", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
-    cmd "c2hs" $ uc <.> "chs"
+    run "c2hs" $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
     cmd "cc" "-c" "-o" (lcc <.> "o") (lc <.> "c")
     cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
 
 expect_issue :: Int -> [Text] -> Assertion
-expect_issue n expected = shelly $ do
-  do_issue_build n
+expect_issue n expected = expect_issue_with n [] expected
+
+expect_issue_with :: Int -> [Text] -> [Text] -> Assertion
+expect_issue_with n c2hsargs expected = shelly $ do
+  do_issue_build n c2hsargs
   res <- absPath ("." </> (fromText $ LT.pack $ "Issue" <> show n)) >>= cmd
   liftIO $ assertBool "" (LT.lines res == expected)
 
-build_issue :: Int -> Assertion
-build_issue n = shelly $ do
-  errExit False $ do_issue_build n
+build_issue_with :: Int -> [Text] -> Assertion
+build_issue_with n c2hsargs = shelly $ do
+  errExit False $ do_issue_build n c2hsargs
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
+
+build_issue :: Int -> Assertion
+build_issue n = build_issue_with n []
