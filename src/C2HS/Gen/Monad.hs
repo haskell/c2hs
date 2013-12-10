@@ -65,8 +65,8 @@ module C2HS.Gen.Monad (
   TransFun, transTabToTransFun,
 
   HsObject(..), GB, initialGBState, setContext, getLibrary, getPrefix,
-  delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs, queryObj, queryClass,
-  queryPointer, mergeMaps, dumpMaps
+  getReplacementPrefix, delayCode, getDelayedCode, ptrMapsTo, queryPtr,
+  objIs, queryObj, queryClass, queryPointer, mergeMaps, dumpMaps
 ) where
 
 -- standard libraries
@@ -134,8 +134,8 @@ downcaseFirstLetter (c:cs) = toLower c : cs
 -- * the details of handling the prefix are given in the DOCU section at the
 --   beginning of this file
 --
-transTabToTransFun :: String -> CHSTrans -> TransFun
-transTabToTransFun prefx (CHSTrans _2Case chgCase table) =
+transTabToTransFun :: String -> String -> CHSTrans -> TransFun
+transTabToTransFun prefx rprefx (CHSTrans _2Case chgCase table) =
   \ide -> let
             caseTrafo = (if _2Case then underscoreToCase else id) .
                         (case chgCase of
@@ -152,8 +152,9 @@ transTabToTransFun prefx (CHSTrans _2Case chgCase table) =
                 Nothing          -> dft             -- no match & no prefix
                 Just eatenLexeme ->
                   let
-                    eatenIde = internalIdentAt (posOf ide) eatenLexeme
-                    eatenDft = caseTrafo eatenLexeme
+                    eatenIde = internalIdentAt (posOf ide)
+                               (rprefx ++ eatenLexeme)
+                    eatenDft = caseTrafo rprefx ++ caseTrafo eatenLexeme
                   in
                   case lookup eatenIde table of     -- lookup without prefix
                     Nothing   -> eatenDft           -- orig ide without prefix
@@ -235,12 +236,13 @@ instance Read Ident where
 -- which we use an instance here
 --
 data GBState  = GBState {
-                  lib     :: String,               -- dynamic library
-                  prefix  :: String,               -- prefix
-                  frags   :: [(CHSHook, CHSFrag)], -- delayed code (with hooks)
-                  ptrmap  :: PointerMap,           -- pointer representation
-                  objmap  :: HsObjectMap           -- generated Haskell objects
-               }
+  lib       :: String,               -- dynamic library
+  prefix    :: String,               -- prefix
+  repprefix :: String,               -- replacement prefix
+  frags     :: [(CHSHook, CHSFrag)], -- delayed code (with hooks)
+  ptrmap    :: PointerMap,           -- pointer representation
+  objmap    :: HsObjectMap           -- generated Haskell objects
+  }
 
 type GB a = CT GBState a
 
@@ -248,6 +250,7 @@ initialGBState :: GBState
 initialGBState  = GBState {
                     lib    = "",
                     prefix = "",
+                    repprefix = "",
                     frags  = [],
                     ptrmap = Map.empty,
                     objmap = Map.empty
@@ -255,10 +258,11 @@ initialGBState  = GBState {
 
 -- | set the dynamic library and library prefix
 --
-setContext             :: (Maybe String) -> (Maybe String) -> GB ()
-setContext lib' prefix' =
-  transCT $ \state -> (state {lib    = fromMaybe "" lib',
-                              prefix = fromMaybe "" prefix'},
+setContext :: (Maybe String) -> (Maybe String) -> (Maybe String) -> GB ()
+setContext lib' prefix' repprefix' =
+  transCT $ \state -> (state {lib       = fromMaybe "" lib',
+                              prefix    = fromMaybe "" prefix',
+                              repprefix = fromMaybe "" repprefix'},
                        ())
 
 -- | get the dynamic library
@@ -270,6 +274,11 @@ getLibrary  = readCT lib
 --
 getPrefix :: GB String
 getPrefix  = readCT prefix
+
+-- | get the replacement prefix string
+--
+getReplacementPrefix :: GB String
+getReplacementPrefix  = readCT repprefix
 
 -- | add code to the delayed fragments (the code is made to start at a new line)
 --

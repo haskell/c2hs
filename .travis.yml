@@ -1,6 +1,7 @@
 language: haskell
 
 install:
+  - cabal list --installed
   - cabal install --only-dependencies --enable-tests
 
 script:

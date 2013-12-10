@@ -109,7 +109,7 @@ import Prelude hiding (exp)
 -- standard libraries
 import Data.Char     (toLower)
 import Data.List     (deleteBy, intersperse, find)
-import Data.Maybe    (isNothing, fromJust, fromMaybe)
+import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
 import Control.Monad (when, unless, liftM, mapAndUnzipM)
 
@@ -134,7 +134,7 @@ import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..),
 import C2HS.C.Info      (CPrimType(..), alignment, getPlatform)
 import qualified C2HS.C.Info as CInfo
 import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
-                   initialGBState, setContext, getPrefix,
+                   initialGBState, setContext, getPrefix, getReplacementPrefix,
                    delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
                    queryClass, queryPointer, mergeMaps, dumpMaps)
 
@@ -373,10 +373,12 @@ expandHook (CHSImport qual ide chi _) =
     mergeMaps chi
     return $
       "import " ++ (if qual then "qualified " else "") ++ identToString ide
-expandHook (CHSContext olib oprefix _) =
+expandHook (CHSContext olib oprefix orepprefix _) =
   do
-    setContext olib oprefix                   -- enter context information
-    mapMaybeM_ applyPrefixToNameSpaces oprefix -- use the prefix on name spaces
+    setContext olib oprefix orepprefix         -- enter context information
+    -- use the prefix on name spaces
+    when (isJust oprefix) $
+      applyPrefixToNameSpaces (fromJust oprefix) (maybe "" id orepprefix)
     return ""
 expandHook (CHSType ide pos) =
   do
@@ -418,7 +420,7 @@ expandHook (CHSSizeof ide _) =
       ++ show (padBits size) ++ "\n"
 expandHook (CHSEnumDefine _ _ _ _) =
   interr "Binding generation error : enum define hooks should be eliminated via preprocessing "
-expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
+expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive _) =
   do
     -- get the corresponding C declaration
     --
@@ -430,11 +432,15 @@ expandHook (CHSEnum cide oalias chsTrans oprefix derive _) =
     let prefix = case oprefix of
                    Nothing -> gprefix
                    Just pref -> pref
+    grepprefix <- getReplacementPrefix
+    let repprefix = case orepprefix of
+                   Nothing -> grepprefix
+                   Just pref -> pref
 
-    let trans = transTabToTransFun prefix chsTrans
+    let trans = transTabToTransFun prefix repprefix chsTrans
         hide  = identToString . fromMaybe cide $ oalias
     enumDef enum hide trans (map identToString derive)
-expandHook hook@(CHSCall isPure isUns (CHSRoot ide) oalias pos) =
+expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) =
   do
     traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
@@ -481,7 +487,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) =
       "** Indirect call hook for `" ++ identToString (apathToIdent apath) ++ "':\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
-expandHook (CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
+expandHook (CHSFun isPure isUns (CHSRoot _ ide) oalias ctxt parms parm pos) =
   do
     traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
@@ -494,7 +500,7 @@ expandHook (CHSFun isPure isUns (CHSRoot ide) oalias ctxt parms parm pos) =
         fiLexeme  = hsLexeme ++ "'_"   -- Urgh - probably unqiue...
         fiIde     = internalIdent fiLexeme
         cdecl'    = cide `simplifyDecl` cdecl
-        callHook  = CHSCall isPure isUns (CHSRoot cide) (Just fiIde) pos
+        callHook  = CHSCall isPure isUns (CHSRoot False cide) (Just fiIde) pos
     callImport callHook isPure isUns (identToString cide) fiLexeme cdecl' pos
 
     extTy <- extractFunType pos cdecl' True
@@ -545,6 +551,7 @@ expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) =
 expandHook (CHSField access path pos) =
   do
     traceInfoField
+    traceGenBind $ "path = " ++ show path ++ "\n"
     (decl, offsets) <- accessPath path
     traceDepth offsets
     ty <- extractSimpleType False pos decl
@@ -1085,23 +1092,23 @@ addDftMarshaller pos parms parm extTy = do
 --   structure, we can never have the structure as a value itself
 --
 accessPath :: CHSAPath -> GB (CDecl, [BitSize])
-accessPath (CHSRoot ide) =                              -- t
+accessPath (CHSRoot _ ide) =                            -- t
   do
     decl <- findAndChaseDecl ide False True
     return (ide `simplifyDecl` decl, [BitSize 0 0])
-accessPath (CHSDeref (CHSRoot ide) _) =                 -- *t
+accessPath (CHSDeref (CHSRoot _ ide) _) =               -- *t
   do
     decl <- findAndChaseDecl ide True True
     return (ide `simplifyDecl` decl, [BitSize 0 0])
-accessPath (CHSRef  (CHSRoot ide1) ide2) =              -- t.m
+accessPath (CHSRef (CHSRoot str ide1) ide2) =           -- t.m
   do
-    su <- lookupStructUnion ide1 False True
+    su <- lookupStructUnion ide1 str True
     (offset, decl') <- refStruct su ide2
     adecl <- replaceByAlias decl'
     return (adecl, [offset])
-accessPath (CHSRef (CHSDeref (CHSRoot ide1) _) ide2) =  -- t->m
+accessPath (CHSRef (CHSDeref (CHSRoot str ide1) _) ide2) =  -- t->m
   do
-    su <- lookupStructUnion ide1 True True
+    su <- lookupStructUnion ide1 str True
     (offset, decl') <- refStruct su ide2
     adecl <- replaceByAlias decl'
     return (adecl, [offset])
@@ -1803,7 +1810,7 @@ instance Ord BitSize where
 -- | add two bit size values
 --
 addBitSize                                 :: BitSize -> BitSize -> BitSize
-addBitSize (BitSize o1 b1) (BitSize o2 b2)  = BitSize (o1 + o2 + overflow) rest
+addBitSize (BitSize o1 b1) (BitSize o2 b2)  = BitSize (o1 + o2 + overflow * CInfo.size CIntPT) rest
   where
     bitsPerBitfield  = CInfo.size CIntPT * 8
     (overflow, rest) = (b1 + b2) `divMod` bitsPerBitfield
@@ -1970,7 +1977,7 @@ alignOffset offset@(BitSize octetOffset bitOffset) align bitfieldAlignment
     offset
   where
     bitsPerBitfield     = CInfo.size CIntPT * 8
-    overflowingBitfield = bitOffset - align >= bitsPerBitfield
+    overflowingBitfield = bitOffset - align > bitsPerBitfield
                                     -- note, `align' is negative
 
 
@@ -2163,12 +2170,6 @@ traceGenBind  = putTraceStr traceGenBindSW
 --
 lookupBy      :: (a -> a -> Bool) -> a -> [(a, b)] -> Maybe b
 lookupBy eq x  = fmap snd . find (eq x . fst)
-
--- | maps some monad operation into a `Maybe', discarding the result
---
-mapMaybeM_ :: Monad m => (a -> m b) -> Maybe a -> m ()
-mapMaybeM_ _ Nothing   =        return ()
-mapMaybeM_ m (Just a)  = m a >> return ()
 
 
 -- error messages

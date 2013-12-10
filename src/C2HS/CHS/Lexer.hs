@@ -87,11 +87,11 @@
 --    transfers control to the following binding-hook lexer:
 --
 --      ident       -> letter (letter | digit | `\'')*
---      reservedid  -> `as' | `call' | `class' | `context' | `deriving'
+--      reservedid  -> `add' | `as' | `call' | `class' | `context' | `deriving'
 --                   | `enum' | `foreign' | `fun' | `get' | `lib'
 --                   | `downcaseFirstLetter'
 --                   | `newtype' | `nocode' | `pointer' | `prefix' | `pure'
---                   | `set' | `sizeof' | `stable' | `type'
+--                   | `set' | `sizeof' | `stable' | `struct' | `type'
 --                   | `underscoreToCase' | `upcaseFirstLetter' | `unsafe' |
 --                   | `with'
 --      reservedsym -> `{#' | `#}' | `{' | `}' | `,' | `.' | `->' | `='
@@ -205,6 +205,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokLParen  Position          -- `('
               | CHSTokRParen  Position          -- `)'
               | CHSTokEndHook Position          -- `#}'
+              | CHSTokAdd     Position          -- `add'
               | CHSTokAs      Position          -- `as'
               | CHSTokCall    Position          -- `call'
               | CHSTokClass   Position          -- `class'
@@ -228,6 +229,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokSizeof  Position          -- `sizeof'
               | CHSTokAlignof Position          -- `alignof'
               | CHSTokStable  Position          -- `stable'
+              | CHSTokStruct  Position          -- `struct'
               | CHSTokType    Position          -- `type'
               | CHSTok_2Case  Position          -- `underscoreToCase'
               | CHSTokUnsafe  Position          -- `unsafe'
@@ -258,6 +260,7 @@ instance Pos CHSToken where
   posOf (CHSTokLParen  pos  ) = pos
   posOf (CHSTokRParen  pos  ) = pos
   posOf (CHSTokEndHook pos  ) = pos
+  posOf (CHSTokAdd     pos  ) = pos
   posOf (CHSTokAs      pos  ) = pos
   posOf (CHSTokCall    pos  ) = pos
   posOf (CHSTokClass   pos  ) = pos
@@ -281,6 +284,7 @@ instance Pos CHSToken where
   posOf (CHSTokSizeof  pos  ) = pos
   posOf (CHSTokAlignof pos  ) = pos
   posOf (CHSTokStable  pos  ) = pos
+  posOf (CHSTokStruct  pos  ) = pos
   posOf (CHSTokType    pos  ) = pos
   posOf (CHSTok_2Case  pos  ) = pos
   posOf (CHSTokUnsafe  pos  ) = pos
@@ -311,6 +315,7 @@ instance Eq CHSToken where
   (CHSTokLParen   _  ) == (CHSTokLParen   _  ) = True
   (CHSTokRParen   _  ) == (CHSTokRParen   _  ) = True
   (CHSTokEndHook  _  ) == (CHSTokEndHook  _  ) = True
+  (CHSTokAdd      _  ) == (CHSTokAdd      _  ) = True
   (CHSTokAs       _  ) == (CHSTokAs       _  ) = True
   (CHSTokCall     _  ) == (CHSTokCall     _  ) = True
   (CHSTokClass    _  ) == (CHSTokClass    _  ) = True
@@ -334,6 +339,7 @@ instance Eq CHSToken where
   (CHSTokSizeof   _  ) == (CHSTokSizeof   _  ) = True
   (CHSTokAlignof  _  ) == (CHSTokAlignof  _  ) = True
   (CHSTokStable   _  ) == (CHSTokStable   _  ) = True
+  (CHSTokStruct   _  ) == (CHSTokStruct   _  ) = True
   (CHSTokType     _  ) == (CHSTokType     _  ) = True
   (CHSTok_2Case   _  ) == (CHSTok_2Case   _  ) = True
   (CHSTokUnsafe   _  ) == (CHSTokUnsafe   _  ) = True
@@ -365,6 +371,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokLParen  _  ) = showString "("
   showsPrec _ (CHSTokRParen  _  ) = showString ")"
   showsPrec _ (CHSTokEndHook _  ) = showString "#}"
+  showsPrec _ (CHSTokAdd     _  ) = showString "add"
   showsPrec _ (CHSTokAs      _  ) = showString "as"
   showsPrec _ (CHSTokCall    _  ) = showString "call"
   showsPrec _ (CHSTokClass   _  ) = showString "class"
@@ -388,6 +395,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokSizeof  _  ) = showString "sizeof"
   showsPrec _ (CHSTokAlignof _  ) = showString "alignof"
   showsPrec _ (CHSTokStable  _  ) = showString "stable"
+  showsPrec _ (CHSTokStruct  _  ) = showString "struct"
   showsPrec _ (CHSTokType    _  ) = showString "type"
   showsPrec _ (CHSTok_2Case  _  ) = showString "underscoreToCase"
   showsPrec _ (CHSTokUnsafe  _  ) = showString "unsafe"
@@ -688,6 +696,7 @@ identOrKW  =
        (letter +> (letter >|< digit >|< char '\'')`star` epsilon
        `lexactionName` \cs pos name -> (idkwtok $!pos) cs name)
   where
+    idkwtok pos "add"              _    = CHSTokAdd     pos
     idkwtok pos "as"               _    = CHSTokAs      pos
     idkwtok pos "call"             _    = CHSTokCall    pos
     idkwtok pos "class"            _    = CHSTokClass   pos
@@ -711,6 +720,7 @@ identOrKW  =
     idkwtok pos "sizeof"           _    = CHSTokSizeof  pos
     idkwtok pos "alignof"          _    = CHSTokAlignof pos
     idkwtok pos "stable"           _    = CHSTokStable  pos
+    idkwtok pos "struct"           _    = CHSTokStruct  pos
     idkwtok pos "type"             _    = CHSTokType    pos
     idkwtok pos "underscoreToCase" _    = CHSTok_2Case  pos
     idkwtok pos "unsafe"           _    = CHSTokUnsafe  pos
@@ -723,6 +733,7 @@ identOrKW  =
 keywordToIdent :: CHSToken -> CHSToken
 keywordToIdent tok =
   case tok of
+    CHSTokAdd     pos -> mkid pos "add"
     CHSTokAs      pos -> mkid pos "as"
     CHSTokCall    pos -> mkid pos "call"
     CHSTokClass   pos -> mkid pos "class"
@@ -746,6 +757,7 @@ keywordToIdent tok =
     CHSTokSizeof  pos -> mkid pos "sizeof"
     CHSTokAlignof pos -> mkid pos "alignof"
     CHSTokStable  pos -> mkid pos "stable"
+    CHSTokStruct  pos -> mkid pos "struct"
     CHSTokType    pos -> mkid pos "type"
     CHSTok_2Case  pos -> mkid pos "underscoreToCase"
     CHSTokUnsafe  pos -> mkid pos "unsafe"
