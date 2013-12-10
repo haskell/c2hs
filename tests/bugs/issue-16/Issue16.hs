@@ -2,6 +2,9 @@
 -- Edit the ORIGNAL .chs file instead!
 
 
-{-# LINE 1 "Issue16.chs" #-}#include "issue16.h"
+{-# LINE 1 "Issue16.chs" #-}
 
+
+main :: IO ()
 main = return ()
+

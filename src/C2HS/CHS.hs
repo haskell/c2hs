@@ -143,6 +143,7 @@ data CHSFrag = CHSVerb String                   -- Haskell code
              | CHSHook CHSHook                  -- binding hook
              | CHSCPP  String                   -- pre-processor directive
                        Position
+                       Bool
              | CHSLine Position                 -- line pragma
              | CHSC    String                   -- C code
                        Position
@@ -151,12 +152,12 @@ data CHSFrag = CHSVerb String                   -- Haskell code
                        (Maybe [CHSFrag])        -- else branch
 
 instance Pos CHSFrag where
-  posOf (CHSVerb _ pos ) = pos
-  posOf (CHSHook hook  ) = posOf hook
-  posOf (CHSCPP  _ pos ) = pos
-  posOf (CHSLine   pos ) = pos
-  posOf (CHSC    _ pos ) = pos
-  posOf (CHSCond alts _) = case alts of
+  posOf (CHSVerb _ pos  ) = pos
+  posOf (CHSHook hook   ) = posOf hook
+  posOf (CHSCPP  _ pos _) = pos
+  posOf (CHSLine   pos  ) = pos
+  posOf (CHSC    _ pos  ) = pos
+  posOf (CHSCond alts _ ) = case alts of
                              (_, frag:_):_ -> posOf frag
                              _             -> nopos
 
@@ -450,7 +451,7 @@ showCHSModule (CHSModule fragments) pureHaskell  =
       in
         (if emitNow then
            showString ("\n{-# LINE " ++ show (line `max` 0) ++ " " ++
-                       show fname ++ " #-}")
+                       show fname ++ " #-}\n")
          else id)
       . showString s
       . showFrags pureHs nextState frags
@@ -459,10 +460,10 @@ showCHSModule (CHSModule fragments) pureHaskell  =
       . showCHSHook hook
       . showString "#}"
       . showFrags False Wait frags
-    showFrags False  _     (CHSCPP  s    _     : frags) =
-        showChar '#'
+    showFrags False  _     (CHSCPP  s    _ nl  : frags) =
+      (if nl then showChar '\n' else id)
+      . showChar '#'
       . showString s
---      . showChar '\n'
       . showFrags False Emit frags
     showFrags pureHs _     (CHSLine _s         : frags) =
         showFrags pureHs Emit frags
@@ -799,9 +800,9 @@ parseFrags tokens  = do
     parseFrags0 (CHSTokCtrl    pos c:toks) = do
                                                frags <- parseFrags toks
                                                return $ CHSVerb [c] pos : frags
-    parseFrags0 (CHSTokCPP     pos s:toks) = do
+    parseFrags0 (CHSTokCPP     pos s nl:toks) = do
                                                frags <- parseFrags toks
-                                               return $ CHSCPP s pos : frags
+                                               return $ CHSCPP s pos nl : frags
     parseFrags0 (CHSTokLine    pos  :toks) = do
                                                frags <- parseFrags toks
                                                return $ CHSLine pos : frags

@@ -336,7 +336,7 @@ expandFrag      (CHSHook h       ) =
     code <- expandHook h
     return [CHSVerb code builtinPos]
   `ifCTExc` return [CHSVerb "** ERROR **" builtinPos]
-expandFrag      (CHSCPP  s _     ) =
+expandFrag      (CHSCPP  s _    _) =
   interr $ "GenBind.expandFrag: Left over CHSCPP!\n---\n" ++ s ++ "\n---"
 expandFrag      (CHSC    s _     ) =
   interr $ "GenBind.expandFrag: Left over CHSC!\n---\n" ++ s ++ "\n---"

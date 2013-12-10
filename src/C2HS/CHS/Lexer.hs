@@ -240,7 +240,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokHSQuot  Position String   -- quoted Haskell ('...')
               | CHSTokIdent   Position Ident    -- identifier
               | CHSTokHaskell Position String   -- verbatim Haskell code
-              | CHSTokCPP     Position String   -- pre-processor directive
+              | CHSTokCPP     Position String Bool -- pre-processor directive
               | CHSTokLine    Position          -- line pragma
               | CHSTokC       Position String   -- verbatim C code
               | CHSTokCtrl    Position Char     -- control code
@@ -295,7 +295,7 @@ instance Pos CHSToken where
   posOf (CHSTokHSQuot  pos _) = pos
   posOf (CHSTokIdent   pos _) = pos
   posOf (CHSTokHaskell pos _) = pos
-  posOf (CHSTokCPP     pos _) = pos
+  posOf (CHSTokCPP     pos _ _) = pos
   posOf (CHSTokLine    pos  ) = pos
   posOf (CHSTokC       pos _) = pos
   posOf (CHSTokCtrl    pos _) = pos
@@ -350,7 +350,7 @@ instance Eq CHSToken where
   (CHSTokHSQuot   _ _) == (CHSTokHSQuot   _ _) = True
   (CHSTokIdent    _ _) == (CHSTokIdent    _ _) = True
   (CHSTokHaskell  _ _) == (CHSTokHaskell  _ _) = True
-  (CHSTokCPP      _ _) == (CHSTokCPP      _ _) = True
+  (CHSTokCPP    _ _ _) == (CHSTokCPP    _ _ _) = True
   (CHSTokLine     _  ) == (CHSTokLine     _  ) = True
   (CHSTokC        _ _) == (CHSTokC        _ _) = True
   (CHSTokCtrl     _ _) == (CHSTokCtrl     _ _) = True
@@ -406,7 +406,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokHSQuot  _ s) = showString ("'" ++ s ++ "'")
   showsPrec _ (CHSTokIdent   _ i) = (showString . identToString) i
   showsPrec _ (CHSTokHaskell _ s) = showString s
-  showsPrec _ (CHSTokCPP     _ s) = showString s
+  showsPrec _ (CHSTokCPP  _ s nl) = showString (if nl then "\n" else "" ++ s)
   showsPrec _ (CHSTokLine    _  ) = id            --TODO show line num?
   showsPrec _ (CHSTokC       _ s) = showString s
   showsPrec _ (CHSTokCtrl    _ c) = showChar c
@@ -477,6 +477,7 @@ chslexer  =      haskell        -- Haskell code
             >||< ctrl           -- control code (that has to be preserved)
             >||< hook           -- start of a binding hook
             >||< cpp            -- a pre-processor directive (or `#c')
+            >||< startmarker    -- marks beginning of input
 
 -- | stream of Haskell code (terminated by a control character or binding hook)
 --
@@ -600,6 +601,14 @@ hook :: CHSLexer
 hook  = string "{#"
         `lexmeta` \_ pos s -> (Nothing, incPos pos 2, s, Just bhLexer)
 
+-- | start marker: used to identify pre-processor directive at
+-- beginning of input -- this lexer just drops the start marker if it
+-- hasn't been used to handle a pre-processor directive
+--
+startmarker :: CHSLexer
+startmarker = char '\000' `lexmeta`
+              \lexeme pos s -> (Nothing, incPos pos 1, s, Just chslexer)
+
 -- | pre-processor directives and `#c'
 --
 -- * we lex `#c' as a directive and special case it in the action
@@ -610,21 +619,23 @@ cpp :: CHSLexer
 cpp = directive
       where
         directive =
-          string "\n#" +> alt ('\t':inlineSet)`star` epsilon
+          (string "\n#" >|< string "\0#") +>
+          alt ('\t':inlineSet)`star` epsilon
           `lexmeta`
-             \(_:_:dir) pos s ->        -- strip off the "\n#"
+             \t@(ld:_:dir) pos s ->      -- strip off the "\n#" or "\0#"
                case dir of
                  ['c']                      ->          -- #c
-                   (Nothing, retPos pos, s, Just cLexer)
+                   (Nothing, incPos pos (length t), s, Just cLexer)
                  -- a #c may be followed by whitespace
                  'c':sp:_ | sp `elem` " \t" ->          -- #c
-                   (Nothing, retPos pos, s, Just cLexer)
+                   (Nothing, incPos pos (length t), s, Just cLexer)
                  ' ':line@(n:_) | isDigit n ->                 -- C line pragma
                    let pos' = adjustPosByCLinePragma line pos
                     in (Just $ Right (CHSTokLine pos'), pos', s, Nothing)
                  _                            ->        -- CPP directive
-                   (Just $ Right (CHSTokCPP pos dir),
-                    retPos pos, s, Nothing)
+                   (Just $ Right (CHSTokCPP pos dir (ld == '\n')),
+                    if ld == '\n' then retPos pos else incPos pos (length t),
+                    s, Nothing)
 
 adjustPosByCLinePragma :: String -> Position -> Position
 adjustPosByCLinePragma str pos = adjustPos fname' row' pos
@@ -815,7 +826,7 @@ inhsverb  = alt ([' '..'\127'] \\ "'")
 -- | character sets
 --
 anySet, inlineSet, specialSet, commentSpecialSet, ctrlSet :: [Char]
-anySet            = ['\0'..'\255']
+anySet            = ['\1'..'\255']
 inlineSet         = anySet \\ ctrlSet
 specialSet        = ['{', '-', '"', '\'']
 commentSpecialSet = ['{', '-']
@@ -837,7 +848,7 @@ lexCHS cs pos  =
   do
     nameSupply <- getNameSupply
     state <- initialState nameSupply
-    let (ts, lstate, errs) = execLexer chslexer (cs, pos, state)
+    let (ts, lstate, errs) = execLexer chslexer ('\0':cs, pos, state)
         (_, pos', state')  = lstate
     mapM_ raise errs
     assertFinalState pos' state'

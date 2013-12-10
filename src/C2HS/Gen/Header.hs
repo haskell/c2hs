@@ -198,7 +198,7 @@ ghFrag (     (CHSC    s  _  ) : frags) =
 
 ghFrag (     (CHSCond _  _  ) : _    ) =
   interr "GenHeader.ghFrags: There can't be a structured conditional yet!"
-ghFrag (     (CHSCPP  s  pos) : frags) =
+ghFrag (     (CHSCPP s pos nl) : frags) =
   let
     (directive, _) =   break (`elem` " \t")
                      . dropWhile (`elem` " \t")
@@ -211,7 +211,8 @@ ghFrag (     (CHSCPP  s  pos) : frags) =
     "else"   -> return (DL.zero              , Else   pos               , frags)
     "elif"   -> return (DL.zero              , Elif s pos               , frags)
     "endif"  -> return (DL.zero              , Endif  pos               , frags)
-    _        -> return (DL.open ['#':s, "\n"], Frag   (CHSVerb "" nopos), frags)
+    _        -> return (DL.open ['#':s, "\n"],
+                        Frag (CHSVerb (if nl then "\n" else "") pos), frags)
   where
     -- enter a new conditional (may be an #if[[n]def] or #elif)
     --
