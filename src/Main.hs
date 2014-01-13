@@ -179,6 +179,7 @@ errTrailer = "Try the option `--help' on its own for more information.\n"
 data Flag = CPPOpts  String     -- ^ additional options for C preprocessor
           | CPP      String     -- ^ program name of C preprocessor
           | NoGNU               -- ^ suppress GNU preprocessor symbols
+          | NoBlocks            -- ^ suppress MacOS __BLOCKS__ preproc. symbol
           | Dump     DumpType   -- ^ dump internal information
           | Help                -- ^ print brief usage information
           | Keep                -- ^ keep the .i file
@@ -214,6 +215,10 @@ options  = [
          ["no-gnu"]
          (NoArg NoGNU)
          "suppress GNU preprocessor symbols",
+  Option ['b']
+         ["no-blocks"]
+         (NoArg NoBlocks)
+         "suppress MacOS __BLOCKS__ preprocessor symbol",
   Option ['d']
          ["dump"]
          (ReqArg dumpArg "TYPE")
@@ -399,6 +404,7 @@ processOpt :: Flag -> CST s ()
 processOpt (CPPOpts  cppopt ) = addCPPOpts  [cppopt]
 processOpt (CPP      cpp    ) = setCPP      cpp
 processOpt (NoGNU           ) = setNoGNU
+processOpt (NoBlocks        ) = setNoBlocks
 processOpt (Dump     dt     ) = setDump     dt
 processOpt (Keep            ) = setKeep
 processOpt (Library         ) = setLibrary
@@ -463,6 +469,11 @@ setCPP fname  = setSwitch $ \sb -> sb {cppSB = fname}
 --
 setNoGNU :: CST s ()
 setNoGNU  = setSwitch $ \sb -> sb {noGnuSB = True}
+
+-- | set flag to suppress MacOS __BLOCKS__ preprocessor symbols
+--
+setNoBlocks :: CST s ()
+setNoBlocks = setSwitch $ \sb -> sb {noBlocksSB = True}
 
 -- set the given dump option
 --
@@ -573,14 +584,16 @@ process headerFiles bndFile  =
     --
     -- run C preprocessor over the header
     --
-    cpp     <- getSwitch cppSB
-    cppOpts <- getSwitch cppOptsSB
-    noGnu   <- getSwitch noGnuSB
+    cpp      <- getSwitch cppSB
+    cppOpts  <- getSwitch cppOptsSB
+    noGnu    <- getSwitch noGnuSB
+    noBlocks <- getSwitch noBlocksSB
     let noGnuOpts =
           if noGnu
           then ["-U__GNUC__", "-U__GNUC_MINOR__", "-U__GNUC_PATCHLEVEL__"]
           else []
-        args = cppOpts ++ noGnuOpts ++ [newHeaderFile]
+        noBlocksOpts = if noBlocks then ["-U__BLOCKS__"] else []
+        args = cppOpts ++ noGnuOpts ++ noBlocksOpts ++ [newHeaderFile]
     tracePreproc (unwords (cpp:args))
     exitCode <- CIO.liftIO $ do
       preprocHnd <- openFile preprocFile WriteMode

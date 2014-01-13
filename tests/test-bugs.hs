@@ -28,6 +28,7 @@ tests =
     , testCase "Issue #44" issue44
     , testCase "Issue #43" issue43
     , testCase "Issue #32" issue32
+    , testCase "Issue #29" issue29
     , testCase "Issue #19" issue19
     , testCase "Issue #16" issue16
 --    , testCase "Issue #10" issue10
@@ -100,6 +101,15 @@ issue43 = expect_issue 43 ["Test1A=0", "Test1B=1", "Test1C=5", "Test1D=6",
 
 issue32 :: Assertion
 issue32 = expect_issue 32 ["1234", "1", "523"]
+
+issue29 :: Assertion
+issue29 = shelly $ do
+  errExit False $ do
+      cd "tests/bugs/issue-29"
+      mapM_ rm_f ["Issue29.hs", "Issue29.chs.h", "Issue29.chi"]
+      run "c2hs" $ ["--no-blocks", toTextIgnore "Issue29.chs"]
+  code <- lastExitCode
+  liftIO $ assertBool "" (code == 0)
 
 issue19 :: Assertion
 issue19 = expect_issue 19 ["Did it!"]
