@@ -31,6 +31,7 @@ tests =
     , testCase "Issue #19" issue19
     , testCase "Issue #16" issue16
 --    , testCase "Issue #10" issue10
+    , testCase "Issue #7" issue7
     ]
   ]
 
@@ -109,6 +110,15 @@ issue16 = build_issue 16
 issue10 :: Assertion
 issue10 = expect_issue 10 ["SAME", "SAME", "SAME"]
 
+issue7 :: Assertion
+issue7 = shelly $ do
+  errExit False $ do
+      cd "tests/bugs/issue-7"
+      mapM_ rm_f ["Issue7.hs", "Issue7.chs.h", "Issue7.chi"]
+      setenv "LANG" "zh_CN.utf8"
+      run "c2hs" $ [toTextIgnore "Issue7.chs"]
+  code <- lastExitCode
+  liftIO $ assertBool "" (code == 0)
 
 do_issue_build :: Int -> [Text] -> Sh ()
 do_issue_build n c2hsargs =
