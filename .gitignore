@@ -58,3 +58,5 @@
 /tests/system/sizeof/Sizeof.hs
 /tests/system/structs/structs
 /tests/system/structs/Structs.hs
+/tests/bugs/issue-37/Issue37
+/tests/bugs/issue-37/Issue37.hs
