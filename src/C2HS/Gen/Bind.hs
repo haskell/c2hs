@@ -147,6 +147,10 @@ import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
 --   pointers defined via (newtype) pointer hooks)
 -- - the checks for the Haskell types are quite kludgy
 
+stringIn :: String
+stringIn = "\\s f -> withCStringLen s " ++
+           "(\\(p, n) -> f (p, fromIntegral n))"
+
 -- | determine the default "in" marshaller for the given Haskell and C types
 --
 lookupDftMarshIn :: String -> [ExtType] -> GB CHSMarsh
@@ -162,21 +166,22 @@ lookupDftMarshIn "String" [PtrET (PrimET CCharPT)]             =
   return $ Just (Left withCStringIde, CHSIOArg)
 lookupDftMarshIn "String" [PtrET (PrimET CCharPT), PrimET pt]
   | isIntegralCPrimType pt                                     =
-  return $ Just (Left withCStringLenIde, CHSIOArg)
+  return $ Just (Right stringIn , CHSIOArg)
 lookupDftMarshIn hsTy     [PtrET ty]  | showExtType ty == hsTy =
-  return $ Just (Left withIde, CHSIOArg)
+  return $ Just (Right stringIn, CHSIOArg)
 lookupDftMarshIn hsTy     [PtrET (PrimET pt)]
   | isIntegralHsType hsTy && isIntegralCPrimType pt            =
-  return $ Just (Left withIntConvIde, CHSIOArg)
+  return $ Just (Right "with . fromIntegral", CHSIOArg)
 lookupDftMarshIn hsTy     [PtrET (PrimET pt)]
   | isFloatHsType hsTy && isFloatCPrimType pt                  =
-  return $ Just (Left withFloatConvIde, CHSIOArg)
+  return $ Just (Right "with . realToFrac", CHSIOArg)
 lookupDftMarshIn "Bool"   [PtrET (PrimET pt)]
   | isIntegralCPrimType pt                                     =
-  return $ Just (Left withFromBoolIde, CHSIOArg)
+  return $ Just (Right "with . fromBool", CHSIOArg)
 -- FIXME: handle array-list conversion
 lookupDftMarshIn _        _                                    =
   return Nothing
+
 
 -- | determine the default "out" marshaller for the given Haskell and C types
 --
@@ -195,13 +200,15 @@ lookupDftMarshOut "String" [PtrET (PrimET CCharPT)]             =
   return $ Just (Left peekCStringIde, CHSIOArg)
 lookupDftMarshOut "String" [PtrET (PrimET CCharPT), PrimET pt]
   | isIntegralCPrimType pt                                      =
-  return $ Just (Left peekCStringLenIde, CHSIOArg)
+  return $ Just (Right "\\(s, n) -> peekCStringLen (s, fromIntegral n)",
+                 CHSIOArg)
 lookupDftMarshOut hsTy     [PtrET ty]  | showExtType ty == hsTy =
   return $ Just (Left peekIde, CHSIOArg)
 -- FIXME: add combination, such as "peek" plus "cIntConv" etc
 -- FIXME: handle array-list conversion
 lookupDftMarshOut _        _                                    =
   return Nothing
+
 
 
 -- | check for integral Haskell types
@@ -251,28 +258,16 @@ isFloatCPrimType  = (`elem` [CFloatPT, CDoublePT, CLDoublePT])
 -- | standard conversions
 --
 voidIde, cFromBoolIde, cToBoolIde, cIntConvIde, cFloatConvIde,
-  withIde, withCStringIde, withCStringLenIde, withIntConvIde,
-  withFloatConvIde, withFromBoolIde, peekIde, peekCStringIde,
-  peekCStringLenIde :: Ident
+  withCStringIde, peekIde, peekCStringIde :: Ident
 voidIde           = internalIdent "void"         -- never appears in the output
 cFromBoolIde      = internalIdent "fromBool"
 cToBoolIde        = internalIdent "toBool"
 cIntConvIde       = internalIdent "fromIntegral"
 cFloatConvIde     = internalIdent "realToFrac"
-withIde           = internalIdent "with"
 withCStringIde    = internalIdent "withCString"
-withCStringLenIde = internalIdent "withCStringLenIntConv" --TODO: kill off
-withIntConvIde    = internalIdent "withIntConv"           --TODO: kill off
-withFloatConvIde  = internalIdent "withFloatConv"         --TODO: kill off
-withFromBoolIde   = internalIdent "withFromBoolConv"      --TODO: kill off
 peekIde           = internalIdent "peek"
 peekCStringIde    = internalIdent "peekCString"
-peekCStringLenIde = internalIdent "peekCStringLenIntConv" --TODO: kill off
 
---TODO: c2hs should not generate these references to externally defined
--- non-standard utility functions. It's annoying and they are all trivial.
--- The solutionis to generate expressions inline, rather than requiring all
--- marshalers be single identifiers.
 
 -- expansion of binding hooks
 -- --------------------------
