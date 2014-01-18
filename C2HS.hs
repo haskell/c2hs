@@ -34,7 +34,7 @@
 --  with the C->HS-specific higher-level marshalling routines.
 --
 
-module C2HS (
+module C2HS {-# DEPRECATED "The C2HS module should no longer be used." #-} (
 
   -- * Re-export the language-independent component of the FFI 
   module Foreign,
