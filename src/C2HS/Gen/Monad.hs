@@ -55,6 +55,12 @@
 --  about these Haskell objects.  The Haskell object map is dumped into and
 --  read from `.chi' files.
 --
+--  Enumeration map
+--  ---------------
+--
+--  Map maintaining information about enum hooks for use in generation
+--  of default marshalling code.
+--
 --- TODO ----------------------------------------------------------------------
 --
 --  * Look up in translation tables is naive - this probably doesn't affect
@@ -64,9 +70,10 @@
 module C2HS.Gen.Monad (
   TransFun, transTabToTransFun,
 
-  HsObject(..), GB, initialGBState, setContext, getLibrary, getPrefix,
+  HsObject(..), GB, GBState(..), initialGBState, setContext, getLibrary, getPrefix,
   getReplacementPrefix, delayCode, getDelayedCode, ptrMapsTo, queryPtr,
-  objIs, queryObj, queryClass, queryPointer, mergeMaps, dumpMaps
+  objIs, queryObj, queryClass, queryPointer, mergeMaps, dumpMaps,
+  queryEnum, isEnum
 ) where
 
 -- standard libraries
@@ -75,6 +82,8 @@ import Data.List  (find)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map (empty, insert, lookup, union, toList, fromList)
 import Data.Map   (Map)
+import Data.Set   (Set)
+import qualified Data.Set as Set (empty, insert, member)
 
 -- Language.C
 import Language.C.Data.Position
@@ -204,6 +213,9 @@ data HsObject    = Pointer {
                  deriving (Show, Read)
 type HsObjectMap = Map Ident HsObject
 
+-- | set of Haskell type names corresponding to C enums.
+type EnumSet = Set String
+
 {- FIXME: What a mess...
 instance Show HsObject where
   show (Pointer ptrType isNewtype) =
@@ -241,7 +253,8 @@ data GBState  = GBState {
   repprefix :: String,               -- replacement prefix
   frags     :: [(CHSHook, CHSFrag)], -- delayed code (with hooks)
   ptrmap    :: PointerMap,           -- pointer representation
-  objmap    :: HsObjectMap           -- generated Haskell objects
+  objmap    :: HsObjectMap,          -- generated Haskell objects
+  enums     :: EnumSet               -- enumeration hooks
   }
 
 type GB a = CT GBState a
@@ -253,7 +266,8 @@ initialGBState  = GBState {
                     repprefix = "",
                     frags  = [],
                     ptrmap = Map.empty,
-                    objmap = Map.empty
+                    objmap = Map.empty,
+                    enums = Set.empty
                   }
 
 -- | set the dynamic library and library prefix
@@ -407,6 +421,19 @@ dumpMaps  = do
                               [(identToString ide, obj)
                               | (ide, obj)            <- Map.toList objFM])
               return $ show dumpable
+
+-- | query the enum map
+--
+queryEnum :: String -> GB Bool
+queryEnum hsName  = do
+  es <- readCT enums
+  return $ hsName `Set.member` es
+
+-- | add an entry to the enum map
+--
+isEnum :: String -> GB ()
+isEnum hsName =
+  transCT (\state -> (state { enums = Set.insert hsName (enums state) }, ()))
 
 
 -- error messages

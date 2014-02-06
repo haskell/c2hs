@@ -60,3 +60,5 @@
 /tests/system/structs/Structs.hs
 /tests/bugs/issue-37/Issue37
 /tests/bugs/issue-37/Issue37.hs
+/tests/bugs/issue-31/Issue31
+/tests/bugs/issue-31/Issue31.hs

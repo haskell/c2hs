@@ -21,6 +21,7 @@ tests =
     , testCase "Issue #60" issue60
     , testCase "Issue #51" issue51
     , testCase "Issue #47" issue47
+    , testCase "Issue #31" issue31
     , testCase "Issue #30" issue30
     , testCase "Issue #22" issue22
     , testCase "Issue #54" issue54
@@ -50,11 +51,36 @@ call_capital = shelly $ chdir "tests/bugs/call_capital" $ do
 issue60 :: Assertion
 issue60 = build_issue 60
 
+issue54 :: Assertion
+issue54 = expect_issue 54 ["2", "0.2", "2", "0.2",
+                           "3", "0.3", "3", "0.3",
+                           "3", "0.3", "3", "0.3"]
+
 issue51 :: Assertion
 issue51 = expect_issue_with 51 ["--no-gnu"] ["0"]
 
 issue47 :: Assertion
 issue47 = build_issue 47
+
+issue45 :: Assertion
+issue45 = build_issue 45
+
+issue44 :: Assertion
+issue44 = build_issue 44
+
+issue43 :: Assertion
+issue43 = expect_issue 43 ["Test1A=0", "Test1B=1", "Test1C=5", "Test1D=6",
+                           "AnonA=8", "AnonB=9", "AnonC=15", "AnonD=16"]
+
+issue32 :: Assertion
+issue32 = expect_issue 32 ["1234", "1", "523"]
+
+issue31 :: Assertion
+issue31 = expect_issue 31 ["Enum OK",
+                           "Pointer 1: 1 1",
+                           "Pointer 2: 2",
+                           "Foreign pointer: 3",
+                           "Foreign newtype pointer: 4"]
 
 -- This is tricky to test since it's Windows-specific, but we can at
 -- least make sure that paths with spaces work OK.
@@ -81,27 +107,6 @@ issue30 = shelly $ chdir "tests/bugs/issue-30" $ do
   let expected = ["3", "2", "4"]
   liftIO $ assertBool "" (LT.lines res == expected)
 
-issue22 :: Assertion
-issue22 = expect_issue 22 ["abcdef", "2", "20"]
-
-issue54 :: Assertion
-issue54 = expect_issue 54 ["2", "0.2", "2", "0.2",
-                           "3", "0.3", "3", "0.3",
-                           "3", "0.3", "3", "0.3"]
-
-issue45 :: Assertion
-issue45 = build_issue 45
-
-issue44 :: Assertion
-issue44 = build_issue 44
-
-issue43 :: Assertion
-issue43 = expect_issue 43 ["Test1A=0", "Test1B=1", "Test1C=5", "Test1D=6",
-                           "AnonA=8", "AnonB=9", "AnonC=15", "AnonD=16"]
-
-issue32 :: Assertion
-issue32 = expect_issue 32 ["1234", "1", "523"]
-
 issue29 :: Assertion
 issue29 = shelly $ do
   errExit False $ do
@@ -110,6 +115,9 @@ issue29 = shelly $ do
       run "c2hs" $ ["--no-blocks", toTextIgnore "Issue29.chs"]
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
+
+issue22 :: Assertion
+issue22 = expect_issue 22 ["abcdef", "2", "20"]
 
 issue19 :: Assertion
 issue19 = expect_issue 19 ["Did it!"]

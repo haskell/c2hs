@@ -104,11 +104,12 @@
 module C2HS.Gen.Bind (expandHooks)
 where
 
-import Prelude hiding (exp)
+import Prelude hiding (exp, lookup)
 
 -- standard libraries
 import Data.Char     (toLower)
 import Data.List     (deleteBy, intersperse, find)
+import Data.Map      (lookup)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
 import Control.Monad (when, unless, liftM, mapAndUnzipM)
@@ -134,9 +135,12 @@ import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..),
 import C2HS.C.Info      (CPrimType(..), alignment, getPlatform)
 import qualified C2HS.C.Info as CInfo
 import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
+                          GBState(..),
                    initialGBState, setContext, getPrefix, getReplacementPrefix,
                    delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
-                   queryClass, queryPointer, mergeMaps, dumpMaps)
+                   queryClass, queryPointer, mergeMaps, dumpMaps,
+                   queryEnum, isEnum)
+
 
 -- default marshallers
 -- -------------------
@@ -178,9 +182,23 @@ lookupDftMarshIn hsTy     [PtrET (PrimET pt)]
 lookupDftMarshIn "Bool"   [PtrET (PrimET pt)]
   | isIntegralCPrimType pt                                     =
   return $ Just (Right "with . fromBool", CHSIOArg)
+-- Default case deals with:
+lookupDftMarshIn hsty _ = do
+  om <- readCT objmap
+  isenum <- queryEnum hsty
+  return $ case (isenum, (internalIdent hsty) `lookup` om) of
+    --  1. enumeration hooks
+    (True, Nothing) -> Just (Right "fromIntegral . fromEnum", CHSValArg)
+    --  2. naked and newtype pointer hooks
+    (False, Just (Pointer CHSPtr _)) -> Just (Left idIde, CHSValArg)
+    --  3. foreign pointer hooks
+    (False, Just (Pointer CHSForeignPtr False)) ->
+      Just (Left withForeignPtrIde, CHSIOArg)
+    --  4. foreign newtype pointer hooks
+    (False, Just (Pointer CHSForeignPtr True)) ->
+      Just (Right $ "with" ++ hsty, CHSIOArg)
+    _ -> Nothing
 -- FIXME: handle array-list conversion
-lookupDftMarshIn _        _                                    =
-  return Nothing
 
 
 -- | determine the default "out" marshaller for the given Haskell and C types
@@ -204,11 +222,24 @@ lookupDftMarshOut "String" [PtrET (PrimET CCharPT), PrimET pt]
                  CHSIOArg)
 lookupDftMarshOut hsTy     [PtrET ty]  | showExtType ty == hsTy =
   return $ Just (Left peekIde, CHSIOArg)
+-- Default case deals with:
+lookupDftMarshOut hsty _ = do
+  om <- readCT objmap
+  isenum <- queryEnum hsty
+  return $ case (isenum, (internalIdent hsty) `lookup` om) of
+    --  1. enumeration hooks
+    (True, Nothing) -> Just (Right "toEnum . fromIntegral", CHSValArg)
+    --  2. naked and newtype pointer hooks
+    (False, Just (Pointer CHSPtr _)) -> Just (Left idIde, CHSValArg)
+    --  3. foreign pointer hooks
+    (False, Just (Pointer CHSForeignPtr False)) ->
+      Just (Left newForeignPtrIde, CHSIOArg)
+    --  4. foreign newtype pointer hooks
+    (False, Just (Pointer CHSForeignPtr True)) ->
+      Just (Right $ "newForeignPtr_ >=> (return . " ++ hsty ++ ")", CHSIOArg)
+    _ -> Nothing
 -- FIXME: add combination, such as "peek" plus "cIntConv" etc
 -- FIXME: handle array-list conversion
-lookupDftMarshOut _        _                                    =
-  return Nothing
-
 
 
 -- | check for integral Haskell types
@@ -258,7 +289,8 @@ isFloatCPrimType  = (`elem` [CFloatPT, CDoublePT, CLDoublePT])
 -- | standard conversions
 --
 voidIde, cFromBoolIde, cToBoolIde, cIntConvIde, cFloatConvIde,
-  withCStringIde, peekIde, peekCStringIde :: Ident
+  withCStringIde, peekIde, peekCStringIde, idIde,
+  newForeignPtrIde, withForeignPtrIde :: Ident
 voidIde           = internalIdent "void"         -- never appears in the output
 cFromBoolIde      = internalIdent "fromBool"
 cToBoolIde        = internalIdent "toBool"
@@ -267,6 +299,9 @@ cFloatConvIde     = internalIdent "realToFrac"
 withCStringIde    = internalIdent "withCString"
 peekIde           = internalIdent "peek"
 peekCStringIde    = internalIdent "peekCString"
+idIde             = internalIdent "id"
+newForeignPtrIde  = internalIdent "newForeignPtr_"
+withForeignPtrIde = internalIdent "withForeignPtr"
 
 
 -- expansion of binding hooks
@@ -287,12 +322,12 @@ expandHooks ac mod'  = do
                         return res
 
 expandModule                   :: CHSModule -> GB (CHSModule, String, String)
-expandModule (CHSModule frags)  =
+expandModule (CHSModule mfrags)  =
   do
     -- expand hooks
     --
     traceInfoExpand
-    frags'       <- expandFrags frags
+    frags'       <- expandFrags mfrags
     delayedFrags <- getDelayedCode
 
     -- get .chi dump
@@ -343,14 +378,14 @@ expandFrag      (CHSCond alts dft) =
     select []                   = do
                                     traceInfoDft dft
                                     expandFrags (maybe [] id dft)
-    select ((ide, frags):alts') = do
-                                   oobj <- findTag ide
-                                   traceInfoVal ide oobj
-                                   if isNothing oobj
-                                     then
-                                       select alts'
-                                     else            -- found right alternative
-                                       expandFrags frags
+    select ((ide, cfrags):alts') = do
+                                    oobj <- findTag ide
+                                    traceInfoVal ide oobj
+                                    if isNothing oobj
+                                      then
+                                        select alts'
+                                      else            -- found right alternative
+                                        expandFrags cfrags
     --
     traceInfoCond         = traceGenBind "** CPP conditional:\n"
     traceInfoVal ide oobj = traceGenBind $ identToString ide ++ " is " ++
@@ -424,15 +459,15 @@ expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive _) =
     -- convert the translation table and generate data type definition code
     --
     gprefix <- getPrefix
-    let prefix = case oprefix of
-                   Nothing -> gprefix
-                   Just pref -> pref
+    let pfx = case oprefix of
+          Nothing -> gprefix
+          Just pref -> pref
     grepprefix <- getReplacementPrefix
-    let repprefix = case orepprefix of
-                   Nothing -> grepprefix
-                   Just pref -> pref
+    let reppfx = case orepprefix of
+          Nothing -> grepprefix
+          Just pref -> pref
 
-    let trans = transTabToTransFun prefix repprefix chsTrans
+    let trans = transTabToTransFun pfx reppfx chsTrans
         hide  = identToString . fromMaybe cide $ oalias
     enumDef enum hide trans (map identToString derive)
 expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) =
@@ -692,6 +727,7 @@ enumDef (CEnum _ (Just list) _ _) hident trans userDerive =
         inst     = makeDerives
                    (if enumAuto then "Enum" : userDerive else userDerive) ++
                    if enumAuto then "\n" else "\n" ++ enumInst hident enumVals
+    isEnum hident
     return $ defHead ++ defBody ++ inst
   where
     evalTagVals []                     = return ([], True)
