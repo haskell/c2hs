@@ -51,11 +51,14 @@
 --            | `context' ctxt
 --            | `type' ident
 --            | `sizeof' ident
+--            | `alignof' ident
 --            | `enum' idalias trans [`with' prefix] [`add' prefix] [deriving]
+--            | `enum` `define` idalias [deriving]
 --            | `call' [`pure'] [`unsafe'] idalias
 --            | `fun' [`pure'] [`unsafe'] idalias parms
 --            | `get' [`struct'] apath
 --            | `set' [`struct'] apath
+--            | `offsetof` apath
 --            | `pointer' ['*'] idalias ptrkind ['nocode']
 --            | `class' [ident `=>'] ident ident
 --  ctxt     -> [`lib' `=' string] [prefix]
