@@ -108,7 +108,8 @@ import Prelude hiding (exp, lookup)
 
 -- standard libraries
 import Data.Char     (toLower)
-import Data.List     (deleteBy, intersperse, find)
+import Data.Function (on)
+import Data.List     (deleteBy, groupBy, sortBy, intersperse, find)
 import Data.Map      (lookup)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
@@ -721,7 +722,8 @@ enumDef :: CEnum -> String -> TransFun -> [String] -> GB String
 enumDef (CEnum _ (Just list) _ _) hident trans userDerive =
   do
     (list', enumAuto) <- evalTagVals list
-    let enumVals = [(trans ide, cexpr) | (ide, cexpr) <-  list']  -- translate
+    let enumVals = [(trans ide, cexpr) |
+                    (ide, cexpr) <- stripEnumAliases list']  -- translate
         defHead  = enumHead hident
         defBody  = enumBody (length defHead - 2) enumVals
         inst     = makeDerives
@@ -749,6 +751,18 @@ enumDef (CEnum _ (Just list) _ _) hident trans userDerive =
         at1 = newAttrsOnlyPos nopos
     makeDerives [] = ""
     makeDerives dList = "deriving (" ++ concat (intersperse "," dList) ++")"
+    stripEnumAliases :: [(Ident, Maybe CExpr)] -> [(Ident, Maybe CExpr)]
+    stripEnumAliases vs =
+      let okids = map (fst . head) .
+                  groupBy ((==) `on` snd) .
+                  sortBy (compare `on` snd) .
+                  extractEnumVals $ vs
+      in filter ((`elem` okids) . fst) vs
+    extractEnumVals :: [(Ident, Maybe CExpr)] -> [(Ident, CInteger)]
+    extractEnumVals = go 0
+      where go _ [] = []
+            go k ((i, Nothing):vs') = (i,k) : go (k+1) vs'
+            go _ ((i, Just (CConst (CIntConst j _))):vs') = (i,j) : go (j+1) vs'
 
 -- | Haskell code for the head of an enumeration definition
 --
