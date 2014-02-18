@@ -30,6 +30,7 @@ tests =
     , testCase "Issue #60" issue60
     , testCase "Issue #51" issue51
     , testCase "Issue #47" issue47
+    , testCase "Issue #36" issue36
     , testCase "Issue #31" issue31
     , testCase "Issue #30" issue30
     , testCase "Issue #23" issue23
@@ -99,6 +100,9 @@ issue43 = expect_issue 43 ["Test1A=0", "Test1B=1", "Test1C=5", "Test1D=6",
 
 issue38 :: Assertion
 issue38 = expect_issue 38 ["Enum OK"]
+
+issue36 :: Assertion
+issue36 = build_issue 36
 
 issue32 :: Assertion
 issue32 = expect_issue 32 ["1234", "1", "523"]
