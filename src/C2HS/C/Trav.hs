@@ -240,9 +240,7 @@ defTag ide tag  =
     traceCTrav $ "Defining tag "++show ide++"...\n"
     otag <- transAttrCCT $ \ac -> addDefTagC ac ide tag
     case otag of
-      Nothing      -> do
-                        assertIfEnumThenFull tag
-                        return Nothing                  -- no collision
+      Nothing      -> return Nothing                  -- no collision
       Just prevTag -> case isRefinedOrUse prevTag tag of
                          Nothing                 -> return otag
                          Just (fullTag, foreIde) -> do
@@ -270,8 +268,11 @@ defTag ide tag  =
     isRefinedOrUse tag'@(StructUnionCT (CStruct _ (Just _  ) _  _ _))
                         (StructUnionCT (CStruct _ (Just ide') Nothing _ _)) =
       Just (tag', ide')
-    isRefinedOrUse tag'@(EnumCT        (CEnum (Just _  ) _  _ _))
-                        (EnumCT        (CEnum (Just ide') Nothing _ _))     =
+    isRefinedOrUse      (EnumCT        (CEnum (Just ide') Nothing _ _))
+                   tag'@(EnumCT        (CEnum (Just _  ) _  _ _)) =
+      Just (tag', ide')
+    isRefinedOrUse tag'@(EnumCT        (CEnum (Just ide') _ _ _))
+                        (EnumCT        (CEnum (Just _  ) _  _ _)) =
       Just (tag', ide')
     isRefinedOrUse _ _                                             = Nothing
 
@@ -829,13 +830,6 @@ assertFunDeclr pos (CDeclr _ (CFunDeclr _ _ _:retderiv) _ _ _) =
 assertFunDeclr pos _                                                 =
   funExpectedErr pos
 
--- | raise an error if the given tag defines an enumeration, but does not fully
--- define it
---
-assertIfEnumThenFull                          :: CTag -> CT s ()
-assertIfEnumThenFull (EnumCT (CEnum _ Nothing _ at))  = enumForwardErr (posOf at)
-assertIfEnumThenFull _                         = return ()
-
 -- | trace for this module
 --
 traceCTrav :: String -> CT s ()
@@ -888,9 +882,3 @@ structExpectedErr pos  =
   raiseErrorCTExc pos
     ["Expected a struct!",
      "Expected a structure or union; instead found an enum or basic type."]
-
-enumForwardErr     :: Position -> CT s a
-enumForwardErr pos  =
-  raiseErrorCTExc pos
-    ["Forward definition of enumeration!",
-     "ANSI C does not permit foreward definitions of enumerations!"]

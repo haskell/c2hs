@@ -23,6 +23,7 @@ tests =
     , testCase "Issue #47" issue47
     , testCase "Issue #31" issue31
     , testCase "Issue #30" issue30
+    , testCase "Issue #23" issue23
     , testCase "Issue #22" issue22
     , testCase "Issue #54" issue54
     , testCase "Issue #45" issue45
@@ -119,6 +120,9 @@ issue29 = shelly $ do
       run "c2hs" $ ["--no-blocks", toTextIgnore "Issue29.chs"]
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
+
+issue23 :: Assertion
+issue23 = expect_issue 23 ["H1"]
 
 issue22 :: Assertion
 issue22 = expect_issue 22 ["abcdef", "2", "20"]

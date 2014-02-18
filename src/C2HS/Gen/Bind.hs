@@ -451,7 +451,7 @@ expandHook (CHSSizeof ide _) =
       ++ show (padBits size) ++ "\n"
 expandHook (CHSEnumDefine _ _ _ _) =
   interr "Binding generation error : enum define hooks should be eliminated via preprocessing "
-expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive _) =
+expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive pos) =
   do
     -- get the corresponding C declaration
     --
@@ -470,7 +470,7 @@ expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive _) =
 
     let trans = transTabToTransFun pfx reppfx chsTrans
         hide  = identToString . fromMaybe cide $ oalias
-    enumDef enum hide trans (map identToString derive)
+    enumDef enum hide trans (map identToString derive) pos
 expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) =
   do
     traceEnter
@@ -718,8 +718,9 @@ expandHook (CHSClass oclassIde classIde typeIde pos) =
 -- * the translation function strips prefixes where possible (different
 --   enumerators maye have different prefixes)
 --
-enumDef :: CEnum -> String -> TransFun -> [String] -> GB String
-enumDef (CEnum _ (Just list) _ _) hident trans userDerive =
+enumDef :: CEnum -> String -> TransFun -> [String] -> Position -> GB String
+enumDef (CEnum _ Nothing _ _) _ _ _ pos = undefEnumErr pos
+enumDef (CEnum _ (Just list) _ _) hident trans userDerive _ =
   do
     (list', enumAuto) <- evalTagVals list
     let enumVals = [(trans ide, cexpr) |
@@ -2358,3 +2359,6 @@ noDftMarshErr pos inOut hsTy cTys  =
      \C type:",
      "Haskell type: " ++ hsTy,
      "C type      : " ++ concat (intersperse " " (map showExtType cTys))]
+
+undefEnumErr :: Position -> GB a
+undefEnumErr pos = raiseErrorCTExc pos ["Incomplete enum type!"]
