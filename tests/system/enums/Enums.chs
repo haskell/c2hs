@@ -32,8 +32,14 @@ enum ThisThat {
   This = THIS,
   That = THAT
 };
+
+enum ThisThatCast {
+  This = C_THIS,
+  That = C_THAT
+};
 #endc
 {#enum ThisThat {}#}
+{#enum ThisThatCast {}#}
 
 
 main :: IO () 

@@ -46,4 +46,9 @@ enum enums_enums {
 #define THIS 1
 #define THAT 2
 
+/* A #define enum with casts
+ */
+#define C_THIS ((unsigned long)0x1L)
+#define C_THAT ((unsigned long)0x2L)
+
 #endif /* !_ENUMS_H */

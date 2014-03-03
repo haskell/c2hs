@@ -2053,8 +2053,8 @@ evalConstCExpr (CBinary op lhs rhs at) =
     rhsVal <- evalConstCExpr rhs
     let (lhsVal', rhsVal') = usualArithConv lhsVal rhsVal
     applyBin (posOf at) op lhsVal' rhsVal'
-evalConstCExpr (CCast _ _ _) =
-  todo "GenBind.evalConstCExpr: Casts are not implemented yet."
+evalConstCExpr c@(CCast _ _ _) =
+  evalCCast c
 evalConstCExpr (CUnary op arg at) =
   do
     argVal <- evalConstCExpr arg
@@ -2113,6 +2113,25 @@ evalConstCExpr (CVar ide''' at) =
             enumTagValue ide enumrs (val' + 1)
 evalConstCExpr (CConst c) = evalCConst c
 
+evalCCast :: CExpr -> GB ConstResult
+evalCCast c@(CCast (CDecl d _ _) expr _) = do
+    specs <- extractTypeSpecs d
+    evalCCast' specs i
+  where
+    extractTypeSpecs = mapM getTypeSpec
+    getTypeSpec (CTypeSpec t) = return t
+    getTypeSpec _ = badCast $ posOf c
+    i = getConstInt expr
+    getConstInt (CConst intConst) = intConst
+    getConstInt _ = todo "GenGind.evalCCast: Casts are implemented only for integral constants"
+
+evalCCast' :: [CTypeSpec] -> CConst -> GB ConstResult
+evalCCast' [CIntType _] (CIntConst (CInteger i _ _) _) = return $ IntResult i
+evalCCast' [CLongType _] (CIntConst (CInteger i _ _) _) = return $ IntResult i
+evalCCast' [CUnsigType _, CIntType _] (CIntConst (CInteger i _ _) _) = return $ IntResult i
+evalCCast' [CUnsigType _, CLongType _] (CIntConst (CInteger i _ _) _) = return $ IntResult i
+evalCCast' _ _ = todo "GenBind.evalCCast': Only integral trivial casts are implemented"
+ 
 evalCConst :: CConst -> GB ConstResult
 evalCConst (CIntConst   i _ ) = return $ IntResult (getCInteger i)
 evalCConst (CCharConst  c _ ) = return $ IntResult (getCCharAsInt c)
@@ -2362,3 +2381,10 @@ noDftMarshErr pos inOut hsTy cTys  =
 
 undefEnumErr :: Position -> GB a
 undefEnumErr pos = raiseErrorCTExc pos ["Incomplete enum type!"]
+
+badCast :: Position -> GB a
+badCast pos = 
+  raiseErrorCTExc pos 
+    ["Failed cast!",
+     "This cast is either not supported at all or not implemented yet. \
+     \Only trivial integer casts are supported"]
