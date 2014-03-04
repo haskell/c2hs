@@ -34,8 +34,8 @@ enum ThisThat {
 };
 
 enum ThisThatCast {
-  This = C_THIS,
-  That = C_THAT
+  CThis = C_THIS,
+  CThat = C_THAT
 };
 #endc
 {#enum ThisThat {}#}
