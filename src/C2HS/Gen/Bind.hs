@@ -2114,24 +2114,23 @@ evalConstCExpr (CVar ide''' at) =
 evalConstCExpr (CConst c) = evalCConst c
 
 evalCCast :: CExpr -> GB ConstResult
-evalCCast c@(CCast (CDecl d _ _) expr _) = do
-    specs <- extractTypeSpecs d
-    evalCCast' specs i
+evalCCast (CCast decl expr _) = do
+    compType <- extractCompType False False decl
+    let i = getConstInt expr
+    evalCCast' compType i
   where
-    extractTypeSpecs = mapM getTypeSpec
-    getTypeSpec (CTypeSpec t) = return t
-    getTypeSpec _ = badCast $ posOf c
-    i = getConstInt expr
-    getConstInt (CConst intConst) = intConst
+    getConstInt (CConst (CIntConst (CInteger i _ _) _)) = i
     getConstInt _ = todo "GenGind.evalCCast: Casts are implemented only for integral constants"
 
-evalCCast' :: [CTypeSpec] -> CConst -> GB ConstResult
-evalCCast' [CIntType _] (CIntConst (CInteger i _ _) _) = return $ IntResult i
-evalCCast' [CLongType _] (CIntConst (CInteger i _ _) _) = return $ IntResult i
-evalCCast' [CUnsigType _, CIntType _] (CIntConst (CInteger i _ _) _) = return $ IntResult i
-evalCCast' [CUnsigType _, CLongType _] (CIntConst (CInteger i _ _) _) = return $ IntResult i
-evalCCast' _ _ = todo "GenBind.evalCCast': Only integral trivial casts are implemented"
+evalCCast' :: CompType -> Integer -> GB ConstResult
+evalCCast' (ExtType (PrimET primType)) i
+  | isIntegralCPrimType primType = return $ IntResult i
+  | otherwise                    = unknownCast
+evalCCast' _ _ = unknownCast
  
+unknownCast :: GB a
+unknownCast = todo "GenBind.evalCCast': Only integral trivial casts are implemented"      
+
 evalCConst :: CConst -> GB ConstResult
 evalCConst (CIntConst   i _ ) = return $ IntResult (getCInteger i)
 evalCConst (CCharConst  c _ ) = return $ IntResult (getCCharAsInt c)
@@ -2381,10 +2380,3 @@ noDftMarshErr pos inOut hsTy cTys  =
 
 undefEnumErr :: Position -> GB a
 undefEnumErr pos = raiseErrorCTExc pos ["Incomplete enum type!"]
-
-badCast :: Position -> GB a
-badCast pos = 
-  raiseErrorCTExc pos 
-    ["Failed cast!",
-     "This cast is either not supported at all or not implemented yet. \
-     \Only trivial integer casts are supported"]
