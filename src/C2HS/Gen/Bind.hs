@@ -2120,7 +2120,7 @@ evalCCast (CCast decl expr _) = do
     evalCCast' compType i
   where
     getConstInt (CConst (CIntConst (CInteger i _ _) _)) = i
-    getConstInt _ = todo "GenGind.evalCCast: Casts are implemented only for integral constants"
+    getConstInt _ = todo "GenBind.evalCCast: Casts are implemented only for integral constants"
 
 evalCCast' :: CompType -> Integer -> GB ConstResult
 evalCCast' (ExtType (PrimET primType)) i
