@@ -2116,8 +2116,7 @@ evalConstCExpr (CConst c) = evalCConst c
 evalCCast :: CExpr -> GB ConstResult
 evalCCast (CCast decl expr _) = do
     compType <- extractCompType False False decl
-    let i = getConstInt expr
-    evalCCast' compType i
+    evalCCast' compType (getConstInt expr)
   where
     getConstInt (CConst (CIntConst (CInteger i _ _) _)) = i
     getConstInt _ = todo "GenBind.evalCCast: Casts are implemented only for integral constants"
@@ -2125,12 +2124,8 @@ evalCCast (CCast decl expr _) = do
 evalCCast' :: CompType -> Integer -> GB ConstResult
 evalCCast' (ExtType (PrimET primType)) i
   | isIntegralCPrimType primType = return $ IntResult i
-  | otherwise                    = unknownCast
-evalCCast' _ _ = unknownCast
+evalCCast' _ _ = todo "GenBind.evalCCast': Only integral trivial casts are implemented"      
  
-unknownCast :: GB a
-unknownCast = todo "GenBind.evalCCast': Only integral trivial casts are implemented"      
-
 evalCConst :: CConst -> GB ConstResult
 evalCConst (CIntConst   i _ ) = return $ IntResult (getCInteger i)
 evalCConst (CCharConst  c _ ) = return $ IntResult (getCCharAsInt c)
