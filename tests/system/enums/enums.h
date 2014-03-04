@@ -46,4 +46,11 @@ enum enums_enums {
 #define THIS 1
 #define THAT 2
 
+typedef unsigned long DWORD;
+
+/* A #define enum with casts
+ */
+#define C_THIS ((DWORD)0x1L)
+#define C_THAT ((DWORD)0x2L)
+
 #endif /* !_ENUMS_H */

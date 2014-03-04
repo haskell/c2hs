@@ -2053,8 +2053,8 @@ evalConstCExpr (CBinary op lhs rhs at) =
     rhsVal <- evalConstCExpr rhs
     let (lhsVal', rhsVal') = usualArithConv lhsVal rhsVal
     applyBin (posOf at) op lhsVal' rhsVal'
-evalConstCExpr (CCast _ _ _) =
-  todo "GenBind.evalConstCExpr: Casts are not implemented yet."
+evalConstCExpr c@(CCast _ _ _) =
+  evalCCast c
 evalConstCExpr (CUnary op arg at) =
   do
     argVal <- evalConstCExpr arg
@@ -2113,6 +2113,19 @@ evalConstCExpr (CVar ide''' at) =
             enumTagValue ide enumrs (val' + 1)
 evalConstCExpr (CConst c) = evalCConst c
 
+evalCCast :: CExpr -> GB ConstResult
+evalCCast (CCast decl expr _) = do
+    compType <- extractCompType False False decl
+    evalCCast' compType (getConstInt expr)
+  where
+    getConstInt (CConst (CIntConst (CInteger i _ _) _)) = i
+    getConstInt _ = todo "GenBind.evalCCast: Casts are implemented only for integral constants"
+
+evalCCast' :: CompType -> Integer -> GB ConstResult
+evalCCast' (ExtType (PrimET primType)) i
+  | isIntegralCPrimType primType = return $ IntResult i
+evalCCast' _ _ = todo "GenBind.evalCCast': Only integral trivial casts are implemented"      
+ 
 evalCConst :: CConst -> GB ConstResult
 evalCConst (CIntConst   i _ ) = return $ IntResult (getCInteger i)
 evalCConst (CCharConst  c _ ) = return $ IntResult (getCCharAsInt c)
