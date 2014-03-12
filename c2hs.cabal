@@ -25,13 +25,40 @@ Build-Type:     Simple
 --TODO: Cabal should allow 'Data-Files' in the executable stanza
 Data-Files:     C2HS.hs
 Extra-Source-Files:
-                src/C2HS/config.h
-                AUTHORS INSTALL README
-                doc/c2hs.xml doc/c2hs.css doc/man1/c2hs.1 doc/Makefile
-
-                tests/system/*.chs tests/system/*.h tests/system/*.c
-                tests/system/structs.expect
-                tests/system/Makefile
+  src/C2HS/config.h
+  AUTHORS INSTALL README ChangeLog ChangeLog.old
+  doc/c2hs.xml doc/c2hs.css doc/man1/c2hs.1 doc/Makefile
+  tests/system/calls/*.chs tests/system/calls/*.h
+  tests/system/cpp/*.chs
+  tests/system/enums/*.chs tests/system/enums/*.h tests/system/enums/*.c
+  tests/system/marsh/*.chs tests/system/marsh/*.h
+  tests/system/pointer/*.chs tests/system/pointer/*.h tests/system/pointer/*.c
+  tests/system/simple/*.chs tests/system/simple/*.h tests/system/simple/*.c
+  tests/system/sizeof/*.chs tests/system/sizeof/*.h tests/system/sizeof/*.c
+  tests/system/structs/*.chs tests/system/structs/*.h tests/system/structs/*.c
+  tests/system/Makefile
+  tests/bugs/call_capital/*.chs
+  tests/bugs/call_capital/*.h
+  tests/bugs/call_capital/*.c
+  tests/bugs/issue-7/*.chs tests/bugs/issue-7/*.h
+  tests/bugs/issue-10/*.chs tests/bugs/issue-10/*.h tests/bugs/issue-10/*.c
+  tests/bugs/issue-16/*.chs tests/bugs/issue-16/*.h tests/bugs/issue-16/*.c
+  tests/bugs/issue-19/*.chs tests/bugs/issue-19/*.h tests/bugs/issue-19/*.c
+  tests/bugs/issue-22/*.chs tests/bugs/issue-22/*.h tests/bugs/issue-22/*.c
+  tests/bugs/issue-23/*.chs tests/bugs/issue-23/*.h tests/bugs/issue-23/*.c
+  tests/bugs/issue-29/*.chs tests/bugs/issue-29/*.h
+  tests/bugs/issue-30/*.chs tests/bugs/issue-30/*.h tests/bugs/issue-30/*.c
+  tests/bugs/issue-31/*.chs tests/bugs/issue-31/*.h tests/bugs/issue-31/*.c
+  tests/bugs/issue-32/*.chs tests/bugs/issue-32/*.h tests/bugs/issue-32/*.c
+  tests/bugs/issue-37/*.chs tests/bugs/issue-37/*.h tests/bugs/issue-37/*.c
+  tests/bugs/issue-38/*.chs tests/bugs/issue-38/*.h tests/bugs/issue-38/*.c
+  tests/bugs/issue-43/*.chs tests/bugs/issue-43/*.h tests/bugs/issue-43/*.c
+  tests/bugs/issue-44/*.chs tests/bugs/issue-44/*.h tests/bugs/issue-44/*.c
+  tests/bugs/issue-45/*.chs tests/bugs/issue-45/*.h tests/bugs/issue-45/*.c
+  tests/bugs/issue-47/*.chs tests/bugs/issue-47/*.h tests/bugs/issue-47/*.c
+  tests/bugs/issue-51/*.chs tests/bugs/issue-51/*.h tests/bugs/issue-51/*.c
+  tests/bugs/issue-54/*.chs tests/bugs/issue-54/*.h tests/bugs/issue-54/*.c
+  tests/bugs/issue-60/*.chs tests/bugs/issue-60/*.h tests/bugs/issue-60/*.c
 
 source-repository head
   type:         git
