@@ -1,5 +1,44 @@
-*** This change log will not be maintained anymore.
-*** All relevant information can be obtained with `darcs changes'.
+Version 0.16.6
+
+ - Trivial integer casts in enum defines supporting typedefs [Anton Dessiatov]
+ - Allow forward definition of enums (issue #23)
+ - Binding of C enums with aliases (issue #38)
+ - Default marshallers for enum and pointer hooks (issue #31)
+ - Remove dependencies on C2HS module from marshalling code (issue #37)
+ - Problem with MacOS blocks notation (issue #29)
+ - Include directive on first line produces invalid Haskell (issue #16)
+ - Add command-line switch to suppress GNU preprocessor symbols (issue #60)
+ - Fix size and alignment computation of bitfields [Facundo Dominguez]
+ - Allow prefixes to be replaced, not just removed (issue #19)
+ - Allow reference to structure tags from accessors (issue #54)
+   For access paths for {#get#}, {#set#}, etc., one can now specify
+   that structure tags are to be searched preferentially by saying,
+   for example, {#get struct _point->y#} instead of {#get _point->y#}.
+   The latter case will search for typedef names first and only then
+   structure tags.
+ - Support for anonymous enums (issue #43)
+ - with... unwrapper type declarations for pointer hooks (issue #44)
+ - {#fun...#} indentation for use in where clauses (issue #45)
+ - incorrect method names from terminal class in superclass
+   instances (issue #21)
+ - "offsetof" directive (issue #22)
+ - --include flag cannot handle windows paths (issue #30)
+   Now uses System.FilePath splitSearchPath function, which should be
+   platform-agnostic.
+ - Void functions produce "defined but not used" warning (issue #47)
+   Handle fun hooks with a void result using ">>" instead of ">>=".
+ - Add CPP undefine flags for Gnu compiler defines (issue #51)
+ - Cabal test suite
+
+
+Version 0.16.5
+
+ - Migration to GitHub; documentation changes.
+
+
+CHANGES ABOVE THIS POINT ARE FOR VERSIONS AFTER THE MOVE OF THE REPOSITORY
+TO GITHUB.
+
 
 2005-12-12  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
