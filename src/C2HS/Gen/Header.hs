@@ -251,7 +251,7 @@ ghFrag (     (CHSCPP s pos nl) : frags) =
                              _                       ->
                                interr "GenHeader.ghFrag: Expected CHSCond!"
           Endif   _   -> closeIf (headerTh `DL.snoc` "#endif\n")
-                                 (s, fragsTh)
+                                 (s', fragsTh)
                                  []
                                  (Just [])
                                  rest
