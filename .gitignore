@@ -15,6 +15,7 @@
 /tests/bugs/issue-10/Issue10.hs
 /tests/bugs/issue-10/Issue10.i
 /tests/bugs/issue-16/Issue16
+/tests/bugs/issue-16/Issue16.hs
 /tests/bugs/issue-19/Issue19
 /tests/bugs/issue-19/Issue19.hs
 /tests/bugs/issue-22/Issue22
@@ -66,3 +67,4 @@
 /tests/bugs/issue-38/Issue38
 /tests/bugs/issue-23/Issue23
 /tests/bugs/issue-23/Issue23.hs
+/tests/bugs/issue-69/Issue69.hs
