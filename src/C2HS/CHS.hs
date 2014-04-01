@@ -232,7 +232,7 @@ data CHSHook = CHSImport  Bool                  -- qualified?
                           (Maybe Ident)         -- Haskell name
                           CHSPtrType            -- Ptr, ForeignPtr or StablePtr
                           Bool                  -- create new type?
-                          (Maybe Ident)         -- Haskell type pointed to
+                          [Ident]               -- Haskell type pointed to
                           Bool                  -- emit type decl?
                           Position
              | CHSClass   (Maybe Ident)         -- superclass
@@ -572,8 +572,10 @@ showCHSHook (CHSPointer star ide oalias ptrType isNewtype oRefType emit _) =
        _             -> showString "")
   . (case (isNewtype, oRefType) of
        (True , _        ) -> showString " newtype"
-       (False, Just ide') -> showString " -> " . showCHSIdent ide'
-       (False, Nothing  ) -> showString "")
+       (False, []       ) -> showString ""
+       (False, ides) -> showString " -> " .
+                        foldr (.) id (intersperse (showString " ")
+                                      (map showCHSIdent ides)))
   . (case emit of
        True  -> showString ""
        False -> showString " nocode")
@@ -1119,9 +1121,14 @@ parsePointer hkpos pos toks =
     let
      (isNewtype, oRefType, toks'4) =
       case toks'3 of
-        CHSTokNewtype _                   :toks'' -> (True , Nothing , toks'' )
-        CHSTokArrow   _:CHSTokIdent _ ide':toks'' -> (False, Just ide', toks'' )
-        _                                       -> (False, Nothing , toks'3)
+        CHSTokNewtype _                   :toks'' -> (True , [] , toks'' )
+        CHSTokArrow   _:CHSTokIdent _ ide':toks'' ->
+          let (ides, toks''') = span isIde toks''
+              isIde (CHSTokIdent _ _) = True
+              isIde _                 = False
+              takeId (CHSTokIdent _ i) = i
+          in (False, ide':map takeId ides, toks''')
+        _                                         -> (False, [] , toks'3)
     let
      (emit, toks'5) =
       case toks'4 of
@@ -1132,7 +1139,8 @@ parsePointer hkpos pos toks =
     return $
       CHSHook
        (CHSPointer
-         isStar ide (norm ide oalias) ptrType isNewtype oRefType emit pos) hkpos
+         isStar ide (norm ide oalias) ptrType isNewtype
+         oRefType emit pos) hkpos
        : frags
   where
     parsePtrType :: [CHSToken] -> CST s (CHSPtrType, [CHSToken])
