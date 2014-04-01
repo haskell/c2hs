@@ -6,10 +6,10 @@ import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test, assert)
 import System.FilePath (searchPathSeparator)
 import Shelly
-import Data.Text.Lazy (Text)
+import Data.Text (Text)
 import Data.Monoid
-import qualified Data.Text.Lazy as LT
-default (LT.Text)
+import qualified Data.Text as T
+default (T.Text)
 
 main :: IO ()
 main = defaultMain tests
@@ -49,7 +49,7 @@ call_capital = shelly $ chdir "tests/bugs/call_capital" $ do
   cmd "ghc" "--make" "-cpp" "Capital_c.o" "Capital.hs"
   res <- absPath "./Capital" >>= cmd
   let expected = ["upper C();", "lower c();", "upper C();"]
-  liftIO $ assertBool "" (LT.lines res == expected)
+  liftIO $ assertBool "" (T.lines res == expected)
 
 issue69 :: Assertion
 issue69 = build_issue 69
@@ -114,7 +114,7 @@ issue30 = shelly $ chdir "tests/bugs/issue-30" $ do
     "Issue30Aux1.hs" "Issue30Aux2.hs" "Issue30.hs"
   res <- absPath "./Issue30" >>= cmd
   let expected = ["3", "2", "4"]
-  liftIO $ assertBool "" (LT.lines res == expected)
+  liftIO $ assertBool "" (T.lines res == expected)
 
 issue29 :: Assertion
 issue29 = shelly $ do
@@ -155,7 +155,7 @@ do_issue_build n c2hsargs =
   let wdir = "tests/bugs" </> ("issue-" <> show n)
       lc = "issue" <> show n
       lcc = lc <> "_c"
-      uc = fromText $ LT.pack $ "Issue" <> show n
+      uc = fromText $ T.pack $ "Issue" <> show n
   in do
     cd wdir
     mapM_ rm_f [uc <.> "hs", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
@@ -169,8 +169,8 @@ expect_issue n expected = expect_issue_with n [] expected
 expect_issue_with :: Int -> [Text] -> [Text] -> Assertion
 expect_issue_with n c2hsargs expected = shelly $ do
   do_issue_build n c2hsargs
-  res <- absPath ("." </> (fromText $ LT.pack $ "Issue" <> show n)) >>= cmd
-  liftIO $ assertBool "" (LT.lines res == expected)
+  res <- absPath ("." </> (fromText $ T.pack $ "Issue" <> show n)) >>= cmd
+  liftIO $ assertBool "" (T.lines res == expected)
 
 build_issue_with :: Int -> [Text] -> Assertion
 build_issue_with n c2hsargs = shelly $ do

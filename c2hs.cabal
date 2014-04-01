@@ -120,7 +120,7 @@ Test-Suite test-bugs
                        test-framework,
                        test-framework-hunit,
                        HUnit,
-                       shelly >= 0.15.4.1 && < 1.0,
+                       shelly >= 1.0,
                        text
 
 Test-Suite test-system
@@ -132,5 +132,5 @@ Test-Suite test-system
                        test-framework,
                        test-framework-hunit,
                        HUnit,
-                       shelly >= 0.15.4.1 && < 1.0,
+                       shelly >= 1.0,
                        text
