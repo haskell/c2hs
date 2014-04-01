@@ -362,9 +362,9 @@ expandFrags = liftM concat . mapM expandFrag
 expandFrag :: CHSFrag -> GB [CHSFrag]
 expandFrag verb@(CHSVerb _ _     ) = return [verb]
 expandFrag line@(CHSLine _       ) = return [line]
-expandFrag      (CHSHook h       ) =
+expandFrag      (CHSHook h    pos) =
   do
-    code <- expandHook h
+    code <- expandHook h pos
     return [CHSVerb code builtinPos]
   `ifCTExc` return [CHSVerb "** ERROR **" builtinPos]
 expandFrag      (CHSCPP  s _    _) =
@@ -398,20 +398,20 @@ expandFrag      (CHSCond alts dft) =
                             else
                               traceGenBind "Choosing else branch.\n"
 
-expandHook :: CHSHook -> GB String
-expandHook (CHSImport qual ide chi _) =
+expandHook :: CHSHook -> Position -> GB String
+expandHook (CHSImport qual ide chi _) _ =
   do
     mergeMaps chi
     return $
       "import " ++ (if qual then "qualified " else "") ++ identToString ide
-expandHook (CHSContext olib oprefix orepprefix _) =
+expandHook (CHSContext olib oprefix orepprefix _) _ =
   do
     setContext olib oprefix orepprefix         -- enter context information
     -- use the prefix on name spaces
     when (isJust oprefix) $
       applyPrefixToNameSpaces (fromJust oprefix) (maybe "" id orepprefix)
     return ""
-expandHook (CHSType ide pos) =
+expandHook (CHSType ide pos) _ =
   do
     traceInfoType
     decl <- findAndChaseDecl ide False True     -- no indirection, but shadows
@@ -424,7 +424,7 @@ expandHook (CHSType ide pos) =
     traceInfoDump decl ty = traceGenBind $
       "Declaration\n" ++ show decl ++ "\ntranslates to\n"
       ++ showExtType ty ++ "\n"
-expandHook (CHSAlignof ide _) =
+expandHook (CHSAlignof ide _) _ =
   do
     traceInfoAlignof
     decl <- findAndChaseDecl ide False True     -- no indirection, but shadows
@@ -437,7 +437,7 @@ expandHook (CHSAlignof ide _) =
       "Alignment of declaration\n" ++ show decl ++ "\nis "
       ++ show align ++ "\n"
 
-expandHook (CHSSizeof ide _) =
+expandHook (CHSSizeof ide _) _ =
   do
     traceInfoSizeof
     decl <- findAndChaseDecl ide False True     -- no indirection, but shadows
@@ -449,9 +449,9 @@ expandHook (CHSSizeof ide _) =
     traceInfoDump decl size = traceGenBind $
       "Size of declaration\n" ++ show decl ++ "\nis "
       ++ show (padBits size) ++ "\n"
-expandHook (CHSEnumDefine _ _ _ _) =
+expandHook (CHSEnumDefine _ _ _ _) _ =
   interr "Binding generation error : enum define hooks should be eliminated via preprocessing "
-expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive pos) =
+expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive pos) _ =
   do
     -- get the corresponding C declaration
     --
@@ -471,7 +471,7 @@ expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive pos) =
     let trans = transTabToTransFun pfx reppfx chsTrans
         hide  = identToString . fromMaybe cide $ oalias
     enumDef enum hide trans (map identToString derive) pos
-expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) =
+expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) _ =
   do
     traceEnter
     -- get the corresponding C declaration; raises error if not found or not a
@@ -487,7 +487,7 @@ expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) =
   where
     traceEnter = traceGenBind $
       "** Call hook for `" ++ identToString ide ++ "':\n"
-expandHook hook@(CHSCall isPure isUns apath oalias pos) =
+expandHook hook@(CHSCall isPure isUns apath oalias pos) _ =
   do
     traceEnter
 
@@ -518,9 +518,11 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) =
       "** Indirect call hook for `" ++ identToString (apathToIdent apath) ++ "':\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
-expandHook (CHSFun isPure isUns (CHSRoot _ ide) oalias ctxt parms parm pos) =
+expandHook (CHSFun isPure isUns (CHSRoot _ ide)
+            oalias ctxt parms parm pos) hkpos =
   do
     traceEnter
+    traceGenBind $ "ide = '" ++ show ide ++ "'\n"
     -- get the corresponding C declaration; raises error if not found or not a
     -- function; we use shadow identifiers, so the returned identifier is used
     -- afterwards instead of the original one
@@ -535,11 +537,11 @@ expandHook (CHSFun isPure isUns (CHSRoot _ ide) oalias ctxt parms parm pos) =
     callImport callHook isPure isUns (identToString cide) fiLexeme cdecl' pos
 
     extTy <- extractFunType pos cdecl' True
-    funDef isPure hsLexeme fiLexeme extTy ctxt parms parm Nothing pos
+    funDef isPure hsLexeme fiLexeme extTy ctxt parms parm Nothing pos hkpos
   where
     traceEnter = traceGenBind $
       "** Fun hook for `" ++ identToString ide ++ "':\n"
-expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) =
+expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) hkpos =
   do
     traceEnter
 
@@ -567,7 +569,7 @@ expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) =
 
     set_get <- setGet pos CHSGet offsets ptrTy
     funDef isPure hsLexeme fiLexeme (FunET ptrTy $ purify ty)
-                  ctxt parms parm (Just set_get) pos
+                  ctxt parms parm (Just set_get) pos hkpos
   where
     -- remove IO from the result type of a function ExtType.  necessary
     -- due to an unexpected interaction with the way funDef works
@@ -579,7 +581,7 @@ expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) =
       "** Fun hook for `" ++ identToString (apathToIdent apath) ++ "':\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
-expandHook (CHSField access path pos) =
+expandHook (CHSField access path pos) _ =
   do
     traceInfoField
     traceGenBind $ "path = " ++ show path ++ "\n"
@@ -597,7 +599,7 @@ expandHook (CHSField access path pos) =
                                         ++ show (length offsets) ++ "\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
-expandHook (CHSOffsetof path pos) =
+expandHook (CHSOffsetof path pos) _ =
   do
     traceGenBind $ "** offsetof hook:\n"
     (decl, offsets) <- accessPath path
@@ -620,7 +622,7 @@ expandHook (CHSOffsetof path pos) =
           SUType _ -> return offset
     checkType _ _ = offsetDerefErr pos
 expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
-              pos) =
+              pos) _ =
   do
     traceInfoPointer
     let hsIde  = fromMaybe cName oalias
@@ -686,7 +688,7 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
       ++ "\n"
     traceInfoCName kind ide = traceGenBind $
       "found C " ++ kind ++ " for `" ++ identToString ide ++ "'\n"
-expandHook (CHSClass oclassIde classIde typeIde pos) =
+expandHook (CHSClass oclassIde classIde typeIde pos) _ =
   do
     traceInfoClass
     classIde `objIs` Class oclassIde typeIde    -- register Haskell object
@@ -905,8 +907,9 @@ funDef :: Bool               -- pure function?
        -> CHSParm            -- result marshalling description
        -> Maybe String       -- optional additional marshaller for first arg
        -> Position           -- source location of the hook
+       -> Position           -- source location of the start of the hook
        -> GB String          -- Haskell code in text form
-funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
+funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
   do
     (parms', parm', isImpure) <- addDftMarshaller pos parms parm extTy
 
@@ -961,8 +964,7 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos =
                   "  " ++
                   (if isImpure || not isPure then "return " else "") ++ ret
 
-      pad code = let col = posColumn pos
-                     padding = replicate (col - 3) ' '
+      pad code = let padding = replicate (posColumn hkpos - 1) ' '
                      (l:ls) = lines code
                  in unlines $ l : map (padding ++) ls
 

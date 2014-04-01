@@ -168,7 +168,7 @@ ghFrag (frag@(CHSVerb  _ _  ) : frags) =
 
 -- generate an enum __c2hs__enum__'id { __c2hs_enr__'id = DEF1, ... } and then process an
 -- ordinary enum directive
-ghFrag (_frag@(CHSHook (CHSEnumDefine hsident trans instances pos)) : frags) =
+ghFrag (_frag@(CHSHook (CHSEnumDefine hsident trans instances pos) hkpos) : frags) =
   do ide <- newEnumIdent
      (enrs,trans') <- createEnumerators trans
      return (DL.open [show.pretty $ enumDef ide enrs,";\n"], Frag (enumFrag (identToString ide) trans'), frags)
@@ -184,9 +184,9 @@ ghFrag (_frag@(CHSHook (CHSEnumDefine hsident trans instances pos)) : frags) =
   createEnumerator (cid,hsid) = liftM (\enr -> ((enr,cid),(enr,hsid))) newEnrIdent
   enumDef ide enrs = CEnum (Just ide) (Just$ map mkEnr enrs) [] undefNode
     where mkEnr (name,value) = (name, Just $ CVar value undefNode)
-  enumFrag ide trans' = CHSHook (CHSEnum (internalIdent ide) (Just hsident) trans' Nothing Nothing instances pos)
+  enumFrag ide trans' = CHSHook (CHSEnum (internalIdent ide) (Just hsident) trans' Nothing Nothing instances pos) hkpos
 
-ghFrag (frag@(CHSHook  _    ) : frags) =
+ghFrag (frag@(CHSHook  _    _) : frags) =
   return (DL.zero, Frag frag, frags)
 ghFrag (frag@(CHSLine  _    ) : frags) =
   return (DL.zero, Frag frag, frags)

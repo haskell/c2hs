@@ -204,6 +204,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokRBrace  Position          -- `}'
               | CHSTokLParen  Position          -- `('
               | CHSTokRParen  Position          -- `)'
+              | CHSTokHook    Position          -- `{#'
               | CHSTokEndHook Position          -- `#}'
               | CHSTokAdd     Position          -- `add'
               | CHSTokAs      Position          -- `as'
@@ -599,7 +600,8 @@ ctrl  =
 --
 hook :: CHSLexer
 hook  = string "{#"
-        `lexmeta` \_ pos s -> (Nothing, incPos pos 2, s, Just bhLexer)
+        `lexmeta` \_ pos s -> (Just $ Right (CHSTokHook pos),
+                               incPos pos 2, s, Just bhLexer)
 
 -- | start marker: used to identify pre-processor directive at
 -- beginning of input -- this lexer just drops the start marker if it

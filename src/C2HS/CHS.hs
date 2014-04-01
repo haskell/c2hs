@@ -1,3 +1,4 @@
+{-# LANGUAGE StandaloneDeriving #-}
 --  C->Haskell Compiler: CHS file abstraction
 --
 --  Author : Manuel M T Chakravarty
@@ -126,6 +127,15 @@ import C2HS.CHS.Lexer  (CHSToken(..), lexCHS, keywordToIdent)
 --
 data CHSModule = CHSModule [CHSFrag]
 
+deriving instance Show CHSModule
+deriving instance Show CHSFrag
+deriving instance Show CHSHook
+deriving instance Show CHSAccess
+deriving instance Show CHSParm
+deriving instance Show CHSTrans
+deriving instance Show CHSArg
+deriving instance Show CHSChangeCase
+
 -- | a CHS code fragament
 --
 -- * 'CHSVerb' fragments are present throughout the compilation and finally
@@ -144,6 +154,7 @@ data CHSModule = CHSModule [CHSFrag]
 data CHSFrag = CHSVerb String                   -- Haskell code
                        Position
              | CHSHook CHSHook                  -- binding hook
+                       Position
              | CHSCPP  String                   -- pre-processor directive
                        Position
                        Bool
@@ -156,7 +167,7 @@ data CHSFrag = CHSVerb String                   -- Haskell code
 
 instance Pos CHSFrag where
   posOf (CHSVerb _ pos  ) = pos
-  posOf (CHSHook hook   ) = posOf hook
+  posOf (CHSHook _ pos  ) = pos
   posOf (CHSCPP  _ pos _) = pos
   posOf (CHSLine   pos  ) = pos
   posOf (CHSC    _ pos  ) = pos
@@ -458,7 +469,7 @@ showCHSModule (CHSModule fragments) pureHaskell  =
          else id)
       . showString s
       . showFrags pureHs nextState frags
-    showFrags False  _     (CHSHook hook       : frags) =
+    showFrags False  _     (CHSHook hook _     : frags) =
         showString "{#"
       . showCHSHook hook
       . showString "#}"
@@ -810,19 +821,32 @@ parseFrags tokens  = do
                                                frags <- parseFrags toks
                                                return $ CHSLine pos : frags
     parseFrags0 (CHSTokC       pos s:toks) = parseC       pos s      toks
-    parseFrags0 (CHSTokImport  pos  :toks) = parseImport  pos        toks
-    parseFrags0 (CHSTokContext pos  :toks) = parseContext pos        toks
-    parseFrags0 (CHSTokType    pos  :toks) = parseType    pos        toks
-    parseFrags0 (CHSTokSizeof  pos  :toks) = parseSizeof  pos        toks
-    parseFrags0 (CHSTokAlignof pos  :toks) = parseAlignof pos        toks
-    parseFrags0 (CHSTokEnum    pos  :toks) = parseEnum    pos        toks
-    parseFrags0 (CHSTokCall    pos  :toks) = parseCall    pos        toks
-    parseFrags0 (CHSTokFun     pos  :toks) = parseFun     pos        toks
-    parseFrags0 (CHSTokGet     pos  :toks) = parseField   pos CHSGet toks
-    parseFrags0 (CHSTokSet     pos  :toks) = parseField   pos CHSSet toks
-    parseFrags0 (CHSTokOffsetof pos :toks) = parseOffsetof pos       toks
-    parseFrags0 (CHSTokClass   pos  :toks) = parseClass   pos        toks
-    parseFrags0 (CHSTokPointer pos  :toks) = parsePointer pos        toks
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokImport  pos  :toks) = parseImport  hkpos pos        toks
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokContext pos  :toks) = parseContext hkpos pos        toks
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokType    pos  :toks) = parseType    hkpos pos        toks
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokSizeof  pos  :toks) = parseSizeof  hkpos pos        toks
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokAlignof pos  :toks) = parseAlignof hkpos pos        toks
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokEnum    pos  :toks) = parseEnum    hkpos pos        toks
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokCall    pos  :toks) = parseCall    hkpos pos        toks
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokFun     pos  :toks) = parseFun     hkpos pos        toks
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokGet     pos  :toks) = parseField   hkpos pos CHSGet toks
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokSet     pos  :toks) = parseField   hkpos pos CHSSet toks
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokOffsetof pos :toks) = parseOffsetof hkpos pos       toks
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokClass   pos  :toks) = parseClass   hkpos pos        toks
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokPointer pos  :toks) = parsePointer hkpos pos        toks
     parseFrags0 toks                       = syntaxError toks
     --
     -- skip to next Haskell or control token
@@ -846,8 +870,8 @@ parseC pos s toks =
                                                 return $ CHSC s'  pos' : frags
     collectCtrlAndC toks'                      = parseFrags toks'
 
-parseImport :: Position -> [CHSToken] -> CST s [CHSFrag]
-parseImport pos toks = do
+parseImport :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseImport hkpos pos toks = do
   (qual, modid, toks') <-
     case toks of
       CHSTokIdent _ ide                :toks' ->
@@ -860,7 +884,7 @@ parseImport pos toks = do
   chi <- loadCHI . moduleNameToFileName . identToString $ modid
   toks'2 <- parseEndHook toks'
   frags <- parseFrags toks'2
-  return $ CHSHook (CHSImport qual modid chi pos) : frags
+  return $ CHSHook (CHSImport qual modid chi pos) hkpos : frags
 
 -- | Qualified module names do not get lexed as a single token so we need to
 -- reconstruct it from a sequence of identifer and dot tokens.
@@ -878,54 +902,54 @@ moduleNameToFileName = map dotToSlash
   where dotToSlash '.' = '/'
         dotToSlash c   = c
 
-parseContext          :: Position -> [CHSToken] -> CST s [CHSFrag]
-parseContext pos toks  = do
+parseContext          :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseContext hkpos pos toks  = do
   (olib    , toks2) <- parseOptLib          toks
   (opref   , toks3) <- parseOptPrefix False toks2
   (oreppref, toks4) <- parseOptReplPrefix   toks3
   toks5             <- parseEndHook         toks4
   frags             <- parseFrags           toks5
   let frag = CHSContext olib opref oreppref pos
-  return $ CHSHook frag : frags
+  return $ CHSHook frag hkpos : frags
 
-parseType :: Position -> [CHSToken] -> CST s [CHSFrag]
-parseType pos (CHSTokIdent _ ide:toks) =
+parseType :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseType hkpos pos (CHSTokIdent _ ide:toks) =
   do
     toks' <- parseEndHook toks
     frags <- parseFrags toks'
-    return $ CHSHook (CHSType ide pos) : frags
-parseType _ toks = syntaxError toks
+    return $ CHSHook (CHSType ide pos) hkpos : frags
+parseType _ _ toks = syntaxError toks
 
-parseSizeof :: Position -> [CHSToken] -> CST s [CHSFrag]
-parseSizeof pos (CHSTokIdent _ ide:toks) =
+parseSizeof :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseSizeof hkpos pos (CHSTokIdent _ ide:toks) =
   do
     toks' <- parseEndHook toks
     frags <- parseFrags toks'
-    return $ CHSHook (CHSSizeof ide pos) : frags
-parseSizeof _ toks = syntaxError toks
+    return $ CHSHook (CHSSizeof ide pos) hkpos : frags
+parseSizeof _ _ toks = syntaxError toks
 
-parseAlignof :: Position -> [CHSToken] -> CST s [CHSFrag]
-parseAlignof pos (CHSTokIdent _ ide:toks) =
+parseAlignof :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseAlignof hkpos pos (CHSTokIdent _ ide:toks) =
   do
     toks' <- parseEndHook toks
     frags <- parseFrags toks'
-    return $ CHSHook (CHSAlignof ide pos) : frags
-parseAlignof _ toks = syntaxError toks
+    return $ CHSHook (CHSAlignof ide pos) hkpos : frags
+parseAlignof _ _ toks = syntaxError toks
 
-parseEnum :: Position -> [CHSToken] -> CST s [CHSFrag]
+parseEnum :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
 
 -- {#enum define hsid {alias_1,...,alias_n}  [deriving (clid_1,...,clid_n)] #}
-parseEnum pos (CHSTokIdent _ def: CHSTokIdent _ hsid: toks)
+parseEnum hkpos pos (CHSTokIdent _ def: CHSTokIdent _ hsid: toks)
   | identToString def == "define" =
   do
     (trans , toks')   <- parseTrans          toks
     (derive, toks'')  <- parseDerive         toks'
     toks'''           <- parseEndHook        toks''
     frags             <- parseFrags          toks'''
-    return $ CHSHook (CHSEnumDefine hsid trans derive pos) : frags
+    return $ CHSHook (CHSEnumDefine hsid trans derive pos) hkpos : frags
 
 -- {#enum cid [as hsid] {alias_1,...,alias_n}  [with prefix = pref] [deriving (clid_1,...,clid_n)] #}
-parseEnum pos (CHSTokIdent _ ide:toks) =
+parseEnum hkpos pos (CHSTokIdent _ ide:toks) =
   do
     (oalias,      toks2) <- parseOptAs ide True toks
     (trans,       toks3) <- parseTrans          toks2
@@ -935,15 +959,15 @@ parseEnum pos (CHSTokIdent _ ide:toks) =
     toks7                <- parseEndHook        toks6
     frags                <- parseFrags          toks7
     return $ CHSHook (CHSEnum ide (norm oalias) trans
-                      oprefix oreplprefix derive pos) : frags
+                      oprefix oreplprefix derive pos) hkpos : frags
   where
     norm Nothing                   = Nothing
     norm (Just ide') | ide == ide' = Nothing
                      | otherwise   = Just ide'
-parseEnum _ toks = syntaxError toks
+parseEnum _ _ toks = syntaxError toks
 
-parseCall          :: Position -> [CHSToken] -> CST s [CHSFrag]
-parseCall pos toks  =
+parseCall          :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseCall hkpos pos toks  =
   do
     (isPure  , toks'   ) <- parseIsPure          toks
     (isUnsafe, toks''  ) <- parseIsUnsafe        toks'
@@ -952,10 +976,10 @@ parseCall pos toks  =
     toks'''''            <- parseEndHook         toks''''
     frags                <- parseFrags           toks'''''
     return $
-      CHSHook (CHSCall isPure isUnsafe apath oalias pos) : frags
+      CHSHook (CHSCall isPure isUnsafe apath oalias pos) hkpos : frags
 
-parseFun          :: Position -> [CHSToken] -> CST s [CHSFrag]
-parseFun pos toks  =
+parseFun          :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseFun hkpos pos toks  =
   do
     (isPure  , toks' ) <- parseIsPure          toks
     (isUnsafe, toks'2) <- parseIsUnsafe        toks'
@@ -968,7 +992,7 @@ parseFun pos toks  =
     frags              <- parseFrags           toks'8
     return $
       CHSHook
-        (CHSFun isPure isUnsafe apath oalias octxt parms parm pos) :
+        (CHSFun isPure isUnsafe apath oalias octxt parms parm pos) hkpos :
       frags
   where
     parseOptContext (CHSTokHSVerb _ ctxt:CHSTokDArrow _:toks') =
@@ -1050,24 +1074,24 @@ parseParm toks =
     parseOptMarshType toks' =
       return (CHSValArg, toks')
 
-parseField :: Position -> CHSAccess -> [CHSToken] -> CST s [CHSFrag]
-parseField pos access toks =
+parseField :: Position -> Position -> CHSAccess -> [CHSToken] -> CST s [CHSFrag]
+parseField hkpos pos access toks =
   do
     (path, toks') <- parsePath  toks
     toks''        <- parseEndHook toks'
     frags         <- parseFrags toks''
-    return $ CHSHook (CHSField access path pos) : frags
+    return $ CHSHook (CHSField access path pos) hkpos : frags
 
-parseOffsetof :: Position -> [CHSToken] -> CST s [CHSFrag]
-parseOffsetof pos toks =
+parseOffsetof :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseOffsetof hkpos pos toks =
   do
     (path, toks') <- parsePath toks
     toks''        <- parseEndHook toks'
     frags         <- parseFrags toks''
-    return $ CHSHook (CHSOffsetof path pos) : frags
+    return $ CHSHook (CHSOffsetof path pos) hkpos : frags
 
-parsePointer :: Position -> [CHSToken] -> CST s [CHSFrag]
-parsePointer pos toks =
+parsePointer :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parsePointer hkpos pos toks =
   do
     (isStar, ide, toks')          <-
       case toks of
@@ -1092,7 +1116,7 @@ parsePointer pos toks =
     return $
       CHSHook
        (CHSPointer
-         isStar ide (norm ide oalias) ptrType isNewtype oRefType emit pos)
+         isStar ide (norm ide oalias) ptrType isNewtype oRefType emit pos) hkpos
        : frags
   where
     parsePtrType :: [CHSToken] -> CST s (CHSPtrType, [CHSToken])
@@ -1104,8 +1128,8 @@ parsePointer pos toks =
     norm ide (Just ide') | ide == ide' = Nothing
                          | otherwise   = Just ide'
 
-parseClass :: Position -> [CHSToken] -> CST s [CHSFrag]
-parseClass pos (CHSTokIdent  _ sclassIde:
+parseClass :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseClass hkpos pos (CHSTokIdent  _ sclassIde:
                 CHSTokDArrow _          :
                 CHSTokIdent  _ classIde :
                 CHSTokIdent  _ typeIde  :
@@ -1113,15 +1137,16 @@ parseClass pos (CHSTokIdent  _ sclassIde:
   do
     toks' <- parseEndHook toks
     frags <- parseFrags toks'
-    return $ CHSHook (CHSClass (Just sclassIde) classIde typeIde pos) : frags
-parseClass pos (CHSTokIdent _ classIde :
-                CHSTokIdent _ typeIde  :
-                toks)                     =
+    return $ CHSHook (CHSClass (Just sclassIde)
+                      classIde typeIde pos) hkpos : frags
+parseClass hkpos pos (CHSTokIdent _ classIde :
+                      CHSTokIdent _ typeIde  :
+                      toks)                     =
   do
     toks' <- parseEndHook toks
     frags <- parseFrags toks'
-    return $ CHSHook (CHSClass Nothing classIde typeIde pos) : frags
-parseClass _ toks = syntaxError toks
+    return $ CHSHook (CHSClass Nothing classIde typeIde pos) hkpos : frags
+parseClass _ _ toks = syntaxError toks
 
 parseOptLib :: [CHSToken] -> CST s (Maybe String, [CHSToken])
 parseOptLib (CHSTokLib    _    :
