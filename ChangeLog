@@ -1,3 +1,9 @@
+0.17.1
+
+ - Fix regressions from 0.16.6 (caused by fix for issue #45)
+ - Version number bump (should have been done in the last release)
+
+
 0.16.6
 
  - Trivial integer casts in enum defines supporting typedefs [Anton Dessiatov]
