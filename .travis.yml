@@ -2,7 +2,7 @@ language: haskell
 
 install:
   - sudo apt-get update -qq
-  - cabal list --installed
+  - cabal update
   - cabal install --only-dependencies --enable-tests
 
 script:
