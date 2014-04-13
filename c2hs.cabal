@@ -134,3 +134,13 @@ Test-Suite test-system
                        HUnit,
                        shelly >= 1.0,
                        text
+
+Test-Suite regression-suite
+  type:                exitcode-stdio-1.0
+  build-depends:       base,
+                       filepath,
+                       shelly >= 1.0,
+                       text,
+                       yaml >= 0.8
+  hs-source-dirs:      tests
+  main-is:             regression-suite.hs

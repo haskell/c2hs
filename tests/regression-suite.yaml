@@ -1,0 +1,63 @@
+-
+  name: CV
+  flags: [opencv24]
+  apt-packages: [libopencv-dev]
+
+-
+  name: hnetcdf
+  apt-packages: [libnetcdf-dev]
+
+-
+  name: hpuz
+
+-
+  name: hsqml
+  apt-packages: [libqtscript4-core, libqt4-declarative]
+
+-
+  name: igraph
+  apt-packages: [libigraph0-dev]
+
+
+# ISSUE #74
+#-
+#  name: gnome-keyring
+#  apt-packages: [libgnome-keyring-dev]
+
+# ISSUE #75
+#-
+#  name: hsndfile
+#  apt-packages: [libsndfile1-dev]
+
+# DEPENDENCY BUILD ISSUES
+#-
+#  name: ipopt-hs
+#  apt-packages: [coinor-libipopt-dev]
+
+
+# HOW TO INSTALL CUDA/NVIDIA LIBRARIES ON TRAVIS?
+#-
+#  name: cuda
+#  apt-packages: [nvidia-cuda-dev]
+#
+#-
+#  name: cufft
+#  apt-packages: [nvidia-cuda-dev]
+#
+#-
+#  name: OpenCL
+#  apt-packages: [nvidia-opencl-dev]
+
+
+# DEPENDENCY BUILD ISSUES
+#-
+#  name: bullet
+#  apt-packages: [cmake, subversion]
+#  special-setup:
+#   - svn checkout http://bullet.googlecode.com/svn/trunk/@2440 bullet-read-only-2.79
+#   - cd bullet-read-only-2.79
+#   - cmake . -DBUILD_DEMOS=NO
+#   - make
+#   - sudo make install
+
+
