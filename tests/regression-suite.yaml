@@ -4,6 +4,10 @@
   apt-packages: [libopencv-dev]
 
 -
+  name: gnome-keyring
+  apt-packages: [libgnome-keyring-dev]
+
+-
   name: hnetcdf
   apt-packages: [libnetcdf-dev]
 
@@ -18,11 +22,6 @@
   name: igraph
   apt-packages: [libigraph0-dev]
 
-
-# ISSUE #74
-#-
-#  name: gnome-keyring
-#  apt-packages: [libgnome-keyring-dev]
 
 # ISSUE #75
 #-
