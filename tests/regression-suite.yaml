@@ -20,7 +20,8 @@
 
 -
   name: igraph
-  apt-packages: [libigraph0-dev]
+  apt-ppa: [igraph/ppa]
+  apt-packages: [igraph]
 
 
 # ISSUE #75

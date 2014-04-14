@@ -16,6 +16,7 @@ default (T.Text)
 data RegressionTest = RegressionTest
                       { name :: Text
                       , flags :: [Text]
+                      , aptPPA :: [Text]
                       , aptPackages :: [Text]
                       , specialSetup :: [Text]
                       } deriving (Eq, Show)
@@ -23,6 +24,7 @@ data RegressionTest = RegressionTest
 instance FromJSON RegressionTest where
   parseJSON (Object v) = RegressionTest <$> v .: "name"
                                         <*> v .:? "flags" .!= []
+                                        <*> v .:? "apt-ppa" .!= []
                                         <*> v .:? "apt-packages" .!= []
                                         <*> v .:? "special-setup" .!= []
   parseJSON _ = mzero
@@ -40,24 +42,36 @@ checkApt = do
 main :: IO ()
 main = shelly $ verbosely $ do
   travis <- maybe False (const True) <$> get_env "TRAVIS"
+  enabled <- maybe False (const True) <$> get_env "C2HS_REGRESSION_SUITE"
+  when (not (travis || enabled)) $ do
+    echo "REGRESSION SUITE IS DISABLED"
+    exit 0
 
   when travis checkApt
   tests <- liftIO $ readTests "tests/regression-suite.yaml"
-  let pkgs = nub $ concatMap aptPackages tests
+  let ppas = nub $ concatMap aptPPA tests
+      pkgs = nub $ concatMap aptPackages tests
       specials = concatMap specialSetup tests
 
   when (not travis) $
     echo "ASSUMING THAT ALL NECESSARY LIBRARIES ALREADY INSTALLED!\n"
 
-  when (travis && not (null pkgs)) $ do
-    echo "INSTALLING APT PACKAGES\n"
-    run_ "sudo" $ ["apt-get", "install", "-y"] ++ pkgs
-    echo "\n"
+  when travis $ do
+    when (not (null ppas)) $ do
+      echo "SETTING UP APT PPAS\n"
+      forM_ ppas $ \ppa -> run_ "sudo" $ ["apt-add-repository", "ppa:" <> ppa]
+      run_ "sudo" $ ["apt-get", "update"]
+      echo "\n"
 
-  when (travis && not (null specials)) $ do
-    echo "SPECIAL INSTALL STEPS\n"
-    forM_ specials $ \s -> let (c:as) = T.words s in run_ (fromText c) as
-    echo "\n"
+    when (not (null pkgs)) $ do
+      echo "INSTALLING APT PACKAGES\n"
+      run_ "sudo" $ ["apt-get", "install", "-y"] ++ pkgs
+      echo "\n"
+
+    when (not (null specials)) $ do
+      echo "SPECIAL INSTALL STEPS\n"
+      forM_ specials $ \s -> let (c:as) = T.words s in run_ (fromText c) as
+      echo "\n"
 
   codes <- forM tests $ \t -> do
     let n = name t
