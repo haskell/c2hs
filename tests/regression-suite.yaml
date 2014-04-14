@@ -1,6 +1,5 @@
 -
   name: CV
-  flags: [opencv24]
   apt-packages: [libopencv-dev]
 
 -

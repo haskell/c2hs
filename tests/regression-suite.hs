@@ -75,7 +75,11 @@ main = shelly $ verbosely $ do
 
   codes <- forM tests $ \t -> do
     let n = name t
-        fs = concatMap (\f -> ["-f", f]) $ flags t
+        infs = concatMap (\f -> ["-f", f]) $ flags t
+    mefs <- get_env $ "C2HS_REGRESSION_FLAGS_" <> n
+    let fs = case mefs of
+          Nothing -> infs
+          Just efs -> infs ++ concatMap (\f -> ["-f", f]) (T.splitOn "," efs)
     echo $ "\nREGRESSION TEST: " <> n <> "\n"
     errExit False $ do
       run_ "cabal" $ ["install"] ++ fs ++ [n]
