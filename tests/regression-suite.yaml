@@ -1,6 +1,6 @@
 -
   name: CV
-  apt-packages: [libcv-dev]
+  apt-packages: [libcv-dev,libhighgui-dev,libopencv-contrib-dev,libopencv-gpu-dev]
 
 -
   name: gnome-keyring
