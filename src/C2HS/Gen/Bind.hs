@@ -927,8 +927,8 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
       call      = if isPure
                   then "  let {res = " ++ fiLexeme ++ joinCallArgs ++ "} in\n"
                   else "  " ++ fiLexeme ++ joinCallArgs ++ case parm of
-                    CHSParm _ "()" _ _ _ -> " >>\n"
-                    _                    -> " >>= \\res ->\n"
+                    CHSParm _ "()" _ Nothing _ -> " >>\n"
+                    _                        -> " >>= \\res ->\n"
       joinCallArgs = case marsh2 of
                         Nothing -> join callArgs
                         Just _  -> join ("b1'" : drop 1 callArgs)
