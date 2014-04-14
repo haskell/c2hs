@@ -20,7 +20,10 @@ To install `c2hs` from Hackage:
 
     cabal install c2hs
 
-If you like to build from the GitHub repository, see the file `INSTALL`.
+If you like to build from the GitHub repository, see the file
+`INSTALL`.  See the `REGRESSION-SUITE` file for a description of how
+to run the regression suite for checking C2HS performance against
+existing Haskell packages that use it.
 
 
 ## License

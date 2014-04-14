@@ -1,0 +1,50 @@
+                        C2HS REGRESSION SUITE
+                        ~~~~~~~~~~~~~~~~~~~~~
+
+C2HS is flexible enough that it's difficult to write a test suite that
+covers all the cases of interest to users.  As well as a general test
+suite and tests for individual issues, it makes sense to test for C2HS
+regressions by installing a range of packages that use C2HS.
+
+The regression suite is managed as a single Cabal test suite called
+regression-suite.  This reads a YAML configuration file giving a list
+of packages to test against.  The test suite succeeds if a "cabal
+install" of each of the test packages succeeds without error, using
+the current version of C2HS.
+
+This process requires care for two reasons:
+
+ 1. Because C2HS is an FFI tool, packages that use C2HS almost always
+    have dependencies on external libraries, so writing a simple test
+    suite is not straightforward.
+
+ 2. It's undesireable to install a whole set of Haskell packages for
+    C2HS regression testing into the user's environment.
+
+To handle these two issues, the regression-suite test suite behaves as
+follows:
+
+ ON TRAVIS
+
+  - Always run the regression suite.
+
+  - Install all library dependencies before attempting to install
+    Haskell packages.  These dependencies are given in the regression
+    suite configuration file as lists of APT package names, optionally
+    with PPAs to install them from, or as lists of shell commands to
+    use to install the dependencies.
+
+ ON NON-TRAVIS SYSTEMS
+
+  - Only run the regression suite if the C2HS_REGRESSION_SUITE
+    environment variable is defined.
+
+  - Assume that all C library dependencies are already installed.
+
+  - Set Cabal flags from environment variables called
+    C2HS_REGRESSION_FLAGS_<package> if these variables exist.
+
+
+The idea is to test for regressions under well-controlled conditions
+at each commit on Travis, but maintain the possibility of running the
+regression suite locally as well.
