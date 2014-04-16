@@ -25,14 +25,9 @@
 -
   name: cuda-shared-setup
   cabal: false
-  special-env-vars:
-    - SITE=http://developer.download.nvidia.com/compute/cuda/repos
-    - PLATFORM=ubuntu1204/x86_64
-    - DEB=cuda-repo-ubuntu1204_5.5-0_amd64.deb
-    - DLLINK=$SITE/$PLATFORM/$DEB
   special-setup:
-    - wget $DLLINK
-    - sudo dpkg -i $DEB
+    - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1204/x86_64/cuda-repo-ubuntu1204_5.5-0_amd64.deb
+    - sudo dpkg -i cuda-repo-ubuntu1204_5.5-0_amd64.deb
     - sudo apt-get update
     - sudo apt-get install cuda-5.5
   extra-path: [/usr/local/cuda-5.5/bin]
