@@ -15,18 +15,24 @@ default (T.Text)
 
 data RegressionTest = RegressionTest
                       { name :: Text
+                      , cabal :: Bool
                       , flags :: [Text]
                       , aptPPA :: [Text]
                       , aptPackages :: [Text]
+                      , specialEnvVars :: [Text]
                       , specialSetup :: [Text]
+                      , extraPath :: [Text]
                       } deriving (Eq, Show)
 
 instance FromJSON RegressionTest where
   parseJSON (Object v) = RegressionTest <$> v .: "name"
+                                        <*> v .:? "cabal" .!= True
                                         <*> v .:? "flags" .!= []
                                         <*> v .:? "apt-ppa" .!= []
                                         <*> v .:? "apt-packages" .!= []
+                                        <*> v .:? "special-env-vars" .!= []
                                         <*> v .:? "special-setup" .!= []
+                                        <*> v .:? "extra-path" .!= []
   parseJSON _ = mzero
 
 readTests :: FilePath -> IO [RegressionTest]
@@ -51,12 +57,21 @@ main = shelly $ verbosely $ do
   tests <- liftIO $ readTests "tests/regression-suite.yaml"
   let ppas = nub $ concatMap aptPPA tests
       pkgs = nub $ concatMap aptPackages tests
+      envVars = concatMap specialEnvVars tests
       specials = concatMap specialSetup tests
+      extraPaths = concatMap extraPath tests
 
   when (not travis) $
     echo "ASSUMING THAT ALL NECESSARY LIBRARIES ALREADY INSTALLED!\n"
 
   when travis $ do
+    when (not (null envVars)) $ do
+      echo "SETTING UP ENVIRONMENT VARIABLES\n"
+      forM_ envVars $ \e -> do
+        echo e
+        let [n, v] = T.splitOn "=" e in setenv n v
+      echo "\n"
+
     when (not (null ppas)) $ do
       echo "SETTING UP APT PPAS\n"
       forM_ ppas $ \ppa -> run_ "sudo" $ ["apt-add-repository", "ppa:" <> ppa]
@@ -73,7 +88,14 @@ main = shelly $ verbosely $ do
       forM_ specials $ \s -> let (c:as) = T.words s in run_ (fromText c) as
       echo "\n"
 
-  codes <- forM tests $ \t -> do
+    when (not (null extraPaths)) $ do
+      echo "ADDING PATHS\n"
+      forM_ extraPaths $ \p -> do
+        echo p
+        appendToPath $ fromText p
+      echo "\n"
+
+  codes <- forM (filter cabal tests) $ \t -> do
     let n = name t
         infs = concatMap (\f -> ["-f", f]) $ flags t
     mefs <- get_env $ "C2HS_REGRESSION_FLAGS_" <> n
