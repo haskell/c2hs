@@ -338,9 +338,9 @@ getDeclOf ide  =
       DontCareCD -> interr "CTrav.getDeclOf: Don't care!"
       TagCD _    -> interr "CTrav.getDeclOf: Illegal tag!"
       ObjCD obj  -> case obj of
-                      TypeCO    decl -> traceTypeCO >>
+                      TypeCO    decl -> traceTypeCO decl >>
                                         return decl
-                      ObjCO     decl -> traceObjCO >>
+                      ObjCO     decl -> traceObjCO decl >>
                                         return decl
                       EnumCO    _ _  -> illegalEnum
                       BuiltinCO      -> illegalBuiltin
@@ -354,10 +354,10 @@ getDeclOf ide  =
     traceEnter  = traceCTrav $
                     "Entering `getDeclOf' for `" ++ identToString ide
                     ++ "'...\n"
-    traceTypeCO = traceCTrav $
-                    "...found a type object.\n"
-    traceObjCO  = traceCTrav $
-                    "...found a vanilla object.\n"
+    traceTypeCO decl = traceCTrav $
+                    "...found a type object.\n" ++ show decl ++ "\n"
+    traceObjCO decl = traceCTrav $
+                    "...found a vanilla object.\n" ++ show decl ++ "\n"
 
 
 -- convenience functions
@@ -709,6 +709,8 @@ lookupEnum ide useShadows =
 --
 lookupStructUnion :: Ident -> Bool -> Bool -> CT s CStructUnion
 lookupStructUnion ide preferTag useShadows = do
+  traceCTrav $ "lookupStructUnion: ide=" ++ show ide ++ " preferTag=" ++
+    show preferTag ++ " useShadows=" ++ show useShadows ++ "\n"
   otag <- if useShadows
           then liftM (fmap fst) $ findTagShadow ide
           else findTag ide
@@ -801,19 +803,21 @@ extractAlias decl@(CDecl specs _ _) ind =
 --
 extractStruct                        :: Position -> CTag -> CT s CStructUnion
 extractStruct pos (EnumCT        _ )  = structExpectedErr pos
-extractStruct pos (StructUnionCT su)  =
+extractStruct pos (StructUnionCT su)  = do
+  traceCTrav $ "extractStruct: " ++ show su ++ "\n"
   case su of
     CStruct _ (Just ide') Nothing _ _ -> do            -- found forward definition
                                     def <- getDefOf ide'
+                                    traceCTrav $ "def=" ++ show def ++ "\n"
                                     case def of
                                       TagCD tag -> extractStruct pos tag
                                       bad_obj       -> err ide' bad_obj
     _                          -> return su
   where
-    err ide bad_obj = 
+    err ide bad_obj =
       do interr $ "CTrav.extractStruct: Illegal reference! Expected " ++ dumpIdent ide ++ 
                   " to link to TagCD but refers to "++ (show bad_obj) ++ "\n"
-                               
+
 -- | yield the name declared by a declarator if any
 --
 declrName                          :: CDeclr -> Maybe Ident
