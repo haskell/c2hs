@@ -568,6 +568,12 @@ structFromDecl pos (CDecl specs _ _)  =
     CSUType su _ -> extractStruct pos (StructUnionCT su)
     _            -> structExpectedErr pos
 
+structFromDecl' :: Position -> CDecl -> CT s (Maybe CStructUnion)
+structFromDecl' pos (CDecl specs _ _)  =
+  case head [ts | CTypeSpec ts <- specs] of
+    CSUType su _ -> extractStruct' pos (StructUnionCT su)
+    _            -> structExpectedErr pos
+
 -- | extracts the arguments from a function declaration (must be a unique
 -- declarator) and constructs a declaration for the result of the function
 --
@@ -730,7 +736,12 @@ lookupStructUnion ide preferTag useShadows = do
     False -> case oobj of
       Just _ -> do
         decl <- findAndChaseDecl ide True useShadows
-        structFromDecl (posOf ide) decl
+        mres <- structFromDecl' (posOf ide) decl
+        case mres of
+          Just su -> return su
+          Nothing -> case otag of
+            Just tag -> extractStruct (posOf ide) tag
+            Nothing  -> unknownObjErr ide
       Nothing -> case otag of
         Just tag -> extractStruct (posOf ide) tag
         Nothing  -> unknownObjErr ide
@@ -817,6 +828,21 @@ extractStruct pos (StructUnionCT su)  = do
     err ide bad_obj =
       do interr $ "CTrav.extractStruct: Illegal reference! Expected " ++ dumpIdent ide ++ 
                   " to link to TagCD but refers to "++ (show bad_obj) ++ "\n"
+
+extractStruct' :: Position -> CTag -> CT s (Maybe CStructUnion)
+extractStruct' pos (EnumCT        _ )  = structExpectedErr pos
+extractStruct' pos (StructUnionCT su)  = do
+  traceCTrav $ "extractStruct': " ++ show su ++ "\n"
+  case su of
+    CStruct _ (Just ide') Nothing _ _ -> do
+      def <- getDefOf ide'
+      traceCTrav $ "def=" ++ show def ++ "\n"
+      case def of
+        TagCD tag -> do
+          res <- extractStruct pos tag
+          return . Just $ res
+        _ -> return Nothing
+    _         -> return . Just $ su
 
 -- | yield the name declared by a declarator if any
 --

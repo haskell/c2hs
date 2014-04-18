@@ -14,6 +14,6 @@ data TstStruct = TstStruct { a :: Int }
 main :: IO ()
 main = do
   s <- makeTst
-  a <- {#get CHK_TST.a#} s
-  putStrLn $ show a
+  aval <- {#get CHK_TST.a#} s
+  putStrLn $ show aval
 
