@@ -22,6 +22,26 @@
   apt-ppa: [igraph/ppa]
   apt-packages: [libigraph0-dev]
 
+-
+  name: cuda-shared-setup
+  cabal: false
+  special-setup:
+    - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1204/x86_64/cuda-repo-ubuntu1204_5.5-0_amd64.deb
+    - sudo dpkg -i cuda-repo-ubuntu1204_5.5-0_amd64.deb
+    - sudo apt-get update
+    - sudo apt-get install cuda-5.5
+  extra-path: [/usr/local/cuda-5.5/bin]
+
+-
+  name: cuda
+
+#-
+#  name: cufft
+
+#-
+#  name: OpenCL
+
+
 
 # ISSUE #75
 #-
@@ -32,21 +52,6 @@
 #-
 #  name: ipopt-hs
 #  apt-packages: [coinor-libipopt-dev]
-
-
-# HOW TO INSTALL CUDA/NVIDIA LIBRARIES ON TRAVIS?
-#-
-#  name: cuda
-#  apt-packages: [nvidia-cuda-dev]
-#
-#-
-#  name: cufft
-#  apt-packages: [nvidia-cuda-dev]
-#
-#-
-#  name: OpenCL
-#  apt-packages: [nvidia-opencl-dev]
-
 
 # DEPENDENCY BUILD ISSUES
 #-

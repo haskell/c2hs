@@ -15,18 +15,22 @@ default (T.Text)
 
 data RegressionTest = RegressionTest
                       { name :: Text
+                      , cabal :: Bool
                       , flags :: [Text]
                       , aptPPA :: [Text]
                       , aptPackages :: [Text]
                       , specialSetup :: [Text]
+                      , extraPath :: [Text]
                       } deriving (Eq, Show)
 
 instance FromJSON RegressionTest where
   parseJSON (Object v) = RegressionTest <$> v .: "name"
+                                        <*> v .:? "cabal" .!= True
                                         <*> v .:? "flags" .!= []
                                         <*> v .:? "apt-ppa" .!= []
                                         <*> v .:? "apt-packages" .!= []
                                         <*> v .:? "special-setup" .!= []
+                                        <*> v .:? "extra-path" .!= []
   parseJSON _ = mzero
 
 readTests :: FilePath -> IO [RegressionTest]
@@ -40,7 +44,7 @@ checkApt = do
     _ -> return ()
 
 main :: IO ()
-main = shelly $ verbosely $ do
+main = shelly $ do
   travis <- maybe False (const True) <$> get_env "TRAVIS"
   enabled <- maybe False (const True) <$> get_env "C2HS_REGRESSION_SUITE"
   when (not (travis || enabled)) $ do
@@ -52,6 +56,7 @@ main = shelly $ verbosely $ do
   let ppas = nub $ concatMap aptPPA tests
       pkgs = nub $ concatMap aptPackages tests
       specials = concatMap specialSetup tests
+      extraPaths = concatMap extraPath tests
 
   when (not travis) $
     echo "ASSUMING THAT ALL NECESSARY LIBRARIES ALREADY INSTALLED!\n"
@@ -73,7 +78,14 @@ main = shelly $ verbosely $ do
       forM_ specials $ \s -> let (c:as) = T.words s in run_ (fromText c) as
       echo "\n"
 
-  codes <- forM tests $ \t -> do
+    when (not (null extraPaths)) $ do
+      echo "ADDING PATHS\n"
+      forM_ extraPaths $ \p -> do
+        echo p
+        appendToPath $ fromText p
+      echo "\n"
+
+  codes <- forM (filter cabal tests) $ \t -> do
     let n = name t
         infs = concatMap (\f -> ["-f", f]) $ flags t
     mefs <- get_env $ "C2HS_REGRESSION_FLAGS_" <> n
