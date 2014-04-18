@@ -1,6 +1,6 @@
 -
   name: CV
-  apt-packages: [libopencv-dev]
+  apt-packages: [libopencv-dev, libcv-dev, libhighgui-dev]
 
 -
   name: gnome-keyring
@@ -14,6 +14,10 @@
   name: hpuz
 
 -
+  name: hsndfile
+  apt-packages: [libsndfile1-dev]
+
+-
   name: hsqml
   apt-packages: [libqtscript4-core, libqt4-declarative]
 
@@ -22,18 +26,18 @@
   apt-ppa: [igraph/ppa]
   apt-packages: [libigraph0-dev]
 
--
-  name: cuda-shared-setup
-  cabal: false
-  special-setup:
-    - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1204/x86_64/cuda-repo-ubuntu1204_5.5-0_amd64.deb
-    - sudo dpkg -i cuda-repo-ubuntu1204_5.5-0_amd64.deb
-    - sudo apt-get update
-    - sudo apt-get install cuda-5.5
-  extra-path: [/usr/local/cuda-5.5/bin]
+#-
+#  name: cuda-shared-setup
+#  cabal: false
+#  special-setup:
+#    - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1204/x86_64/cuda-repo-ubuntu1204_5.5-0_amd64.deb
+#    - sudo dpkg -i cuda-repo-ubuntu1204_5.5-0_amd64.deb
+#    - sudo apt-get update
+#    - sudo apt-get install cuda-5.5
+#  extra-path: [/usr/local/cuda-5.5/bin]
 
--
-  name: cuda
+#-
+#  name: cuda
 
 #-
 #  name: cufft
@@ -42,11 +46,6 @@
 #  name: OpenCL
 
 
-
-# ISSUE #75
-#-
-#  name: hsndfile
-#  apt-packages: [libsndfile1-dev]
 
 # DEPENDENCY BUILD ISSUES
 #-
