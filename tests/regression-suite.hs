@@ -44,7 +44,7 @@ checkApt = do
     _ -> return ()
 
 main :: IO ()
-main = shelly $ verbosely $ do
+main = shelly $ do
   travis <- maybe False (const True) <$> get_env "TRAVIS"
   enabled <- maybe False (const True) <$> get_env "C2HS_REGRESSION_SUITE"
   when (not (travis || enabled)) $ do
