@@ -725,13 +725,16 @@ enumDef (CEnum _ Nothing _ _) _ _ _ pos = undefEnumErr pos
 enumDef (CEnum _ (Just list) _ _) hident trans userDerive _ =
   do
     (list', enumAuto) <- evalTagVals list
-    let enumVals = [(trans ide, cexpr) |
-                    (ide, cexpr) <- stripEnumAliases list']  -- translate
+    let enumVals = [(trans ide, cexpr) | (ide, cexpr) <- list']
+        toEnumVals = [(trans ide, cexpr) |
+                      (ide, cexpr) <- stripEnumAliases list']
         defHead  = enumHead hident
         defBody  = enumBody (length defHead - 2) enumVals
         inst     = makeDerives
                    (if enumAuto then "Enum" : userDerive else userDerive) ++
-                   if enumAuto then "\n" else "\n" ++ enumInst hident enumVals
+                   if enumAuto
+                   then "\n"
+                   else "\n" ++ enumInst hident enumVals toEnumVals
     isEnum hident
     return $ defHead ++ defBody ++ inst
   where
@@ -798,10 +801,11 @@ instance Num CInteger where
 --   following tags are assigned values continuing from the explicitly
 --   specified one
 --
-enumInst :: String -> [(String, Maybe CExpr)] -> String
-enumInst ident list =
+enumInst :: String -> [(String, Maybe CExpr)] -> [(String, Maybe CExpr)]
+         -> String
+enumInst ident list tolist =
   "instance Enum " ++ ident ++ " where\n"
-  ++ fromDef list 0 ++ "\n" ++ toDef list 0
+  ++ fromDef list 0 ++ "\n" ++ toDef tolist 0
   where
     fromDef []                _ = ""
     fromDef ((ide, exp):list') n =
