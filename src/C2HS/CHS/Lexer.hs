@@ -621,11 +621,13 @@ cpp :: CHSLexer
 cpp = directive
       where
         directive =
-          (string "\n#" >|< string "\0#") +>
+          --(string "\n#" >|< string "\0#") +>
+          alt "\n\0" +> alt " \t" `star` string "#" +>
           alt ('\t':inlineSet)`star` epsilon
           `lexmeta`
-             \t@(ld:_:dir) pos s ->      -- strip off the "\n#" or "\0#"
-               case dir of
+             \t@(ld:spdir) pos s ->      -- strip off the "\n" or "\0"
+             let dir = drop 1 $ dropWhile (`elem` " \t") spdir
+             in case dir of
                  ['c']                      ->          -- #c
                    (Nothing, incPos pos (length t), s, Just cLexer)
                  -- a #c may be followed by whitespace
