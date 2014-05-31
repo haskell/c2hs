@@ -109,7 +109,7 @@ import Prelude hiding (exp, lookup)
 -- standard libraries
 import Data.Char     (toLower)
 import Data.Function (on)
-import Data.List     (deleteBy, groupBy, sortBy, intersperse, find)
+import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, intercalate)
 import Data.Map      (lookup)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
@@ -646,7 +646,7 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
           ptrExpectedErr (posOf cName)
         (hsType, isFun) <-
           case oRefType of
-            Nothing     -> do
+            []     -> do
                              cDecl <- chaseDecl cNameFull (not isStar)
                              et    <- extractPtrType cDecl
                              traceInfoPtrType et
@@ -654,7 +654,7 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
                              when (isVariadic et')
                                   (variadicErr pos (posOf cDecl))
                              return (showExtType et', isFunExtType et')
-            Just hsType -> return (identToString hsType, False)
+            hsType -> return (identsToString hsType, False)
             -- FIXME: it is not possible to determine whether `hsType'
             --   is a function; we would need to extend the syntax to
             --   allow `... -> fun HSTYPE' to explicitly mark function
@@ -667,8 +667,8 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
         unless isStar $                         -- tags need an explicit `*'
           ptrExpectedErr (posOf cName)
         let hsType = case oRefType of
-                       Nothing      -> "()"
-                       Just hsType' -> identToString hsType'
+                       []      -> "()"
+                       hsType' -> identsToString hsType'
         traceInfoHsType hsName hsType
         pointerDef isStar cNameFull hsName ptrKind isNewtype hsType False emit
   where
@@ -689,6 +689,9 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
       ++ "\n"
     traceInfoCName kind ide = traceGenBind $
       "found C " ++ kind ++ " for `" ++ identToString ide ++ "'\n"
+    identsToString :: [Ident] -> String
+    identsToString = intercalate " " . map identToString
+
 expandHook (CHSClass oclassIde classIde typeIde pos) _ =
   do
     traceInfoClass
