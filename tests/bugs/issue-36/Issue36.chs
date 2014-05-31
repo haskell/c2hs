@@ -1,9 +1,17 @@
 module Main where
 
+import Foreign
+import Foreign.C
+
 #include "issue36.h"
 
-{#pointer *hit_int as OK_Hit -> Hit Int#}
-{#pointer *hit_double as OK_Hit -> Hit Double#}
+data Hit1 a = Hit1 a
+data Hit2 a b = Hit2 a b
+
+{#pointer *hit_int as HitEg1 -> Hit1 Int#}
+{#pointer *hit_double as HitEg2 -> Hit1 Double#}
+{#pointer *hit_int as HitEg3 -> Hit2 Int ()#}
+{#pointer *hit_double as HitEg4 -> Hit2 Double [Int]#}
 
 main :: IO ()
 main = return ()
