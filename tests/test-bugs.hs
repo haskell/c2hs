@@ -80,7 +80,9 @@ issue54 = expect_issue 54 ["2", "0.2", "2", "0.2",
                            "3", "0.3", "3", "0.3"]
 
 issue51 :: Assertion
-issue51 = expect_issue_with 51 ["--no-gnu"] ["0"]
+issue51 = do
+  expect_issue_with 51 "nonGNU" [] ["0"]
+  expect_issue_with 51 "GNU" [] ["1"]
 
 issue47 :: Assertion
 issue47 = build_issue 47
@@ -138,7 +140,7 @@ issue29 = shelly $ do
   errExit False $ do
       cd "tests/bugs/issue-29"
       mapM_ rm_f ["Issue29.hs", "Issue29.chs.h", "Issue29.chi"]
-      run c2hs ["--no-blocks", toTextIgnore "Issue29.chs"]
+      run c2hs [toTextIgnore "Issue29.chs"]
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
@@ -167,12 +169,13 @@ issue7 = shelly $ do
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
-do_issue_build :: Int -> [Text] -> Sh ()
-do_issue_build n c2hsargs =
+do_issue_build :: Int -> String -> [Text] -> Sh ()
+do_issue_build n ext c2hsargs =
   let wdir = "tests/bugs" </> ("issue-" <> show n)
       lc = "issue" <> show n
       lcc = lc <> "_c"
-      uc = fromText $ T.pack $ "Issue" <> show n
+      uc = fromText $ T.pack $ "Issue" <> show n <>
+           (if ext == "" then "" else "_" <> ext)
   in do
     cd wdir
     mapM_ rm_f [uc <.> "hs", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
@@ -181,17 +184,18 @@ do_issue_build n c2hsargs =
     cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
 
 expect_issue :: Int -> [Text] -> Assertion
-expect_issue n expected = expect_issue_with n [] expected
+expect_issue n expected = expect_issue_with n "" [] expected
 
-expect_issue_with :: Int -> [Text] -> [Text] -> Assertion
-expect_issue_with n c2hsargs expected = shelly $ do
-  do_issue_build n c2hsargs
-  res <- absPath ("." </> (fromText $ T.pack $ "Issue" <> show n)) >>= cmd
+expect_issue_with :: Int -> String -> [Text] -> [Text] -> Assertion
+expect_issue_with n ext c2hsargs expected = shelly $ do
+  do_issue_build n ext c2hsargs
+  res <- absPath ("." </> (fromText $ T.pack $ "Issue" <> show n <>
+                           (if ext == "" then "" else "_" <> ext))) >>= cmd
   liftIO $ assertBool "" (T.lines res == expected)
 
 build_issue_with :: Int -> [Text] -> Assertion
 build_issue_with n c2hsargs = shelly $ do
-  errExit False $ do_issue_build n c2hsargs
+  errExit False $ do_issue_build n "" c2hsargs
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 

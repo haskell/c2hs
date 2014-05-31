@@ -211,6 +211,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokCall    Position          -- `call'
               | CHSTokClass   Position          -- `class'
               | CHSTokContext Position          -- `context'
+              | CHSTokNonGNU  Position          -- `nonGNU'
               | CHSTokDerive  Position          -- `deriving'
               | CHSTokDown    Position          -- `downcaseFirstLetter'
               | CHSTokEnum    Position          -- `enum'
@@ -266,6 +267,7 @@ instance Pos CHSToken where
   posOf (CHSTokCall    pos  ) = pos
   posOf (CHSTokClass   pos  ) = pos
   posOf (CHSTokContext pos  ) = pos
+  posOf (CHSTokNonGNU  pos  ) = pos
   posOf (CHSTokDerive  pos  ) = pos
   posOf (CHSTokDown    pos  ) = pos
   posOf (CHSTokEnum    pos  ) = pos
@@ -321,6 +323,7 @@ instance Eq CHSToken where
   (CHSTokCall     _  ) == (CHSTokCall     _  ) = True
   (CHSTokClass    _  ) == (CHSTokClass    _  ) = True
   (CHSTokContext  _  ) == (CHSTokContext  _  ) = True
+  (CHSTokNonGNU   _  ) == (CHSTokNonGNU   _  ) = True
   (CHSTokDerive   _  ) == (CHSTokDerive   _  ) = True
   (CHSTokDown     _  ) == (CHSTokDown     _  ) = True
   (CHSTokEnum     _  ) == (CHSTokEnum     _  ) = True
@@ -377,6 +380,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokCall    _  ) = showString "call"
   showsPrec _ (CHSTokClass   _  ) = showString "class"
   showsPrec _ (CHSTokContext _  ) = showString "context"
+  showsPrec _ (CHSTokNonGNU  _  ) = showString "nonGNU"
   showsPrec _ (CHSTokDerive  _  ) = showString "deriving"
   showsPrec _ (CHSTokDown    _  ) = showString "downcaseFirstLetter"
   showsPrec _ (CHSTokEnum    _  ) = showString "enum"
@@ -716,6 +720,7 @@ identOrKW  =
     idkwtok pos "call"             _    = CHSTokCall    pos
     idkwtok pos "class"            _    = CHSTokClass   pos
     idkwtok pos "context"          _    = CHSTokContext pos
+    idkwtok pos "nonGNU"           _    = CHSTokNonGNU  pos
     idkwtok pos "deriving"         _    = CHSTokDerive  pos
     idkwtok pos "downcaseFirstLetter" _ = CHSTokDown    pos
     idkwtok pos "enum"             _    = CHSTokEnum    pos
@@ -753,6 +758,7 @@ keywordToIdent tok =
     CHSTokCall    pos -> mkid pos "call"
     CHSTokClass   pos -> mkid pos "class"
     CHSTokContext pos -> mkid pos "context"
+    CHSTokNonGNU  pos -> mkid pos "nonGNU"
     CHSTokDerive  pos -> mkid pos "deriving"
     CHSTokDown    pos -> mkid pos "downcaseFirstLetter"
     CHSTokEnum    pos -> mkid pos "enum"

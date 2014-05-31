@@ -411,6 +411,7 @@ expandHook (CHSContext olib oprefix orepprefix _) _ =
     when (isJust oprefix) $
       applyPrefixToNameSpaces (fromJust oprefix) (maybe "" id orepprefix)
     return ""
+expandHook (CHSNonGNU _) _ = return ""
 expandHook (CHSType ide pos) _ =
   do
     traceInfoType

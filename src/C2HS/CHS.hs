@@ -95,7 +95,7 @@ module C2HS.CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
             CHSChangeCase(..), CHSParm(..), CHSMarsh, CHSArg(..), CHSAccess(..),
             CHSAPath(..), CHSPtrType(..),
             loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI, chisuffix,
-            showCHSParm, apathToIdent)
+            showCHSParm, apathToIdent, hasNonGNU)
 where
 
 -- standard libraries
@@ -165,6 +165,12 @@ data CHSFrag = CHSVerb String                   -- Haskell code
                          [CHSFrag])]            -- then/elif branches
                        (Maybe [CHSFrag])        -- else branch
 
+hasNonGNU :: CHSModule -> Bool
+hasNonGNU (CHSModule frags) = any isNonGNU frags
+  where isNonGNU (CHSHook (CHSNonGNU _) _) = True
+        isNonGNU _                         = False
+
+
 instance Pos CHSFrag where
   posOf (CHSVerb _ pos  ) = pos
   posOf (CHSHook _ pos  ) = pos
@@ -185,6 +191,7 @@ data CHSHook = CHSImport  Bool                  -- qualified?
                           (Maybe String)        -- prefix
                           (Maybe String)        -- replacement prefix
                           Position
+             | CHSNonGNU  Position
              | CHSType    Ident                 -- C type
                           Position
              | CHSSizeof  Ident                 -- C type
@@ -826,6 +833,8 @@ parseFrags tokens  = do
     parseFrags0 (CHSTokHook hkpos:
                  CHSTokContext pos  :toks) = parseContext hkpos pos        toks
     parseFrags0 (CHSTokHook hkpos:
+                 CHSTokNonGNU  pos  :toks) = parseNonGNU  hkpos pos        toks
+    parseFrags0 (CHSTokHook hkpos:
                  CHSTokType    pos  :toks) = parseType    hkpos pos        toks
     parseFrags0 (CHSTokHook hkpos:
                  CHSTokSizeof  pos  :toks) = parseSizeof  hkpos pos        toks
@@ -910,6 +919,13 @@ parseContext hkpos pos toks  = do
   toks5             <- parseEndHook         toks4
   frags             <- parseFrags           toks5
   let frag = CHSContext olib opref oreppref pos
+  return $ CHSHook frag hkpos : frags
+
+parseNonGNU           :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseNonGNU hkpos pos toks  = do
+  toks2             <- parseEndHook         toks
+  frags             <- parseFrags           toks2
+  let frag = CHSNonGNU pos
   return $ CHSHook frag hkpos : frags
 
 parseType :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
