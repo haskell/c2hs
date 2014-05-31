@@ -6,13 +6,18 @@ import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test, assert)
 import Shelly
 import qualified Shelly as Sh
+import Prelude hiding (FilePath)
 import Control.Monad (forM_)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Paths_c2hs
 default (T.Text)
 
 main :: IO ()
 main = defaultMain tests
+
+c2hs :: FilePath
+c2hs = "../../../dist/build/c2hs/c2hs"
 
 tests :: [Test]
 tests =
@@ -45,17 +50,17 @@ run_test_expect dir cmds expcmd expected = shelly $ chdir dir $ do
 
 test_calls :: Assertion
 test_calls = run_test_exit_code "tests/system/calls"
-             [("c2hs", ["calls.h", "Calls.chs"]),
+             [(c2hs, ["calls.h", "Calls.chs"]),
               ("ghc", ["-c", "Calls.hs"])]
 
 test_cpp :: Assertion
 test_cpp = run_test_exit_code "tests/system/cpp"
-           [("c2hs", ["Cpp.chs"]),
+           [(c2hs, ["Cpp.chs"]),
             ("ghc", ["-c", "Cpp.hs"])]
 
 test_enums :: Assertion
 test_enums = run_test_expect "tests/system/enums"
-             [("c2hs", ["enums.h", "Enums.chs"]),
+             [(c2hs, ["enums.h", "Enums.chs"]),
               ("cc", ["-o", "enums_c.o", "-c", "enums.c"]),
               ("ghc", ["-o", "enums", "enums_c.o", "Enums.hs"])]
              "./enums"
@@ -63,7 +68,7 @@ test_enums = run_test_expect "tests/system/enums"
 
 test_marsh :: Assertion
 test_marsh = run_test_expect "tests/system/marsh"
-             [("c2hs", ["marsh.h", "Marsh.chs"]),
+             [(c2hs, ["marsh.h", "Marsh.chs"]),
               ("ghc", ["-o", "marsh", "Marsh.hs"])]
              "./marsh"
              ["Hello World!", "[5,3,7]"]
@@ -71,13 +76,13 @@ test_marsh = run_test_expect "tests/system/marsh"
 -- Issue #21
 test_pointer :: Assertion
 test_pointer = run_test_exit_code "tests/system/pointer"
-              [("c2hs", ["pointer.h", "Pointer.chs"]),
+              [(c2hs, ["pointer.h", "Pointer.chs"]),
                ("cc", ["-o", "pointer_c.o", "-c", "pointer.c"]),
                ("ghc", ["-o", "pointer", "pointer_c.o", "Pointer.hs"])]
 
 test_simple :: Assertion
 test_simple = run_test_expect "tests/system/simple"
-              [("c2hs", ["simple.h", "Simple.chs"]),
+              [(c2hs, ["simple.h", "Simple.chs"]),
                ("ghc", ["-c", "-o", "Simple_hs.o", "Simple.hs"]),
                ("cc", ["-c", "simple.c"]),
                ("ghc", ["-o", "simple", "simple.o", "Simple_hs.o"])]
@@ -87,7 +92,7 @@ test_simple = run_test_expect "tests/system/simple"
 -- Issue #10
 test_sizeof :: Assertion
 test_sizeof = run_test_expect "tests/system/sizeof"
-              [("c2hs", ["sizeof.h", "Sizeof.chs"]),
+              [(c2hs, ["sizeof.h", "Sizeof.chs"]),
                ("ghc", ["-c", "-o", "Sizeof.o", "Sizeof.hs"]),
                ("cc", ["-o", "sizeof_c.o", "-c", "sizeof.c"]),
                ("ghc", ["-o", "sizeof", "sizeof_c.o", "Sizeof.o"])]
@@ -97,7 +102,7 @@ test_sizeof = run_test_expect "tests/system/sizeof"
 
 test_structs :: Assertion
 test_structs = run_test_expect "tests/system/structs"
-               [("c2hs", ["structs.h", "Structs.chs"]),
+               [(c2hs, ["structs.h", "Structs.chs"]),
                 ("ghc", ["-c", "-o", "Structs.o", "Structs.hs"]),
                 ("cc", ["-o", "structs_c.o", "-c", "structs.c"]),
                 ("ghc", ["-o", "structs", "structs_c.o", "Structs.o"])]

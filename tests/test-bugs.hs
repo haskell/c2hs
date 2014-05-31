@@ -5,14 +5,19 @@ import Test.Framework (defaultMain, testGroup, Test)
 import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test, assert)
 import System.FilePath (searchPathSeparator)
+import Prelude hiding (FilePath)
 import Shelly
 import Data.Text (Text)
 import Data.Monoid
 import qualified Data.Text as T
+import Paths_c2hs
 default (T.Text)
 
 main :: IO ()
 main = defaultMain tests
+
+c2hs :: FilePath
+c2hs = "../../../dist/build/c2hs/c2hs"
 
 tests :: [Test]
 tests =
@@ -47,7 +52,7 @@ call_capital :: Assertion
 call_capital = shelly $ chdir "tests/bugs/call_capital" $ do
   mapM_ rm_f ["Capital.hs", "Capital.chs.h", "Capital.chi",
               "Capital_c.o", "Capital"]
-  cmd "c2hs" "-d" "genbind" "Capital.chs"
+  cmd c2hs "-d" "genbind" "Capital.chs"
   cmd "cc" "-c" "-o" "Capital_c.o" "Capital.c"
   cmd "ghc" "--make" "-cpp" "Capital_c.o" "Capital.hs"
   res <- absPath "./Capital" >>= cmd
@@ -113,12 +118,12 @@ issue30 = shelly $ chdir "tests/bugs/issue-30" $ do
               "Issue30Aux1.hs", "Issue30Aux1.chs.h", "test 1/Issue30Aux1.chi",
               "Issue30Aux2.hs", "Issue30Aux2.chs.h", "test 2/Issue30Aux2.chi",
               "issue30_c.o", "issue30aux1_c.o", "issue30aux2_c.o", "Issue30"]
-  cmd "c2hs" "Issue30Aux1.chs"
+  cmd c2hs "Issue30Aux1.chs"
   mv "Issue30Aux1.chi" "test 1"
-  cmd "c2hs" "Issue30Aux2.chs"
+  cmd c2hs "Issue30Aux2.chs"
   mv "Issue30Aux2.chi" "test 2"
-  let sp =  "test 1" ++ [searchPathSeparator] ++ "test 2"
-  cmd "c2hs" "--include" sp "Issue30.chs"
+  let sp = T.pack $ "test 1" ++ [searchPathSeparator] ++ "test 2"
+  cmd c2hs "--include" sp "Issue30.chs"
   cmd "cc" "-c" "-o" "issue30_c.o" "issue30.c"
   cmd "cc" "-c" "-o" "issue30aux1_c.o" "issue30aux1.c"
   cmd "cc" "-c" "-o" "issue30aux2_c.o" "issue30aux2.c"
@@ -133,7 +138,7 @@ issue29 = shelly $ do
   errExit False $ do
       cd "tests/bugs/issue-29"
       mapM_ rm_f ["Issue29.hs", "Issue29.chs.h", "Issue29.chi"]
-      run "c2hs" $ ["--no-blocks", toTextIgnore "Issue29.chs"]
+      run c2hs ["--no-blocks", toTextIgnore "Issue29.chs"]
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
@@ -158,7 +163,7 @@ issue7 = shelly $ do
       cd "tests/bugs/issue-7"
       mapM_ rm_f ["Issue7.hs", "Issue7.chs.h", "Issue7.chi"]
       setenv "LANG" "zh_CN.utf8"
-      run "c2hs" $ [toTextIgnore "Issue7.chs"]
+      run c2hs [toTextIgnore "Issue7.chs"]
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
@@ -171,7 +176,7 @@ do_issue_build n c2hsargs =
   in do
     cd wdir
     mapM_ rm_f [uc <.> "hs", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
-    run "c2hs" $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
+    run c2hs $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
     cmd "cc" "-c" "-o" (lcc <.> "o") (lc <.> "c")
     cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
 
