@@ -19,7 +19,8 @@
 
 -
   name: hsqml-0.2.0.3
-  apt-packages: [libqtscript4-core, libqt4-declarative]
+  cabal-build-tools: [c2hs]
+  apt-packages: [happy, alex, libqtscript4-core, libqt4-declarative]
 
 -
   name: igraph
