@@ -79,11 +79,6 @@ main = shelly $ do
       run_ "sudo" $ ["apt-get", "install", "-y"] ++ pkgs
       echo "\n"
 
-    when (not (null buildTools)) $ do
-      echo "INSTALLING BUILD TOOLS\n"
-      run_ "cabal" $ ["install"] ++ buildTools
-      echo "\n"
-
     when (not (null specials)) $ do
       echo "SPECIAL INSTALL STEPS\n"
       forM_ specials $ \s -> let (c:as) = T.words s in run_ (fromText c) as
