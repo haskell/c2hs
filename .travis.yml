@@ -6,4 +6,5 @@ install:
   - cabal install --only-dependencies --enable-tests
 
 script:
-  - cabal install && cabal configure --enable-tests && cabal build && cabal test
+  - cabal install && cabal configure --enable-tests && cabal build
+  - ./dist/build/regression-suite/regression-suite
