@@ -8,7 +8,7 @@
 
 -
   name: hnetcdf
-  apt-packages: [libnetcdf-dev]
+  apt-packages: [libnetcdf-dev, libgsl0-dev, liblapack-dev]
 
 -
   name: hpuz
@@ -62,5 +62,3 @@
 #   - cmake . -DBUILD_DEMOS=NO
 #   - make
 #   - sudo make install
-
-
