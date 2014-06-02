@@ -1612,7 +1612,7 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
     [(Just declr, _, size)] | isPtrDeclr declr -> ptrType declr
                             | isFunDeclr declr -> funType
                             | otherwise        -> aliasOrSpecType size
-    []                                         -> aliasOrSpecType Nothing
+    _                                          -> aliasOrSpecType Nothing
   where
     -- handle explicit pointer types
     --
