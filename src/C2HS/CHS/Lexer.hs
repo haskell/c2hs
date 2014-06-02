@@ -374,6 +374,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokRBrace  _  ) = showString "}"
   showsPrec _ (CHSTokLParen  _  ) = showString "("
   showsPrec _ (CHSTokRParen  _  ) = showString ")"
+  showsPrec _ (CHSTokHook    _  ) = showString "{#"
   showsPrec _ (CHSTokEndHook _  ) = showString "#}"
   showsPrec _ (CHSTokAdd     _  ) = showString "add"
   showsPrec _ (CHSTokAs      _  ) = showString "as"

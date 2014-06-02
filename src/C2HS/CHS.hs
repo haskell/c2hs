@@ -120,6 +120,8 @@ import C2HS.Version    (version)
 -- friends
 import C2HS.CHS.Lexer  (CHSToken(..), lexCHS, keywordToIdent)
 
+import Debug.Trace
+
 -- CHS abstract syntax
 -- -------------------
 
@@ -1109,7 +1111,7 @@ parseOffsetof hkpos pos toks =
     return $ CHSHook (CHSOffsetof path pos) hkpos : frags
 
 parsePointer :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
-parsePointer hkpos pos toks =
+parsePointer hkpos pos toks = trace (show toks) $
   do
     (isStar, ide, toks')          <-
       case toks of
