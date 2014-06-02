@@ -17,10 +17,10 @@
   name: hsndfile
   apt-packages: [libsndfile1-dev]
 
-#-
-#  name: hsqml-0.2.0.3
-#  cabal-build-tools: [c2hs]
-#  apt-packages: [happy, alex, libqtscript4-core, libqt4-declarative]
+-
+  name: hsqml-0.2.0.3
+  cabal-build-tools: [c2hs]
+  apt-packages: [happy, alex, libqtscript4-core, libqt4-declarative]
 
 -
   name: igraph
