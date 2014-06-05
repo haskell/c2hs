@@ -269,7 +269,7 @@ compile  =
   do
     setup
     cmdLine <- CIO.getArgs
-    case getOpt RequireOrder options cmdLine of
+    case getOpt Permute options cmdLine of
       (opts, []  , [])
         | noCompOpts opts -> doExecute opts Nothing
       (opts, args, [])    -> case parseArgs args of
