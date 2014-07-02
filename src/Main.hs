@@ -566,7 +566,13 @@ process headerFiles bndFile  =
     cppOpts  <- getSwitch cppOptsSB
     let nonGNUOpts =
           if hasNonGNU chsMod
-          then ["-U__GNUC__", "-U__GNUC_MINOR__", "-U__GNUC_PATCHLEVEL__"]
+          then [ "-U__GNUC__"
+               , "-U__GNUC_MINOR__"
+               , "-U__GNUC_PATCHLEVEL__"
+               , "-D__AVAILIBILITY__"
+               , "-D__OSX_AVAILABLE_STARTING(a,b)"
+               , "-D__OSX_AVAILABLE_BUT_DEPRECATED(a,b,c,d)"
+               , "-D__OSX_AVAILABLE_BUT_DEPRECATED_MSG(a,b,c,d,e)" ]
           else []
         args = cppOpts ++ nonGNUOpts ++ ["-U__BLOCKS__"] ++ [newHeaderFile]
     tracePreproc (unwords (cpp:args))
