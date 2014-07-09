@@ -865,7 +865,7 @@ callImportDyn hook _isPure isUns ideLexeme hsLexeme cdecl ty pos =
     -- compute the external type from the declaration, and delay the foreign
     -- export declaration
     --
-    when (isVariadic ty) (variadicErr pos pos) -- FIXME? (posOf cdecl))
+    when (isVariadic ty) (variadicErr pos (posOf cdecl))
     delayCode hook (foreignImportDyn (extractCallingConvention cdecl)
                     ideLexeme hsLexeme isUns ty)
     traceFunType ty
