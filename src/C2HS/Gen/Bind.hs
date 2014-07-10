@@ -1823,11 +1823,17 @@ extractCallingConvention cdecl
 
     funAttrs (CDecl specs declrs _) =
       let (_,attrs',_,_,_) = partitionDeclSpecs specs
-       in attrs' ++ funEndAttrs declrs
+       in attrs' ++ funEndAttrs declrs ++ funPtrAttrs declrs
 
     -- attrs after the function name, e.g. void foo() __attribute__((...));
     funEndAttrs [(Just ((CDeclr _ (CFunDeclr _ _ _ : _) _ attrs _)), _, _)] = attrs
     funEndAttrs _                                                           = []
+
+    -- attrs appearing within the declarator of a function pointer. As an
+    -- example:
+    -- typedef int (__stdcall *fp)();
+    funPtrAttrs [(Just ((CDeclr _ (CPtrDeclr _ _ : CFunDeclr _ attrs _ : _) _ _ _)), _, _)] = attrs
+    funPtrAttrs _ = []
 
 
 -- | generate the necessary parameter for "foreign import" for the
