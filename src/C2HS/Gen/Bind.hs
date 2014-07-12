@@ -113,6 +113,7 @@ import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, nubBy, inter
 import Data.Map      (lookup)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
+import Control.Arrow (second)
 import Control.Monad (when, unless, liftM, mapAndUnzipM)
 import Data.Ord      (comparing)
 
@@ -727,7 +728,7 @@ enumDef (CEnum _ Nothing _ _) _ _ _ pos = undefEnumErr pos
 enumDef (CEnum _ (Just list) _ _) hident trans userDerive _ =
   do
     (list', enumAuto) <- evalTagVals list
-    let enumVals = [(trans ide, cexpr) | (ide, cexpr) <- list']
+    let enumVals = fixTags [(trans ide, cexpr) | (ide, cexpr) <- list']
         defHead  = enumHead hident
         defBody  = enumBody (length defHead - 2) enumVals
         inst     = makeDerives
@@ -739,25 +740,24 @@ enumDef (CEnum _ (Just list) _ _) hident trans userDerive _ =
     isEnum hident
     return $ defHead ++ defBody ++ inst
   where
-    evalTagVals []                     = return ([], True)
-    evalTagVals ((ide, Nothing ):list') =
-      do
-        (list'', derived) <- evalTagVals list'
-        return ((ide, Nothing):list'', derived)
-    evalTagVals ((ide, Just exp):list') =
-      do
-        (list'', _derived) <- evalTagVals list'
+    evalTagVals = liftM (second and . unzip) . mapM (uncurry evalTag)
+    evalTag ide Nothing = return ((ide, Nothing), True)
+    evalTag ide (Just exp) =  do
         val <- evalConstCExpr exp
         case val of
-          IntResult val' ->
-            return ((ide, Just $ CConst (CIntConst (cInteger val') at1)):list'',
-                    False)
-          FloatResult _ ->
-            illegalConstExprErr (posOf exp) "a float result"
-      where
-        at1 = newAttrsOnlyPos nopos
+            IntResult val -> return ((ide, Just val), False)
+            FloatResult _ -> illegalConstExprErr (posOf exp) "a float result"
     makeDerives [] = ""
-    makeDerives dList = "deriving (" ++ concat (intersperse "," dList) ++")"
+    makeDerives dList = "\n  deriving (" ++ intercalate "," dList ++ ")"
+    -- Fix implicit tag values
+    fixTags = go 0
+      where
+        go _ [] = []
+        go n  ((ide, exp):rest) =
+            let val = case exp of
+                    Nothing  -> n
+                    Just m   -> m
+            in (ide, val) : go (val+1) rest
 
 -- | Haskell code for the head of an enumeration definition
 --
@@ -766,12 +766,11 @@ enumHead ident  = "data " ++ ident ++ " = "
 
 -- | Haskell code for the body of an enumeration definition
 --
-enumBody                        :: Int -> [(String, Maybe CExpr)] -> String
-enumBody _      []               = ""
-enumBody indent ((ide, _):list)  =
-  ide ++ "\n" ++ replicate indent ' '
-  ++ (if null list then "" else "| " ++ enumBody indent list)
-
+enumBody :: Int -> [(String, Integer)] -> String
+enumBody indent ides  = constrs
+  where
+    constrs = intercalate separator . map fst $ sortBy (comparing snd) ides
+    separator = "\n" ++ replicate indent ' ' ++ "| "
 
 -- | Num instance for C Integers
 -- We should preserve type flags and repr if possible
@@ -790,7 +789,7 @@ instance Num CInteger where
 --   following tags are assigned values continuing from the explicitly
 --   specified one
 --
-enumInst :: String -> [(String, Maybe CExpr)] -> String
+enumInst :: String -> [(String, Integer)] -> String
 enumInst ident list' = intercalate "\n"
   [ "instance Enum " ++ ident ++ " where"
   , succDef
@@ -803,17 +802,10 @@ enumInst ident list' = intercalate "\n"
   where
     concatFor = flip concatMap
     -- List of _all values_ (including aliases) and their associated tags
-    list   = sortBy (comparing snd) $ fixCExprs list' 0
+    list   = sortBy (comparing snd) list'
     -- List of values without aliases and their associated tags
     toList = stripAliases list
     -- Generate explicit tags for all values:
-    fixCExprs [] _ = []
-    fixCExprs ((ide, exp):rest) n =
-        let val = case exp of
-                Nothing                         -> n
-                Just (CConst (CIntConst m _))   -> getCInteger m
-                Just _ -> interr "GenBind.enumInst: Integer constant expected!"
-        in (ide, val) : fixCExprs rest (val+1)
     succDef = let idents = map fst toList
                   aliases = map (map fst) $ groupBy ((==) `on` snd) list
                   defs =  concat $ zipWith
