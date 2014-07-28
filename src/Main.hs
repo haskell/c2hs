@@ -124,7 +124,7 @@ import Data.Version (showVersion)
 import System.Console.GetOpt
                   (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo, getOpt)
 import qualified System.FilePath as FilePath
-                  (takeExtension, dropExtension, takeBaseName)
+                  (takeDirectory, takeExtension, dropExtension)
 import System.FilePath ((<.>), (</>), splitSearchPath)
 import System.IO (stderr, openFile, IOMode(..))
 import System.IO.Error (ioeGetErrorString, ioeGetFileName)
@@ -529,7 +529,21 @@ process headerFiles bndFile  =
     --
     (chsMod , warnmsgs) <- loadCHS bndFile
     CIO.putStr warnmsgs
-    traceCHSDump chsMod
+    --
+    -- get output directory and create it if it's missing
+    --
+    outFName <- getSwitch outputSB
+    outDir   <- getSwitch outDirSB
+    let outFPath = outDir </> outFName
+    CIO.createDirectoryIfMissing True $ FilePath.takeDirectory outFPath
+    --
+    -- dump the binding file when demanded
+    --
+    flag <- traceSet dumpCHSSW
+    when flag $ do
+      let chsName = outFPath <.> "dump"
+      CIO.putStrLn $ "...dumping CHS to `" ++ chsName ++ "'..."
+      dumpCHS chsName chsMod False
     --
     -- extract CPP and inline-C embedded in the .chs file (all CPP and
     -- inline-C fragments are removed from the .chs tree and conditionals are
@@ -541,11 +555,9 @@ process headerFiles bndFile  =
     -- create new header file, make it #include `headerFile', and emit
     -- CPP and inline-C of .chs file into the new header
     --
-    outFName <- getSwitch outputSB
-    outDir   <- getSwitch outDirSB
     let newHeader     = outFName <.> chssuffix <.> hsuffix
         newHeaderFile = outDir </> newHeader
-        preprocFile   = FilePath.takeBaseName outFName <.> isuffix
+        preprocFile   = outFPath <.> isuffix
     CIO.writeFile newHeaderFile $ concat $
       [ "#include \"" ++ headerFile ++ "\"\n"
       | headerFile <- headerFiles ]
@@ -608,17 +620,8 @@ process headerFiles bndFile  =
     --
     -- output the result
     --
-    dumpCHS (outDir </> outFName) hsMod True
-    dumpCHI (outDir </> outFName) chi           -- different suffix will be appended
+    dumpCHS outFPath hsMod True
+    dumpCHI outFPath chi           -- different suffix will be appended
   where
     tracePreproc cmd = putTraceStr tracePhasesSW $
                          "Invoking cpp as `" ++ cmd ++ "'...\n"
-    traceCHSDump mod' = do
-                         flag <- traceSet dumpCHSSW
-                         when flag $
-                           (do
-                              CIO.putStr ("...dumping CHS to `" ++ chsName
-                                         ++ "'...\n")
-                              dumpCHS chsName mod' False)
-
-    chsName = FilePath.takeBaseName bndFile <.> "dump"
