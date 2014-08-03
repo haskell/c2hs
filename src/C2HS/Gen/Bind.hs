@@ -511,7 +511,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) _ =
         -- cdecl'    = ide `simplifyDecl` cdecl
         args      = concat [ " x" ++ show n | n <- [1..numArgs ty] ]
 
-    callImportDyn hook isPure isUns ideLexeme hsLexeme ty pos
+    callImportDyn hook isPure isUns ideLexeme hsLexeme decl ty pos
     return $ "(\\o" ++ args ++ " -> " ++ set_get ++ " o >>= \\f -> "
              ++ hsLexeme ++ " f" ++ args ++ ")"
   where
@@ -566,7 +566,7 @@ expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) hkpos =
         -- cdecl'    = cide `simplifyDecl` cdecl
         -- args      = concat [ " x" ++ show n | n <- [1..numArgs ty] ]
         callHook  = CHSCall isPure isUns apath (Just fiIde) pos
-    callImportDyn callHook isPure isUns ideLexeme fiLexeme ty pos
+    callImportDyn callHook isPure isUns ideLexeme fiLexeme decl ty pos
 
     set_get <- setGet pos CHSGet offsets ptrTy
     funDef isPure hsLexeme fiLexeme (FunET ptrTy $ purify ty)
@@ -858,15 +858,16 @@ callImport hook isPure isUns ideLexeme hsLexeme cdecl pos =
     traceFunType et = traceGenBind $
       "Imported function type: " ++ showExtType et ++ "\n"
 
-callImportDyn :: CHSHook -> Bool -> Bool -> String -> String -> ExtType
+callImportDyn :: CHSHook -> Bool -> Bool -> String -> String -> CDecl -> ExtType
               -> Position -> GB ()
-callImportDyn hook _isPure isUns ideLexeme hsLexeme ty pos =
+callImportDyn hook _isPure isUns ideLexeme hsLexeme cdecl ty pos =
   do
     -- compute the external type from the declaration, and delay the foreign
     -- export declaration
     --
-    when (isVariadic ty) (variadicErr pos pos) -- FIXME? (posOf cdecl))
-    delayCode hook (foreignImportDyn ideLexeme hsLexeme isUns ty)
+    when (isVariadic ty) (variadicErr pos (posOf cdecl))
+    delayCode hook (foreignImportDyn (extractCallingConvention cdecl)
+                    ideLexeme hsLexeme isUns ty)
     traceFunType ty
   where
     traceFunType et = traceGenBind $
@@ -886,9 +887,10 @@ foreignImport cconv header ident hsIdent isUnsafe ty  =
 
 -- | Haskell code for the foreign import dynamic declaration needed by a call hook
 --
-foreignImportDyn :: String -> String -> Bool -> ExtType -> String
-foreignImportDyn _ident hsIdent isUnsafe ty  =
-  "foreign import ccall " ++ safety ++ " \"dynamic\"\n  " ++
+foreignImportDyn :: CallingConvention -> String -> String -> Bool -> ExtType -> String
+foreignImportDyn cconv _ident hsIdent isUnsafe ty  =
+  "foreign import " ++ showCallingConvention cconv ++ " " ++ safety
+    ++ " \"dynamic\"\n  " ++
     hsIdent ++ " :: FunPtr( " ++ showExtType ty ++ " ) -> " ++
     showExtType ty ++ "\n"
   where
@@ -1823,11 +1825,17 @@ extractCallingConvention cdecl
 
     funAttrs (CDecl specs declrs _) =
       let (_,attrs',_,_,_) = partitionDeclSpecs specs
-       in attrs' ++ funEndAttrs declrs
+       in attrs' ++ funEndAttrs declrs ++ funPtrAttrs declrs
 
     -- attrs after the function name, e.g. void foo() __attribute__((...));
     funEndAttrs [(Just ((CDeclr _ (CFunDeclr _ _ _ : _) _ attrs _)), _, _)] = attrs
     funEndAttrs _                                                           = []
+
+    -- attrs appearing within the declarator of a function pointer. As an
+    -- example:
+    -- typedef int (__stdcall *fp)();
+    funPtrAttrs [(Just ((CDeclr _ (CPtrDeclr _ _ : CFunDeclr _ attrs _ : _) _ _ _)), _, _)] = attrs
+    funPtrAttrs _ = []
 
 
 -- | generate the necessary parameter for "foreign import" for the
