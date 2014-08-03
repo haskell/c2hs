@@ -320,7 +320,8 @@ compile  =
             fnMsg = case ioeGetFileName err of
                        Nothing -> ""
                        Just s  -> " (file: `" ++ s ++ "')"
-        CIO.hPutStrLn stderr (msg ++ fnMsg)
+        name <- CIO.getProgName
+        CIO.hPutStrLn stderr $ concat [name, ": ", msg, fnMsg]
         CIO.exitWith $ CIO.ExitFailure 1
 
 -- | set up base configuration
@@ -360,19 +361,11 @@ execute opts args | Help `elem` opts = help
         let bndFileWithoutSuffix  = FilePath.dropExtension bndFile
         computeOutputName bndFileWithoutSuffix
         process headerFiles bndFileWithoutSuffix
-          `fatalsHandledBy` die
       Nothing ->
         computeOutputName "."   -- we need the output name for library copying
     copyLibrary
-      `fatalsHandledBy` die
   where
     atMostOne = (foldl (\_ x -> [x]) [])
-    --
-    die ioerr =
-      do
-        name <- CIO.getProgName
-        CIO.putStr $ name ++ ": " ++ ioeGetErrorString ioerr ++ "\n"
-        CIO.exitWith $ CIO.ExitFailure 1
 
 -- | emit help message
 --
