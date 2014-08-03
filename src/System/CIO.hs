@@ -50,7 +50,7 @@ module System.CIO (
             --
             -- `Directory'
             --
-            doesFileExist, removeFile,
+            createDirectoryIfMissing, doesFileExist, removeFile,
             --
             -- `System'
             --
@@ -64,7 +64,8 @@ where
 
 import Prelude (Bool, Char, String, FilePath, (.), ($), Show, return)
 import qualified System.IO as IO
-import qualified System.Directory   as IO (doesFileExist, removeFile)
+import qualified System.Directory   as IO
+                  (createDirectoryIfMissing, doesFileExist, removeFile)
 import qualified System.Environment as IO (getArgs, getProgName)
 import qualified System.Cmd  as IO (system)
 import qualified System.Exit as IO (ExitCode(..), exitWith)
@@ -149,6 +150,9 @@ newline  = putChar '\n'
 
 -- `Directory'
 -- -----------
+
+createDirectoryIfMissing   :: Bool -> FilePath -> PreCST e s ()
+createDirectoryIfMissing p  = liftIO . IO.createDirectoryIfMissing p
 
 doesFileExist :: FilePath -> PreCST e s Bool
 doesFileExist  = liftIO . IO.doesFileExist
