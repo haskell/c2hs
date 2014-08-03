@@ -6,6 +6,7 @@ import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test, assert)
 import System.FilePath (searchPathSeparator)
 import Prelude hiding (FilePath)
+import Control.Monad.IO.Class
 import Shelly
 import Data.Text (Text)
 import Data.Monoid
@@ -16,8 +17,12 @@ default (T.Text)
 main :: IO ()
 main = defaultMain tests
 
-c2hs :: FilePath
-c2hs = "../../../dist/build/c2hs/c2hs"
+c2hsShelly :: MonadIO m => Sh a -> m a
+c2hsShelly as = shelly $ do
+  oldpath <- get_env_text "PATH"
+  let newpath = "../../../dist/build/c2hs:" <> oldpath
+  setenv "PATH" newpath
+  as
 
 tests :: [Test]
 tests =
@@ -49,10 +54,10 @@ tests =
   ]
 
 call_capital :: Assertion
-call_capital = shelly $ chdir "tests/bugs/call_capital" $ do
+call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
   mapM_ rm_f ["Capital.hs", "Capital.chs.h", "Capital.chi",
               "Capital_c.o", "Capital"]
-  cmd c2hs "-d" "genbind" "Capital.chs"
+  cmd "c2hs" "-d" "genbind" "Capital.chs"
   cmd "cc" "-c" "-o" "Capital_c.o" "Capital.c"
   cmd "ghc" "--make" "-cpp" "Capital_c.o" "Capital.hs"
   res <- absPath "./Capital" >>= cmd
@@ -113,19 +118,19 @@ issue31 = expect_issue 31 ["Enum OK",
 -- This is tricky to test since it's Windows-specific, but we can at
 -- least make sure that paths with spaces work OK.
 issue30 :: Assertion
-issue30 = shelly $ chdir "tests/bugs/issue-30" $ do
+issue30 = c2hsShelly $ chdir "tests/bugs/issue-30" $ do
   mkdir_p "test 1"
   mkdir_p "test 2"
   mapM_ rm_f ["Issue30.hs", "Issue30.chs.h", "Issue30.chi",
               "Issue30Aux1.hs", "Issue30Aux1.chs.h", "test 1/Issue30Aux1.chi",
               "Issue30Aux2.hs", "Issue30Aux2.chs.h", "test 2/Issue30Aux2.chi",
               "issue30_c.o", "issue30aux1_c.o", "issue30aux2_c.o", "Issue30"]
-  cmd c2hs "Issue30Aux1.chs"
+  cmd "c2hs" "Issue30Aux1.chs"
   mv "Issue30Aux1.chi" "test 1"
-  cmd c2hs "Issue30Aux2.chs"
+  cmd "c2hs" "Issue30Aux2.chs"
   mv "Issue30Aux2.chi" "test 2"
   let sp = T.pack $ "test 1" ++ [searchPathSeparator] ++ "test 2"
-  cmd c2hs "--include" sp "Issue30.chs"
+  cmd "c2hs" "--include" sp "Issue30.chs"
   cmd "cc" "-c" "-o" "issue30_c.o" "issue30.c"
   cmd "cc" "-c" "-o" "issue30aux1_c.o" "issue30aux1.c"
   cmd "cc" "-c" "-o" "issue30aux2_c.o" "issue30aux2.c"
@@ -136,11 +141,11 @@ issue30 = shelly $ chdir "tests/bugs/issue-30" $ do
   liftIO $ assertBool "" (T.lines res == expected)
 
 issue29 :: Assertion
-issue29 = shelly $ do
+issue29 = c2hsShelly $ do
   errExit False $ do
       cd "tests/bugs/issue-29"
       mapM_ rm_f ["Issue29.hs", "Issue29.chs.h", "Issue29.chi"]
-      run c2hs [toTextIgnore "Issue29.chs"]
+      run "c2hs" [toTextIgnore "Issue29.chs"]
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
@@ -160,12 +165,12 @@ issue10 :: Assertion
 issue10 = expect_issue 10 ["SAME", "SAME", "SAME"]
 
 issue7 :: Assertion
-issue7 = shelly $ do
+issue7 = c2hsShelly $ do
   errExit False $ do
       cd "tests/bugs/issue-7"
       mapM_ rm_f ["Issue7.hs", "Issue7.chs.h", "Issue7.chi"]
       setenv "LANG" "zh_CN.utf8"
-      run c2hs [toTextIgnore "Issue7.chs"]
+      run "c2hs" [toTextIgnore "Issue7.chs"]
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
@@ -179,7 +184,7 @@ do_issue_build n ext c2hsargs =
   in do
     cd wdir
     mapM_ rm_f [uc <.> "hs", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
-    run c2hs $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
+    run "c2hs" $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
     cmd "cc" "-c" "-o" (lcc <.> "o") (lc <.> "c")
     cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
 
@@ -187,14 +192,14 @@ expect_issue :: Int -> [Text] -> Assertion
 expect_issue n expected = expect_issue_with n "" [] expected
 
 expect_issue_with :: Int -> String -> [Text] -> [Text] -> Assertion
-expect_issue_with n ext c2hsargs expected = shelly $ do
+expect_issue_with n ext c2hsargs expected = c2hsShelly $ do
   do_issue_build n ext c2hsargs
   res <- absPath ("." </> (fromText $ T.pack $ "Issue" <> show n <>
                            (if ext == "" then "" else "_" <> ext))) >>= cmd
   liftIO $ assertBool "" (T.lines res == expected)
 
 build_issue_with :: Int -> [Text] -> Assertion
-build_issue_with n c2hsargs = shelly $ do
+build_issue_with n c2hsargs = c2hsShelly $ do
   errExit False $ do_issue_build n "" c2hsargs
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)

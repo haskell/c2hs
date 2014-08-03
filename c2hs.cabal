@@ -121,7 +121,8 @@ Test-Suite test-bugs
                        test-framework-hunit,
                        HUnit,
                        shelly >= 1.0,
-                       text
+                       text,
+                       transformers
 
 Test-Suite test-system
   type:                exitcode-stdio-1.0
@@ -133,7 +134,8 @@ Test-Suite test-system
                        test-framework-hunit,
                        HUnit,
                        shelly >= 1.0,
-                       text
+                       text,
+                       transformers
 
 Executable regression-suite
   build-depends:       base,
