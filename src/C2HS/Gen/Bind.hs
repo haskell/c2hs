@@ -123,7 +123,6 @@ import Language.C.Data.Ident
 import Language.C.Pretty
 import Text.PrettyPrint.HughesPJ (render)
 import Data.Errors
-import Data.Attributes (newAttrsOnlyPos)
 
 -- C->Haskell
 import C2HS.Config (PlatformSpec(..))
@@ -745,7 +744,7 @@ enumDef (CEnum _ (Just list) _ _) hident trans userDerive _ =
     evalTag ide (Just exp) =  do
         val <- evalConstCExpr exp
         case val of
-            IntResult val -> return ((ide, Just val), False)
+            IntResult v -> return ((ide, Just v), False)
             FloatResult _ -> illegalConstExprErr (posOf exp) "a float result"
     makeDerives [] = ""
     makeDerives dList = "\n  deriving (" ++ intercalate "," dList ++ ")"
@@ -830,8 +829,7 @@ enumInst ident list' = intercalate "\n"
                                  ++ ident ++ ".pred: " ++ i ++
                                  " has no predecessor\"\n"
                   in defs ++ firsts
-    enumFromToDef = let lastVal = snd $ last list
-                 in intercalate "\n"
+    enumFromToDef = intercalate "\n"
                     [ "  enumFromTo from to = go from"
                     , "    where"
                     , "      end = fromEnum to"
