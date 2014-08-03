@@ -109,11 +109,13 @@ import Prelude hiding (exp, lookup)
 -- standard libraries
 import Data.Char     (toLower)
 import Data.Function (on)
-import Data.List     (deleteBy, groupBy, sortBy, intersperse, find)
+import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, nubBy, intercalate)
 import Data.Map      (lookup)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
+import Control.Arrow (second)
 import Control.Monad (when, unless, liftM, mapAndUnzipM)
+import Data.Ord      (comparing)
 
 -- Language.C / compiler toolkit
 import Language.C.Data.Position
@@ -121,7 +123,6 @@ import Language.C.Data.Ident
 import Language.C.Pretty
 import Text.PrettyPrint.HughesPJ (render)
 import Data.Errors
-import Data.Attributes (newAttrsOnlyPos)
 
 -- C->Haskell
 import C2HS.Config (PlatformSpec(..))
@@ -726,50 +727,36 @@ enumDef (CEnum _ Nothing _ _) _ _ _ pos = undefEnumErr pos
 enumDef (CEnum _ (Just list) _ _) hident trans userDerive _ =
   do
     (list', enumAuto) <- evalTagVals list
-    let enumVals = [(trans ide, cexpr) | (ide, cexpr) <- list']
-        toEnumVals = [(trans ide, cexpr) |
-                      (ide, cexpr) <- stripEnumAliases list']
+    let enumVals = fixTags [(trans ide, cexpr) | (ide, cexpr) <- list']
         defHead  = enumHead hident
         defBody  = enumBody (length defHead - 2) enumVals
         inst     = makeDerives
                    (if enumAuto then "Enum" : userDerive else userDerive) ++
+                   "\n" ++
                    if enumAuto
-                   then "\n"
-                   else "\n" ++ enumInst hident enumVals toEnumVals
+                   then ""
+                   else enumInst hident enumVals
     isEnum hident
     return $ defHead ++ defBody ++ inst
   where
-    evalTagVals []                     = return ([], True)
-    evalTagVals ((ide, Nothing ):list') =
-      do
-        (list'', derived) <- evalTagVals list'
-        return ((ide, Nothing):list'', derived)
-    evalTagVals ((ide, Just exp):list') =
-      do
-        (list'', _derived) <- evalTagVals list'
+    evalTagVals = liftM (second and . unzip) . mapM (uncurry evalTag)
+    evalTag ide Nothing = return ((ide, Nothing), True)
+    evalTag ide (Just exp) =  do
         val <- evalConstCExpr exp
         case val of
-          IntResult val' ->
-            return ((ide, Just $ CConst (CIntConst (cInteger val') at1)):list'',
-                    False)
-          FloatResult _ ->
-            illegalConstExprErr (posOf exp) "a float result"
-      where
-        at1 = newAttrsOnlyPos nopos
+            IntResult v -> return ((ide, Just v), False)
+            FloatResult _ -> illegalConstExprErr (posOf exp) "a float result"
     makeDerives [] = ""
-    makeDerives dList = "deriving (" ++ concat (intersperse "," dList) ++")"
-    stripEnumAliases :: [(Ident, Maybe CExpr)] -> [(Ident, Maybe CExpr)]
-    stripEnumAliases vs =
-      let okids = map (fst . head) .
-                  groupBy ((==) `on` snd) .
-                  sortBy (compare `on` snd) .
-                  extractEnumVals $ vs
-      in filter ((`elem` okids) . fst) vs
-    extractEnumVals :: [(Ident, Maybe CExpr)] -> [(Ident, CInteger)]
-    extractEnumVals = go 0
-      where go _ [] = []
-            go k ((i, Nothing):vs') = (i,k) : go (k+1) vs'
-            go _ ((i, Just (CConst (CIntConst j _))):vs') = (i,j) : go (j+1) vs'
+    makeDerives dList = "\n  deriving (" ++ intercalate "," dList ++ ")"
+    -- Fix implicit tag values
+    fixTags = go 0
+      where
+        go _ [] = []
+        go n  ((ide, exp):rest) =
+            let val = case exp of
+                    Nothing  -> n
+                    Just m   -> m
+            in (ide, val) : go (val+1) rest
 
 -- | Haskell code for the head of an enumeration definition
 --
@@ -778,15 +765,14 @@ enumHead ident  = "data " ++ ident ++ " = "
 
 -- | Haskell code for the body of an enumeration definition
 --
-enumBody                        :: Int -> [(String, Maybe CExpr)] -> String
-enumBody _      []               = ""
-enumBody indent ((ide, _):list)  =
-  ide ++ "\n" ++ replicate indent ' '
-  ++ (if null list then "" else "| " ++ enumBody indent list)
-
+enumBody :: Int -> [(String, Integer)] -> String
+enumBody indent ides  = constrs
+  where
+    constrs = intercalate separator . map fst $ sortBy (comparing snd) ides
+    separator = "\n" ++ replicate indent ' ' ++ "| "
 
 -- | Num instance for C Integers
--- We should preserve type flags and repr if possible 
+-- We should preserve type flags and repr if possible
 instance Num CInteger where
   fromInteger = cInteger
   (+) a b = cInteger (getCInteger a + getCInteger b)
@@ -802,39 +788,71 @@ instance Num CInteger where
 --   following tags are assigned values continuing from the explicitly
 --   specified one
 --
-enumInst :: String -> [(String, Maybe CExpr)] -> [(String, Maybe CExpr)]
-         -> String
-enumInst ident list tolist =
-  "instance Enum " ++ ident ++ " where\n"
-  ++ fromDef list 0 ++ "\n" ++ toDef tolist 0
+enumInst :: String -> [(String, Integer)] -> String
+enumInst ident list' = intercalate "\n"
+  [ "instance Enum " ++ ident ++ " where"
+  , succDef
+  , predDef
+  , enumFromToDef
+  , enumFromDef
+  , fromDef
+  , toDef
+  ]
   where
-    fromDef []                _ = ""
-    fromDef ((ide, exp):list') n =
-      "  fromEnum " ++ ide ++ " = " ++ show' (getCInteger val) ++ "\n"
-      ++ fromDef list' (val + 1)
-      where
-        val = case exp of
-                Nothing                         -> n
-                Just (CConst (CIntConst m _))   -> m
-                Just _                          ->
-                  interr "GenBind.enumInst: Integer constant expected!"
-        --
-        show' x = if x < 0 then "(" ++ show x ++ ")" else show x
-    --
-    toDef []                _ =
-      "  toEnum unmatched = error (\"" ++ ident
-      ++ ".toEnum: Cannot match \" ++ show unmatched)\n"
-    toDef ((ide, exp):list') n =
-      "  toEnum " ++ show' val ++ " = " ++ ide ++ "\n"
-      ++ toDef list' (val + 1)
-      where
-        val = case exp of
-                Nothing                         -> n
-                Just (CConst (CIntConst m _))   -> m
-                Just _                          ->
-                  interr "GenBind.enumInst: Integer constant expected!"
-        --
-        show' x = if x < 0 then "(" ++ show x ++ ")" else show x
+    concatFor = flip concatMap
+    -- List of _all values_ (including aliases) and their associated tags
+    list   = sortBy (comparing snd) list'
+    -- List of values without aliases and their associated tags
+    toList = stripAliases list
+    -- Generate explicit tags for all values:
+    succDef = let idents = map fst toList
+                  aliases = map (map fst) $ groupBy ((==) `on` snd) list
+                  defs =  concat $ zipWith
+                          (\is s -> concatFor is $ \i -> "  succ " ++ i
+                                                         ++ " = " ++ s ++ "\n")
+                          aliases
+                          (tail idents)
+                  lasts = concatFor (last aliases) $ \i ->
+                              "  succ " ++ i ++ " = error \""
+                                 ++ ident ++ ".succ: " ++ i ++
+                                 " has no successor\"\n"
+                  in defs ++ lasts
+    predDef = let idents = map fst toList
+                  aliases = map (map fst) $ groupBy ((==) `on` snd) list
+                  defs =  concat $ zipWith
+                          (\is s -> concatFor is $ \i -> "  pred " ++ i
+                                                         ++ " = " ++ s ++ "\n")
+                          (tail aliases)
+                          idents
+                  firsts = concatFor (head aliases) $ \i ->
+                               "  pred " ++ i ++ " = error \""
+                                 ++ ident ++ ".pred: " ++ i ++
+                                 " has no predecessor\"\n"
+                  in defs ++ firsts
+    enumFromToDef = intercalate "\n"
+                    [ "  enumFromTo from to = go from"
+                    , "    where"
+                    , "      end = fromEnum to"
+                    , "      go v = case compare (fromEnum v) end of"
+                    , "                 LT -> v : go (succ v)"
+                    , "                 EQ -> [v]"
+                    , "                 GT -> []"
+                    , ""
+                    ]
+    enumFromDef = let lastIdent = fst $ last list
+               in "  enumFrom from = enumFromTo from " ++ lastIdent ++ "\n"
+
+    fromDef = concatFor list (\(ide, val) -> "  fromEnum " ++ ide ++ " = "
+                               ++ show' val ++ "\n")
+
+    toDef = (concatFor toList (\(ide, val) -> "  toEnum " ++ show' val ++ " = "
+                                       ++ ide ++ "\n"))
+            -- Default case:
+            ++ "  toEnum unmatched = error (\"" ++ ident
+               ++ ".toEnum: Cannot match \" ++ show unmatched)\n"
+    show' x = if x < 0 then "(" ++ show x ++ ")" else show x
+    stripAliases :: [(String, Integer)] -> [(String, Integer)]
+    stripAliases = nubBy ((==) `on` snd)
 
 -- | generate a foreign import declaration that is put into the delayed code
 --
@@ -2096,7 +2114,7 @@ evalConstCExpr (CVar ide''' at) =
   do
     (cobj, _) <- findValueObj ide''' False
     case cobj of
-      EnumCO ide'' (CEnum _ (Just enumrs) _ _) -> 
+      EnumCO ide'' (CEnum _ (Just enumrs) _ _) ->
         liftM IntResult $ enumTagValue ide'' enumrs 0
       _                             ->
         todo $ "GenBind.evalConstCExpr: variable names not implemented yet " ++
@@ -2139,8 +2157,8 @@ evalCCast (CCast decl expr _) = do
 evalCCast' :: CompType -> Integer -> GB ConstResult
 evalCCast' (ExtType (PrimET primType)) i
   | isIntegralCPrimType primType = return $ IntResult i
-evalCCast' _ _ = todo "GenBind.evalCCast': Only integral trivial casts are implemented"      
- 
+evalCCast' _ _ = todo "GenBind.evalCCast': Only integral trivial casts are implemented"
+
 evalCConst :: CConst -> GB ConstResult
 evalCConst (CIntConst   i _ ) = return $ IntResult (getCInteger i)
 evalCConst (CCharConst  c _ ) = return $ IntResult (getCCharAsInt c)
