@@ -246,7 +246,8 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokLine    Position          -- line pragma
               | CHSTokC       Position String   -- verbatim C code
               | CHSTokCtrl    Position Char     -- control code
-
+              | CHSTokComment Position String   -- comment
+                
 instance Pos CHSToken where
   posOf (CHSTokArrow   pos  ) = pos
   posOf (CHSTokDArrow  pos  ) = pos
@@ -302,6 +303,7 @@ instance Pos CHSToken where
   posOf (CHSTokLine    pos  ) = pos
   posOf (CHSTokC       pos _) = pos
   posOf (CHSTokCtrl    pos _) = pos
+  posOf (CHSTokComment pos _) = pos
 
 instance Eq CHSToken where
   (CHSTokArrow    _  ) == (CHSTokArrow    _  ) = True
@@ -358,6 +360,7 @@ instance Eq CHSToken where
   (CHSTokLine     _  ) == (CHSTokLine     _  ) = True
   (CHSTokC        _ _) == (CHSTokC        _ _) = True
   (CHSTokCtrl     _ _) == (CHSTokCtrl     _ _) = True
+  (CHSTokComment  _ _) == (CHSTokComment  _ _) = True
   _                    == _                    = False
 
 instance Show CHSToken where
@@ -415,7 +418,9 @@ instance Show CHSToken where
   showsPrec _ (CHSTokLine    _  ) = id            --TODO show line num?
   showsPrec _ (CHSTokC       _ s) = showString s
   showsPrec _ (CHSTokCtrl    _ c) = showChar c
-
+  showsPrec _ (CHSTokComment _ s) = showString (if null s
+                                                then ""
+                                                else " -- " ++ s ++ "\n")
 
 -- lexer state
 -- -----------
@@ -672,7 +677,7 @@ bhLexer  =      identOrKW
            >||< whitespace
            >||< endOfHook
            >||< string "--" +> anyButNL`star` char '\n'   -- comment
-                `lexmeta` \_ pos s -> (Nothing, retPos pos, s, Nothing)
+                `lexaction` \cs pos -> Just (CHSTokComment pos (init (drop 2 cs)))
            where
              anyButNL  = alt (anySet \\ ['\n'])
              endOfHook = string "#}"

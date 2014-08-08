@@ -311,7 +311,8 @@ data CHSParm = CHSParm CHSMarsh  -- "in" marshaller
                        Bool      -- C repr: two values?
                        CHSMarsh  -- "out" marshaller
                        Position
-
+                       String    -- Comment for this para
+                       
 -- | kinds of arguments in function hooks
 --
 data CHSArg = CHSValArg                         -- plain value argument
@@ -616,13 +617,15 @@ showApAlias apath oalias  =
        Just ide -> showString " as " . showCHSIdent ide)
 
 showCHSParm                                                :: CHSParm -> ShowS
-showCHSParm (CHSParm oimMarsh hsTyStr twoCVals oomMarsh _)  =
+showCHSParm (CHSParm oimMarsh hsTyStr twoCVals oomMarsh _ comment)  =
     showOMarsh oimMarsh
   . showChar ' '
   . showHsVerb hsTyStr
   . (if twoCVals then showChar '&' else id)
   . showChar ' '
   . showOMarsh oomMarsh
+  . showChar ' '
+  . showComment comment
   where
     showOMarsh Nothing               = id
     showOMarsh (Just (body, argKind)) =   showMarshBody body
@@ -636,6 +639,9 @@ showCHSParm (CHSParm oimMarsh hsTyStr twoCVals oomMarsh _)  =
     showMarshBody (Right str) = showChar '|' . showString str . showChar '|'
     --
     showHsVerb str = showChar '`' . showString str . showChar '\''
+    showComment str = if null str
+                      then showString ""
+                      else showString "-- " . showString str . showChar '\n'
 
 showCHSTrans :: CHSTrans -> ShowS
 showCHSTrans (CHSTrans _2Case chgCase assocs)  =
@@ -1067,7 +1073,9 @@ parseParm toks =
           return (hsTyStr, False, pos, toks'2)
         _toks                                          -> syntaxError toks'
     (oomMarsh, toks'3) <- parseOptMarsh toks'2
-    return (CHSParm oimMarsh hsTyStr twoCVals oomMarsh pos, toks'3)
+    (comments, toks'4) <- parseOptComments toks'3
+    return (CHSParm oimMarsh hsTyStr twoCVals oomMarsh pos
+            (concat (intersperse " " comments)), toks'4)
   where
     parseOptMarsh :: [CHSToken] -> CST s (CHSMarsh, [CHSToken])
     parseOptMarsh (CHSTokIdent _ ide:toks') =
@@ -1089,6 +1097,12 @@ parseParm toks =
       return (CHSVoidArg, toks')
     parseOptMarshType toks' =
       return (CHSValArg, toks')
+      
+parseOptComments :: [CHSToken] -> CST s ([String], [CHSToken])
+parseOptComments = go []
+  where
+    go acc (CHSTokComment _ s:toks) = go (s:acc) toks
+    go acc _toks = return (reverse acc,_toks)
 
 parseField :: Position -> Position -> CHSAccess -> [CHSToken] -> CST s [CHSFrag]
 parseField hkpos pos access toks =
