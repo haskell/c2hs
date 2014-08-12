@@ -835,33 +835,47 @@ parseFrags tokens  = do
                                                return $ CHSLine pos : frags
     parseFrags0 (CHSTokC       pos s:toks) = parseC       pos s      toks
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokImport  pos  :toks) = parseImport  hkpos pos        toks
+                 CHSTokImport  pos  :toks) = parseImport  hkpos pos
+                                             (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokContext pos  :toks) = parseContext hkpos pos        toks
+                 CHSTokContext pos  :toks) = parseContext hkpos pos
+                                             (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokNonGNU  pos  :toks) = parseNonGNU  hkpos pos        toks
+                 CHSTokNonGNU  pos  :toks) = parseNonGNU  hkpos pos
+                                             (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokType    pos  :toks) = parseType    hkpos pos        toks
+                 CHSTokType    pos  :toks) = parseType    hkpos pos
+                                             (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokSizeof  pos  :toks) = parseSizeof  hkpos pos        toks
+                 CHSTokSizeof  pos  :toks) = parseSizeof  hkpos pos
+                                             (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokAlignof pos  :toks) = parseAlignof hkpos pos        toks
+                 CHSTokAlignof pos  :toks) = parseAlignof hkpos pos
+                                             (removeCommentInHook toks)
+    -- TODO: issue 70, add haddock support for enum hook
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokEnum    pos  :toks) = parseEnum    hkpos pos        toks
+                 CHSTokEnum    pos  :toks) = parseEnum    hkpos pos
+                                             (removeCommentInHook toks) 
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokCall    pos  :toks) = parseCall    hkpos pos        toks
+                 CHSTokCall    pos  :toks) = parseCall    hkpos pos
+                                             (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokFun     pos  :toks) = parseFun     hkpos pos        toks
+                 CHSTokFun     pos  :toks) = parseFun     hkpos pos toks
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokGet     pos  :toks) = parseField   hkpos pos CHSGet toks
+                 CHSTokGet     pos  :toks) = parseField   hkpos pos CHSGet
+                                             (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokSet     pos  :toks) = parseField   hkpos pos CHSSet toks
+                 CHSTokSet     pos  :toks) = parseField   hkpos pos CHSSet
+                                             (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokOffsetof pos :toks) = parseOffsetof hkpos pos       toks
+                 CHSTokOffsetof pos :toks) = parseOffsetof hkpos pos
+                                             (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokClass   pos  :toks) = parseClass   hkpos pos        toks
+                 CHSTokClass   pos  :toks) = parseClass   hkpos pos
+                                             (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
-                 CHSTokPointer pos  :toks) = parsePointer hkpos pos        toks
+                 CHSTokPointer pos  :toks) = parsePointer hkpos pos
+                                             (removeCommentInHook toks)
     parseFrags0 toks                       = syntaxError toks
     --
     -- skip to next Haskell or control token
@@ -870,6 +884,15 @@ parseFrags tokens  = do
     contFrags toks@(CHSTokHaskell _ _:_   ) = parseFrags toks
     contFrags toks@(CHSTokCtrl    _ _:_   ) = parseFrags toks
     contFrags      (_                :toks) = contFrags  toks
+    --
+    -- Only keep comment in fun hook
+    -- 
+    isComment (CHSTokComment _ _) = True
+    isComment _                   = False
+    isEndHook (CHSTokEndHook _) = True
+    isEndHook _                 = False
+    removeCommentInHook xs = let (lhs,rhs) = span (not . isEndHook) xs
+                             in filter (not . isComment) lhs ++ rhs
 
 parseC :: Position -> String -> [CHSToken] -> CST s [CHSFrag]
 parseC pos s toks =
@@ -1001,7 +1024,7 @@ parseCall hkpos pos toks  =
       CHSHook (CHSCall isPure isUnsafe apath oalias pos) hkpos : frags
 
 parseFun          :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
-parseFun hkpos pos toks  =
+parseFun hkpos pos inputToks  =
   do
     (isPure  , toks' ) <- parseIsPure          toks
     (isUnsafe, toks'2) <- parseIsUnsafe        toks'
@@ -1017,6 +1040,7 @@ parseFun hkpos pos toks  =
         (CHSFun isPure isUnsafe apath oalias octxt parms parm pos) hkpos :
       frags
   where
+    toks = removeIllPositionedComment inputToks
     parseOptContext (CHSTokHSVerb _ ctxt:CHSTokDArrow _:toks') =
       return (Just ctxt, toks')
     parseOptContext toks'                                      =
@@ -1030,6 +1054,10 @@ parseFun hkpos pos toks  =
       syntaxError toks'
     --
     parseParms' (CHSTokRBrace _:CHSTokArrow _:toks') = return ([], toks')
+    parseParms' (CHSTokComma _:CHSTokComment _ _:toks') = do
+      (parm , toks'2 ) <- parseParm   toks'
+      (parms, toks'3)  <- parseParms' toks'2
+      return (parm:parms, toks'3)
     parseParms' (CHSTokComma _               :toks') = do
       (parm , toks'2 ) <- parseParm   toks'
       (parms, toks'3)  <- parseParms' toks'2
@@ -1037,6 +1065,24 @@ parseFun hkpos pos toks  =
     parseParms' (CHSTokRBrace _              :toks') = syntaxError toks'
       -- gives better error messages
     parseParms'                               toks'  = syntaxError toks'
+    -- 
+    isComment (CHSTokComment _ _) = True
+    isComment _ = False
+    isLBrace (CHSTokLBrace _) = True
+    isLBrace _ = False
+    isRBrace (CHSTokRBrace _) = True
+    isRBrace _ = False
+    isHSVerb (CHSTokHSVerb _ _) = True
+    isHSVerb _ = False
+    -- remove comment(s) between
+    -- 1. {# and {
+    -- 2. } and `ResultType'
+    removeIllPositionedComment xs = let (lhs,rhs) = span (not . isLBrace) xs
+                                        (lhs',rhs') = span (not . isRBrace) rhs
+                                        (lhs'2,rhs'2) = span (not . isHSVerb) rhs'
+                                    in filter (not . isComment) lhs ++ lhs' ++
+                                       (filter (not . isComment) lhs'2) ++ rhs'2
+
 
 parseIsPure :: [CHSToken] -> CST s (Bool, [CHSToken])
 parseIsPure (CHSTokPure _:toks) = return (True , toks)
