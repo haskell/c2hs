@@ -1,8 +1,4 @@
-/* @(#)issue62.c
- */
-
 #include "issue62.h"
-
 
 int f1(int x, int y, int z) {
   return 0;
