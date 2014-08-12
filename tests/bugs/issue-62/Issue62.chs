@@ -1,7 +1,9 @@
 module Main where
 
 import Foreign.C
+import Foreign.Marshal
 import Foreign.Ptr
+import Foreign.Storable
 
 #include "issue62.h"
 
