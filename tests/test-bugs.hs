@@ -28,6 +28,7 @@ tests :: [Test]
 tests =
   [ testGroup "Bugs"
     [ testCase "call_capital (issue #??)" call_capital
+    , testCase "Issue #93" issue93
     , testCase "Issue #80" issue80
     , testCase "Issue #79" issue79
     , testCase "Issue #75" issue75
@@ -64,6 +65,9 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
   res <- absPath "./Capital" >>= cmd
   let expected = ["upper C();", "lower c();", "upper C();"]
   liftIO $ assertBool "" (T.lines res == expected)
+
+issue93 :: Assertion
+issue93 = build_issue 93
 
 issue80 :: Assertion
 issue80 = build_issue 80

@@ -312,7 +312,7 @@ data CHSParm = CHSParm CHSMarsh  -- "in" marshaller
                        CHSMarsh  -- "out" marshaller
                        Position
                        String    -- Comment for this para
-                       
+
 -- | kinds of arguments in function hooks
 --
 data CHSArg = CHSValArg                         -- plain value argument
@@ -855,7 +855,7 @@ parseFrags tokens  = do
     -- TODO: issue 70, add haddock support for enum hook
     parseFrags0 (CHSTokHook hkpos:
                  CHSTokEnum    pos  :toks) = parseEnum    hkpos pos
-                                             (removeCommentInHook toks) 
+                                             (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
                  CHSTokCall    pos  :toks) = parseCall    hkpos pos
                                              (removeCommentInHook toks)
@@ -886,7 +886,7 @@ parseFrags tokens  = do
     contFrags      (_                :toks) = contFrags  toks
     --
     -- Only keep comment in fun hook
-    -- 
+    --
     isComment (CHSTokComment _ _) = True
     isComment _                   = False
     isEndHook (CHSTokEndHook _) = True
@@ -1065,7 +1065,7 @@ parseFun hkpos pos inputToks  =
     parseParms' (CHSTokRBrace _              :toks') = syntaxError toks'
       -- gives better error messages
     parseParms'                               toks'  = syntaxError toks'
-    -- 
+    --
     isComment (CHSTokComment _ _) = True
     isComment _ = False
     isLBrace (CHSTokLBrace _) = True
@@ -1132,6 +1132,10 @@ parseParm toks =
       do
         (marshType, toks'2) <- parseOptMarshType toks'
         return (Just (Right str, marshType), toks'2)
+    parseOptMarsh (CHSTokWith _ ide:toks') =
+      do
+        (marshType, toks'2) <- parseOptMarshType toks'
+        return (Just (Left ide, marshType), toks'2)
     parseOptMarsh toks'                     =
       return (Nothing, toks')
 
@@ -1143,7 +1147,7 @@ parseParm toks =
       return (CHSVoidArg, toks')
     parseOptMarshType toks' =
       return (CHSValArg, toks')
-      
+
 parseOptComments :: [CHSToken] -> CST s ([String], [CHSToken])
 parseOptComments = go []
   where
@@ -1237,12 +1241,12 @@ parseOptPrefix False (CHSTokPrefix _    :
                       CHSTokEqual  _    :
                       CHSTokString _ str:
                       toks)                = return (Just str, toks)
-parseOptPrefix True  (CHSTokWith   _    :
+parseOptPrefix True  (CHSTokWith   _ _  :
                       CHSTokPrefix _    :
                       CHSTokEqual  _    :
                       CHSTokString _ str:
                       toks)                = return (Just str, toks)
-parseOptPrefix _     (CHSTokWith   _:toks) = syntaxError toks
+parseOptPrefix _     (CHSTokWith _ _:toks) = syntaxError toks
 parseOptPrefix _     (CHSTokPrefix _:toks) = syntaxError toks
 parseOptPrefix _     toks                  = return (Nothing, toks)
 
