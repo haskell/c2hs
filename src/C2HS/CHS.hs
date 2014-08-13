@@ -876,6 +876,7 @@ parseFrags tokens  = do
     parseFrags0 (CHSTokHook hkpos:
                  CHSTokPointer pos  :toks) = parsePointer hkpos pos
                                              (removeCommentInHook toks)
+    parseFrags0 (CHSTokHook _       :toks) = syntaxError toks
     parseFrags0 toks                       = syntaxError toks
     --
     -- skip to next Haskell or control token

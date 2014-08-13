@@ -262,6 +262,7 @@ instance Pos CHSToken where
   posOf (CHSTokRBrace  pos  ) = pos
   posOf (CHSTokLParen  pos  ) = pos
   posOf (CHSTokRParen  pos  ) = pos
+  posOf (CHSTokHook    pos  ) = pos
   posOf (CHSTokEndHook pos  ) = pos
   posOf (CHSTokAdd     pos  ) = pos
   posOf (CHSTokAs      pos  ) = pos
@@ -319,6 +320,7 @@ instance Eq CHSToken where
   (CHSTokRBrace   _  ) == (CHSTokRBrace   _  ) = True
   (CHSTokLParen   _  ) == (CHSTokLParen   _  ) = True
   (CHSTokRParen   _  ) == (CHSTokRParen   _  ) = True
+  (CHSTokHook     _  ) == (CHSTokHook     _  ) = True
   (CHSTokEndHook  _  ) == (CHSTokEndHook  _  ) = True
   (CHSTokAdd      _  ) == (CHSTokAdd      _  ) = True
   (CHSTokAs       _  ) == (CHSTokAs       _  ) = True
@@ -377,6 +379,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokRBrace  _  ) = showString "}"
   showsPrec _ (CHSTokLParen  _  ) = showString "("
   showsPrec _ (CHSTokRParen  _  ) = showString ")"
+  showsPrec _ (CHSTokHook    _  ) = showString "{#"
   showsPrec _ (CHSTokEndHook _  ) = showString "#}"
   showsPrec _ (CHSTokAdd     _  ) = showString "add"
   showsPrec _ (CHSTokAs      _  ) = showString "as"
