@@ -83,3 +83,5 @@
 /tests/bugs/issue-51/Issue51_nonGNU.hs
 /.cabal-sandbox/*
 /cabal.sandbox.config
+/tests/bugs/issue-62/Issue62
+/tests/bugs/issue-62/Issue62.hs

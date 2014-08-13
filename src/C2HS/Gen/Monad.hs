@@ -223,16 +223,35 @@ instance Show HsObject where
   show (Class   osuper  pointer  ) =
     "Class " ++ show ptrType ++ show isNewtype
 -}
+
+-- Remove everything until the next element in the list (given by a
+-- ","), the end of the list (marked by "]"), or the end of a record
+-- "}". Everything inside parenthesis is ignored.
+chopIdent :: String -> String
+chopIdent str = goChop 0 str
+    where goChop :: Int -> String -> String
+          goChop 0 rest@('}':_) = rest
+          goChop 0 rest@(',':_) = rest
+          goChop 0 rest@(']':_) = rest
+          goChop level ('(':rest) = goChop (level+1) rest
+          goChop level (')':rest) = goChop (level-1) rest
+          goChop level (_  :rest) = goChop level rest
+          goChop level [] = []
+
+extractIdent :: String -> (Ident, String)
+extractIdent str =
+    let isQuote c = c == '\'' || c == '"'
+        (ideChars, rest) = span (not . isQuote)
+                           . tail
+                           . dropWhile (not . isQuote) $ str
+    in
+      if null ideChars
+      then error $ "Could not interpret " ++ show str ++ "as an Ident."
+      else (internalIdent ideChars, (chopIdent . tail) rest)
+
 -- super kludgy (depends on Show instance of Ident)
 instance Read Ident where
-  readsPrec _ ('`':lexeme) = let (ideChars, rest) = span (/= '\'') lexeme
-                             in
-                             if null ideChars
-                             then []
-                             else [(internalIdent ideChars, tail rest)]
-  readsPrec p (c:cs)
-    | isSpace c                                              = readsPrec p cs
-  readsPrec _ _                                              = []
+  readsPrec _ str = [extractIdent str]
 
 -- | the local state consists of
 --
@@ -467,4 +486,3 @@ hsObjExpectedErr ide  =
     ["Unknown name!",
      "`" ++ identToString ide ++ "' is unknown; it has *not* been defined by",
      "a previous hook."]
-
