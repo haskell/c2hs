@@ -53,8 +53,8 @@ import Language.C.Data
 import Language.C.Pretty
 import Language.C.Syntax
 import Data.Errors       (interr)
-import Data.DLists (DList)
-import qualified Data.DLists as DL
+import Data.DList (DList)
+import qualified Data.DList as DL
 
 -- C->Haskell
 import C2HS.State (CST, runCST, transCST, raiseError, catchExc,
@@ -132,7 +132,7 @@ ghModule (CHSModule frags) =
     (header, frags', last', _rest) <- ghFrags frags
     when (not . isEOF $ last') $
       notOpenCondErr (posOf last')
-    return (DL.close header, CHSModule frags')
+    return (DL.toList header, CHSModule frags')
 
 -- | Collect header and fragments up to eof or a CPP directive that is part of a
 -- conditional
@@ -142,7 +142,7 @@ ghModule (CHSModule frags) =
 --   concatenation of lines that go into the header.
 --
 ghFrags :: [CHSFrag] -> GH (DList String, [CHSFrag], FragElem, [CHSFrag])
-ghFrags []    = return (DL.zero, [], EOF, [])
+ghFrags []    = return (DL.empty, [], EOF, [])
 ghFrags frags =
   do
     (header, frag, rest) <- ghFrag frags
@@ -150,7 +150,7 @@ ghFrags frags =
       Frag aFrag -> do
                       (header2, frags', frag', rest') <- ghFrags rest
                       -- FIXME: Not tail rec
-                      return (header `DL.join` header2, aFrag:frags',
+                      return (header `DL.append` header2, aFrag:frags',
                               frag', rest')
       _          -> return (header, [], frag, rest)
 
@@ -162,16 +162,16 @@ ghFrag :: [CHSFrag] -> GH (DList String, -- partial header file
                            FragElem,     -- processed fragment
                            [CHSFrag])    -- not yet processed fragments
 ghFrag []                              =
-  return (DL.zero, EOF, [])
+  return (DL.empty, EOF, [])
 ghFrag (frag@(CHSVerb  _ _  ) : frags) =
-  return (DL.zero, Frag frag, frags)
+  return (DL.empty, Frag frag, frags)
 
 -- generate an enum __c2hs__enum__'id { __c2hs_enr__'id = DEF1, ... } and then process an
 -- ordinary enum directive
 ghFrag (_frag@(CHSHook (CHSEnumDefine hsident trans instances pos) hkpos) : frags) =
   do ide <- newEnumIdent
      (enrs,trans') <- createEnumerators trans
-     return (DL.open [show.pretty $ enumDef ide enrs,";\n"], Frag (enumFrag (identToString ide) trans'), frags)
+     return (DL.fromList [show.pretty $ enumDef ide enrs,";\n"], Frag (enumFrag (identToString ide) trans'), frags)
   where
   newEnumIdent = liftM internalIdent $ transCST $ \supply -> (tail supply, "__c2hs_enum__" ++ show (nameId $ head supply))
   newEnrIdent  = liftM internalIdent $ transCST $ \supply -> (tail supply, "__c2hs_enr__" ++ show (nameId $ head supply))
@@ -187,13 +187,13 @@ ghFrag (_frag@(CHSHook (CHSEnumDefine hsident trans instances pos) hkpos) : frag
   enumFrag ide trans' = CHSHook (CHSEnum (internalIdent ide) (Just hsident) trans' Nothing Nothing instances pos) hkpos
 
 ghFrag (frag@(CHSHook  _    _) : frags) =
-  return (DL.zero, Frag frag, frags)
+  return (DL.empty, Frag frag, frags)
 ghFrag (frag@(CHSLine  _    ) : frags) =
-  return (DL.zero, Frag frag, frags)
+  return (DL.empty, Frag frag, frags)
 ghFrag (     (CHSC    s  _  ) : frags) =
   do
     (header, frag, frags' ) <- ghFrag frags     -- scan for next CHS fragment
-    return (DL.unit s `DL.join` header, frag, frags')
+    return (DL.singleton s `DL.append` header, frag, frags')
     -- FIXME: this is not tail recursive...
 
 ghFrag (     (CHSCond _  _  ) : _    ) =
@@ -208,10 +208,10 @@ ghFrag (     (CHSCPP s pos nl) : frags) =
     "if"     -> openIf s pos frags
     "ifdef"  -> openIf s pos frags
     "ifndef" -> openIf s pos frags
-    "else"   -> return (DL.zero              , Else   pos               , frags)
-    "elif"   -> return (DL.zero              , Elif s pos               , frags)
-    "endif"  -> return (DL.zero              , Endif  pos               , frags)
-    _        -> return (DL.open ['#':s, "\n"],
+    "else"   -> return (DL.empty                 , Else   pos           , frags)
+    "elif"   -> return (DL.empty                 , Elif s pos           , frags)
+    "endif"  -> return (DL.empty                 , Endif  pos           , frags)
+    _        -> return (DL.fromList ['#':s, "\n"],
                         Frag (CHSVerb (if nl then "\n" else "") pos), frags)
   where
     -- enter a new conditional (may be an #if[[n]def] or #elif)
@@ -231,7 +231,7 @@ ghFrag (     (CHSCPP s pos nl) : frags) =
                              Endif   _    -> closeIf
                                               ((headerTh
                                                 `DL.snoc` "#else\n")
-                                               `DL.join`
+                                               `DL.append`
                                                (headerEl
                                                 `DL.snoc` "#endif\n"))
                                               (s', fragsTh)
@@ -243,7 +243,7 @@ ghFrag (     (CHSCPP s pos nl) : frags) =
                            (headerEl, condFrag, rest') <- openIf s'' pos' rest
                            case condFrag of
                              Frag (CHSCond alts dft) ->
-                               closeIf (headerTh `DL.join` headerEl)
+                               closeIf (headerTh `DL.append` headerEl)
                                        (s, fragsTh)
                                        alts
                                        dft
@@ -270,9 +270,9 @@ ghFrag (     (CHSCPP s pos nl) : frags) =
                        -- don't use an internal ident, as we need to test for
                        -- equality with identifiers read from the .i file
                        -- during binding hook expansion
-            header = DL.open ['#':s', "\n",
+            header = DL.fromList ['#':s', "\n",
                              "struct ", sentryName, ";\n"]
-                            `DL.join` headerTail
+                            `DL.append` headerTail
         return (header, Frag (CHSCond ((sentry, fragsTh):alts) oelse), rest)
 
 

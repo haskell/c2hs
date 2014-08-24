@@ -69,7 +69,8 @@ flag base3
 Executable c2hs
     Build-Depends:  base >= 2 && < 5,
                     language-c >= 0.4.5 && < 0.5,
-                    filepath
+                    filepath,
+                    dlist
 
     if flag(base3)
         Build-Depends: base >= 3, process, directory, array, containers, pretty
@@ -99,7 +100,6 @@ Executable c2hs
       Control.State
       Control.StateTrans
       Data.Attributes
-      Data.DLists
       Data.Errors
       Data.NameSpaces
       System.CIO
