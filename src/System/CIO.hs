@@ -67,8 +67,8 @@ import qualified System.IO as IO
 import qualified System.Directory   as IO
                   (createDirectoryIfMissing, doesFileExist, removeFile)
 import qualified System.Environment as IO (getArgs, getProgName)
-import qualified System.Cmd  as IO (system)
-import qualified System.Exit as IO (ExitCode(..), exitWith)
+import qualified System.Process as IO (system)
+import qualified System.Exit    as IO (ExitCode(..), exitWith)
 
 import Control.StateBase (PreCST, liftIO)
 

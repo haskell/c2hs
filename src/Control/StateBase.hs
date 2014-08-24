@@ -56,6 +56,8 @@ import qualified Control.StateTrans as StateTrans (liftIO)
 import Data.Errors     (ErrorLevel(..), Error)
 import Language.C.Data.Name
 
+import Control.Applicative (Applicative(..))
+import Control.Monad (liftM, ap)
 
 -- state used in the whole compiler
 -- --------------------------------
@@ -80,6 +82,13 @@ data BaseState e = BaseState {
 --
 
 newtype PreCST e s a = CST (STB (BaseState e) s a)
+
+instance Functor (PreCST e s) where
+  fmap = liftM
+
+instance Applicative (PreCST e s) where
+  pure  = return
+  (<*>) = ap
 
 instance Monad (PreCST e s) where
   return = yield
