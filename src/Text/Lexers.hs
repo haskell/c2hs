@@ -136,7 +136,7 @@ import Data.Maybe (fromMaybe)
 import Data.Array (Array, (!), assocs, accumArray)
 import Language.C.Data.Position
 
-import qualified Data.DLists as DL
+import qualified Data.DList as DL
 import Data.Errors (interr, ErrorLevel(..), Error, makeError)
 
 
@@ -450,7 +450,7 @@ execLexer l state            =
     --
     -- lexOne :: Lexer s t -> LexerState s t
     --        -> (Either Error (Maybe t), Lexer s t, LexerState s t)
-    lexOne l0 state' = oneLexeme l0 state' DL.zero lexErr
+    lexOne l0 state' = oneLexeme l0 state' DL.empty lexErr
       where
         -- the result triple of `lexOne' that signals a lexical error;
         -- the result state is advanced by one character for error correction
@@ -504,7 +504,7 @@ execLexer l state            =
         -- execute the action if present and finalise the current lexeme
         --
         action (Action f) csDL (cs, pos, s) _last =
-          case f (DL.close csDL) pos s of
+          case f (DL.toList csDL) pos s of
             (Nothing, pos', s', l')
               | not . null $ cs     -> lexOne (fromMaybe l0 l') (cs, pos', s')
             (res    , pos', s', l') -> (res, (fromMaybe l0 l'), (cs, pos', s'))
