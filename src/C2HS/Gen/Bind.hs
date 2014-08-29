@@ -429,7 +429,7 @@ expandHook (CHSType ide pos) _ =
 expandHook (CHSAlignof ide _) _ =
   do
     traceInfoAlignof
-    decl <- findAndChaseDecl ide False True     -- no indirection, but shadows
+    decl <- findAndChaseDeclOrTag ide False True  -- no indirection, but shadows
     (_, align) <- sizeAlignOf decl
     traceInfoDump (render $ pretty decl) align
     return $ show align
@@ -442,7 +442,7 @@ expandHook (CHSAlignof ide _) _ =
 expandHook (CHSSizeof ide _) _ =
   do
     traceInfoSizeof
-    decl <- findAndChaseDecl ide False True     -- no indirection, but shadows
+    decl <- findAndChaseDeclOrTag ide False True  -- no indirection, but shadows
     (size, _) <- sizeAlignOf decl
     traceInfoDump (render $ pretty decl) size
     return $ show (padBits size)
