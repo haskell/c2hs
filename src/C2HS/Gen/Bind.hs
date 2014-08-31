@@ -133,7 +133,7 @@ import C2HS.C
 -- friends
 import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..),
                    CHSParm(..), CHSMarsh, CHSArg(..), CHSAccess(..), CHSAPath(..),
-                   CHSPtrType(..), showCHSParm, apathToIdent)
+                   CHSPtrType(..), showCHSParm, apathToIdent, apathRootIdent)
 import C2HS.C.Info      (CPrimType(..), alignment, getPlatform)
 import qualified C2HS.C.Info as CInfo
 import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
@@ -500,7 +500,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) _ =
         _ -> funPtrExpectedErr pos
 
     traceValueType ty
-    set_get <- setGet pos CHSGet offsets ptrTy
+    set_get <- setGet pos CHSGet offsets ptrTy Nothing
 
     -- get the corresponding C declaration; raises error if not found or not a
     -- function; we use shadow identifiers, so the returned identifier is used
@@ -569,7 +569,7 @@ expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) hkpos =
         callHook  = CHSCall isPure isUns apath (Just fiIde) pos
     callImportDyn callHook isPure isUns ideLexeme fiLexeme decl ty pos
 
-    set_get <- setGet pos CHSGet offsets ptrTy
+    set_get <- setGet pos CHSGet offsets ptrTy Nothing
     funDef isPure hsLexeme fiLexeme (FunET ptrTy $ purify ty)
                   ctxt parms parm (Just set_get) pos hkpos
   where
@@ -587,11 +587,13 @@ expandHook (CHSField access path pos) _ =
   do
     traceInfoField
     traceGenBind $ "path = " ++ show path ++ "\n"
+    onewtype <- apathNewtypeName path
+    traceGenBind $ "onewtype = " ++ show onewtype ++ "\n"
     (decl, offsets) <- accessPath path
     traceDepth offsets
     ty <- extractSimpleType False pos decl
     traceValueType ty
-    setGet pos access offsets ty
+    setGet pos access offsets ty onewtype
   where
     accessString       = case access of
                            CHSGet -> "Get"
@@ -713,6 +715,19 @@ expandHook (CHSClass oclassIde classIde typeIde pos) _ =
         return $ (identToString ide, identToString typeIde', ptr) : classes
     --
     traceInfoClass = traceGenBind $ "** Class hook:\n"
+
+apathNewtypeName :: CHSAPath -> GB (Maybe Ident)
+apathNewtypeName path = do
+    let ide = apathRootIdent path
+    pm <- readCT ptrmap
+    case (True, ide) `lookup` pm of
+      Nothing -> return Nothing
+      Just (hsty, _) -> do
+        om <- readCT objmap
+        let hside = internalIdent hsty
+        case hside `lookup` om of
+          Just (Pointer _ True) -> return (Just hside)
+          _ -> return Nothing
 
 -- | produce code for an enumeration
 --
@@ -1271,12 +1286,17 @@ _                                `declNamed` _   =
 
 -- | Haskell code for writing to or reading from a struct
 --
-setGet :: Position -> CHSAccess -> [BitSize] -> ExtType -> GB String
-setGet pos access offsets ty =
+setGet :: Position -> CHSAccess -> [BitSize] -> ExtType -> Maybe Ident
+       -> GB String
+setGet pos access offsets ty onewtype =
   do
-    let pre = case access of
-                CHSSet -> "(\\ptr val -> do {"
-                CHSGet -> "(\\ptr -> do {"
+    let pre = case (access, onewtype) of
+          (CHSSet, Nothing) -> "(\\ptr val -> do {"
+          (CHSGet, Nothing) -> "(\\ptr -> do {"
+          (CHSSet, Just ide) ->
+            "(\\(" ++ identToString ide ++ " ptr) val -> do {"
+          (CHSGet, Just ide) ->
+            "(\\(" ++ identToString ide ++ " ptr) -> do {"
     body <- setGetBody (reverse offsets)
     return $ pre ++ body ++ "})"
   where

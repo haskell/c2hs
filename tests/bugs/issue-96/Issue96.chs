@@ -6,7 +6,7 @@ import Foreign.Storable
 
 #include "issue96.h"
 
-{#pointer *foo_t as FooPtr newtype #}
+{# pointer *foo_t as FooPtr newtype #}
 
 get :: FooPtr -> IO CInt
 get = {# get foo_t.x #}

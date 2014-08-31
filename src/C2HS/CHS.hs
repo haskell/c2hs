@@ -95,7 +95,7 @@ module C2HS.CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
             CHSChangeCase(..), CHSParm(..), CHSMarsh, CHSArg(..), CHSAccess(..),
             CHSAPath(..), CHSPtrType(..),
             loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI, chisuffix,
-            showCHSParm, apathToIdent, hasNonGNU)
+            showCHSParm, apathToIdent, apathRootIdent, hasNonGNU)
 where
 
 -- standard libraries
@@ -1107,6 +1107,11 @@ apathToIdent (CHSRef apath ide') =
         upperFirst (c:cs) = toLower c : cs
         sel = upperFirst $ identToString ide'
     in internalIdentAt  (posOf ide) (identToString ide ++ sel)
+
+apathRootIdent :: CHSAPath -> Ident
+apathRootIdent (CHSRoot _ ide) = ide
+apathRootIdent (CHSDeref apath _) = apathRootIdent apath
+apathRootIdent (CHSRef apath _) = apathRootIdent apath
 
 parseParm :: [CHSToken] -> CST s (CHSParm, [CHSToken])
 parseParm toks =
