@@ -1,3 +1,32 @@
+0.18.1
+ - Numerous improvements to Enum handling [#78] (Philipp Balzarek:
+   @Philonous)
+ - Handle Haddock comments within C2HS hook definitions [#62] (@tangboyun)
+ - Better error messages for missing files (Zejun Wu: @watashi)
+ - Write CHS dump files to output directory (Zejun Wu: @watashi)
+ - Handle C calling conventions within function pointer declarations [#88]
+   (Michael Steele: @mikesteele81)
+ - Fix FreeBSD libssh2 problem [#87] (Cindy Wang: @CindyLinz)
+ - Better error messages for hook syntax errors (Ryan Scott: @RyanGIScott)
+ - Fixes for GHC 7.9 [#100] (@int-index)
+ - Fix test suite to use C2HS from dist directory [#81]
+ - Allow free intermixing of command line options and input files [#86]
+ - Treat CLang "block" syntax and other "non-GNU" issues differently:
+   always undefine __BLOCKS__ CPP symbol to avoid problems with blocks;
+   add nonGNU directive to trigger undefine of GNU-specific pre-processor
+   symbols [#77]
+ - Handle indented CPP directives correctly [#80]
+ - Handle #sizeof and #alignof on non-typedef's structures [#95]
+ - Fix #get and #set hooks to access newtyped pointers [#96]
+ - Fix round-trip problem for interface files caused by changes in
+   language-c [#87]
+ - Treat "with" specially so that it can appear both as a marshaller
+   identifier in an input parameter definition and as a keyword in enum
+   definitions [#93]
+ - Temporarily disable CUDA regression suite examples (CUDA install
+   problems on Travis)
+
+
 0.17.2
  - Fix more regressions from 0.16.6 (affected packages included
    gnome-keyring, hsndfile and cuda)
