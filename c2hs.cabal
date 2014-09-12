@@ -1,5 +1,5 @@
 Name:           c2hs
-Version:        0.18.1
+Version:        0.18.2
 License:        GPL-2
 License-File:   COPYING
 Copyright:      Copyright (c) 1999-2007 Manuel M T Chakravarty
@@ -59,6 +59,14 @@ Extra-Source-Files:
   tests/bugs/issue-51/*.chs tests/bugs/issue-51/*.h tests/bugs/issue-51/*.c
   tests/bugs/issue-54/*.chs tests/bugs/issue-54/*.h tests/bugs/issue-54/*.c
   tests/bugs/issue-60/*.chs tests/bugs/issue-60/*.h tests/bugs/issue-60/*.c
+  tests/bugs/issue-62/*.chs tests/bugs/issue-62/*.h tests/bugs/issue-62/*.c
+  tests/bugs/issue-69/*.chs tests/bugs/issue-69/*.h tests/bugs/issue-69/*.c
+  tests/bugs/issue-75/*.chs tests/bugs/issue-75/*.h tests/bugs/issue-75/*.c
+  tests/bugs/issue-79/*.chs tests/bugs/issue-79/*.h tests/bugs/issue-79/*.c
+  tests/bugs/issue-80/*.chs tests/bugs/issue-80/*.h tests/bugs/issue-80/*.c
+  tests/bugs/issue-93/*.chs tests/bugs/issue-93/*.h tests/bugs/issue-93/*.c
+  tests/bugs/issue-95/*.chs tests/bugs/issue-95/*.h tests/bugs/issue-95/*.c
+  tests/bugs/issue-96/*.chs tests/bugs/issue-96/*.h tests/bugs/issue-96/*.c
 
 source-repository head
   type:         git
