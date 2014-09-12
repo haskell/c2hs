@@ -121,6 +121,7 @@ where
 import Data.List (intersperse, partition)
 import Control.Monad (when, unless)
 import Data.Version (showVersion)
+import qualified Data.Version as DV
 import System.Console.GetOpt
                   (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo, getOpt)
 import qualified System.FilePath as FilePath
@@ -579,7 +580,13 @@ process headerFiles bndFile  =
                , "-D__OSX_AVAILABLE_BUT_DEPRECATED(a,b,c,d)"
                , "-D__OSX_AVAILABLE_BUT_DEPRECATED_MSG(a,b,c,d,e)" ]
           else []
-        args = cppOpts ++ nonGNUOpts ++ ["-U__BLOCKS__"] ++ [newHeaderFile]
+        [versMajor, versMinor, versRev] = map show $ DV.versionBranch versnum
+        versionOpt = [ "-DC2HS_MIN_VERSION(mj,mn,rv)=" ++
+                       "(mj<=" ++ versMajor ++ "&&" ++
+                       "mn<=" ++ versMinor ++ "&&" ++
+                       "rv<=" ++ versRev ++ ")" ]
+        args = cppOpts ++ nonGNUOpts ++ ["-U__BLOCKS__"] ++
+               versionOpt ++ [newHeaderFile]
     tracePreproc (unwords (cpp:args))
     exitCode <- CIO.liftIO $ do
       preprocHnd <- openFile preprocFile WriteMode

@@ -28,6 +28,7 @@ tests :: [Test]
 tests =
   [ testGroup "Bugs"
     [ testCase "call_capital (issue #??)" call_capital
+    , testCase "Issue #107" issue107
     , testCase "Issue #96" issue96
     , testCase "Issue #95" issue95
     , testCase "Issue #93" issue93
@@ -68,6 +69,9 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
   let expected = ["upper C();", "lower c();", "upper C();"]
   liftIO $ assertBool "" (T.lines res == expected)
 
+issue107 :: Assertion
+issue107 = hs_only_expect_issue 107 ["True"]
+
 issue96 :: Assertion
 issue96 = build_issue 96
 
@@ -102,8 +106,8 @@ issue54 = expect_issue 54 ["2", "0.2", "2", "0.2",
 
 issue51 :: Assertion
 issue51 = do
-  expect_issue_with 51 "nonGNU" [] ["0"]
-  expect_issue_with 51 "GNU" [] ["1"]
+  expect_issue_with True 51 "nonGNU" [] ["0"]
+  expect_issue_with True 51 "GNU" [] ["1"]
 
 issue47 :: Assertion
 issue47 = build_issue 47
@@ -190,8 +194,8 @@ issue7 = c2hsShelly $ do
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
-do_issue_build :: Int -> String -> [Text] -> Sh ()
-do_issue_build n ext c2hsargs =
+do_issue_build :: Bool -> Int -> String -> [Text] -> Sh ()
+do_issue_build cbuild n ext c2hsargs =
   let wdir = "tests/bugs" </> ("issue-" <> show n)
       lc = "issue" <> show n
       lcc = lc <> "_c"
@@ -201,22 +205,27 @@ do_issue_build n ext c2hsargs =
     cd wdir
     mapM_ rm_f [uc <.> "hs", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
     run "c2hs" $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
-    cmd "cc" "-c" "-o" (lcc <.> "o") (lc <.> "c")
-    cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
+    when cbuild $ cmd "cc" "-c" "-o" (lcc <.> "o") (lc <.> "c")
+    if cbuild
+      then cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
+      else cmd "ghc" "-Wall" "-Werror" "--make" (uc <.> "hs")
 
 expect_issue :: Int -> [Text] -> Assertion
-expect_issue n expected = expect_issue_with n "" [] expected
+expect_issue n expected = expect_issue_with True n "" [] expected
 
-expect_issue_with :: Int -> String -> [Text] -> [Text] -> Assertion
-expect_issue_with n ext c2hsargs expected = c2hsShelly $ do
-  do_issue_build n ext c2hsargs
+hs_only_expect_issue :: Int -> [Text] -> Assertion
+hs_only_expect_issue n expected = expect_issue_with False n "" [] expected
+
+expect_issue_with :: Bool -> Int -> String -> [Text] -> [Text] -> Assertion
+expect_issue_with cbuild n ext c2hsargs expected = c2hsShelly $ do
+  do_issue_build cbuild n ext c2hsargs
   res <- absPath ("." </> (fromText $ T.pack $ "Issue" <> show n <>
                            (if ext == "" then "" else "_" <> ext))) >>= cmd
   liftIO $ assertBool "" (T.lines res == expected)
 
 build_issue_with :: Int -> [Text] -> Assertion
 build_issue_with n c2hsargs = c2hsShelly $ do
-  errExit False $ do_issue_build n "" c2hsargs
+  errExit False $ do_issue_build True n "" c2hsargs
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 

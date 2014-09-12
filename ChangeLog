@@ -1,4 +1,7 @@
 0.18.2
+ - Add C2HS_MIN_VERSION(major,minor,revision) preprocessor macro
+ - Suppress regression suite build (and associated dependency
+   installation) for non-Travis cases
  - Fix Cabal file to include previously missing tests
 
 0.18.1
