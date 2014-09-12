@@ -145,11 +145,18 @@ Test-Suite test-system
                        text,
                        transformers
 
+Flag travis
+  description: Enable regression suite build for Travis-CI.
+  default:     False
+
 Executable regression-suite
-  build-depends:       base,
-                       filepath,
-                       shelly >= 1.0,
-                       text,
-                       yaml >= 0.8
-  hs-source-dirs:      tests
   main-is:             regression-suite.hs
+  hs-source-dirs:      tests
+  if flag(travis)
+    build-depends:       base,
+                         filepath,
+                         shelly >= 1.0,
+                         text,
+                         yaml >= 0.8
+  else
+    buildable: False
