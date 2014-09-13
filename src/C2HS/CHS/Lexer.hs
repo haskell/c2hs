@@ -679,8 +679,8 @@ bhLexer  =      identOrKW
            >||< hsquot
            >||< whitespace
            >||< endOfHook
-           >||< string "--" +> anyButNL`star` char '\n'   -- comment
-                `lexaction` \cs pos -> Just (CHSTokComment pos (init (drop 2 cs)))
+           >||< string "--" +> anyButNL`star` epsilon  -- comment
+                `lexaction` \cs pos -> Just (CHSTokComment pos (drop 2 cs))
            where
              anyButNL  = alt (anySet \\ ['\n'])
              endOfHook = string "#}"
