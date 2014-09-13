@@ -641,7 +641,7 @@ showCHSParm (CHSParm oimMarsh hsTyStr twoCVals oomMarsh _ comment)  =
     showHsVerb str = showChar '`' . showString str . showChar '\''
     showComment str = if null str
                       then showString ""
-                      else showString "-- " . showString str . showChar '\n'
+                      else showString "--" . showString str . showChar '\n'
 
 showCHSTrans :: CHSTrans -> ShowS
 showCHSTrans (CHSTrans _2Case chgCase assocs)  =

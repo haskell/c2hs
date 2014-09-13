@@ -1022,7 +1022,7 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
       let
         showComment str = if null str
                           then ""
-                          else " -- " ++ str ++ "\n"
+                          else " --" ++ str ++ "\n"
         ctxt   = case octxt of
                    Nothing      -> ""
                    Just ctxtStr -> ctxtStr ++ " => "

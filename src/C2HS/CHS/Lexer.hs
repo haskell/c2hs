@@ -423,7 +423,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokCtrl    _ c) = showChar c
   showsPrec _ (CHSTokComment _ s) = showString (if null s
                                                 then ""
-                                                else " -- " ++ s ++ "\n")
+                                                else " --" ++ s ++ "\n")
 
 -- lexer state
 -- -----------
