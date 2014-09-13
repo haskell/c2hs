@@ -31,7 +31,7 @@
   name: cuda-shared-setup
   cabal: false
   special-setup:
-    - wget http://developer.download.nvidia.com/compute/cuda/5_5/rel/installers/cuda_5.5.22_linux_64.run
+    - wget -q http://developer.download.nvidia.com/compute/cuda/5_5/rel/installers/cuda_5.5.22_linux_64.run
     - chmod +x ./cuda_5.5.22_linux_64.run
     - sudo ./cuda_5.5.22_linux_64.run -toolkit -silent
   extra-path: [/usr/local/cuda-5.5/bin]
