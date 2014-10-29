@@ -50,7 +50,7 @@ foreignNt1 = do
 
 
 {#pointer *test_struct4 as TestForeignNt2Ptr
-                           foreign newtype finalizer free_struct4#}
+                           foreign finalizer free_struct4 newtype#}
 {#fun make_struct4 as foreignNt2MakeStruct {} -> `TestForeignNt2Ptr'#}
 {#fun access_struct4 as foreignNt2Access {`TestForeignNt2Ptr'} -> `Int'#}
 

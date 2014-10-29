@@ -89,7 +89,7 @@
 --      ident       -> letter (letter | digit | `\'')*
 --      reservedid  -> `add' | `as' | `call' | `class' | `context' | `deriving'
 --                   | `enum' | `foreign' | `fun' | `get' | `lib'
---                   | `downcaseFirstLetter'
+--                   | `downcaseFirstLetter' | `finalizer'
 --                   | `newtype' | `nocode' | `pointer' | `prefix' | `pure'
 --                   | `set' | `sizeof' | `stable' | `struct' | `type'
 --                   | `underscoreToCase' | `upcaseFirstLetter' | `unsafe' |
@@ -215,6 +215,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokDerive  Position          -- `deriving'
               | CHSTokDown    Position          -- `downcaseFirstLetter'
               | CHSTokEnum    Position          -- `enum'
+              | CHSTokFinal   Position          -- `finalizer'
               | CHSTokForeign Position          -- `foreign'
               | CHSTokFun     Position          -- `fun'
               | CHSTokGet     Position          -- `get'
@@ -273,6 +274,7 @@ instance Pos CHSToken where
   posOf (CHSTokDerive  pos  ) = pos
   posOf (CHSTokDown    pos  ) = pos
   posOf (CHSTokEnum    pos  ) = pos
+  posOf (CHSTokFinal   pos  ) = pos
   posOf (CHSTokForeign pos  ) = pos
   posOf (CHSTokFun     pos  ) = pos
   posOf (CHSTokGet     pos  ) = pos
@@ -331,6 +333,7 @@ instance Eq CHSToken where
   (CHSTokDerive   _  ) == (CHSTokDerive   _  ) = True
   (CHSTokDown     _  ) == (CHSTokDown     _  ) = True
   (CHSTokEnum     _  ) == (CHSTokEnum     _  ) = True
+  (CHSTokFinal    _  ) == (CHSTokFinal    _  ) = True
   (CHSTokForeign  _  ) == (CHSTokForeign  _  ) = True
   (CHSTokFun      _  ) == (CHSTokFun      _  ) = True
   (CHSTokGet      _  ) == (CHSTokGet      _  ) = True
@@ -390,6 +393,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokDerive  _  ) = showString "deriving"
   showsPrec _ (CHSTokDown    _  ) = showString "downcaseFirstLetter"
   showsPrec _ (CHSTokEnum    _  ) = showString "enum"
+  showsPrec _ (CHSTokFinal   _  ) = showString "finalizer"
   showsPrec _ (CHSTokForeign _  ) = showString "foreign"
   showsPrec _ (CHSTokFun     _  ) = showString "fun"
   showsPrec _ (CHSTokGet     _  ) = showString "get"
@@ -621,7 +625,7 @@ hook  = string "{#"
 --
 startmarker :: CHSLexer
 startmarker = char '\000' `lexmeta`
-              \lexeme pos s -> (Nothing, incPos pos 1, s, Just chslexer)
+              \_ pos s -> (Nothing, incPos pos 1, s, Just chslexer)
 
 -- | pre-processor directives and `#c'
 --
@@ -732,6 +736,7 @@ identOrKW  =
     idkwtok pos "deriving"         _    = CHSTokDerive  pos
     idkwtok pos "downcaseFirstLetter" _ = CHSTokDown    pos
     idkwtok pos "enum"             _    = CHSTokEnum    pos
+    idkwtok pos "finalizer"        _    = CHSTokFinal   pos
     idkwtok pos "foreign"          _    = CHSTokForeign pos
     idkwtok pos "fun"              _    = CHSTokFun     pos
     idkwtok pos "get"              _    = CHSTokGet     pos
@@ -771,6 +776,7 @@ keywordToIdent tok =
     CHSTokDerive  pos -> mkid pos "deriving"
     CHSTokDown    pos -> mkid pos "downcaseFirstLetter"
     CHSTokEnum    pos -> mkid pos "enum"
+    CHSTokFinal   pos -> mkid pos "finalizer"
     CHSTokForeign pos -> mkid pos "foreign"
     CHSTokFun     pos -> mkid pos "fun"
     CHSTokGet     pos -> mkid pos "get"
