@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 --  C->Haskell Compiler: binding generator
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
@@ -194,10 +195,10 @@ lookupDftMarshIn hsty _ = do
     --  2. naked and newtype pointer hooks
     (False, Just (Pointer CHSPtr _)) -> Just (Left idIde, CHSValArg)
     --  3. foreign pointer hooks
-    (False, Just (Pointer CHSForeignPtr False)) ->
+    (False, Just (Pointer (CHSForeignPtr _) False)) ->
       Just (Left withForeignPtrIde, CHSIOArg)
     --  4. foreign newtype pointer hooks
-    (False, Just (Pointer CHSForeignPtr True)) ->
+    (False, Just (Pointer (CHSForeignPtr _) True)) ->
       Just (Right $ "with" ++ hsty, CHSIOArg)
     _ -> Nothing
 -- FIXME: handle array-list conversion
@@ -234,10 +235,10 @@ lookupDftMarshOut hsty _ = do
     --  2. naked and newtype pointer hooks
     (False, Just (Pointer CHSPtr _)) -> Just (Left idIde, CHSValArg)
     --  3. foreign pointer hooks
-    (False, Just (Pointer CHSForeignPtr False)) ->
+    (False, Just (Pointer (CHSForeignPtr _) False)) ->
       Just (Left newForeignPtrIde, CHSIOArg)
     --  4. foreign newtype pointer hooks
-    (False, Just (Pointer CHSForeignPtr True)) ->
+    (False, Just (Pointer (CHSForeignPtr _) True)) ->
       Just (Right $ "newForeignPtr_ >=> (return . " ++ hsty ++ ")", CHSIOArg)
     _ -> Nothing
 -- FIXME: add combination, such as "peek" plus "cIntConv" etc
@@ -792,6 +793,7 @@ instance Num CInteger where
   fromInteger = cInteger
   (+) a b = cInteger (getCInteger a + getCInteger b)
   (*) a b = cInteger (getCInteger a * getCInteger b)
+  (-) a b = cInteger (getCInteger a - getCInteger b)
   abs a = cInteger (abs $ getCInteger a)
   signum a = cInteger (signum $ getCInteger a)
 -- | Haskell code for an instance declaration for 'Enum'
@@ -1380,9 +1382,9 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
         ptrType = ptrCon ++ " (" ++ ptrArg ++ ")"
         thePtr  = (isStar, cNameFull)
     case ptrKind of
-      CHSForeignPtr -> thePtr `ptrMapsTo` ("Ptr (" ++ ptrArg ++ ")",
-                                           "Ptr (" ++ ptrArg ++ ")")
-      _             -> thePtr `ptrMapsTo` (hsName, hsName)
+      CHSForeignPtr _ -> thePtr `ptrMapsTo` ("Ptr (" ++ ptrArg ++ ")",
+                                             "Ptr (" ++ ptrArg ++ ")")
+      _               -> thePtr `ptrMapsTo` (hsName, hsName)
     return $
       case (emit, isNewtype) of
         (False, _)     -> ""    -- suppress code generation
@@ -1396,11 +1398,13 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
       -- safe unwrapping function automatically
       --
       withForeignFun
-        | ptrKind == CHSForeignPtr =
+        | isForeign ptrKind =
           "\nwith" ++ hsName ++ " :: " ++
           hsName ++ " -> (Ptr " ++ hsName ++ " -> IO b) -> IO b" ++
           "\nwith" ++ hsName ++ " (" ++ hsName ++ " fptr) = withForeignPtr fptr"
         | otherwise                = ""
+      isForeign (CHSForeignPtr _) = True
+      isForeign _                 = False
 
 -- | generate the class and instance definitions for a class hook
 --

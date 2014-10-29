@@ -77,7 +77,7 @@
 --  alias    -> `underscoreToCase' | `upcaseFirstLetter'
 --            | `downcaseFirstLetter'
 --            | ident `as' ident
---  ptrkind  -> [`foreign' | `stable'] ['newtype' | '->' ident]
+--  ptrkind  -> [`foreign' [`finalizer' ident] | `stable'] ['newtype' | '->' ident]
 --
 --  If `underscoreToCase', `upcaseFirstLetter', or `downcaseFirstLetter'
 --  occurs in a translation table, it must be the first entry, or if two of
@@ -345,20 +345,20 @@ instance Pos CHSAPath where
 --
 
 data CHSPtrType = CHSPtr                        -- standard Ptr from Haskell
-                | CHSForeignPtr                 -- a pointer with a finalizer
+                | CHSForeignPtr (Maybe Ident)   -- a pointer with a finalizer
                 | CHSStablePtr                  -- a pointer into Haskell land
                 deriving (Eq)
 
 instance Show CHSPtrType where
   show CHSPtr            = "Ptr"
-  show CHSForeignPtr     = "ForeignPtr"
+  show (CHSForeignPtr _) = "ForeignPtr"
   show CHSStablePtr      = "StablePtr"
 
 instance Read CHSPtrType where
   readsPrec _ (                            'P':'t':'r':rest) =
     [(CHSPtr, rest)]
   readsPrec _ ('F':'o':'r':'e':'i':'g':'n':'P':'t':'r':rest) =
-    [(CHSForeignPtr, rest)]
+    [(CHSForeignPtr Nothing, rest)]
   readsPrec _ ('S':'t':'a':'b':'l':'e'    :'P':'t':'r':rest) =
     [(CHSStablePtr, rest)]
   readsPrec p (c:cs)
@@ -568,9 +568,9 @@ showCHSHook (CHSPointer star ide oalias ptrType isNewtype oRefType emit _) =
   . (if star then showString "*" else showString "")
   . showIdAlias ide oalias
   . (case ptrType of
-       CHSForeignPtr -> showString " foreign"
-       CHSStablePtr  -> showString " stable"
-       _             -> showString "")
+       CHSForeignPtr _ -> showString " foreign"
+       CHSStablePtr    -> showString " stable"
+       _               -> showString "")
   . (case (isNewtype, oRefType) of
        (True , _        ) -> showString " newtype"
        (False, Just ide') -> showString " -> " . showCHSIdent ide'
@@ -1206,7 +1206,7 @@ parsePointer hkpos pos toks =
        : frags
   where
     parsePtrType :: [CHSToken] -> CST s (CHSPtrType, [CHSToken])
-    parsePtrType (CHSTokForeign _:toks') = return (CHSForeignPtr, toks')
+    parsePtrType (CHSTokForeign _:toks') = return (CHSForeignPtr Nothing, toks')
     parsePtrType (CHSTokStable _ :toks') = return (CHSStablePtr, toks')
     parsePtrType                  toks'  = return (CHSPtr, toks')
 
