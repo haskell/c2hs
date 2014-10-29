@@ -339,6 +339,10 @@ delayCode hook str  =
               && ide   == ide'   -> return frags'
             | otherwise          -> err (posOf ide) (posOf ide')
           Nothing                -> return $ frags' ++ [newEntry]
+      delay hook'@(CHSPointer _ _ _ _ _ _ _ _) frags' =
+        case find (\(hook'', _) -> hook'' == hook') frags' of
+          Just (CHSPointer _ _ _ _ _ _ _ _, _) -> return frags'
+          Nothing                              -> return $ frags' ++ [newEntry]
       delay _ _                                  =
         interr "GBMonad.delayCode: Illegal delay!"
       --

@@ -77,7 +77,7 @@
 --  alias    -> `underscoreToCase' | `upcaseFirstLetter'
 --            | `downcaseFirstLetter'
 --            | ident `as' ident
---  ptrkind  -> [`foreign' [`finalizer' ident] | `stable'] ['newtype' | '->' ident]
+--  ptrkind  -> [`foreign' [`finalizer' idalias] | `stable'] ['newtype' | '->' ident]
 --
 --  If `underscoreToCase', `upcaseFirstLetter', or `downcaseFirstLetter'
 --  occurs in a translation table, it must be the first entry, or if two of
@@ -344,9 +344,12 @@ instance Pos CHSAPath where
 -- | pointer options
 --
 
-data CHSPtrType = CHSPtr                        -- standard Ptr from Haskell
-                | CHSForeignPtr (Maybe Ident)   -- a pointer with a finalizer
-                | CHSStablePtr                  -- a pointer into Haskell land
+data CHSPtrType = CHSPtr
+                  -- standard Ptr from Haskell
+                | CHSForeignPtr (Maybe (Ident, Maybe Ident))
+                  -- a foreign pointer possibly with a finalizer
+                | CHSStablePtr
+                  -- a pointer into Haskell land
                 deriving (Eq)
 
 instance Show CHSPtrType where
@@ -569,8 +572,8 @@ showCHSHook (CHSPointer star ide oalias ptrType isNewtype oRefType emit _) =
   . showIdAlias ide oalias
   . (case ptrType of
        CHSForeignPtr Nothing    -> showString " foreign"
-       CHSForeignPtr (Just ide) ->
-         showString " foreign finalizer " . showCHSIdent ide
+       CHSForeignPtr (Just (fide, foalias)) ->
+         showString " foreign finalizer " . showIdAlias fide foalias
        CHSStablePtr             -> showString " stable"
        _                        -> showString "")
   . (case (isNewtype, oRefType) of
@@ -1214,8 +1217,9 @@ parsePointer hkpos pos toks =
     parsePtrType (CHSTokStable _ :toks') = return (CHSStablePtr, toks')
     parsePtrType                  toks'  = return (CHSPtr, toks')
 
-    parseFinalizer (CHSTokFinal _ : CHSTokIdent _ ide : toks') =
-      return (Just ide, toks')
+    parseFinalizer (CHSTokFinal _ : CHSTokIdent _ ide : toks') = do
+      (oalias, toks'') <- parseOptAs ide False toks'
+      return (Just (ide, oalias), toks'')
     parseFinalizer toks' = return (Nothing, toks')
 
     norm _   Nothing                   = Nothing

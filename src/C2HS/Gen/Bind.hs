@@ -626,12 +626,13 @@ expandHook (CHSOffsetof path pos) _ =
               _             -> return offset
           SUType _ -> return offset
     checkType _ _ = offsetDerefErr pos
-expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
-              pos) _ =
+expandHook hook@(CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
+                 pos) _ =
   do
     traceInfoPointer
     let hsIde  = fromMaybe cName oalias
         hsName = identToString hsIde
+
     hsIde `objIs` Pointer ptrKind isNewtype     -- register Haskell object
     --
     -- we check for a typedef declaration or tag (struct, union, or enum)
@@ -664,6 +665,7 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
             --   allow `... -> fun HSTYPE' to explicitly mark function
             --   types if this ever becomes important
         traceInfoHsType hsName hsType
+        doFinalizer hook ptrKind hsName
         pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit
       Right tag -> do                           -- found a tag definition
         let cNameFull = tagName tag
@@ -674,6 +676,7 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
                        Nothing      -> "()"
                        Just hsType' -> identToString hsType'
         traceInfoHsType hsName hsType
+        doFinalizer hook ptrKind hsName
         pointerDef isStar cNameFull hsName ptrKind isNewtype hsType False emit
   where
     -- remove a pointer level if the first argument is `False'
@@ -1405,6 +1408,36 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
         | otherwise                = ""
       isForeign (CHSForeignPtr _) = True
       isForeign _                 = False
+
+-- | generate a foreign pointer finalizer import declaration that is
+-- put into the delayed code
+--
+doFinalizer :: CHSHook -> CHSPtrType -> String -> GB ()
+doFinalizer hook (CHSForeignPtr (Just (cide, ohside))) ptrHsIde = do
+  (ObjCO cdecl, cide') <- findFunObj cide True
+  let finCIde  = identToString cide'
+      finHsIde = finCIde `maybe` identToString $ ohside
+      cdecl'   = cide' `simplifyDecl` cdecl
+  header <- getSwitch headerSB
+  delayCode hook (finalizerImport (extractCallingConvention cdecl')
+                  header finCIde finHsIde ptrHsIde)
+  traceFunType ptrHsIde
+  where
+    traceFunType et = traceGenBind $
+      "Imported finalizer function type: " ++ et ++ "\n"
+doFinalizer _ _ _ = return ()
+
+-- | Haskell code for the foreign import declaration needed by foreign
+-- pointer finalizers.
+--
+finalizerImport :: CallingConvention -> String -> String -> String ->
+                   String -> String
+finalizerImport cconv header ident hsIdent hsPtrName  =
+  "foreign import " ++ showCallingConvention cconv ++ " " ++ show entity ++
+  "\n  " ++ hsIdent ++ " :: FinalizerPtr " ++ hsPtrName ++ "\n"
+  where
+    entity | null header = "&" ++ ident
+           | otherwise   = header ++ " &" ++ ident
 
 -- | generate the class and instance definitions for a class hook
 --
