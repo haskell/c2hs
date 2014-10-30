@@ -8,6 +8,7 @@ import System.FilePath (searchPathSeparator)
 import Prelude hiding (FilePath)
 import Control.Monad.IO.Class
 import Shelly
+import Data.List (sort)
 import Data.Text (Text)
 import Data.Monoid
 import qualified Data.Text as T
@@ -92,7 +93,16 @@ issue75 :: Assertion
 issue75 = build_issue 75
 
 issue73 :: Assertion
-issue73 = build_issue 73
+issue73 = unordered_expect_issue 73 [ "Allocated struct3"
+                                    , "Foreign pointer: 3"
+                                    , "Allocated struct3"
+                                    , "Foreign pointer: 3"
+                                    , "Allocated struct4"
+                                    , "Foreign newtype pointer: 4"
+                                    , "Allocated struct4"
+                                    , "Foreign newtype pointer: 4"
+                                    , "Freeing struct3"
+                                    , "Freeing struct4" ]
 
 issue69 :: Assertion
 issue69 = build_issue 69
@@ -110,8 +120,8 @@ issue54 = expect_issue 54 ["2", "0.2", "2", "0.2",
 
 issue51 :: Assertion
 issue51 = do
-  expect_issue_with True 51 "nonGNU" [] ["0"]
-  expect_issue_with True 51 "GNU" [] ["1"]
+  expect_issue_with True True 51 "nonGNU" [] ["0"]
+  expect_issue_with True True 51 "GNU" [] ["1"]
 
 issue47 :: Assertion
 issue47 = build_issue 47
@@ -215,17 +225,24 @@ do_issue_build cbuild n ext c2hsargs =
       else cmd "ghc" "-Wall" "-Werror" "--make" (uc <.> "hs")
 
 expect_issue :: Int -> [Text] -> Assertion
-expect_issue n expected = expect_issue_with True n "" [] expected
+expect_issue n expected = expect_issue_with True True n "" [] expected
+
+unordered_expect_issue :: Int -> [Text] -> Assertion
+unordered_expect_issue n expected =
+  expect_issue_with False True n "" [] expected
 
 hs_only_expect_issue :: Int -> [Text] -> Assertion
-hs_only_expect_issue n expected = expect_issue_with False n "" [] expected
+hs_only_expect_issue n expected = expect_issue_with True False n "" [] expected
 
-expect_issue_with :: Bool -> Int -> String -> [Text] -> [Text] -> Assertion
-expect_issue_with cbuild n ext c2hsargs expected = c2hsShelly $ do
+expect_issue_with :: Bool -> Bool -> Int -> String -> [Text] -> [Text]
+                  -> Assertion
+expect_issue_with ordered cbuild n ext c2hsargs expected = c2hsShelly $ do
   do_issue_build cbuild n ext c2hsargs
   res <- absPath ("." </> (fromText $ T.pack $ "Issue" <> show n <>
                            (if ext == "" then "" else "_" <> ext))) >>= cmd
-  liftIO $ assertBool "" (T.lines res == expected)
+  liftIO $ assertBool "" $ case ordered of
+    True -> T.lines res == expected
+    False -> sort (T.lines res) == sort expected
 
 build_issue_with :: Int -> [Text] -> Assertion
 build_issue_with n c2hsargs = c2hsShelly $ do

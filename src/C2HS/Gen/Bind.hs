@@ -229,20 +229,35 @@ lookupDftMarshOut hsTy     [PtrET ty]  | showExtType ty == hsTy =
 lookupDftMarshOut hsty _ = do
   om <- readCT objmap
   isenum <- queryEnum hsty
-  return $ case (isenum, (internalIdent hsty) `lookup` om) of
+  res <- case (isenum, (internalIdent hsty) `lookup` om) of
     --  1. enumeration hooks
-    (True, Nothing) -> Just (Right "toEnum . fromIntegral", CHSValArg)
+    (True, Nothing) -> return $ Just (Right "toEnum . fromIntegral", CHSValArg)
     --  2. naked and newtype pointer hooks
-    (False, Just (Pointer CHSPtr _)) -> Just (Left idIde, CHSValArg)
+    (False, Just (Pointer CHSPtr _)) -> return $ Just (Left idIde, CHSValArg)
     --  3. foreign pointer hooks
-    (False, Just (Pointer (CHSForeignPtr _) False)) ->
-      Just (Left newForeignPtrIde, CHSIOArg)
+    (False, Just (Pointer (CHSForeignPtr Nothing) False)) ->
+      return $ Just (Left newForeignPtr_Ide, CHSIOArg)
+    (False, Just (Pointer (CHSForeignPtr (Just fin)) False)) -> do
+      code <- newForeignPtrCode fin
+      return $ Just (Right $ code, CHSIOArg)
     --  4. foreign newtype pointer hooks
-    (False, Just (Pointer (CHSForeignPtr _) True)) ->
-      Just (Right $ "newForeignPtr_ >=> (return . " ++ hsty ++ ")", CHSIOArg)
-    _ -> Nothing
+    (False, Just (Pointer (CHSForeignPtr Nothing) True)) ->
+      return $ Just (Right $ "newForeignPtr_ >=> (return . " ++
+                     hsty ++ ")", CHSIOArg)
+    (False, Just (Pointer (CHSForeignPtr (Just fin)) True)) -> do
+      code <- newForeignPtrCode fin
+      return $ Just (Right $ code ++ " >=> (return . " ++
+                     hsty ++ ")", CHSIOArg)
+    _ -> return Nothing
+  return res
 -- FIXME: add combination, such as "peek" plus "cIntConv" etc
 -- FIXME: handle array-list conversion
+
+newForeignPtrCode :: (Ident, Maybe Ident) -> GB String
+newForeignPtrCode (cide, ohside) = do
+  (_, cide') <- findFunObj cide True
+  let fin = (identToString cide') `maybe` identToString $ ohside
+  return $ "newForeignPtr " ++ fin
 
 
 -- | check for integral Haskell types
@@ -293,7 +308,7 @@ isFloatCPrimType  = (`elem` [CFloatPT, CDoublePT, CLDoublePT])
 --
 voidIde, cFromBoolIde, cToBoolIde, cIntConvIde, cFloatConvIde,
   withCStringIde, peekIde, peekCStringIde, idIde,
-  newForeignPtrIde, withForeignPtrIde :: Ident
+  newForeignPtrIde, newForeignPtr_Ide, withForeignPtrIde :: Ident
 voidIde           = internalIdent "void"         -- never appears in the output
 cFromBoolIde      = internalIdent "fromBool"
 cToBoolIde        = internalIdent "toBool"
@@ -303,7 +318,8 @@ withCStringIde    = internalIdent "withCString"
 peekIde           = internalIdent "peek"
 peekCStringIde    = internalIdent "peekCString"
 idIde             = internalIdent "id"
-newForeignPtrIde  = internalIdent "newForeignPtr_"
+newForeignPtrIde  = internalIdent "newForeignPtr"
+newForeignPtr_Ide = internalIdent "newForeignPtr_"
 withForeignPtrIde = internalIdent "withForeignPtr"
 
 
@@ -665,7 +681,7 @@ expandHook hook@(CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
             --   allow `... -> fun HSTYPE' to explicitly mark function
             --   types if this ever becomes important
         traceInfoHsType hsName hsType
-        doFinalizer hook ptrKind hsName
+        doFinalizer hook ptrKind (if isNewtype then hsName else "()")
         pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit
       Right tag -> do                           -- found a tag definition
         let cNameFull = tagName tag
@@ -676,7 +692,7 @@ expandHook hook@(CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
                        Nothing      -> "()"
                        Just hsType' -> identToString hsType'
         traceInfoHsType hsName hsType
-        doFinalizer hook ptrKind hsName
+        doFinalizer hook ptrKind (if isNewtype then hsName else "()")
         pointerDef isStar cNameFull hsName ptrKind isNewtype hsType False emit
   where
     -- remove a pointer level if the first argument is `False'
