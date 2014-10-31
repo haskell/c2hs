@@ -1,4 +1,4 @@
-#include "issue999.h"
+#include "issue115.h"
 
 array_t myStruct;
 

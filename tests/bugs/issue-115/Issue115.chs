@@ -3,7 +3,7 @@ module Main where
 import Foreign
 import Foreign.C
 
-#include "issue999.h"
+#include "issue115.h"
 
 {#pointer *array_t as MyStruct#}
 

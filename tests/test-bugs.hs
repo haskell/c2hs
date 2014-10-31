@@ -29,6 +29,7 @@ tests :: [Test]
 tests =
   [ testGroup "Bugs"
     [ testCase "call_capital (issue #??)" call_capital
+    , testCase "Issue #115" issue115
     , testCase "Issue #107" issue107
     , testCase "Issue #96" issue96
     , testCase "Issue #95" issue95
@@ -57,7 +58,6 @@ tests =
     , testCase "Issue #16" issue16
 --    , testCase "Issue #10" issue10
     , testCase "Issue #7" issue7
-    , testCase "Issue #999" issue999
     ]
   ]
 
@@ -71,6 +71,9 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
   res <- absPath "./Capital" >>= cmd
   let expected = ["upper C();", "lower c();", "upper C();"]
   liftIO $ assertBool "" (T.lines res == expected)
+
+issue115 :: Assertion
+issue115 = expect_issue 115 ["[7,42,93]", "[7,42,93]"]
 
 issue107 :: Assertion
 issue107 = hs_only_expect_issue 107 ["True"]
@@ -208,9 +211,6 @@ issue7 = c2hsShelly $ do
       run "c2hs" [toTextIgnore "Issue7.chs"]
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
-
-issue999 :: Assertion
-issue999 = expect_issue 999 ["[7,42,93]", "[7,42,93]"]
 
 do_issue_build :: Bool -> Int -> String -> [Text] -> Sh ()
 do_issue_build cbuild n ext c2hsargs =
