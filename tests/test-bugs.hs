@@ -57,6 +57,7 @@ tests =
     , testCase "Issue #16" issue16
 --    , testCase "Issue #10" issue10
     , testCase "Issue #7" issue7
+    , testCase "Issue #999" issue999
     ]
   ]
 
@@ -207,6 +208,9 @@ issue7 = c2hsShelly $ do
       run "c2hs" [toTextIgnore "Issue7.chs"]
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
+
+issue999 :: Assertion
+issue999 = expect_issue 999 ["[7,42,93]", "[7,42,93]"]
 
 do_issue_build :: Bool -> Int -> String -> [Text] -> Sh ()
 do_issue_build cbuild n ext c2hsargs =
