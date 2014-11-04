@@ -184,7 +184,7 @@ ghFrag (_frag@(CHSHook (CHSEnumDefine hsident trans instances pos) hkpos) : frag
   createEnumerator (cid,hsid) = liftM (\enr -> ((enr,cid),(enr,hsid))) newEnrIdent
   enumDef ide enrs = CEnum (Just ide) (Just$ map mkEnr enrs) [] undefNode
     where mkEnr (name,value) = (name, Just $ CVar value undefNode)
-  enumFrag ide trans' = CHSHook (CHSEnum (internalIdent ide) (Just hsident) trans' Nothing Nothing instances pos) hkpos
+  enumFrag ide trans' = CHSHook (CHSEnum (internalIdent ide) (Just hsident) trans' True Nothing Nothing instances pos) hkpos
 
 ghFrag (frag@(CHSHook  _    _) : frags) =
   return (DL.empty, Frag frag, frags)

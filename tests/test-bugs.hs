@@ -37,6 +37,7 @@ tests =
     , testCase "Issue #79" issue79
     , testCase "Issue #75" issue75
     , testCase "Issue #73" issue73
+    , testCase "Issue #70" issue70
     , testCase "Issue #69" issue69
     , testCase "Issue #62" issue62
     , testCase "Issue #60" issue60
@@ -103,6 +104,9 @@ issue73 = unordered_expect_issue 73 [ "Allocated struct3"
                                     , "Foreign newtype pointer: 4"
                                     , "Freeing struct3"
                                     , "Freeing struct4" ]
+
+issue70 :: Assertion
+issue70 = build_issue 70
 
 issue69 :: Assertion
 issue69 = build_issue 69
