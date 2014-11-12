@@ -30,6 +30,7 @@ tests =
   [ testGroup "Bugs"
     [ testCase "call_capital (issue #??)" call_capital
     , testCase "Issue #107" issue107
+    , testCase "Issue #103" issue103
     , testCase "Issue #96" issue96
     , testCase "Issue #95" issue95
     , testCase "Issue #93" issue93
@@ -74,6 +75,19 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
 
 issue107 :: Assertion
 issue107 = hs_only_expect_issue 107 ["True"]
+
+issue103 :: Assertion
+issue103 = c2hsShelly $ chdir "tests/bugs/issue-103" $ do
+  mapM_ rm_f ["Issue103.hs", "Issue103.chs.h", "Issue103.chi",
+              "Issue103A.hs", "Issue103A.chs.h", "Issue103A.chi",
+              "issue103_c.o", "Issue103"]
+  cmd "c2hs" "Issue103A.chs"
+  cmd "c2hs" "Issue103.chs"
+  cmd "cc" "-c" "-o" "issue103_c.o" "issue103.c"
+  cmd "ghc" "--make" "issue103_c.o" "Issue103A.hs" "Issue103.hs"
+  res <- absPath "./Issue103" >>= cmd
+  let expected = ["1", "2", "3"]
+  liftIO $ assertBool "" (T.lines res == expected)
 
 issue96 :: Assertion
 issue96 = build_issue 96
