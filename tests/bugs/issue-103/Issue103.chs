@@ -1,5 +1,7 @@
 module Main where
 
+import Foreign.C.Types
+
 #include "issue103.h"
 {#import Issue103A#}
 
