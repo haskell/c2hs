@@ -141,7 +141,7 @@ issue69 :: Assertion
 issue69 = build_issue 69
 
 issue65 :: Assertion
-issue65 = expect_issue 65 ["123", "456"]
+issue65 = expect_issue 65 ["123", "3.14", "\"hello\""]
 
 issue62 :: Assertion
 issue62 = build_issue 62

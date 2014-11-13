@@ -70,7 +70,7 @@ module C2HS.C.Trav (CT, readCT, transCT, runCT, throwCTExc, ifCTExc,
               -- C structure tree query functions
               --
               isTypedef, simplifyDecl, declrFromDecl, declrNamed,
-              declaredDeclr, declaredName, structMembers, expandDecl,
+              declaredDeclr, initDeclr, declaredName, structMembers, expandDecl,
               structName, enumName, tagName, isPtrDeclr, dropPtrDeclr,
               isPtrDecl, isFunDeclr, structFromDecl, funResultAndArgs,
               chaseDecl, findAndChaseDecl, findAndChaseDeclOrTag,
@@ -475,6 +475,15 @@ declaredDeclr (CDecl _ []               _)  = Nothing
 declaredDeclr (CDecl _ [(odeclr, _, _)] _)  = odeclr
 declaredDeclr decl                          =
   interr $ "CTrav.declaredDeclr: Too many declarators!\n\
+           \  Declaration at " ++ show (posOf decl)
+
+-- | get the initialiser of a declaration that has at most one initialiser
+--
+initDeclr                            :: CDecl -> Maybe (CInitializer NodeInfo)
+initDeclr (CDecl _ []            _)  = Nothing
+initDeclr (CDecl _ [(_, ini, _)] _)  = ini
+initDeclr decl                          =
+  interr $ "CTrav.initDeclr: Too many declarators!\n\
            \  Declaration at " ++ show (posOf decl)
 
 -- | get the name declared by a declaration that has exactly one declarator

@@ -734,6 +734,12 @@ expandHook (CHSClass oclassIde classIde typeIde pos) _ =
         return $ (identToString ide, identToString typeIde', ptr) : classes
     --
     traceInfoClass = traceGenBind $ "** Class hook:\n"
+expandHook (CHSConst cIde pos) _ =
+  do
+    traceGenBind "** Constant hook:\n"
+    Just (ObjCO cdecl) <- findObj cIde
+    let (Just ini) = initDeclr cdecl
+    return . show . pretty $ ini
 
 apathNewtypeName :: CHSAPath -> GB (Maybe Ident)
 apathNewtypeName path = do
