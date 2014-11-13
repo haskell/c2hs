@@ -62,6 +62,7 @@
 --            | `offsetof` apath
 --            | `pointer' ['*'] idalias ptrkind ['nocode']
 --            | `class' [ident `=>'] ident ident
+--            | `const' ident
 --  ctxt     -> [`lib' `=' string] [prefix]
 --  idalias  -> ident [`as' (ident | `^' | `'' ident1 ident2 ... `'')]
 --  prefix   -> `prefix' `=' string [`add' `prefix' `=' string]
@@ -240,6 +241,9 @@ data CHSHook = CHSImport  Bool                  -- qualified?
                           Ident                 -- class name
                           Ident                 -- name of pointer type
                           Position
+             | CHSConst   Ident                 -- C identifier
+                          Position
+
 
 instance Pos CHSHook where
   posOf (CHSImport  _ _ _         pos) = pos
@@ -255,6 +259,7 @@ instance Pos CHSHook where
   posOf (CHSOffsetof _            pos) = pos
   posOf (CHSPointer _ _ _ _ _ _ _ pos) = pos
   posOf (CHSClass   _ _ _         pos) = pos
+  posOf (CHSConst   _             pos) = pos
 
 -- | two hooks are equal if they have the same Haskell name and reference the
 -- same C object
@@ -286,6 +291,8 @@ instance Eq CHSHook where
                                       == (CHSPointer _ ide2 oalias2 _ _ _ _ _) =
     ide1 == ide2 && oalias1 == oalias2
   (CHSClass _ ide1 _                _) == (CHSClass _ ide2 _                _) =
+    ide1 == ide2
+  (CHSConst ide1                    _) == (CHSConst ide2                    _) =
     ide1 == ide2
   _                               == _                          = False
 
@@ -595,6 +602,9 @@ showCHSHook (CHSClass oclassIde classIde typeIde _) =
   . showCHSIdent classIde
   . showString " "
   . showCHSIdent typeIde
+showCHSHook (CHSConst constIde _) =
+    showString "const "
+  . showCHSIdent constIde
 
 showPrefix                        :: Maybe String -> Bool -> ShowS
 showPrefix Nothing       _         = showString ""
@@ -884,6 +894,9 @@ parseFrags tokens  = do
                                              (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
                  CHSTokClass   pos  :toks) = parseClass   hkpos pos
+                                             (removeCommentInHook toks)
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokConst   pos  :toks) = parseConst   hkpos pos
                                              (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
                  CHSTokPointer pos  :toks) = parsePointer hkpos pos
@@ -1257,6 +1270,14 @@ parseClass hkpos pos (CHSTokIdent _ classIde :
     frags <- parseFrags toks'
     return $ CHSHook (CHSClass Nothing classIde typeIde pos) hkpos : frags
 parseClass _ _ toks = syntaxError toks
+
+parseConst :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseConst hkpos pos (CHSTokIdent  _ constIde : toks)                     =
+  do
+    toks' <- parseEndHook toks
+    frags <- parseFrags toks'
+    return $ CHSHook (CHSConst constIde pos) hkpos : frags
+parseConst _ _ toks = syntaxError toks
 
 parseOptLib :: [CHSToken] -> CST s (Maybe String, [CHSToken])
 parseOptLib (CHSTokLib    _    :

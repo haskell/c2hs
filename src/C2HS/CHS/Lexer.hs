@@ -93,7 +93,7 @@
 --                   | `newtype' | `nocode' | `pointer' | `prefix' | `pure'
 --                   | `set' | `sizeof' | `stable' | `struct' | `type'
 --                   | `underscoreToCase' | `upcaseFirstLetter' | `unsafe' |
---                   | `with'
+--                   | `with' | `const'
 --      reservedsym -> `{#' | `#}' | `{' | `}' | `,' | `.' | `->' | `='
 --                   | `=>' | '-' | `*' | `&' | `^'
 --      string      -> `"' instr* `"'
@@ -210,6 +210,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokAs      Position          -- `as'
               | CHSTokCall    Position          -- `call'
               | CHSTokClass   Position          -- `class'
+              | CHSTokConst   Position          -- `const'
               | CHSTokContext Position          -- `context'
               | CHSTokNonGNU  Position          -- `nonGNU'
               | CHSTokDerive  Position          -- `deriving'
@@ -269,6 +270,7 @@ instance Pos CHSToken where
   posOf (CHSTokAs      pos  ) = pos
   posOf (CHSTokCall    pos  ) = pos
   posOf (CHSTokClass   pos  ) = pos
+  posOf (CHSTokConst   pos  ) = pos
   posOf (CHSTokContext pos  ) = pos
   posOf (CHSTokNonGNU  pos  ) = pos
   posOf (CHSTokDerive  pos  ) = pos
@@ -328,6 +330,7 @@ instance Eq CHSToken where
   (CHSTokAs       _  ) == (CHSTokAs       _  ) = True
   (CHSTokCall     _  ) == (CHSTokCall     _  ) = True
   (CHSTokClass    _  ) == (CHSTokClass    _  ) = True
+  (CHSTokConst    _  ) == (CHSTokConst    _  ) = True
   (CHSTokContext  _  ) == (CHSTokContext  _  ) = True
   (CHSTokNonGNU   _  ) == (CHSTokNonGNU   _  ) = True
   (CHSTokDerive   _  ) == (CHSTokDerive   _  ) = True
@@ -388,6 +391,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokAs      _  ) = showString "as"
   showsPrec _ (CHSTokCall    _  ) = showString "call"
   showsPrec _ (CHSTokClass   _  ) = showString "class"
+  showsPrec _ (CHSTokConst   _  ) = showString "const"
   showsPrec _ (CHSTokContext _  ) = showString "context"
   showsPrec _ (CHSTokNonGNU  _  ) = showString "nonGNU"
   showsPrec _ (CHSTokDerive  _  ) = showString "deriving"
@@ -731,6 +735,7 @@ identOrKW  =
     idkwtok pos "as"               _    = CHSTokAs      pos
     idkwtok pos "call"             _    = CHSTokCall    pos
     idkwtok pos "class"            _    = CHSTokClass   pos
+    idkwtok pos "const"            _    = CHSTokConst   pos
     idkwtok pos "context"          _    = CHSTokContext pos
     idkwtok pos "nonGNU"           _    = CHSTokNonGNU  pos
     idkwtok pos "deriving"         _    = CHSTokDerive  pos
@@ -771,6 +776,7 @@ keywordToIdent tok =
     CHSTokAs      pos -> mkid pos "as"
     CHSTokCall    pos -> mkid pos "call"
     CHSTokClass   pos -> mkid pos "class"
+    CHSTokConst   pos -> mkid pos "const"
     CHSTokContext pos -> mkid pos "context"
     CHSTokNonGNU  pos -> mkid pos "nonGNU"
     CHSTokDerive  pos -> mkid pos "deriving"
