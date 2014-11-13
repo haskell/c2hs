@@ -41,6 +41,7 @@ tests =
     , testCase "Issue #73" issue73
     , testCase "Issue #70" issue70
     , testCase "Issue #69" issue69
+    , testCase "Issue #65" issue65
     , testCase "Issue #62" issue62
     , testCase "Issue #60" issue60
     , testCase "Issue #51" issue51
@@ -138,6 +139,9 @@ issue70 = build_issue 70
 
 issue69 :: Assertion
 issue69 = build_issue 69
+
+issue65 :: Assertion
+issue65 = expect_issue 65 ["123", "456"]
 
 issue62 :: Assertion
 issue62 = build_issue 62
