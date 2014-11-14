@@ -1,5 +1,5 @@
 Name:           c2hs
-Version:        0.18.2
+Version:        0.19.1
 License:        GPL-2
 License-File:   COPYING
 Copyright:      Copyright (c) 1999-2007 Manuel M T Chakravarty
@@ -60,13 +60,18 @@ Extra-Source-Files:
   tests/bugs/issue-54/*.chs tests/bugs/issue-54/*.h tests/bugs/issue-54/*.c
   tests/bugs/issue-60/*.chs tests/bugs/issue-60/*.h tests/bugs/issue-60/*.c
   tests/bugs/issue-62/*.chs tests/bugs/issue-62/*.h tests/bugs/issue-62/*.c
+  tests/bugs/issue-65/*.chs tests/bugs/issue-65/*.h tests/bugs/issue-65/*.c
   tests/bugs/issue-69/*.chs tests/bugs/issue-69/*.h tests/bugs/issue-69/*.c
+  tests/bugs/issue-70/*.chs tests/bugs/issue-70/*.h tests/bugs/issue-70/*.c
+  tests/bugs/issue-73/*.chs tests/bugs/issue-73/*.h tests/bugs/issue-73/*.c
   tests/bugs/issue-75/*.chs tests/bugs/issue-75/*.h tests/bugs/issue-75/*.c
   tests/bugs/issue-79/*.chs tests/bugs/issue-79/*.h tests/bugs/issue-79/*.c
   tests/bugs/issue-80/*.chs tests/bugs/issue-80/*.h tests/bugs/issue-80/*.c
   tests/bugs/issue-93/*.chs tests/bugs/issue-93/*.h tests/bugs/issue-93/*.c
   tests/bugs/issue-95/*.chs tests/bugs/issue-95/*.h tests/bugs/issue-95/*.c
   tests/bugs/issue-96/*.chs tests/bugs/issue-96/*.h tests/bugs/issue-96/*.c
+  tests/bugs/issue-97/*.chs tests/bugs/issue-97/*.h tests/bugs/issue-97/*.c
+  tests/bugs/issue-103/*.chs tests/bugs/issue-103/*.h tests/bugs/issue-103/*.c
   tests/bugs/issue-107/*.chs
 
 source-repository head

@@ -29,38 +29,38 @@ tests :: [Test]
 tests =
   [ testGroup "Bugs"
     [ testCase "call_capital (issue #??)" call_capital
-    , testCase "Issue #107" issue107
-    , testCase "Issue #103" issue103
-    , testCase "Issue #97" issue97
-    , testCase "Issue #96" issue96
-    , testCase "Issue #95" issue95
-    , testCase "Issue #93" issue93
-    , testCase "Issue #80" issue80
-    , testCase "Issue #79" issue79
-    , testCase "Issue #75" issue75
-    , testCase "Issue #73" issue73
-    , testCase "Issue #70" issue70
-    , testCase "Issue #69" issue69
-    , testCase "Issue #65" issue65
-    , testCase "Issue #62" issue62
-    , testCase "Issue #60" issue60
-    , testCase "Issue #51" issue51
-    , testCase "Issue #47" issue47
-    , testCase "Issue #31" issue31
-    , testCase "Issue #30" issue30
-    , testCase "Issue #23" issue23
+    , testCase "Issue #7" issue7
+--    , testCase "Issue #10" issue10
+    , testCase "Issue #16" issue16
+    , testCase "Issue #19" issue19
     , testCase "Issue #22" issue22
-    , testCase "Issue #54" issue54
-    , testCase "Issue #45" issue45
-    , testCase "Issue #44" issue44
-    , testCase "Issue #43" issue43
+    , testCase "Issue #23" issue23
+    , testCase "Issue #29" issue29
+    , testCase "Issue #30" issue30
+    , testCase "Issue #31" issue31
     , testCase "Issue #32" issue32
     , testCase "Issue #38" issue38
-    , testCase "Issue #29" issue29
-    , testCase "Issue #19" issue19
-    , testCase "Issue #16" issue16
---    , testCase "Issue #10" issue10
-    , testCase "Issue #7" issue7
+    , testCase "Issue #43" issue43
+    , testCase "Issue #44" issue44
+    , testCase "Issue #45" issue45
+    , testCase "Issue #47" issue47
+    , testCase "Issue #51" issue51
+    , testCase "Issue #54" issue54
+    , testCase "Issue #60" issue60
+    , testCase "Issue #62" issue62
+    , testCase "Issue #65" issue65
+    , testCase "Issue #69" issue69
+    , testCase "Issue #70" issue70
+    , testCase "Issue #73" issue73
+    , testCase "Issue #75" issue75
+    , testCase "Issue #79" issue79
+    , testCase "Issue #80" issue80
+    , testCase "Issue #93" issue93
+    , testCase "Issue #95" issue95
+    , testCase "Issue #96" issue96
+    , testCase "Issue #97" issue97
+    , testCase "Issue #103" issue103
+    , testCase "Issue #107" issue107
     ]
   ]
 
