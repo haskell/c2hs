@@ -429,7 +429,12 @@ mergeMaps str  =
                         enums = Set.union readEnumSet (enums state)
                       }, ()))
   where
-    (ptrAssoc, objAssoc, enumList) = read str
+    -- Deal with variant interface file formats (old .chi files don't
+    -- contain the list of enumerations).
+    (ptrAssoc, objAssoc, enumList) =
+      case reads str of
+        [] -> let (ptr, obj) = read str in (ptr, obj, [])
+        [(r, "")] -> r
     readPtrMap           = Map.fromList [((isStar, internalIdent ide), repr)
                                         | ((isStar, ide), repr) <- ptrAssoc]
     readObjMap           = Map.fromList [(internalIdent ide, obj)
