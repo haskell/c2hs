@@ -734,7 +734,7 @@ expandHook (CHSClass oclassIde classIde typeIde pos) _ =
         return $ (identToString ide, identToString typeIde', ptr) : classes
     --
     traceInfoClass = traceGenBind $ "** Class hook:\n"
-expandHook (CHSConst cIde pos) _ =
+expandHook (CHSConst cIde _) _ =
   do
     traceGenBind "** Constant hook:\n"
     Just (ObjCO cdecl) <- findObj cIde
