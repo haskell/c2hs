@@ -61,6 +61,7 @@ tests =
     , testCase "Issue #97" issue97
     , testCase "Issue #103" issue103
     , testCase "Issue #107" issue107
+    , testCase "Issue #113" issue113
     ]
   ]
 
@@ -74,6 +75,9 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
   res <- absPath "./Capital" >>= cmd
   let expected = ["upper C();", "lower c();", "upper C();"]
   liftIO $ assertBool "" (T.lines res == expected)
+
+issue113 :: Assertion
+issue113 = build_issue 113
 
 issue107 :: Assertion
 issue107 = hs_only_expect_issue 107 ["True"]
