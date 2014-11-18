@@ -64,7 +64,8 @@
 --            | `class' [ident `=>'] ident ident
 --            | `const' ident
 --  ctxt     -> [`lib' `=' string] [prefix]
---  idalias  -> ident [`as' (ident | `^' | `'' ident1 ident2 ... `'')]
+--  idalias  -> ident
+--            | looseident [`as' (ident | `^' | `'' ident1 ident2 ... `'')]
 --  prefix   -> `prefix' `=' string [`add' `prefix' `=' string]
 --  deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
 --  parms    -> [verbhs `=>'] `{' parm_1 `,' ... `,' parm_n `}' `->' parm
@@ -1434,6 +1435,8 @@ parseTrans (CHSTokLBrace _:toks) =
     parseTranss toks'                  = syntaxError toks'
     --
     parseAssoc (CHSTokIdent _ ide1:CHSTokAs _:CHSTokIdent _ ide2:toks') =
+      return ((ide1, ide2), toks')
+    parseAssoc (CHSTokCIdentTail _ ide1:CHSTokAs _:CHSTokIdent _ ide2:toks') =
       return ((ide1, ide2), toks')
     parseAssoc (CHSTokIdent _ _   :CHSTokAs _:toks'                   ) =
       syntaxError toks'

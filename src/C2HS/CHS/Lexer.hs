@@ -87,6 +87,7 @@
 --    transfers control to the following binding-hook lexer:
 --
 --      ident       -> letter (letter | digit | `\'')*
+--      cidenttail  -> digit (letter | digit)*
 --      reservedid  -> `add' | `as' | `call' | `class' | `context' | `deriving'
 --                   | `enum' | `foreign' | `fun' | `get' | `lib'
 --                   | `downcaseFirstLetter' | `finalizer'
@@ -249,6 +250,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokC       Position String   -- verbatim C code
               | CHSTokCtrl    Position Char     -- control code
               | CHSTokComment Position String   -- comment
+              | CHSTokCIdentTail Position Ident -- C identifier without prefix
 
 instance Pos CHSToken where
   posOf (CHSTokArrow   pos  ) = pos
@@ -309,6 +311,7 @@ instance Pos CHSToken where
   posOf (CHSTokC       pos _) = pos
   posOf (CHSTokCtrl    pos _) = pos
   posOf (CHSTokComment pos _) = pos
+  posOf (CHSTokCIdentTail pos _) = pos
 
 instance Eq CHSToken where
   (CHSTokArrow    _  ) == (CHSTokArrow    _  ) = True
@@ -369,6 +372,7 @@ instance Eq CHSToken where
   (CHSTokC        _ _) == (CHSTokC        _ _) = True
   (CHSTokCtrl     _ _) == (CHSTokCtrl     _ _) = True
   (CHSTokComment  _ _) == (CHSTokComment  _ _) = True
+  (CHSTokCIdentTail _ _) == (CHSTokCIdentTail _ _) = True
   _                    == _                    = False
 
 instance Show CHSToken where
@@ -432,6 +436,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokComment _ s) = showString (if null s
                                                 then ""
                                                 else " --" ++ s ++ "\n")
+  showsPrec _ (CHSTokCIdentTail _ i) = (showString . identToString) i
 
 -- lexer state
 -- -----------
@@ -730,6 +735,10 @@ identOrKW  =
        -- identifier or keyword
        (letter +> (letter >|< digit >|< char '\'')`star` epsilon
        `lexactionName` \cs pos name -> (idkwtok $!pos) cs name)
+       >||<
+       (digit +> (letter >|< digit)`star` epsilon
+        `lexactionName` \cs pos name ->
+        CHSTokCIdentTail pos (mkIdent pos cs name))
   where
     idkwtok pos "add"              _    = CHSTokAdd     pos
     idkwtok pos "as"               _    = CHSTokAs      pos
