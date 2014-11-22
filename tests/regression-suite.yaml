@@ -27,20 +27,21 @@
   apt-ppa: [igraph/ppa]
   apt-packages: [libigraph0-dev]
 
-#-
-#  name: cuda-shared-setup
-#  cabal: false
-#  special-setup:
-#    - wget -q http://developer.download.nvidia.com/compute/cuda/5_5/rel/installers/cuda_5.5.22_linux_64.run
-#    - chmod +x ./cuda_5.5.22_linux_64.run
-#    - sudo ./cuda_5.5.22_linux_64.run -toolkit -driver -silent
-#  extra-path: [/usr/local/cuda-5.5/bin]
+-
+  name: cuda-shared-setup
+  cabal: false
+  special-setup:
+    - wget -q http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1204/x86_64/cuda-repo-ubuntu1204_6.5-14_amd64.deb
+    - sudo dpkg -i cuda-repo-ubuntu1204_6.5-14_amd64.deb
+    - sudo apt-get update
+    - sudo apt-get install cuda
+  extra-path: [/usr/local/cuda-6.5/bin]
 
-#-
-#  name: cuda
+-
+  name: cuda
 
-#-
-#  name: cufft
+-
+  name: cufft
 
 #-
 #  name: OpenCL
