@@ -31,10 +31,15 @@
   name: cuda-shared-setup
   cabal: false
   special-setup:
-    - wget -q http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1204/x86_64/cuda-repo-ubuntu1204_6.5-14_amd64.deb
-    - sudo dpkg -i cuda-repo-ubuntu1204_6.5-14_amd64.deb
-    - sudo apt-get update
-    - sudo apt-get install cuda
+    - aws s3 sync s3://cuda-packages ./cuda-packages
+    - sudo dpkg -i ./cuda-packages/*.deb
+  apt-packages: [acpid, consolekit, dkms, lib32gcc1, libc-bin,
+                 libc-dev-bin, libc6, libc6-dev, libc6-i386,
+                 libck-connector0, libpam-ck-connector,
+                 libpolkit-agent-1-0, libpolkit-backend-1-0,
+                 libpolkit-gobject-1-0, libvdpau1, libxmu-dev,
+                 libxmu-headers, policykit-1, policykit-1-gnome,
+                 python-xkit, screen-resolution-extra]
   extra-path: [/usr/local/cuda-6.5/bin]
 
 -
