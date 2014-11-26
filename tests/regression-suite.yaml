@@ -31,7 +31,8 @@
   name: cuda-shared-setup
   cabal: false
   special-setup:
-    - aws s3 sync --exclude=cuda-packages s3://cuda-packages ./cuda-packages
+    - mkdir cuda-packages
+    - aws s3 sync s3://cuda-packages ./cuda-packages
     - sudo dpkg -i ./cuda-packages/*.deb
     - sudo apt-get -f install
   apt-packages: [acpid, consolekit, dkms, lib32gcc1, libc-bin,
