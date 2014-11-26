@@ -3,7 +3,7 @@ language: haskell
 env:
  global:
   - AWS_ACCESS_KEY_ID=AKIAIKUEH2ETWTBS2CKQ
-  - secure: CZ+jZou+07xHnun3qgAQJ/FMvA8S75ECCkhU8fBa4vYdHZV7L25JX+lz02yTuSZbsLHuW1jo/0Br16kz20ppqKffuDji9ZVzr7DThxeLDV0kqJ1t/nhPfLSJKNqhn+IopHoyT1KJIZuEjb8bYM9mYW5lmbykd1xMzLtdi5tYxqM=
+  - secure: "Jzawnhgk3dX2INzbZIlnHCH+aKWqy96B9T1hzBh/Fqp4whglaZDO0mTLHQnhypqAt1rXO2o3yBNcKgGOcgfUuE71uBCzzaXieB0p8BhYn7cwYeANbuKNOGrsP6oDutS5F57FNWwgRp+2oanpgJNOs/6wvfElA7W6ibN8tZiLQrw="
 
 install:
   - sudo apt-get update -qq
