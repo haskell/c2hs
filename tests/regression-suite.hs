@@ -6,6 +6,7 @@ module Main where
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad
 import Shelly hiding (FilePath)
+import Data.Char
 import Data.List (nub)
 import Data.Text (Text)
 import Data.Monoid
@@ -55,6 +56,7 @@ main = shelly $ do
 
   when travis checkApt
   tests <- liftIO $ readTests "tests/regression-suite.yaml"
+  echo $ T.pack $ show tests
   let ppas = nub $ concatMap aptPPA tests
       pkgs = nub $ concatMap aptPackages tests
       buildTools = nub $ concatMap cabalBuildTools tests
@@ -81,7 +83,8 @@ main = shelly $ do
 
     when (not (null specials)) $ do
       echo "SPECIAL INSTALL STEPS\n"
-      forM_ specials $ \s -> let (c:as) = T.words s in run_ (fromText c) as
+      forM_ specials $ \s -> let (c:as) = escapedWords s in
+        run_ (fromText c) as
       echo "\n"
 
     when (not (null extraPaths)) $ do
@@ -106,3 +109,22 @@ main = shelly $ do
   if all (== 0) codes
     then exit 0
     else errorExit "SOME TESTS FAILED"
+
+escapedWords :: Text -> [Text]
+escapedWords = map (T.pack . reverse) . escWords False "" . T.unpack
+  where escWords :: Bool -> String -> String -> [String]
+        -- End of string: just return the accumulator if there is one.
+        escWords _ acc "" = case acc of
+          "" -> []
+          _  -> [acc]
+        -- Not escaping.
+        escWords False acc (c:cs)
+          | isSpace c = acc : escWords False "" cs
+          | c == '\'' = case acc of
+            "" -> escWords True "" cs
+            _  -> acc : escWords True "" cs
+          | otherwise = escWords False (c:acc) cs
+        -- Escaping.
+        escWords True acc (c:cs)
+          | c == '\'' = acc : escWords False "" cs
+          | otherwise = escWords True (c:acc) cs

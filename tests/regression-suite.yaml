@@ -33,8 +33,11 @@
   special-setup:
     - mkdir cuda-packages
     - aws s3 sync s3://cuda-packages ./cuda-packages
-    - sudo bash -c 'dpkg -i ./cuda-packages/*.deb'
-    - sudo apt-get -f install
+    - sudo dpkg -i ./cuda-packages/cuda-repo-ubuntu1204_6.5-14_amd64.deb
+    - /bin/rm ./cuda-packages/cuda-repo-ubuntu1204_6.5-14_amd64.deb
+    - sudo apt-get update
+    - "sudo bash -c 'mv ./cuda-packages/*.deb /var/cache/apt/archives'"
+    - sudo apt-get install cuda
   apt-packages: [acpid, consolekit, dkms, lib32gcc1, libc-bin,
                  libc-dev-bin, libc6, libc6-dev, libc6-i386,
                  libck-connector0, libpam-ck-connector,
