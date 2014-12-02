@@ -56,7 +56,6 @@ main = shelly $ do
 
   when travis checkApt
   tests <- liftIO $ readTests "tests/regression-suite.yaml"
-  echo $ T.pack $ show tests
   let ppas = nub $ concatMap aptPPA tests
       pkgs = nub $ concatMap aptPackages tests
       buildTools = nub $ concatMap cabalBuildTools tests
@@ -103,7 +102,7 @@ main = shelly $ do
           Just efs -> infs ++ concatMap (\f -> ["-f", f]) (T.splitOn "," efs)
     echo $ "\nREGRESSION TEST: " <> n <> "\n"
     errExit False $ do
-      run_ "cabal" $ ["install", "--jobs=1"] ++ fs ++ [n]
+      run_ "cabal" $ ["install", "--jobs=1", "-v3"] ++ fs ++ [n]
       lastExitCode
 
   if all (== 0) codes
