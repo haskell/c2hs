@@ -102,7 +102,7 @@ main = shelly $ do
           Just efs -> infs ++ concatMap (\f -> ["-f", f]) (T.splitOn "," efs)
     echo $ "\nREGRESSION TEST: " <> n <> "\n"
     errExit False $ do
-      run_ "cabal" $ ["install", "--jobs=1", "-v3"] ++ fs ++ [n]
+      run_ "cabal" $ ["install", "--jobs=1"] ++ fs ++ [n]
       lastExitCode
 
   if all (== 0) codes
