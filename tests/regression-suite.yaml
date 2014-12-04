@@ -1,31 +1,31 @@
--
-  name: CV
-  apt-packages: [libopencv-dev, libcv-dev, libhighgui-dev]
+# -
+#   name: CV
+#   apt-packages: [libopencv-dev, libcv-dev, libhighgui-dev]
 
--
-  name: gnome-keyring
-  apt-packages: [libgnome-keyring-dev]
+# -
+#   name: gnome-keyring
+#   apt-packages: [libgnome-keyring-dev]
 
--
-  name: hnetcdf
-  apt-packages: [libnetcdf-dev, libgsl0-dev, liblapack-dev]
+# -
+#   name: hnetcdf
+#   apt-packages: [libnetcdf-dev, libgsl0-dev, liblapack-dev]
 
--
-  name: hpuz
+# -
+#   name: hpuz
 
--
-  name: hsndfile
-  apt-packages: [libsndfile1-dev]
+# -
+#   name: hsndfile
+#   apt-packages: [libsndfile1-dev]
 
 # Commented out for now because of Qt problems on Travis.
 #-
 #  name: hsqml
 #  apt-packages: [libqtscript4-core, libqt4-declarative]
 
--
-  name: igraph
-  apt-ppa: [igraph/ppa]
-  apt-packages: [libigraph0-dev]
+# -
+#   name: igraph
+#   apt-ppa: [igraph/ppa]
+#   apt-packages: [libigraph0-dev]
 
 -
   name: cuda-shared-setup
@@ -50,8 +50,8 @@
 -
   name: cuda
 
--
-  name: cufft
+# -
+#   name: cufft
 
 #-
 #  name: OpenCL
