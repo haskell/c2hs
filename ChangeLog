@@ -1,3 +1,10 @@
+0.20.1
+ - Get CUDA Travis tests working again (hopefully...)
+ - Modify approach for defining C2HS_MIN_VERSION macro to work with
+   NVIDIA's nvcc CUDA compiler [#111]
+ - Fix problem with parser for {#enum ...#} renamings [#113]
+
+
 0.19.1
  - Add {#const ...#} hook for accessing #defined constants [#65]
  - Persist enumeration definitions across modules [#103]
