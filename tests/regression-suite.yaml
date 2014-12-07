@@ -17,10 +17,10 @@
   name: hsndfile
   apt-packages: [libsndfile1-dev]
 
--
-  name: hsqml
-  apt-packages: [libqtscript4-core, libqt4-declarative]
-  on-travis: false
+# -
+#   name: hsqml
+#   apt-packages: [libqtscript4-core, libqt4-declarative]
+#   on-travis: false
 
 -
   name: igraph
