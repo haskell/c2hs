@@ -105,7 +105,7 @@ import C2HS.CHS   (CHSFrag(..), CHSHook(..), CHSTrans(..),
 -- | takes an identifier to a lexeme including a potential mapping by a
 -- translation table
 --
-type TransFun = Ident -> String
+type TransFun = Ident -> Maybe String
 
 -- | translation function for the 'underscoreToCase' flag
 --
@@ -146,15 +146,17 @@ downcaseFirstLetter (c:cs) = toLower c : cs
 --
 transTabToTransFun :: String -> String -> CHSTrans -> TransFun
 transTabToTransFun prefx rprefx (CHSTrans _2Case chgCase table omits) =
-  \ide -> let
-            caseTrafo = (if _2Case then underscoreToCase else id) .
-                        (case chgCase of
-                           CHSSameCase -> id
-                           CHSUpCase   -> upcaseFirstLetter
-                           CHSDownCase -> downcaseFirstLetter)
-            lexeme = identToString ide
-            dft    = caseTrafo lexeme             -- default uses case trafo
-          in
+  \ide ->
+  let caseTrafo = (if _2Case then underscoreToCase else id) .
+                  (case chgCase of
+                      CHSSameCase -> id
+                      CHSUpCase   -> upcaseFirstLetter
+                      CHSDownCase -> downcaseFirstLetter)
+      lexeme = identToString ide
+      dft    = caseTrafo lexeme             -- default uses case trafo
+  in if ide `elem` omits
+     then Nothing
+     else Just $
           case lookup ide table of                  -- lookup original ident
             Just ide' -> identToString ide'         -- original ident matches
             Nothing   ->

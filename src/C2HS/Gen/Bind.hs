@@ -768,7 +768,8 @@ enumDef (CEnum _ Nothing _ _) _ _ _ _ pos = undefEnumErr pos
 enumDef (CEnum _ (Just list) _ _) hident trans emit userDerive _ =
   do
     (list', enumAuto) <- evalTagVals list
-    let enumVals = fixTags [(trans ide, cexpr) | (ide, cexpr) <- list']
+    let enumVals = map (\(Just i, e) -> (i, e)) $ filter (isJust . fst) $
+                   fixTags [(trans ide, cexpr) | (ide, cexpr) <- list']
         defHead  = enumHead hident
         defBody  = enumBody (length defHead - 2) enumVals
         dataDef = if emit then defHead ++ defBody else ""
@@ -1388,7 +1389,7 @@ setGet pos access offsets isArr ty onewtype =
       "return $ ptr `plusPtr` " ++ show off ++ " ::IO " ++ tyTag
     pokeOp off tyTag var False =
       "pokeByteOff ptr " ++ show off ++ " (" ++ var ++ "::" ++ tyTag ++ ")"
-    pokeOp off tyTag var True = "poke ptr (" ++ var ++ "::" ++ tyTag ++ ")"
+    pokeOp _ tyTag var True = "poke ptr (" ++ var ++ "::" ++ tyTag ++ ")"
 
 -- | generate the type definition for a pointer hook and enter the required type
 -- mapping into the 'ptrmap'

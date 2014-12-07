@@ -9,14 +9,10 @@ import Foreign.C
 {#enum test_enum as TestEnum {underscoreToCase} omit (TOTAL_ENUM_COUNT)
     deriving (Eq, Show)#}
 
+-- Force name overlap: causes compilation failure if "omit" in enum
+-- hook doesn't work.
 data Check = TotalEnumCount
            | Dummy
 
 main :: IO ()
-main = do
-  res1 <- enum_test E1
-  res2 <- enum_test E2
-  res3 <- enum_test E3
-  case (res1, res2, res3) of
-    (E2, E3, E1) -> putStrLn "Enum OK"
-    _            -> putStrLn "Enum FAILED"
+main = print (fromEnum E1, fromEnum E2, fromEnum E3)
