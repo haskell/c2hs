@@ -469,7 +469,7 @@ expandHook (CHSSizeof ide _) _ =
       ++ show (padBits size) ++ "\n"
 expandHook (CHSEnumDefine _ _ _ _) _ =
   interr "Binding generation error : enum define hooks should be eliminated via preprocessing "
-expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive pos) _ =
+expandHook (CHSEnum cide oalias chsTrans emit oprefix orepprefix derive pos) _ =
   do
     -- get the corresponding C declaration
     --
@@ -488,7 +488,7 @@ expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive pos) _ =
 
     let trans = transTabToTransFun pfx reppfx chsTrans
         hide  = identToString . fromMaybe cide $ oalias
-    enumDef enum hide trans (map identToString derive) pos
+    enumDef enum hide trans emit (map identToString derive) pos
 expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) _ =
   do
     traceEnter
@@ -734,6 +734,12 @@ expandHook (CHSClass oclassIde classIde typeIde pos) _ =
         return $ (identToString ide, identToString typeIde', ptr) : classes
     --
     traceInfoClass = traceGenBind $ "** Class hook:\n"
+expandHook (CHSConst cIde _) _ =
+  do
+    traceGenBind "** Constant hook:\n"
+    Just (ObjCO cdecl) <- findObj cIde
+    let (Just ini) = initDeclr cdecl
+    return . show . pretty $ ini
 
 apathNewtypeName :: CHSAPath -> GB (Maybe Ident)
 apathNewtypeName path = do
@@ -756,14 +762,16 @@ apathNewtypeName path = do
 -- * the translation function strips prefixes where possible (different
 --   enumerators maye have different prefixes)
 --
-enumDef :: CEnum -> String -> TransFun -> [String] -> Position -> GB String
-enumDef (CEnum _ Nothing _ _) _ _ _ pos = undefEnumErr pos
-enumDef (CEnum _ (Just list) _ _) hident trans userDerive _ =
+enumDef :: CEnum -> String -> TransFun -> Bool -> [String] -> Position
+        -> GB String
+enumDef (CEnum _ Nothing _ _) _ _ _ _ pos = undefEnumErr pos
+enumDef (CEnum _ (Just list) _ _) hident trans emit userDerive _ =
   do
     (list', enumAuto) <- evalTagVals list
     let enumVals = fixTags [(trans ide, cexpr) | (ide, cexpr) <- list']
         defHead  = enumHead hident
         defBody  = enumBody (length defHead - 2) enumVals
+        dataDef = if emit then defHead ++ defBody else ""
         inst     = makeDerives
                    (if enumAuto then "Enum" : userDerive else userDerive) ++
                    "\n" ++
@@ -771,7 +779,7 @@ enumDef (CEnum _ (Just list) _ _) hident trans userDerive _ =
                    then ""
                    else enumInst hident enumVals
     isEnum hident
-    return $ defHead ++ defBody ++ inst
+    return $ dataDef ++ inst
   where
     evalTagVals = liftM (second and . unzip) . mapM (uncurry evalTag)
     evalTag ide Nothing = return ((ide, Nothing), True)
@@ -825,7 +833,7 @@ instance Num CInteger where
 --
 enumInst :: String -> [(String, Integer)] -> String
 enumInst ident list' = intercalate "\n"
-  [ "instance Enum " ++ ident ++ " where"
+  [ "instance Enum " ++ wrap ident ++ " where"
   , succDef
   , predDef
   , enumFromToDef
@@ -834,6 +842,7 @@ enumInst ident list' = intercalate "\n"
   , toDef
   ]
   where
+    wrap s = if ' ' `elem` s then "(" ++ s ++ ")" else s
     concatFor = flip concatMap
     -- List of _all values_ (including aliases) and their associated tags
     list   = sortBy (comparing snd) list'

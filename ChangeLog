@@ -1,8 +1,26 @@
+0.20.1
+ - Get CUDA Travis tests working again (hopefully...)
+ - Modify approach for defining C2HS_MIN_VERSION macro to work with
+   NVIDIA's nvcc CUDA compiler [#111]
+ - Fix problem with parser for {#enum ...#} renamings [#113]
+
+
+0.19.1
+ - Add {#const ...#} hook for accessing #defined constants [#65]
+ - Persist enumeration definitions across modules [#103]
+ - Add nocode keyword for enumeration definitions [#70]
+ - Bump version for language-c to fix OS X problems [#82, #85] (thanks to
+   Anthony Cowley and Benedikt Huber for help with this)
+ - Add finalizer support to foreign pointer definitions [#73]
+ - Comment parsing cleanups (Sivert Berg: @sivertb)
+
+
 0.18.2
  - Add C2HS_MIN_VERSION(major,minor,revision) preprocessor macro
  - Suppress regression suite build (and associated dependency
    installation) for non-Travis cases
  - Fix Cabal file to include previously missing tests
+
 
 0.18.1
  - Numerous improvements to Enum handling [#78] (Philipp Balzarek:

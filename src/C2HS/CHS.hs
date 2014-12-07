@@ -53,7 +53,7 @@
 --            | `type' ident
 --            | `sizeof' ident
 --            | `alignof' ident
---            | `enum' idalias trans [`with' prefix] [`add' prefix] [deriving]
+--            | `enum' idalias trans [`nocode'] [`with' prefix] [`add' prefix] [deriving]
 --            | `enum` `define` idalias [deriving]
 --            | `call' [`pure'] [`unsafe'] idalias
 --            | `fun' [`pure'] [`unsafe'] idalias parms
@@ -62,8 +62,10 @@
 --            | `offsetof` apath
 --            | `pointer' ['*'] idalias ptrkind ['nocode']
 --            | `class' [ident `=>'] ident ident
+--            | `const' ident
 --  ctxt     -> [`lib' `=' string] [prefix]
---  idalias  -> ident [`as' (ident | `^')]
+--  idalias  -> ident
+--            | looseident [`as' (ident | `^' | `'' ident1 ident2 ... `'')]
 --  prefix   -> `prefix' `=' string [`add' `prefix' `=' string]
 --  deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
 --  parms    -> [verbhs `=>'] `{' parm_1 `,' ... `,' parm_n `}' `->' parm
@@ -201,6 +203,7 @@ data CHSHook = CHSImport  Bool                  -- qualified?
              | CHSEnum    Ident                 -- C enumeration type
                           (Maybe Ident)         -- Haskell name
                           CHSTrans              -- translation table
+                          Bool                  -- emit code or not?
                           (Maybe String)        -- local prefix
                           (Maybe String)        -- local replacement prefix
                           [Ident]               -- instance requests from user
@@ -239,6 +242,9 @@ data CHSHook = CHSImport  Bool                  -- qualified?
                           Ident                 -- class name
                           Ident                 -- name of pointer type
                           Position
+             | CHSConst   Ident                 -- C identifier
+                          Position
+
 
 instance Pos CHSHook where
   posOf (CHSImport  _ _ _         pos) = pos
@@ -246,7 +252,7 @@ instance Pos CHSHook where
   posOf (CHSType    _             pos) = pos
   posOf (CHSSizeof  _             pos) = pos
   posOf (CHSAlignof _             pos) = pos
-  posOf (CHSEnum    _ _ _ _ _ _   pos) = pos
+  posOf (CHSEnum    _ _ _ _ _ _ _ pos) = pos
   posOf (CHSEnumDefine _ _ _      pos) = pos
   posOf (CHSCall    _ _ _ _       pos) = pos
   posOf (CHSFun     _ _ _ _ _ _ _ pos) = pos
@@ -254,6 +260,7 @@ instance Pos CHSHook where
   posOf (CHSOffsetof _            pos) = pos
   posOf (CHSPointer _ _ _ _ _ _ _ pos) = pos
   posOf (CHSClass   _ _ _         pos) = pos
+  posOf (CHSConst   _             pos) = pos
 
 -- | two hooks are equal if they have the same Haskell name and reference the
 -- same C object
@@ -269,7 +276,7 @@ instance Eq CHSHook where
     ide1 == ide2
   (CHSAlignof ide1                  _) == (CHSAlignof ide2                  _) =
     ide1 == ide2
-  (CHSEnum ide1 oalias1 _ _ _ _     _) == (CHSEnum ide2 oalias2 _ _ _ _     _) =
+  (CHSEnum ide1 oalias1 _ _ _ _ _   _) == (CHSEnum ide2 oalias2 _ _ _ _ _   _) =
     oalias1 == oalias2 && ide1 == ide2
   (CHSEnumDefine ide1 _ _           _) == (CHSEnumDefine ide2 _ _           _) =
     ide1 == ide2
@@ -285,6 +292,8 @@ instance Eq CHSHook where
                                       == (CHSPointer _ ide2 oalias2 _ _ _ _ _) =
     ide1 == ide2 && oalias1 == oalias2
   (CHSClass _ ide1 _                _) == (CHSClass _ ide2 _                _) =
+    ide1 == ide2
+  (CHSConst ide1                    _) == (CHSConst ide2                    _) =
     ide1 == ide2
   _                               == _                          = False
 
@@ -523,10 +532,13 @@ showCHSHook (CHSSizeof ide _) =
 showCHSHook (CHSAlignof   ide _) =
    showString "alignof "
   . showCHSIdent ide
-showCHSHook (CHSEnum ide oalias trans oprefix oreplprefix derive _) =
+showCHSHook (CHSEnum ide oalias trans emit oprefix oreplprefix derive _) =
     showString "enum "
   . showIdAlias ide oalias
   . showCHSTrans trans
+  . (case emit of
+        True  -> showString ""
+        False -> showString " nocode")
   . showPrefix oprefix True
   . showReplacementPrefix oreplprefix
   . if null derive then id else showString $
@@ -591,6 +603,9 @@ showCHSHook (CHSClass oclassIde classIde typeIde _) =
   . showCHSIdent classIde
   . showString " "
   . showCHSIdent typeIde
+showCHSHook (CHSConst constIde _) =
+    showString "const "
+  . showCHSIdent constIde
 
 showPrefix                        :: Maybe String -> Bool -> ShowS
 showPrefix Nothing       _         = showString ""
@@ -687,7 +702,10 @@ showCHSAPath (CHSRef path ide) =
   . showCHSIdent ide
 
 showCHSIdent :: Ident -> ShowS
-showCHSIdent  = showString . identToString
+showCHSIdent ide = showString $ let s = identToString ide
+                                in case ' ' `elem` s of
+                                  False -> s
+                                  True -> "'" ++ s ++ "'"
 
 
 -- load and dump a CHI file
@@ -879,6 +897,9 @@ parseFrags tokens  = do
                  CHSTokClass   pos  :toks) = parseClass   hkpos pos
                                              (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
+                 CHSTokConst   pos  :toks) = parseConst   hkpos pos
+                                             (removeCommentInHook toks)
+    parseFrags0 (CHSTokHook hkpos:
                  CHSTokPointer pos  :toks) = parsePointer hkpos pos
                                              (removeCommentInHook toks)
     parseFrags0 (CHSTokHook _       :toks) = syntaxError toks
@@ -1003,19 +1024,24 @@ parseEnum hkpos pos (CHSTokIdent _ def: CHSTokIdent _ hsid: toks)
 parseEnum hkpos pos (CHSTokIdent _ ide:toks) =
   do
     (oalias,      toks2) <- parseOptAs ide True toks
-    (trans,       toks3) <- parseTrans          toks2
-    (oprefix,     toks4) <- parseOptPrefix True toks3
-    (oreplprefix, toks5) <- parseOptReplPrefix  toks4
-    (derive,      toks6) <- parseDerive         toks5
-    toks7                <- parseEndHook        toks6
-    frags                <- parseFrags          toks7
-    return $ CHSHook (CHSEnum ide (norm oalias) trans
+    (emit,        toks3) <- parseOptNoCode      toks2
+    (trans,       toks4) <- parseTrans          toks3
+    (oprefix,     toks5) <- parseOptPrefix True toks4
+    (oreplprefix, toks6) <- parseOptReplPrefix  toks5
+    (derive,      toks7) <- parseDerive         toks6
+    toks8                <- parseEndHook        toks7
+    frags                <- parseFrags          toks8
+    return $ CHSHook (CHSEnum ide (norm oalias) trans emit
                       oprefix oreplprefix derive pos) hkpos : frags
   where
     norm Nothing                   = Nothing
     norm (Just ide') | ide == ide' = Nothing
                      | otherwise   = Just ide'
 parseEnum _ _ toks = syntaxError toks
+
+parseOptNoCode :: [CHSToken] -> CST s (Bool, [CHSToken])
+parseOptNoCode (CHSTokNocode _ :toks) = return (False, toks)
+parseOptNoCode toks                   = return (True, toks)
 
 parseCall          :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
 parseCall hkpos pos toks  =
@@ -1246,6 +1272,14 @@ parseClass hkpos pos (CHSTokIdent _ classIde :
     return $ CHSHook (CHSClass Nothing classIde typeIde pos) hkpos : frags
 parseClass _ _ toks = syntaxError toks
 
+parseConst :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseConst hkpos pos (CHSTokIdent  _ constIde : toks)                     =
+  do
+    toks' <- parseEndHook toks
+    frags <- parseFrags toks'
+    return $ CHSHook (CHSConst constIde pos) hkpos : frags
+parseConst _ _ toks = syntaxError toks
+
 parseOptLib :: [CHSToken] -> CST s (Maybe String, [CHSToken])
 parseOptLib (CHSTokLib    _    :
              CHSTokEqual  _    :
@@ -1284,6 +1318,8 @@ parseOptReplPrefix toks                  = return (Nothing, toks)
 parseOptAs :: Ident -> Bool -> [CHSToken] -> CST s (Maybe Ident, [CHSToken])
 parseOptAs _   _     (CHSTokAs _:CHSTokIdent _ ide:toks) =
   return (Just ide, toks)
+parseOptAs _   _     (CHSTokAs _:CHSTokHSQuot pos ide:toks) =
+  return (Just $ internalIdentAt pos ide, toks)
 parseOptAs ide upper (CHSTokAs _:CHSTokHat pos    :toks) =
   return (Just $ underscoreToCase ide upper pos, toks)
 parseOptAs _   _     (CHSTokAs _                  :toks) = syntaxError toks
@@ -1399,6 +1435,8 @@ parseTrans (CHSTokLBrace _:toks) =
     parseTranss toks'                  = syntaxError toks'
     --
     parseAssoc (CHSTokIdent _ ide1:CHSTokAs _:CHSTokIdent _ ide2:toks') =
+      return ((ide1, ide2), toks')
+    parseAssoc (CHSTokCIdentTail _ ide1:CHSTokAs _:CHSTokIdent _ ide2:toks') =
       return ((ide1, ide2), toks')
     parseAssoc (CHSTokIdent _ _   :CHSTokAs _:toks'                   ) =
       syntaxError toks'

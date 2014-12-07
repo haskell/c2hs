@@ -84,7 +84,7 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map (empty, insert, lookup, union, toList, fromList)
 import Data.Map   (Map)
 import Data.Set   (Set)
-import qualified Data.Set as Set (empty, insert, member)
+import qualified Data.Set as Set (empty, insert, member, union, toList, fromList)
 
 -- Language.C
 import Language.C.Data.Position
@@ -425,14 +425,21 @@ mergeMaps     :: String -> GB ()
 mergeMaps str  =
   transCT (\state -> (state {
                         ptrmap = Map.union readPtrMap (ptrmap state),
-                        objmap = Map.union readObjMap (objmap state)
+                        objmap = Map.union readObjMap (objmap state),
+                        enums = Set.union readEnumSet (enums state)
                       }, ()))
   where
-    (ptrAssoc, objAssoc) = read str
+    -- Deal with variant interface file formats (old .chi files don't
+    -- contain the list of enumerations).
+    (ptrAssoc, objAssoc, enumList) =
+      case reads str of
+        [] -> let (ptr, obj) = read str in (ptr, obj, [])
+        [(r, "")] -> r
     readPtrMap           = Map.fromList [((isStar, internalIdent ide), repr)
                                         | ((isStar, ide), repr) <- ptrAssoc]
     readObjMap           = Map.fromList [(internalIdent ide, obj)
                                         | (ide, obj)            <- objAssoc]
+    readEnumSet          = Set.fromList enumList
 
 -- | convert the whole pointer and Haskell object maps into printable form
 --
@@ -440,10 +447,12 @@ dumpMaps :: GB String
 dumpMaps  = do
               ptrFM <- readCT ptrmap
               objFM <- readCT objmap
+              enumS <- readCT enums
               let dumpable = ([((isStar, identToString ide), repr)
                               | ((isStar, ide), repr) <- Map.toList ptrFM],
                               [(identToString ide, obj)
-                              | (ide, obj)            <- Map.toList objFM])
+                              | (ide, obj)            <- Map.toList objFM],
+                              Set.toList enumS)
               return $ show dumpable
 
 -- | query the enum map

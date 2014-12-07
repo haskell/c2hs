@@ -29,35 +29,40 @@ tests :: [Test]
 tests =
   [ testGroup "Bugs"
     [ testCase "call_capital (issue #??)" call_capital
-    , testCase "Issue #115" issue115
-    , testCase "Issue #107" issue107
-    , testCase "Issue #96" issue96
-    , testCase "Issue #95" issue95
-    , testCase "Issue #93" issue93
-    , testCase "Issue #80" issue80
-    , testCase "Issue #79" issue79
-    , testCase "Issue #75" issue75
-    , testCase "Issue #73" issue73
-    , testCase "Issue #69" issue69
-    , testCase "Issue #62" issue62
-    , testCase "Issue #60" issue60
-    , testCase "Issue #51" issue51
-    , testCase "Issue #47" issue47
-    , testCase "Issue #31" issue31
-    , testCase "Issue #30" issue30
-    , testCase "Issue #23" issue23
+    , testCase "Issue #7" issue7
+--    , testCase "Issue #10" issue10
+    , testCase "Issue #16" issue16
+    , testCase "Issue #19" issue19
     , testCase "Issue #22" issue22
-    , testCase "Issue #54" issue54
-    , testCase "Issue #45" issue45
-    , testCase "Issue #44" issue44
-    , testCase "Issue #43" issue43
+    , testCase "Issue #23" issue23
+    , testCase "Issue #29" issue29
+    , testCase "Issue #30" issue30
+    , testCase "Issue #31" issue31
     , testCase "Issue #32" issue32
     , testCase "Issue #38" issue38
-    , testCase "Issue #29" issue29
-    , testCase "Issue #19" issue19
-    , testCase "Issue #16" issue16
---    , testCase "Issue #10" issue10
-    , testCase "Issue #7" issue7
+    , testCase "Issue #43" issue43
+    , testCase "Issue #44" issue44
+    , testCase "Issue #45" issue45
+    , testCase "Issue #47" issue47
+    , testCase "Issue #51" issue51
+    , testCase "Issue #54" issue54
+    , testCase "Issue #60" issue60
+    , testCase "Issue #62" issue62
+    , testCase "Issue #65" issue65
+    , testCase "Issue #69" issue69
+    , testCase "Issue #70" issue70
+    , testCase "Issue #73" issue73
+    , testCase "Issue #75" issue75
+    , testCase "Issue #79" issue79
+    , testCase "Issue #80" issue80
+    , testCase "Issue #93" issue93
+    , testCase "Issue #95" issue95
+    , testCase "Issue #96" issue96
+    , testCase "Issue #97" issue97
+    , testCase "Issue #103" issue103
+    , testCase "Issue #107" issue107
+    , testCase "Issue #113" issue113
+    , testCase "Issue #115" issue115
     ]
   ]
 
@@ -75,8 +80,37 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
 issue115 :: Assertion
 issue115 = expect_issue 115 ["[7,42,93]", "[7,42,93]"]
 
+issue113 :: Assertion
+issue113 = build_issue 113
+
 issue107 :: Assertion
 issue107 = hs_only_expect_issue 107 ["True"]
+
+issue103 :: Assertion
+issue103 = c2hsShelly $ chdir "tests/bugs/issue-103" $ do
+  mapM_ rm_f ["Issue103.hs", "Issue103.chs.h", "Issue103.chi",
+              "Issue103A.hs", "Issue103A.chs.h", "Issue103A.chi",
+              "issue103_c.o", "Issue103"]
+  cmd "c2hs" "Issue103A.chs"
+  cmd "c2hs" "Issue103.chs"
+  cmd "cc" "-c" "-o" "issue103_c.o" "issue103.c"
+  cmd "ghc" "--make" "issue103_c.o" "Issue103A.hs" "Issue103.hs"
+  res <- absPath "./Issue103" >>= cmd
+  let expected = ["1", "2", "3"]
+  liftIO $ assertBool "" (T.lines res == expected)
+
+issue97 :: Assertion
+issue97 = c2hsShelly $ chdir "tests/bugs/issue-97" $ do
+  mapM_ rm_f ["Issue97.hs", "Issue97.chs.h", "Issue97.chi",
+              "Issue97A.hs", "Issue97A.chs.h", "Issue97A.chi",
+              "issue97_c.o", "Issue97"]
+  cmd "c2hs" "Issue97A.chs"
+  cmd "c2hs" "Issue97.chs"
+  cmd "cc" "-c" "-o" "issue97_c.o" "issue97.c"
+  cmd "ghc" "--make" "issue97_c.o" "Issue97A.hs" "Issue97.hs"
+  res <- absPath "./Issue97" >>= cmd
+  let expected = ["42"]
+  liftIO $ assertBool "" (T.lines res == expected)
 
 issue96 :: Assertion
 issue96 = build_issue 96
@@ -108,8 +142,14 @@ issue73 = unordered_expect_issue 73 [ "Allocated struct3"
                                     , "Freeing struct3"
                                     , "Freeing struct4" ]
 
+issue70 :: Assertion
+issue70 = build_issue 70
+
 issue69 :: Assertion
 issue69 = build_issue 69
+
+issue65 :: Assertion
+issue65 = expect_issue 65 ["123", "3.14", "\"hello\""]
 
 issue62 :: Assertion
 issue62 = build_issue 62

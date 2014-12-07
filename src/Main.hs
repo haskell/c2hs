@@ -553,18 +553,14 @@ process headerFiles bndFile  =
         newHeaderFile = outDir </> newHeader
         preprocFile   = outFPath <.> isuffix
     CIO.writeFile newHeaderFile $ concat $
+      [ "#define C2HS_MIN_VERSION(mj,mn,rv) " ++
+        "((mj)<=C2HS_VERSION_MAJOR && " ++
+        "(mn)<=C2HS_VERSION_MINOR && " ++
+        "(rv)<=C2HS_VERSION_REV)\n" ] ++
       [ "#include \"" ++ headerFile ++ "\"\n"
       | headerFile <- headerFiles ]
       ++ header'
-    --
-    -- Check if we can get away without having to keep a separate .chs.h file
-    --
-    case headerFiles of
-      [headerFile] | null header
-        -> setHeader headerFile    -- the generated .hs file will directly
-                                   -- refer to this header rather than going
-                                   -- through a one-line .chs.h file.
-      _ -> setHeader newHeader
+    setHeader newHeader
     --
     -- run C preprocessor over the header
     --
@@ -574,17 +570,12 @@ process headerFiles bndFile  =
           if hasNonGNU chsMod
           then [ "-U__GNUC__"
                , "-U__GNUC_MINOR__"
-               , "-U__GNUC_PATCHLEVEL__"
-               , "-D__AVAILIBILITY__"
-               , "-D__OSX_AVAILABLE_STARTING(a,b)"
-               , "-D__OSX_AVAILABLE_BUT_DEPRECATED(a,b,c,d)"
-               , "-D__OSX_AVAILABLE_BUT_DEPRECATED_MSG(a,b,c,d,e)" ]
+               , "-U__GNUC_PATCHLEVEL__" ]
           else []
         [versMajor, versMinor, versRev] = map show $ DV.versionBranch versnum
-        versionOpt = [ "-DC2HS_MIN_VERSION(mj,mn,rv)=" ++
-                       "(mj<=" ++ versMajor ++ "&&" ++
-                       "mn<=" ++ versMinor ++ "&&" ++
-                       "rv<=" ++ versRev ++ ")" ]
+        versionOpt = [ "-DC2HS_VERSION_MAJOR=" ++ versMajor
+                     , "-DC2HS_VERSION_MINOR=" ++ versMinor
+                     , "-DC2HS_VERSION_REV=" ++ versRev ]
         args = cppOpts ++ nonGNUOpts ++ ["-U__BLOCKS__"] ++
                versionOpt ++ [newHeaderFile]
     tracePreproc (unwords (cpp:args))

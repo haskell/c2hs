@@ -166,30 +166,60 @@ ghFrag []                              =
 ghFrag (frag@(CHSVerb  _ _  ) : frags) =
   return (DL.empty, Frag frag, frags)
 
--- generate an enum __c2hs__enum__'id { __c2hs_enr__'id = DEF1, ... } and then process an
--- ordinary enum directive
-ghFrag (_frag@(CHSHook (CHSEnumDefine hsident trans instances pos) hkpos) : frags) =
+-- generate an
+--   enum __c2hs__enum__'id { __c2hs_enr__'id = DEF1, ... }
+-- and then process an ordinary enum directive
+ghFrag (_frag@(CHSHook (CHSEnumDefine hsident trans
+                        instances pos) hkpos) : frags) =
   do ide <- newEnumIdent
      (enrs,trans') <- createEnumerators trans
-     return (DL.fromList [show.pretty $ enumDef ide enrs,";\n"], Frag (enumFrag (identToString ide) trans'), frags)
+     return (DL.fromList [show.pretty $ enumDef ide enrs,";\n"],
+             Frag (enumFrag (identToString ide) trans'), frags)
   where
-  newEnumIdent = liftM internalIdent $ transCST $ \supply -> (tail supply, "__c2hs_enum__" ++ show (nameId $ head supply))
-  newEnrIdent  = liftM internalIdent $ transCST $ \supply -> (tail supply, "__c2hs_enr__" ++ show (nameId $ head supply))
+  newEnumIdent = liftM internalIdent $ transCST $
+                 \supply -> (tail supply, "__c2hs_enum__" ++
+                                          show (nameId $ head supply))
+  newEnrIdent  = liftM internalIdent $ transCST $
+                 \supply -> (tail supply, "__c2hs_enr__" ++
+                                          show (nameId $ head supply))
   createEnumerators (CHSTrans isUnderscore changeCase aliases)
-    | isUnderscore = raiseErrorGHExc pos ["underScoreToCase is meaningless for `enum define' hooks"]
-    | changeCase /= CHSSameCase = raiseErrorGHExc pos ["changing case is meaningless for `enum define' hooks"]
+    | isUnderscore =
+      raiseErrorGHExc pos ["underScoreToCase is meaningless " ++
+                           "for `enum define' hooks"]
+    | changeCase /= CHSSameCase =
+        raiseErrorGHExc pos ["changing case is meaningless " ++
+                             "for `enum define' hooks"]
     | otherwise =
       do (enrs,transtbl') <- liftM unzip (mapM createEnumerator aliases)
          return (enrs,CHSTrans False CHSSameCase transtbl')
-  createEnumerator (cid,hsid) = liftM (\enr -> ((enr,cid),(enr,hsid))) newEnrIdent
+  createEnumerator (cid,hsid) =
+    liftM (\enr -> ((enr,cid),(enr,hsid))) newEnrIdent
   enumDef ide enrs = CEnum (Just ide) (Just$ map mkEnr enrs) [] undefNode
     where mkEnr (name,value) = (name, Just $ CVar value undefNode)
-  enumFrag ide trans' = CHSHook (CHSEnum (internalIdent ide) (Just hsident) trans' Nothing Nothing instances pos) hkpos
+  enumFrag ide trans' = CHSHook (CHSEnum (internalIdent ide) (Just hsident)
+                                 trans' True Nothing Nothing
+                                 instances pos) hkpos
 
-ghFrag (frag@(CHSHook  _    _) : frags) =
-  return (DL.empty, Frag frag, frags)
-ghFrag (frag@(CHSLine  _    ) : frags) =
-  return (DL.empty, Frag frag, frags)
+ghFrag (_frag@(CHSHook (CHSConst cident pos) hkpos) : frags) =
+  do ide <- newConstIdent
+     return (DL.fromList [show.pretty $ constDef ide,";\n"],
+             Frag (CHSHook (CHSConst ide pos) hkpos), frags)
+  where
+  newConstIdent =
+    liftM internalIdent $ transCST $
+    \supply -> (tail supply, "c2hs__const__" ++ show (nameId $ head supply))
+  constDef ide =
+    -- This is a little nasty.  We write a definition of an *integer*
+    -- C value into the header, regardless of what type it really
+    -- is...
+    CDecl [CTypeSpec (CIntType undefNode)]
+          [(Just (CDeclr (Just ide) [] Nothing [] undefNode),
+            Just (CInitExpr (CVar cident undefNode) undefNode),
+            Nothing)]
+          undefNode
+
+ghFrag (frag@(CHSHook  _    _) : frags) = return (DL.empty, Frag frag, frags)
+ghFrag (frag@(CHSLine  _    ) : frags) = return (DL.empty, Frag frag, frags)
 ghFrag (     (CHSC    s  _  ) : frags) =
   do
     (header, frag, frags' ) <- ghFrag frags     -- scan for next CHS fragment

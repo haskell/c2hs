@@ -87,13 +87,14 @@
 --    transfers control to the following binding-hook lexer:
 --
 --      ident       -> letter (letter | digit | `\'')*
+--      cidenttail  -> digit (letter | digit)*
 --      reservedid  -> `add' | `as' | `call' | `class' | `context' | `deriving'
 --                   | `enum' | `foreign' | `fun' | `get' | `lib'
 --                   | `downcaseFirstLetter' | `finalizer'
 --                   | `newtype' | `nocode' | `pointer' | `prefix' | `pure'
 --                   | `set' | `sizeof' | `stable' | `struct' | `type'
 --                   | `underscoreToCase' | `upcaseFirstLetter' | `unsafe' |
---                   | `with'
+--                   | `with' | `const'
 --      reservedsym -> `{#' | `#}' | `{' | `}' | `,' | `.' | `->' | `='
 --                   | `=>' | '-' | `*' | `&' | `^'
 --      string      -> `"' instr* `"'
@@ -210,6 +211,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokAs      Position          -- `as'
               | CHSTokCall    Position          -- `call'
               | CHSTokClass   Position          -- `class'
+              | CHSTokConst   Position          -- `const'
               | CHSTokContext Position          -- `context'
               | CHSTokNonGNU  Position          -- `nonGNU'
               | CHSTokDerive  Position          -- `deriving'
@@ -248,6 +250,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokC       Position String   -- verbatim C code
               | CHSTokCtrl    Position Char     -- control code
               | CHSTokComment Position String   -- comment
+              | CHSTokCIdentTail Position Ident -- C identifier without prefix
 
 instance Pos CHSToken where
   posOf (CHSTokArrow   pos  ) = pos
@@ -269,6 +272,7 @@ instance Pos CHSToken where
   posOf (CHSTokAs      pos  ) = pos
   posOf (CHSTokCall    pos  ) = pos
   posOf (CHSTokClass   pos  ) = pos
+  posOf (CHSTokConst   pos  ) = pos
   posOf (CHSTokContext pos  ) = pos
   posOf (CHSTokNonGNU  pos  ) = pos
   posOf (CHSTokDerive  pos  ) = pos
@@ -307,6 +311,7 @@ instance Pos CHSToken where
   posOf (CHSTokC       pos _) = pos
   posOf (CHSTokCtrl    pos _) = pos
   posOf (CHSTokComment pos _) = pos
+  posOf (CHSTokCIdentTail pos _) = pos
 
 instance Eq CHSToken where
   (CHSTokArrow    _  ) == (CHSTokArrow    _  ) = True
@@ -328,6 +333,7 @@ instance Eq CHSToken where
   (CHSTokAs       _  ) == (CHSTokAs       _  ) = True
   (CHSTokCall     _  ) == (CHSTokCall     _  ) = True
   (CHSTokClass    _  ) == (CHSTokClass    _  ) = True
+  (CHSTokConst    _  ) == (CHSTokConst    _  ) = True
   (CHSTokContext  _  ) == (CHSTokContext  _  ) = True
   (CHSTokNonGNU   _  ) == (CHSTokNonGNU   _  ) = True
   (CHSTokDerive   _  ) == (CHSTokDerive   _  ) = True
@@ -366,6 +372,7 @@ instance Eq CHSToken where
   (CHSTokC        _ _) == (CHSTokC        _ _) = True
   (CHSTokCtrl     _ _) == (CHSTokCtrl     _ _) = True
   (CHSTokComment  _ _) == (CHSTokComment  _ _) = True
+  (CHSTokCIdentTail _ _) == (CHSTokCIdentTail _ _) = True
   _                    == _                    = False
 
 instance Show CHSToken where
@@ -388,6 +395,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokAs      _  ) = showString "as"
   showsPrec _ (CHSTokCall    _  ) = showString "call"
   showsPrec _ (CHSTokClass   _  ) = showString "class"
+  showsPrec _ (CHSTokConst   _  ) = showString "const"
   showsPrec _ (CHSTokContext _  ) = showString "context"
   showsPrec _ (CHSTokNonGNU  _  ) = showString "nonGNU"
   showsPrec _ (CHSTokDerive  _  ) = showString "deriving"
@@ -428,6 +436,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokComment _ s) = showString (if null s
                                                 then ""
                                                 else " --" ++ s ++ "\n")
+  showsPrec _ (CHSTokCIdentTail _ i) = (showString . identToString) i
 
 -- lexer state
 -- -----------
@@ -726,11 +735,16 @@ identOrKW  =
        -- identifier or keyword
        (letter +> (letter >|< digit >|< char '\'')`star` epsilon
        `lexactionName` \cs pos name -> (idkwtok $!pos) cs name)
+       >||<
+       (digit +> (letter >|< digit)`star` epsilon
+        `lexactionName` \cs pos name ->
+        CHSTokCIdentTail pos (mkIdent pos cs name))
   where
     idkwtok pos "add"              _    = CHSTokAdd     pos
     idkwtok pos "as"               _    = CHSTokAs      pos
     idkwtok pos "call"             _    = CHSTokCall    pos
     idkwtok pos "class"            _    = CHSTokClass   pos
+    idkwtok pos "const"            _    = CHSTokConst   pos
     idkwtok pos "context"          _    = CHSTokContext pos
     idkwtok pos "nonGNU"           _    = CHSTokNonGNU  pos
     idkwtok pos "deriving"         _    = CHSTokDerive  pos
@@ -771,6 +785,7 @@ keywordToIdent tok =
     CHSTokAs      pos -> mkid pos "as"
     CHSTokCall    pos -> mkid pos "call"
     CHSTokClass   pos -> mkid pos "class"
+    CHSTokConst   pos -> mkid pos "const"
     CHSTokContext pos -> mkid pos "context"
     CHSTokNonGNU  pos -> mkid pos "nonGNU"
     CHSTokDerive  pos -> mkid pos "deriving"
