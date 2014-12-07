@@ -75,7 +75,8 @@
 --            | `*' apath
 --            | apath `.' ident
 --            | apath `->' ident
---  trans    -> `{' alias_1 `,' ... `,' alias_n `}'
+--  trans    -> `{' alias_1 `,' ... `,' alias_n `}' [omit]
+--  omit     -> `omit' `(' ident_1 `,' ... `,' ident_n `)'
 --  alias    -> `underscoreToCase' | `upcaseFirstLetter'
 --            | `downcaseFirstLetter'
 --            | ident `as' ident
@@ -302,6 +303,7 @@ instance Eq CHSHook where
 data CHSTrans = CHSTrans Bool                   -- underscore to case?
                          CHSChangeCase          -- upcase or downcase?
                          [(Ident, Ident)]       -- alias list
+                         [Ident]                -- omit list
 
 data CHSChangeCase = CHSSameCase
                    | CHSUpCase
@@ -542,7 +544,7 @@ showCHSHook (CHSEnum ide oalias trans emit oprefix oreplprefix derive _) =
   . showPrefix oprefix True
   . showReplacementPrefix oreplprefix
   . if null derive then id else showString $
-      "deriving ("
+      " deriving ("
       ++ concat (intersperse ", " (map identToString derive))
       ++ ") "
 showCHSHook (CHSEnumDefine ide trans derive _) =
@@ -550,7 +552,7 @@ showCHSHook (CHSEnumDefine ide trans derive _) =
   . showCHSIdent ide
   . showCHSTrans trans
   . if null derive then id else showString $
-      "deriving ("
+      " deriving ("
       ++ concat (intersperse ", " (map identToString derive))
       ++ ") "
 showCHSHook (CHSCall isPure isUns ide oalias _) =
@@ -664,12 +666,17 @@ showCHSParm (CHSParm oimMarsh hsTyStr twoCVals oomMarsh _ comment)  =
                       else showString "--" . showString str . showChar '\n'
 
 showCHSTrans :: CHSTrans -> ShowS
-showCHSTrans (CHSTrans _2Case chgCase assocs)  =
-    showString "{"
+showCHSTrans (CHSTrans _2Case chgCase assocs omit)  =
+    showString " {"
   . (if _2Case then showString ("underscoreToCase" ++ maybeComma) else id)
   . showCHSChangeCase chgCase
   . foldr (.) id (intersperse (showString ", ") (map showAssoc assocs))
   . showString "}"
+  . (if not (null omit)
+     then showString " omit (" .
+          foldr (.) id (intersperse (showString ", ") (map showCHSIdent omit)) .
+          showString ")"
+     else id)
   where
     maybeComma = if null assocs then "" else ", "
     --
@@ -1399,7 +1406,9 @@ parseTrans (CHSTokLBrace _:toks) =
   do
     (_2Case, chgCase, toks' ) <- parse_2CaseAndChange toks
     case toks' of
-      (CHSTokRBrace _:toks'2) -> return (CHSTrans _2Case chgCase [], toks'2)
+      (CHSTokRBrace _:toks'2) -> do
+        (omits, toks'3) <- parseOmits toks'2
+        return (CHSTrans _2Case chgCase [] omits, toks'3)
       _                       ->
         do
           -- if there was no `underscoreToCase', we add a comma token to meet
@@ -1408,7 +1417,8 @@ parseTrans (CHSTokLBrace _:toks) =
           (transs, toks'2) <- if (_2Case || chgCase /= CHSSameCase)
                               then parseTranss toks'
                               else parseTranss (CHSTokComma nopos:toks')
-          return (CHSTrans _2Case chgCase transs, toks'2)
+          (omits, toks'3) <- parseOmits toks'2
+          return (CHSTrans _2Case chgCase transs omits, toks'3)
   where
     parse_2CaseAndChange (CHSTok_2Case _:CHSTokComma _:CHSTokUpper _:toks') =
       return (True, CHSUpCase, toks')
@@ -1433,6 +1443,17 @@ parseTrans (CHSTokLBrace _:toks) =
                                         (trans, toks'3) <- parseTranss toks'2
                                         return (assoc:trans, toks'3)
     parseTranss toks'                  = syntaxError toks'
+    --
+    parseOmits (CHSTokOmit _:CHSTokLParen _:CHSTokIdent _ omit:toks') = do
+      (omits, toks'2) <- parseOmits1 toks'
+      return (omit:omits, toks'2)
+    parseOmits toks' = return ([], toks')
+    --
+    parseOmits1 (CHSTokRParen _:toks') = return ([], toks')
+    parseOmits1 (CHSTokComma _:CHSTokIdent _ omit:toks') = do
+      (omits, toks'2) <- parseOmits1 toks'
+      return (omit:omits, toks'2)
+    parseOmits1 toks' = syntaxError toks'
     --
     parseAssoc (CHSTokIdent _ ide1:CHSTokAs _:CHSTokIdent _ ide2:toks') =
       return ((ide1, ide2), toks')

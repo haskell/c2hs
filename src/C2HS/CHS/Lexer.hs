@@ -94,7 +94,7 @@
 --                   | `newtype' | `nocode' | `pointer' | `prefix' | `pure'
 --                   | `set' | `sizeof' | `stable' | `struct' | `type'
 --                   | `underscoreToCase' | `upcaseFirstLetter' | `unsafe' |
---                   | `with' | `const'
+--                   | `with' | `const' | `omit'
 --      reservedsym -> `{#' | `#}' | `{' | `}' | `,' | `.' | `->' | `='
 --                   | `=>' | '-' | `*' | `&' | `^'
 --      string      -> `"' instr* `"'
@@ -226,6 +226,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokNewtype Position          -- `newtype'
               | CHSTokNocode  Position          -- `nocode'
               | CHSTokOffsetof Position         -- `offsetof'
+              | CHSTokOmit    Position          -- `omit'
               | CHSTokPointer Position          -- `pointer'
               | CHSTokPrefix  Position          -- `prefix'
               | CHSTokPure    Position          -- `pure'
@@ -287,6 +288,7 @@ instance Pos CHSToken where
   posOf (CHSTokNewtype pos  ) = pos
   posOf (CHSTokNocode  pos  ) = pos
   posOf (CHSTokOffsetof pos ) = pos
+  posOf (CHSTokOmit    pos  ) = pos
   posOf (CHSTokPointer pos  ) = pos
   posOf (CHSTokPrefix  pos  ) = pos
   posOf (CHSTokPure    pos  ) = pos
@@ -348,6 +350,7 @@ instance Eq CHSToken where
   (CHSTokNewtype  _  ) == (CHSTokNewtype  _  ) = True
   (CHSTokNocode   _  ) == (CHSTokNocode   _  ) = True
   (CHSTokOffsetof _  ) == (CHSTokOffsetof _  ) = True
+  (CHSTokOmit     _  ) == (CHSTokOmit     _  ) = True
   (CHSTokPointer  _  ) == (CHSTokPointer  _  ) = True
   (CHSTokPrefix   _  ) == (CHSTokPrefix   _  ) = True
   (CHSTokPure     _  ) == (CHSTokPure     _  ) = True
@@ -410,6 +413,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokNewtype _  ) = showString "newtype"
   showsPrec _ (CHSTokNocode  _  ) = showString "nocode"
   showsPrec _ (CHSTokOffsetof _ ) = showString "offsetof"
+  showsPrec _ (CHSTokOmit    _  ) = showString "omit"
   showsPrec _ (CHSTokPointer _  ) = showString "pointer"
   showsPrec _ (CHSTokPrefix  _  ) = showString "prefix"
   showsPrec _ (CHSTokPure    _  ) = showString "pure"
@@ -759,6 +763,7 @@ identOrKW  =
     idkwtok pos "newtype"          _    = CHSTokNewtype pos
     idkwtok pos "nocode"           _    = CHSTokNocode  pos
     idkwtok pos "offsetof"         _    = CHSTokOffsetof pos
+    idkwtok pos "omit"             _    = CHSTokOmit    pos
     idkwtok pos "pointer"          _    = CHSTokPointer pos
     idkwtok pos "prefix"           _    = CHSTokPrefix  pos
     idkwtok pos "pure"             _    = CHSTokPure    pos
@@ -800,6 +805,7 @@ keywordToIdent tok =
     CHSTokNewtype pos -> mkid pos "newtype"
     CHSTokNocode  pos -> mkid pos "nocode"
     CHSTokOffsetof pos -> mkid pos "offsetof"
+    CHSTokOmit    pos -> mkid pos "omit"
     CHSTokPointer pos -> mkid pos "pointer"
     CHSTokPrefix  pos -> mkid pos "prefix"
     CHSTokPure    pos -> mkid pos "pure"

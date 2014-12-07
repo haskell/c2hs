@@ -182,7 +182,7 @@ ghFrag (_frag@(CHSHook (CHSEnumDefine hsident trans
   newEnrIdent  = liftM internalIdent $ transCST $
                  \supply -> (tail supply, "__c2hs_enr__" ++
                                           show (nameId $ head supply))
-  createEnumerators (CHSTrans isUnderscore changeCase aliases)
+  createEnumerators (CHSTrans isUnderscore changeCase aliases omits)
     | isUnderscore =
       raiseErrorGHExc pos ["underScoreToCase is meaningless " ++
                            "for `enum define' hooks"]
@@ -191,7 +191,7 @@ ghFrag (_frag@(CHSHook (CHSEnumDefine hsident trans
                              "for `enum define' hooks"]
     | otherwise =
       do (enrs,transtbl') <- liftM unzip (mapM createEnumerator aliases)
-         return (enrs,CHSTrans False CHSSameCase transtbl')
+         return (enrs,CHSTrans False CHSSameCase transtbl' omits)
   createEnumerator (cid,hsid) =
     liftM (\enr -> ((enr,cid),(enr,hsid))) newEnrIdent
   enumDef ide enrs = CEnum (Just ide) (Just$ map mkEnr enrs) [] undefNode

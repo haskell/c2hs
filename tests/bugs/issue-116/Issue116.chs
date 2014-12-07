@@ -6,7 +6,7 @@ import Foreign.C
 
 #include "issue116.h"
 
-{#enum test_enum as TestEnum {underscoreToCase} omit TOTAL_ENUM_COUNT
+{#enum test_enum as TestEnum {underscoreToCase} omit (TOTAL_ENUM_COUNT)
     deriving (Eq, Show)#}
 
 data Check = TotalEnumCount

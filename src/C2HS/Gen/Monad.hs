@@ -145,7 +145,7 @@ downcaseFirstLetter (c:cs) = toLower c : cs
 --   beginning of this file
 --
 transTabToTransFun :: String -> String -> CHSTrans -> TransFun
-transTabToTransFun prefx rprefx (CHSTrans _2Case chgCase table) =
+transTabToTransFun prefx rprefx (CHSTrans _2Case chgCase table omits) =
   \ide -> let
             caseTrafo = (if _2Case then underscoreToCase else id) .
                         (case chgCase of
