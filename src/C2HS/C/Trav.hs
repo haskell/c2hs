@@ -71,10 +71,10 @@ module C2HS.C.Trav (CT, readCT, transCT, runCT, throwCTExc, ifCTExc,
               --
               isTypedef, simplifyDecl, declrFromDecl, declrNamed,
               declaredDeclr, initDeclr, declaredName, structMembers, expandDecl,
-              structName, enumName, tagName, isPtrDeclr, dropPtrDeclr,
-              isPtrDecl, isFunDeclr, structFromDecl, funResultAndArgs,
-              chaseDecl, findAndChaseDecl, findAndChaseDeclOrTag,
-              checkForAlias, checkForOneCUName,
+              structName, enumName, tagName, isPtrDeclr, isArrDeclr,
+              dropPtrDeclr, isPtrDecl, isArrDecl, isFunDeclr, structFromDecl,
+              funResultAndArgs, chaseDecl, findAndChaseDecl,
+              findAndChaseDeclOrTag, checkForAlias, checkForOneCUName,
               checkForOneAliasName, lookupEnum, lookupStructUnion,
               lookupDeclOrTag)
 where
@@ -537,6 +537,13 @@ isPtrDeclr (CDeclr _ (CPtrDeclr _ _:_) _ _ _) = True
 isPtrDeclr (CDeclr _ (CArrDeclr _ _ _:_) _ _ _) = True
 isPtrDeclr _ = False
 
+-- | Need to distinguish between pointer and array declarations within
+-- structures.
+--
+isArrDeclr                                 :: CDeclr -> Bool
+isArrDeclr (CDeclr _ (CArrDeclr _ _ _:_) _ _ _) = True
+isArrDeclr _ = False
+
 -- | drops the first pointer level from the given declarator
 --
 -- * the declarator must declare a pointer object
@@ -563,6 +570,12 @@ isPtrDecl (CDecl _ []                   _)  = False
 isPtrDecl (CDecl _ [(Just declr, _, _)] _)  = isPtrDeclr declr
 isPtrDecl _                                 =
   interr "CTrav.isPtrDecl: There was more than one declarator!"
+
+isArrDecl                                  :: CDecl -> Bool
+isArrDecl (CDecl _ []                   _)  = False
+isArrDecl (CDecl _ [(Just declr, _, _)] _)  = isArrDeclr declr
+isArrDecl _                                 =
+  interr "CTrav.isArrDecl: There was more than one declarator!"
 
 -- | checks whether the given declarator defines a function object
 --

@@ -78,7 +78,7 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
   liftIO $ assertBool "" (T.lines res == expected)
 
 issue115 :: Assertion
-issue115 = expect_issue 115 ["[7,42,93]", "[7,42,93]"]
+issue115 = expect_issue 115 ["[8,43,94]", "[7,42,93]"]
 
 issue113 :: Assertion
 issue113 = build_issue 113
