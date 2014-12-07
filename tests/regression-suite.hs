@@ -113,7 +113,10 @@ main = shelly $ do
 
   if all (== 0) codes
     then exit 0
-    else errorExit "SOME TESTS FAILED"
+    else do
+    let failed = filter (\(c, _) -> c /= 0) $ zip codes (filter cabal tests)
+    forM_ failed $ \(c, t) -> echo $ "FAILED: " <> name t
+    echo "SOME TESTS FAILED"
 
 escapedWords :: Text -> [Text]
 escapedWords = map (T.pack . reverse) . escWords False "" . T.unpack

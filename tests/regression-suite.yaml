@@ -1,6 +1,6 @@
--
-  name: CV
-  apt-packages: [libopencv-dev, libcv-dev, libhighgui-dev]
+# -
+#   name: CV
+#   apt-packages: [libopencv-dev, libcv-dev, libhighgui-dev]
 
 -
   name: gnome-keyring
@@ -56,9 +56,9 @@
   name: cufft
   on-travis: false
 
--
-  name: OpenCL
-  on-travis: false
+# -
+#   name: OpenCL
+#   on-travis: false
 
 
 
