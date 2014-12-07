@@ -17,10 +17,10 @@
   name: hsndfile
   apt-packages: [libsndfile1-dev]
 
-# Commented out for now because of Qt problems on Travis.
-# -
-#   name: hsqml
-#   apt-packages: [libqtscript4-core, libqt4-declarative]
+-
+  name: hsqml
+  apt-packages: [libqtscript4-core, libqt4-declarative]
+  on-travis: false
 
 -
   name: igraph
@@ -30,6 +30,7 @@
 -
   name: cuda-shared-setup
   cabal: false
+  on-travis: false
   special-setup:
     - mkdir cuda-packages
     - aws s3 sync s3://cuda-packages ./cuda-packages
@@ -49,12 +50,15 @@
 
 -
   name: cuda
+  on-travis: false
 
 -
   name: cufft
+  on-travis: false
 
-#-
-#  name: OpenCL
+-
+  name: OpenCL
+  on-travis: false
 
 
 

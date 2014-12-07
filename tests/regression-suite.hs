@@ -23,6 +23,7 @@ data RegressionTest = RegressionTest
                       , cabalBuildTools :: [Text]
                       , specialSetup :: [Text]
                       , extraPath :: [Text]
+                      , onTravis :: Bool
                       } deriving (Eq, Show)
 
 instance FromJSON RegressionTest where
@@ -34,6 +35,7 @@ instance FromJSON RegressionTest where
                                         <*> v .:? "cabal-build-tools" .!= []
                                         <*> v .:? "special-setup" .!= []
                                         <*> v .:? "extra-path" .!= []
+                                        <*> v .:? "on-travis" .!= True
   parseJSON _ = mzero
 
 readTests :: FilePath -> IO [RegressionTest]
@@ -55,7 +57,11 @@ main = shelly $ do
     exit 0
 
   when travis checkApt
-  tests <- liftIO $ readTests "tests/regression-suite.yaml"
+  let travisCheck t = case travis of
+        False -> True
+        True -> onTravis t
+  tests <- liftIO $ filter travisCheck <$>
+           readTests "tests/regression-suite.yaml"
   let ppas = nub $ concatMap aptPPA tests
       pkgs = nub $ concatMap aptPackages tests
       buildTools = nub $ concatMap cabalBuildTools tests

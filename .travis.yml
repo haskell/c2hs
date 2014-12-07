@@ -9,8 +9,8 @@ install:
   - sudo apt-get update -qq
   - sudo pip install awscli
   - cabal update
-  - cabal install --only-dependencies --enable-tests -ftravis
+  - cabal install --only-dependencies --enable-tests -fregression
 
 script:
-  - cabal install && cabal configure --enable-tests -ftravis && cabal build && cabal test
+  - cabal install && cabal configure --enable-tests -fregression && cabal build && cabal test
   - ./dist/build/regression-suite/regression-suite
