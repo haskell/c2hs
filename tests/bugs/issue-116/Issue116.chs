@@ -1,9 +1,5 @@
 module Main where
 
-import Control.Monad
-import Foreign
-import Foreign.C
-
 #include "issue116.h"
 
 {#enum test_enum as TestEnum {underscoreToCase} omit (TOTAL_ENUM_COUNT)
