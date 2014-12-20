@@ -55,6 +55,7 @@ tests =
     , testCase "Issue #75" issue75
     , testCase "Issue #79" issue79
     , testCase "Issue #80" issue80
+    , testCase "Issue #83" issue83
     , testCase "Issue #93" issue93
     , testCase "Issue #95" issue95
     , testCase "Issue #96" issue96
@@ -124,6 +125,9 @@ issue95 = build_issue 95
 
 issue93 :: Assertion
 issue93 = build_issue 93
+
+issue83 :: Assertion
+issue83 = hs_only_expect_issue 83 ["(-3,0)", "TEST_VAL", "8415", "8415"]
 
 issue80 :: Assertion
 issue80 = build_issue 80

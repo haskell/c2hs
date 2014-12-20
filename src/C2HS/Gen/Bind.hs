@@ -171,6 +171,8 @@ lookupDftMarshIn hsTy     [PrimET pt] | isFloatHsType hsTy
   return $ Just (Left cFloatConvIde, CHSValArg)
 lookupDftMarshIn "String" [PtrET (PrimET CCharPT)]             =
   return $ Just (Left withCStringIde, CHSIOArg)
+lookupDftMarshIn "CString" [PtrET (PrimET CCharPT)]             =
+  return $ Just (Right "flip ($)", CHSIOArg)
 lookupDftMarshIn "String" [PtrET (PrimET CCharPT), PrimET pt]
   | isIntegralCPrimType pt                                     =
   return $ Just (Right stringIn , CHSIOArg)
@@ -219,6 +221,8 @@ lookupDftMarshOut hsTy     [PrimET pt] | isFloatHsType hsTy
   return $ Just (Left cFloatConvIde, CHSValArg)
 lookupDftMarshOut "String" [PtrET (PrimET CCharPT)]             =
   return $ Just (Left peekCStringIde, CHSIOArg)
+lookupDftMarshOut "CString" [PtrET (PrimET CCharPT)]             =
+  return $ Just (Left returnIde, CHSIOArg)
 lookupDftMarshOut "String" [PtrET (PrimET CCharPT), PrimET pt]
   | isIntegralCPrimType pt                                      =
   return $ Just (Right "\\(s, n) -> peekCStringLen (s, fromIntegral n)",
@@ -263,23 +267,31 @@ newForeignPtrCode (cide, ohside) = do
 -- | check for integral Haskell types
 --
 isIntegralHsType :: String -> Bool
-isIntegralHsType "Int"    = True
-isIntegralHsType "Int8"   = True
-isIntegralHsType "Int16"  = True
-isIntegralHsType "Int32"  = True
-isIntegralHsType "Int64"  = True
-isIntegralHsType "Word8"  = True
-isIntegralHsType "Word16" = True
-isIntegralHsType "Word32" = True
-isIntegralHsType "Word64" = True
-isIntegralHsType _        = False
+isIntegralHsType "Int"     = True
+isIntegralHsType "Int8"    = True
+isIntegralHsType "Int16"   = True
+isIntegralHsType "Int32"   = True
+isIntegralHsType "Int64"   = True
+isIntegralHsType "Word8"   = True
+isIntegralHsType "Word16"  = True
+isIntegralHsType "Word32"  = True
+isIntegralHsType "Word64"  = True
+isIntegralHsType "CShort"  = True
+isIntegralHsType "CUShort" = True
+isIntegralHsType "CInt"    = True
+isIntegralHsType "CUInt"   = True
+isIntegralHsType "CLong"   = True
+isIntegralHsType "CULong"  = True
+isIntegralHsType _         = False
 
 -- | check for floating Haskell types
 --
 isFloatHsType :: String -> Bool
-isFloatHsType "Float"  = True
-isFloatHsType "Double" = True
-isFloatHsType _        = False
+isFloatHsType "Float"   = True
+isFloatHsType "Double"  = True
+isFloatHsType "CFloat"  = True
+isFloatHsType "CDouble" = True
+isFloatHsType _         = False
 
 isVariadic :: ExtType -> Bool
 isVariadic (FunET s t)  = any isVariadic [s,t]
@@ -320,6 +332,7 @@ peekCStringIde    = internalIdent "peekCString"
 idIde             = internalIdent "id"
 newForeignPtr_Ide = internalIdent "newForeignPtr_"
 withForeignPtrIde = internalIdent "withForeignPtr"
+returnIde         = internalIdent "return"
 
 
 -- expansion of binding hooks
