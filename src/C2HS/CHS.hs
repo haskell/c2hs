@@ -69,7 +69,8 @@
 --  prefix   -> `prefix' `=' string [`add' `prefix' `=' string]
 --  deriving -> `deriving' `(' ident_1 `,' ... `,' ident_n `)'
 --  parms    -> [verbhs `=>'] `{' parm_1 `,' ... `,' parm_n `}' `->' parm
---  parm     -> [ident_or_quot_1 [`*' | `-']] verbhs [`&'] [ident_or_quot_2 [`*'] [`-']]
+--  parm     -> `+'
+--            | [ident_or_quot_1 [`*' | `-']] verbhs [`&'] [ident_or_quot_2 [`*'] [`-']]
 --  ident_or_quot -> ident | quoths
 --  apath    -> ident
 --            | `*' apath
@@ -317,7 +318,8 @@ type CHSMarsh = Maybe (Either Ident String, CHSArg)
 
 -- | marshalling descriptor for function hooks
 --
-data CHSParm = CHSParm CHSMarsh  -- "in" marshaller
+data CHSParm = CHSPlusParm       -- special "+" parameter
+             | CHSParm CHSMarsh  -- "in" marshaller
                        String    -- Haskell type
                        Bool      -- C repr: two values?
                        CHSMarsh  -- "out" marshaller
@@ -639,6 +641,7 @@ showApAlias apath oalias  =
        Just ide -> showString " as " . showCHSIdent ide)
 
 showCHSParm                                                :: CHSParm -> ShowS
+showCHSParm CHSPlusParm = showChar '+'
 showCHSParm (CHSParm oimMarsh hsTyStr twoCVals oomMarsh _ comment)  =
     showOMarsh oimMarsh
   . showChar ' '
