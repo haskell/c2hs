@@ -320,7 +320,7 @@ isFloatCPrimType  = (`elem` [CFloatPT, CDoublePT, CLDoublePT])
 --
 voidIde, cFromBoolIde, cToBoolIde, cIntConvIde, cFloatConvIde,
   withCStringIde, peekIde, peekCStringIde, idIde,
-  newForeignPtr_Ide, withForeignPtrIde :: Ident
+  newForeignPtr_Ide, withForeignPtrIde, returnIde :: Ident
 voidIde           = internalIdent "void"         -- never appears in the output
 cFromBoolIde      = internalIdent "fromBool"
 cToBoolIde        = internalIdent "toBool"
