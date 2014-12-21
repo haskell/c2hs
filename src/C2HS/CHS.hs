@@ -1155,6 +1155,7 @@ apathRootIdent (CHSDeref apath _) = apathRootIdent apath
 apathRootIdent (CHSRef apath _) = apathRootIdent apath
 
 parseParm :: [CHSToken] -> CST s (CHSParm, [CHSToken])
+parseParm (CHSTokPlus _:toks') = return (CHSPlusParm, toks')
 parseParm toks =
   do
     (oimMarsh, toks' ) <- parseOptMarsh toks
