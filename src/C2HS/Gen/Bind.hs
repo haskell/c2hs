@@ -994,6 +994,7 @@ funDef :: Bool               -- pure function?
        -> GB String          -- Haskell code in text form
 funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
   do
+    when (countPlus parms > 1 || isPlus parm) $ illegalPlusErr pos
     (parms', parm', isImpure) <- addDftMarshaller pos parms parm extTy
 
     traceMarsh parms' parm' isImpure
@@ -1053,6 +1054,10 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
 
     return $ pad $ sig ++ funHead ++ funBody
   where
+    countPlus :: [CHSParm] -> Int
+    countPlus = sum . map (\p -> if isPlus p then 1 else 0)
+    isPlus CHSPlusParm = True
+    isPlus _           = False
     join      = concatMap (' ':)
     joinLines = concatMap (\s -> "  " ++ s ++ "\n")
     --
@@ -2412,6 +2417,13 @@ variadicErr pos cpos  =
     ["Variadic function!",
      "Calling variadic functions is not supported by the FFI; the function",
      "is defined at " ++ show cpos ++ "."]
+
+illegalPlusErr       :: Position -> GB a
+illegalPlusErr pos  =
+  raiseErrorCTExc pos
+    ["Illegal plus parameter!",
+     "The special parameter `+' may only be used in a single input " ++
+     "parameter position in a function hook"]
 
 illegalConstExprErr           :: Position -> String -> GB a
 illegalConstExprErr cpos hint  =
