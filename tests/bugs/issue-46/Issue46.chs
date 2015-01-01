@@ -1,5 +1,9 @@
 module Main where
 
+import Foreign
+import Foreign.ForeignPtr
+import Foreign.C.Types
+
 #include "issue46.h"
 
 {#pointer *oid as Oid foreign newtype#}
@@ -11,6 +15,6 @@ module Main where
 main :: IO ()
 main = do
   obj <- func 1 2.5
-  a <- oid_a obj
-  b <- oid_a obj
+  a <- oidA obj
+  b <- oidB obj
   print (a, b)

@@ -115,7 +115,7 @@ import Data.Map      (lookup)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
 import Control.Arrow (second)
-import Control.Monad (when, unless, liftM, mapAndUnzipM)
+import Control.Monad (when, unless, liftM, mapAndUnzipM, zipWithM)
 import Data.Ord      (comparing)
 
 -- Language.C / compiler toolkit
@@ -992,15 +992,16 @@ funDef :: Bool               -- pure function?
        -> Position           -- source location of the hook
        -> Position           -- source location of the start of the hook
        -> GB String          -- Haskell code in text form
-funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
+funDef isPure hsLexeme fiLexeme extTy octxt parms
+       parm@(CHSParm _ hsParmTy _ _ _ _) marsh2 pos hkpos =
   do
     when (countPlus parms > 1 || isPlus parm) $ illegalPlusErr pos
     (parms', parm', isImpure) <- addDftMarshaller pos parms parm extTy
 
     traceMarsh parms' parm' isImpure
+    marshs <- zipWithM marshArg [1..] parms'
     let
       sig       = hsLexeme ++ " :: " ++ funTy parms' parm' ++ "\n"
-      marshs    = [marshArg i parm'' | (i, parm'') <- zip [1..] parms']
       funArgs   = [funArg   | (funArg, _, _, _, _)   <- marshs, funArg   /= ""]
       marshIns  = [marshIn  | (_, marshIn, _, _, _)  <- marshs]
       callArgs  = [callArg  | (_, _, cs, _, _)  <- marshs, callArg <- cs]
@@ -1021,7 +1022,9 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
                         Just m  -> "  " ++ m ++ " " ++
                                    join (take 1 callArgs) ++
                                    " >>= \\b1' ->\n"
-      marshRes  = case parm' of
+      marshRes  = if countPlus parms == 1
+                  then ""
+                  else case parm' of
                     CHSParm _ _ _twoCVal (Just (_     , CHSVoidArg  )) _ _ -> ""
                     CHSParm _ _ _twoCVal (Just (omBody, CHSIOVoidArg)) _ _ ->
                       "  " ++ marshBody omBody ++ " res >> \n"
@@ -1038,7 +1041,8 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
       retArgs'  = case parm' of
                     CHSParm _ _ _ (Just (_, CHSVoidArg))   _ _ ->        retArgs
                     CHSParm _ _ _ (Just (_, CHSIOVoidArg)) _ _ ->        retArgs
-                    _                                        -> "res'":retArgs
+                    _                                        ->
+                      if countPlus parms == 0 then "res'":retArgs else retArgs
       ret       = "(" ++ concat (intersperse ", " retArgs') ++ ")"
       funBody   = joinLines marshIns  ++
                   mkMarsh2            ++
@@ -1100,7 +1104,7 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
     -- code fragments
     --
     marshArg i (CHSParm (Just (imBody, imArgKind)) _ twoCVal
-                        (Just (omBody, omArgKind)) _ _      ) =
+                        (Just (omBody, omArgKind)) _ _      ) = do
       let
         a        = "a" ++ show (i :: Int)
         imStr    = marshBody imBody
@@ -1129,8 +1133,21 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
 
         marshBody (Left ide) = identToString ide
         marshBody (Right str) = "(" ++ str ++ ")"
-      in
-      (funArg, marshIn, callArgs, marshOut, retArg)
+      return (funArg, marshIn, callArgs, marshOut, retArg)
+    marshArg i CHSPlusParm = do
+      -- ##### STOPPED HERE #####
+      -- NEED TO MAP BETWEEN hsParmTy FOR OUTPUT TYPE AND
+      -- CORRESPONDING C TYPE DECLARATION TO BE ABLE TO FIND
+      -- ALLOCATION SIZE.
+      -- ##### STOPPED HERE #####
+      -- decl <- findAndChaseDeclOrTag ide False True
+      -- (size, _) <- sizeAlignOf decl
+      let a = "a" ++ show (i :: Int)
+          bdr1 = a ++ "'"
+          bdr2 = a ++ "''"
+          marshIn = "mallocForeignPtrBytes 32 >>= \\" ++ bdr2 ++
+                    " -> withForeignPtr " ++ bdr2 ++ " $ \\" ++ bdr1 ++ " -> "
+      return ("", marshIn, [bdr1], "", hsParmTy ++ " " ++ bdr2)
     marshArg _ _ = interr "GenBind.funDef: Missing default?"
     --
     traceMarsh parms' parm' isImpure = traceGenBind $
@@ -1177,6 +1194,9 @@ addDftMarshaller pos parms parm extTy = do
     --
     -- match Haskell with C arguments (and results)
     --
+    addDft ((CHSPlusParm):parms'') (_:cTys) = do
+      (parms', _) <- addDft parms'' cTys
+      return (CHSPlusParm : parms', True)
     addDft ((CHSParm imMarsh hsTy False omMarsh p c):parms'') (cTy    :cTys) = do
       (imMarsh', isImpureIn ) <- addDftIn   p imMarsh hsTy [cTy]
       (omMarsh', isImpureOut) <- addDftVoid    omMarsh
