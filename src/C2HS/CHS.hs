@@ -124,7 +124,6 @@ import C2HS.Version    (version)
 -- friends
 import C2HS.CHS.Lexer  (CHSToken(..), lexCHS, keywordToIdent)
 
-import Debug.Trace
 
 -- CHS abstract syntax
 -- -------------------

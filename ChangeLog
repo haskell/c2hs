@@ -1,3 +1,12 @@
+0.21.1
+ - Parametrized pointer types in pointer hooks [#36]
+ - Special "+" parameters for efficient foreign pointer marshalling [#46]
+ - Add default marshallers for C types [#83]
+ - Fix treatment of arrays within structs [#115]
+ - Add ability to omit given enum values [#116]
+ - Regression suite tidy-ups
+
+
 0.20.1
  - Get CUDA Travis tests working again (hopefully...)
  - Modify approach for defining C2HS_MIN_VERSION macro to work with
