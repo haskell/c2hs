@@ -1,7 +1,6 @@
 module Main where
 
 import Foreign
-import Foreign.ForeignPtr
 import Foreign.C.Types
 
 #include "issue46.h"

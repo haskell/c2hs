@@ -1016,7 +1016,9 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms
                   then "  let {res = " ++ fiLexeme ++ joinCallArgs ++ "} in\n"
                   else "  " ++ fiLexeme ++ joinCallArgs ++ case parm of
                     CHSParm _ "()" _ Nothing _ _ -> " >>\n"
-                    _                        -> " >>= \\res ->\n"
+                    _                        ->
+                      if countPlus parms == 1
+                      then " >>\n" else " >>= \\res ->\n"
       joinCallArgs = case marsh2 of
                         Nothing -> join callArgs
                         Just _  -> join ("b1'" : drop 1 callArgs)
