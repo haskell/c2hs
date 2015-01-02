@@ -73,8 +73,8 @@ module C2HS.Gen.Monad (
 
   HsObject(..), GB, GBState(..), initialGBState, setContext, getLibrary, getPrefix,
   getReplacementPrefix, delayCode, getDelayedCode, ptrMapsTo, queryPtr,
-  objIs, queryObj, queryClass, queryPointer, mergeMaps, dumpMaps,
-  queryEnum, isEnum
+  objIs, queryObj, sizeIs, querySize, queryClass, queryPointer,
+  mergeMaps, dumpMaps, queryEnum, isEnum
 ) where
 
 -- standard libraries
@@ -216,6 +216,8 @@ data HsObject    = Pointer {
                  deriving (Show, Read)
 type HsObjectMap = Map Ident HsObject
 
+type SizeMap = Map Ident Int
+
 -- | set of Haskell type names corresponding to C enums.
 type EnumSet = Set String
 
@@ -276,6 +278,7 @@ data GBState  = GBState {
   frags     :: [(CHSHook, CHSFrag)], -- delayed code (with hooks)
   ptrmap    :: PointerMap,           -- pointer representation
   objmap    :: HsObjectMap,          -- generated Haskell objects
+  szmap     :: SizeMap,              -- object sizes
   enums     :: EnumSet               -- enumeration hooks
   }
 
@@ -289,6 +292,7 @@ initialGBState  = GBState {
                     frags  = [],
                     ptrmap = Map.empty,
                     objmap = Map.empty,
+                    szmap = Map.empty,
                     enums = Set.empty
                   }
 
@@ -384,6 +388,21 @@ queryObj        :: Ident -> GB (Maybe HsObject)
 queryObj hsName  = do
                      fm <- readCT objmap
                      return $ Map.lookup hsName fm
+
+-- | add an entry to the size map
+--
+sizeIs :: Ident -> Int -> GB ()
+hsName `sizeIs` sz =
+  transCT (\state -> (state {
+                        szmap = Map.insert hsName sz (szmap state)
+                      }, ()))
+
+-- | query the size map
+--
+querySize       :: Ident -> GB (Maybe Int)
+querySize hsName  = do
+                     sm <- readCT szmap
+                     return $ Map.lookup hsName sm
 
 -- | query the Haskell object map for a class
 --

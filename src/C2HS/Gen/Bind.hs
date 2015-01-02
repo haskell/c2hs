@@ -141,8 +141,8 @@ import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
                           GBState(..),
                    initialGBState, setContext, getPrefix, getReplacementPrefix,
                    delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
-                   queryClass, queryPointer, mergeMaps, dumpMaps,
-                   queryEnum, isEnum)
+                   sizeIs, querySize, queryClass, queryPointer,
+                   mergeMaps, dumpMaps, queryEnum, isEnum)
 
 
 -- default marshallers
@@ -662,6 +662,9 @@ expandHook hook@(CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
         hsName = identToString hsIde
 
     hsIde `objIs` Pointer ptrKind isNewtype     -- register Haskell object
+    decl <- findAndChaseDeclOrTag cName False True
+    (size, _) <- sizeAlignOf decl
+    hsIde `sizeIs` (padBits size)
     --
     -- we check for a typedef declaration or tag (struct, union, or enum)
     --
@@ -1129,25 +1132,25 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms
                      CHSIOArg     -> omApp ++ ">>= \\" ++ outBndr ++ " -> "
                      CHSValArg    -> "let {" ++ outBndr ++ " = " ++
                                    omApp ++ "} in "
-        retArg   = if omArgKind == CHSVoidArg || omArgKind == CHSIOVoidArg then "" else outBndr
+        retArg   = if omArgKind == CHSVoidArg || omArgKind == CHSIOVoidArg
+                   then "" else outBndr
 
         marshBody (Left ide) = identToString ide
         marshBody (Right str) = "(" ++ str ++ ")"
       return (funArg, marshIn, callArgs, marshOut, retArg)
     marshArg i CHSPlusParm = do
-      -- ##### STOPPED HERE #####
-      -- NEED TO MAP BETWEEN hsParmTy FOR OUTPUT TYPE AND
-      -- CORRESPONDING C TYPE DECLARATION TO BE ABLE TO FIND
-      -- ALLOCATION SIZE.
-      -- ##### STOPPED HERE #####
-      -- decl <- findAndChaseDeclOrTag ide False True
-      -- (size, _) <- sizeAlignOf decl
-      let a = "a" ++ show (i :: Int)
-          bdr1 = a ++ "'"
-          bdr2 = a ++ "''"
-          marshIn = "mallocForeignPtrBytes 32 >>= \\" ++ bdr2 ++
-                    " -> withForeignPtr " ++ bdr2 ++ " $ \\" ++ bdr1 ++ " -> "
-      return ("", marshIn, [bdr1], "", hsParmTy ++ " " ++ bdr2)
+      msize <- querySize $ internalIdent hsParmTy
+      case msize of
+        Nothing -> interr "Missing size for \"+\" parameter allocation!"
+        Just size -> do
+          let a = "a" ++ show (i :: Int)
+              bdr1 = a ++ "'"
+              bdr2 = a ++ "''"
+              marshIn = "mallocForeignPtrBytes " ++ show size ++
+                        " >>= \\" ++ bdr2 ++
+                        " -> withForeignPtr " ++ bdr2 ++ " $ \\" ++
+                        bdr1 ++ " -> "
+          return ("", marshIn, [bdr1], "", hsParmTy ++ " " ++ bdr2)
     marshArg _ _ = interr "GenBind.funDef: Missing default?"
     --
     traceMarsh parms' parm' isImpure = traceGenBind $
