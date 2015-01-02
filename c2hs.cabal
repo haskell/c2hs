@@ -55,6 +55,7 @@ Extra-Source-Files:
   tests/bugs/issue-43/*.chs tests/bugs/issue-43/*.h tests/bugs/issue-43/*.c
   tests/bugs/issue-44/*.chs tests/bugs/issue-44/*.h tests/bugs/issue-44/*.c
   tests/bugs/issue-45/*.chs tests/bugs/issue-45/*.h tests/bugs/issue-45/*.c
+  tests/bugs/issue-46/*.chs tests/bugs/issue-46/*.h tests/bugs/issue-46/*.c
   tests/bugs/issue-47/*.chs tests/bugs/issue-47/*.h tests/bugs/issue-47/*.c
   tests/bugs/issue-51/*.chs tests/bugs/issue-51/*.h tests/bugs/issue-51/*.c
   tests/bugs/issue-54/*.chs tests/bugs/issue-54/*.h tests/bugs/issue-54/*.c
