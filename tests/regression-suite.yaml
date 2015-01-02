@@ -1,6 +1,6 @@
--
-  name: CV
-  apt-packages: [libopencv-dev, libcv-dev, libhighgui-dev]
+# -
+#   name: CV
+#   apt-packages: [libopencv-dev, libcv-dev, libhighgui-dev]
 
 -
   name: gnome-keyring
@@ -8,7 +8,7 @@
 
 -
   name: hnetcdf
-  apt-packages: [libnetcdf-dev]
+  apt-packages: [libnetcdf-dev, libgsl0-dev, liblapack-dev]
 
 -
   name: hpuz
@@ -17,9 +17,10 @@
   name: hsndfile
   apt-packages: [libsndfile1-dev]
 
--
-  name: hsqml-0.2.0.3
-  apt-packages: [libqtscript4-core, libqt4-declarative]
+# -
+#   name: hsqml
+#   apt-packages: [libqtscript4-core, libqt4-declarative]
+#   on-travis: false
 
 -
   name: igraph
@@ -29,21 +30,35 @@
 -
   name: cuda-shared-setup
   cabal: false
+  on-travis: false
   special-setup:
-    - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1204/x86_64/cuda-repo-ubuntu1204_5.5-0_amd64.deb
-    - sudo dpkg -i cuda-repo-ubuntu1204_5.5-0_amd64.deb
+    - mkdir cuda-packages
+    - aws s3 sync s3://cuda-packages ./cuda-packages
+    - sudo dpkg -i ./cuda-packages/cuda-repo-ubuntu1204_6.5-14_amd64.deb
+    - /bin/rm ./cuda-packages/cuda-repo-ubuntu1204_6.5-14_amd64.deb
     - sudo apt-get update
-    - sudo apt-get install cuda-5.5
-  extra-path: [/usr/local/cuda-5.5/bin]
+    - "sudo bash -c 'mv ./cuda-packages/*.deb /var/cache/apt/archives'"
+    - sudo apt-get install -y cuda
+  apt-packages: [acpid, consolekit, dkms, lib32gcc1, libc-bin,
+                 libc-dev-bin, libc6, libc6-dev, libc6-i386,
+                 libck-connector0, libpam-ck-connector,
+                 libpolkit-agent-1-0, libpolkit-backend-1-0,
+                 libpolkit-gobject-1-0, libvdpau1, libxmu-dev,
+                 libxmu-headers, policykit-1, policykit-1-gnome,
+                 python-xkit, screen-resolution-extra]
+  extra-path: [/usr/local/cuda-6.5/bin]
 
 -
   name: cuda
+  on-travis: false
 
 -
   name: cufft
+  on-travis: false
 
--
-  name: OpenCL
+# -
+#   name: OpenCL
+#   on-travis: false
 
 
 
@@ -62,5 +77,3 @@
 #   - cmake . -DBUILD_DEMOS=NO
 #   - make
 #   - sudo make install
-
-

@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 --  C->Haskell Compiler: binding generator
 --
 --  Copyright (c) [1999..2003] Manuel M T Chakravarty
@@ -109,11 +110,13 @@ import Prelude hiding (exp, lookup)
 -- standard libraries
 import Data.Char     (toLower)
 import Data.Function (on)
-import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, intercalate)
+import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, nubBy, intercalate)
 import Data.Map      (lookup)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
-import Control.Monad (when, unless, liftM, mapAndUnzipM)
+import Control.Arrow (second)
+import Control.Monad (when, unless, liftM, mapAndUnzipM, zipWithM)
+import Data.Ord      (comparing)
 
 -- Language.C / compiler toolkit
 import Language.C.Data.Position
@@ -121,7 +124,6 @@ import Language.C.Data.Ident
 import Language.C.Pretty
 import Text.PrettyPrint.HughesPJ (render)
 import Data.Errors
-import Data.Attributes (newAttrsOnlyPos)
 
 -- C->Haskell
 import C2HS.Config (PlatformSpec(..))
@@ -132,15 +134,15 @@ import C2HS.C
 -- friends
 import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..),
                    CHSParm(..), CHSMarsh, CHSArg(..), CHSAccess(..), CHSAPath(..),
-                   CHSPtrType(..), showCHSParm, apathToIdent)
+                   CHSPtrType(..), showCHSParm, apathToIdent, apathRootIdent)
 import C2HS.C.Info      (CPrimType(..), alignment, getPlatform)
 import qualified C2HS.C.Info as CInfo
 import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
                           GBState(..),
                    initialGBState, setContext, getPrefix, getReplacementPrefix,
                    delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
-                   queryClass, queryPointer, mergeMaps, dumpMaps,
-                   queryEnum, isEnum)
+                   sizeIs, querySize, queryClass, queryPointer,
+                   mergeMaps, dumpMaps, queryEnum, isEnum)
 
 
 -- default marshallers
@@ -169,6 +171,8 @@ lookupDftMarshIn hsTy     [PrimET pt] | isFloatHsType hsTy
   return $ Just (Left cFloatConvIde, CHSValArg)
 lookupDftMarshIn "String" [PtrET (PrimET CCharPT)]             =
   return $ Just (Left withCStringIde, CHSIOArg)
+lookupDftMarshIn "CString" [PtrET (PrimET CCharPT)]             =
+  return $ Just (Right "flip ($)", CHSIOArg)
 lookupDftMarshIn "String" [PtrET (PrimET CCharPT), PrimET pt]
   | isIntegralCPrimType pt                                     =
   return $ Just (Right stringIn , CHSIOArg)
@@ -193,10 +197,10 @@ lookupDftMarshIn hsty _ = do
     --  2. naked and newtype pointer hooks
     (False, Just (Pointer CHSPtr _)) -> Just (Left idIde, CHSValArg)
     --  3. foreign pointer hooks
-    (False, Just (Pointer CHSForeignPtr False)) ->
+    (False, Just (Pointer (CHSForeignPtr _) False)) ->
       Just (Left withForeignPtrIde, CHSIOArg)
     --  4. foreign newtype pointer hooks
-    (False, Just (Pointer CHSForeignPtr True)) ->
+    (False, Just (Pointer (CHSForeignPtr _) True)) ->
       Just (Right $ "with" ++ hsty, CHSIOArg)
     _ -> Nothing
 -- FIXME: handle array-list conversion
@@ -217,6 +221,8 @@ lookupDftMarshOut hsTy     [PrimET pt] | isFloatHsType hsTy
   return $ Just (Left cFloatConvIde, CHSValArg)
 lookupDftMarshOut "String" [PtrET (PrimET CCharPT)]             =
   return $ Just (Left peekCStringIde, CHSIOArg)
+lookupDftMarshOut "CString" [PtrET (PrimET CCharPT)]             =
+  return $ Just (Left returnIde, CHSIOArg)
 lookupDftMarshOut "String" [PtrET (PrimET CCharPT), PrimET pt]
   | isIntegralCPrimType pt                                      =
   return $ Just (Right "\\(s, n) -> peekCStringLen (s, fromIntegral n)",
@@ -227,42 +233,65 @@ lookupDftMarshOut hsTy     [PtrET ty]  | showExtType ty == hsTy =
 lookupDftMarshOut hsty _ = do
   om <- readCT objmap
   isenum <- queryEnum hsty
-  return $ case (isenum, (internalIdent hsty) `lookup` om) of
+  res <- case (isenum, (internalIdent hsty) `lookup` om) of
     --  1. enumeration hooks
-    (True, Nothing) -> Just (Right "toEnum . fromIntegral", CHSValArg)
+    (True, Nothing) -> return $ Just (Right "toEnum . fromIntegral", CHSValArg)
     --  2. naked and newtype pointer hooks
-    (False, Just (Pointer CHSPtr _)) -> Just (Left idIde, CHSValArg)
+    (False, Just (Pointer CHSPtr _)) -> return $ Just (Left idIde, CHSValArg)
     --  3. foreign pointer hooks
-    (False, Just (Pointer CHSForeignPtr False)) ->
-      Just (Left newForeignPtrIde, CHSIOArg)
+    (False, Just (Pointer (CHSForeignPtr Nothing) False)) ->
+      return $ Just (Left newForeignPtr_Ide, CHSIOArg)
+    (False, Just (Pointer (CHSForeignPtr (Just fin)) False)) -> do
+      code <- newForeignPtrCode fin
+      return $ Just (Right $ code, CHSIOArg)
     --  4. foreign newtype pointer hooks
-    (False, Just (Pointer CHSForeignPtr True)) ->
-      Just (Right $ "newForeignPtr_ >=> (return . " ++ hsty ++ ")", CHSIOArg)
-    _ -> Nothing
+    (False, Just (Pointer (CHSForeignPtr Nothing) True)) ->
+      return $ Just (Right $ "newForeignPtr_ >=> (return . " ++
+                     hsty ++ ")", CHSIOArg)
+    (False, Just (Pointer (CHSForeignPtr (Just fin)) True)) -> do
+      code <- newForeignPtrCode fin
+      return $ Just (Right $ code ++ " >=> (return . " ++
+                     hsty ++ ")", CHSIOArg)
+    _ -> return Nothing
+  return res
 -- FIXME: add combination, such as "peek" plus "cIntConv" etc
 -- FIXME: handle array-list conversion
+
+newForeignPtrCode :: (Ident, Maybe Ident) -> GB String
+newForeignPtrCode (cide, ohside) = do
+  (_, cide') <- findFunObj cide True
+  let fin = (identToString cide') `maybe` identToString $ ohside
+  return $ "newForeignPtr " ++ fin
 
 
 -- | check for integral Haskell types
 --
 isIntegralHsType :: String -> Bool
-isIntegralHsType "Int"    = True
-isIntegralHsType "Int8"   = True
-isIntegralHsType "Int16"  = True
-isIntegralHsType "Int32"  = True
-isIntegralHsType "Int64"  = True
-isIntegralHsType "Word8"  = True
-isIntegralHsType "Word16" = True
-isIntegralHsType "Word32" = True
-isIntegralHsType "Word64" = True
-isIntegralHsType _        = False
+isIntegralHsType "Int"     = True
+isIntegralHsType "Int8"    = True
+isIntegralHsType "Int16"   = True
+isIntegralHsType "Int32"   = True
+isIntegralHsType "Int64"   = True
+isIntegralHsType "Word8"   = True
+isIntegralHsType "Word16"  = True
+isIntegralHsType "Word32"  = True
+isIntegralHsType "Word64"  = True
+isIntegralHsType "CShort"  = True
+isIntegralHsType "CUShort" = True
+isIntegralHsType "CInt"    = True
+isIntegralHsType "CUInt"   = True
+isIntegralHsType "CLong"   = True
+isIntegralHsType "CULong"  = True
+isIntegralHsType _         = False
 
 -- | check for floating Haskell types
 --
 isFloatHsType :: String -> Bool
-isFloatHsType "Float"  = True
-isFloatHsType "Double" = True
-isFloatHsType _        = False
+isFloatHsType "Float"   = True
+isFloatHsType "Double"  = True
+isFloatHsType "CFloat"  = True
+isFloatHsType "CDouble" = True
+isFloatHsType _         = False
 
 isVariadic :: ExtType -> Bool
 isVariadic (FunET s t)  = any isVariadic [s,t]
@@ -291,7 +320,7 @@ isFloatCPrimType  = (`elem` [CFloatPT, CDoublePT, CLDoublePT])
 --
 voidIde, cFromBoolIde, cToBoolIde, cIntConvIde, cFloatConvIde,
   withCStringIde, peekIde, peekCStringIde, idIde,
-  newForeignPtrIde, withForeignPtrIde :: Ident
+  newForeignPtr_Ide, withForeignPtrIde, returnIde :: Ident
 voidIde           = internalIdent "void"         -- never appears in the output
 cFromBoolIde      = internalIdent "fromBool"
 cToBoolIde        = internalIdent "toBool"
@@ -301,8 +330,9 @@ withCStringIde    = internalIdent "withCString"
 peekIde           = internalIdent "peek"
 peekCStringIde    = internalIdent "peekCString"
 idIde             = internalIdent "id"
-newForeignPtrIde  = internalIdent "newForeignPtr_"
+newForeignPtr_Ide = internalIdent "newForeignPtr_"
 withForeignPtrIde = internalIdent "withForeignPtr"
+returnIde         = internalIdent "return"
 
 
 -- expansion of binding hooks
@@ -428,7 +458,7 @@ expandHook (CHSType ide pos) _ =
 expandHook (CHSAlignof ide _) _ =
   do
     traceInfoAlignof
-    decl <- findAndChaseDecl ide False True     -- no indirection, but shadows
+    decl <- findAndChaseDeclOrTag ide False True  -- no indirection, but shadows
     (_, align) <- sizeAlignOf decl
     traceInfoDump (render $ pretty decl) align
     return $ show align
@@ -441,7 +471,7 @@ expandHook (CHSAlignof ide _) _ =
 expandHook (CHSSizeof ide _) _ =
   do
     traceInfoSizeof
-    decl <- findAndChaseDecl ide False True     -- no indirection, but shadows
+    decl <- findAndChaseDeclOrTag ide False True  -- no indirection, but shadows
     (size, _) <- sizeAlignOf decl
     traceInfoDump (render $ pretty decl) size
     return $ show (padBits size)
@@ -452,7 +482,7 @@ expandHook (CHSSizeof ide _) _ =
       ++ show (padBits size) ++ "\n"
 expandHook (CHSEnumDefine _ _ _ _) _ =
   interr "Binding generation error : enum define hooks should be eliminated via preprocessing "
-expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive pos) _ =
+expandHook (CHSEnum cide oalias chsTrans emit oprefix orepprefix derive pos) _ =
   do
     -- get the corresponding C declaration
     --
@@ -471,7 +501,7 @@ expandHook (CHSEnum cide oalias chsTrans oprefix orepprefix derive pos) _ =
 
     let trans = transTabToTransFun pfx reppfx chsTrans
         hide  = identToString . fromMaybe cide $ oalias
-    enumDef enum hide trans (map identToString derive) pos
+    enumDef enum hide trans emit (map identToString derive) pos
 expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) _ =
   do
     traceEnter
@@ -499,7 +529,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) _ =
         _ -> funPtrExpectedErr pos
 
     traceValueType ty
-    set_get <- setGet pos CHSGet offsets ptrTy
+    set_get <- setGet pos CHSGet offsets False ptrTy Nothing
 
     -- get the corresponding C declaration; raises error if not found or not a
     -- function; we use shadow identifiers, so the returned identifier is used
@@ -511,7 +541,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) _ =
         -- cdecl'    = ide `simplifyDecl` cdecl
         args      = concat [ " x" ++ show n | n <- [1..numArgs ty] ]
 
-    callImportDyn hook isPure isUns ideLexeme hsLexeme ty pos
+    callImportDyn hook isPure isUns ideLexeme hsLexeme decl ty pos
     return $ "(\\o" ++ args ++ " -> " ++ set_get ++ " o >>= \\f -> "
              ++ hsLexeme ++ " f" ++ args ++ ")"
   where
@@ -566,9 +596,9 @@ expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) hkpos =
         -- cdecl'    = cide `simplifyDecl` cdecl
         -- args      = concat [ " x" ++ show n | n <- [1..numArgs ty] ]
         callHook  = CHSCall isPure isUns apath (Just fiIde) pos
-    callImportDyn callHook isPure isUns ideLexeme fiLexeme ty pos
+    callImportDyn callHook isPure isUns ideLexeme fiLexeme decl ty pos
 
-    set_get <- setGet pos CHSGet offsets ptrTy
+    set_get <- setGet pos CHSGet offsets False ptrTy Nothing
     funDef isPure hsLexeme fiLexeme (FunET ptrTy $ purify ty)
                   ctxt parms parm (Just set_get) pos hkpos
   where
@@ -586,11 +616,13 @@ expandHook (CHSField access path pos) _ =
   do
     traceInfoField
     traceGenBind $ "path = " ++ show path ++ "\n"
+    onewtype <- apathNewtypeName path
+    traceGenBind $ "onewtype = " ++ show onewtype ++ "\n"
     (decl, offsets) <- accessPath path
     traceDepth offsets
     ty <- extractSimpleType False pos decl
     traceValueType ty
-    setGet pos access offsets ty
+    setGet pos access offsets (isArrDecl decl) ty onewtype
   where
     accessString       = case access of
                            CHSGet -> "Get"
@@ -622,13 +654,17 @@ expandHook (CHSOffsetof path pos) _ =
               _             -> return offset
           SUType _ -> return offset
     checkType _ _ = offsetDerefErr pos
-expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
-              pos) _ =
+expandHook hook@(CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
+                 pos) _ =
   do
     traceInfoPointer
     let hsIde  = fromMaybe cName oalias
         hsName = identToString hsIde
+
     hsIde `objIs` Pointer ptrKind isNewtype     -- register Haskell object
+    decl <- findAndChaseDeclOrTag cName False True
+    (size, _) <- sizeAlignOf decl
+    hsIde `sizeIs` (padBits size)
     --
     -- we check for a typedef declaration or tag (struct, union, or enum)
     --
@@ -660,6 +696,7 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
             --   allow `... -> fun HSTYPE' to explicitly mark function
             --   types if this ever becomes important
         traceInfoHsType hsName hsType
+        doFinalizer hook ptrKind (if isNewtype then hsName else "()")
         pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit
       Right tag -> do                           -- found a tag definition
         let cNameFull = tagName tag
@@ -670,6 +707,7 @@ expandHook (CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
                        []      -> "()"
                        hsType' -> identsToString hsType'
         traceInfoHsType hsName hsType
+        doFinalizer hook ptrKind (if isNewtype then hsName else "()")
         pointerDef isStar cNameFull hsName ptrKind isNewtype hsType False emit
   where
     -- remove a pointer level if the first argument is `False'
@@ -715,6 +753,25 @@ expandHook (CHSClass oclassIde classIde typeIde pos) _ =
         return $ (identToString ide, identToString typeIde', ptr) : classes
     --
     traceInfoClass = traceGenBind $ "** Class hook:\n"
+expandHook (CHSConst cIde _) _ =
+  do
+    traceGenBind "** Constant hook:\n"
+    Just (ObjCO cdecl) <- findObj cIde
+    let (Just ini) = initDeclr cdecl
+    return . show . pretty $ ini
+
+apathNewtypeName :: CHSAPath -> GB (Maybe Ident)
+apathNewtypeName path = do
+    let ide = apathRootIdent path
+    pm <- readCT ptrmap
+    case (True, ide) `lookup` pm of
+      Nothing -> return Nothing
+      Just (hsty, _) -> do
+        om <- readCT objmap
+        let hside = internalIdent hsty
+        case hside `lookup` om of
+          Just (Pointer _ True) -> return (Just hside)
+          _ -> return Nothing
 
 -- | produce code for an enumeration
 --
@@ -724,55 +781,44 @@ expandHook (CHSClass oclassIde classIde typeIde pos) _ =
 -- * the translation function strips prefixes where possible (different
 --   enumerators maye have different prefixes)
 --
-enumDef :: CEnum -> String -> TransFun -> [String] -> Position -> GB String
-enumDef (CEnum _ Nothing _ _) _ _ _ pos = undefEnumErr pos
-enumDef (CEnum _ (Just list) _ _) hident trans userDerive _ =
+enumDef :: CEnum -> String -> TransFun -> Bool -> [String] -> Position
+        -> GB String
+enumDef (CEnum _ Nothing _ _) _ _ _ _ pos = undefEnumErr pos
+enumDef (CEnum _ (Just list) _ _) hident trans emit userDerive _ =
   do
     (list', enumAuto) <- evalTagVals list
-    let enumVals = [(trans ide, cexpr) | (ide, cexpr) <- list']
-        toEnumVals = [(trans ide, cexpr) |
-                      (ide, cexpr) <- stripEnumAliases list']
+    let enumVals = map (\(Just i, e) -> (i, e)) $ filter (isJust . fst) $
+                   fixTags [(trans ide, cexpr) | (ide, cexpr) <- list']
         defHead  = enumHead hident
         defBody  = enumBody (length defHead - 2) enumVals
+        dataDef = if emit then defHead ++ defBody else ""
         inst     = makeDerives
                    (if enumAuto then "Enum" : userDerive else userDerive) ++
+                   "\n" ++
                    if enumAuto
-                   then "\n"
-                   else "\n" ++ enumInst hident enumVals toEnumVals
+                   then ""
+                   else enumInst hident enumVals
     isEnum hident
-    return $ defHead ++ defBody ++ inst
+    return $ dataDef ++ inst
   where
-    evalTagVals []                     = return ([], True)
-    evalTagVals ((ide, Nothing ):list') =
-      do
-        (list'', derived) <- evalTagVals list'
-        return ((ide, Nothing):list'', derived)
-    evalTagVals ((ide, Just exp):list') =
-      do
-        (list'', _derived) <- evalTagVals list'
+    evalTagVals = liftM (second and . unzip) . mapM (uncurry evalTag)
+    evalTag ide Nothing = return ((ide, Nothing), True)
+    evalTag ide (Just exp) =  do
         val <- evalConstCExpr exp
         case val of
-          IntResult val' ->
-            return ((ide, Just $ CConst (CIntConst (cInteger val') at1)):list'',
-                    False)
-          FloatResult _ ->
-            illegalConstExprErr (posOf exp) "a float result"
-      where
-        at1 = newAttrsOnlyPos nopos
+            IntResult v -> return ((ide, Just v), False)
+            FloatResult _ -> illegalConstExprErr (posOf exp) "a float result"
     makeDerives [] = ""
-    makeDerives dList = "deriving (" ++ concat (intersperse "," dList) ++")"
-    stripEnumAliases :: [(Ident, Maybe CExpr)] -> [(Ident, Maybe CExpr)]
-    stripEnumAliases vs =
-      let okids = map (fst . head) .
-                  groupBy ((==) `on` snd) .
-                  sortBy (compare `on` snd) .
-                  extractEnumVals $ vs
-      in filter ((`elem` okids) . fst) vs
-    extractEnumVals :: [(Ident, Maybe CExpr)] -> [(Ident, CInteger)]
-    extractEnumVals = go 0
-      where go _ [] = []
-            go k ((i, Nothing):vs') = (i,k) : go (k+1) vs'
-            go _ ((i, Just (CConst (CIntConst j _))):vs') = (i,j) : go (j+1) vs'
+    makeDerives dList = "\n  deriving (" ++ intercalate "," dList ++ ")"
+    -- Fix implicit tag values
+    fixTags = go 0
+      where
+        go _ [] = []
+        go n  ((ide, exp):rest) =
+            let val = case exp of
+                    Nothing  -> n
+                    Just m   -> m
+            in (ide, val) : go (val+1) rest
 
 -- | Haskell code for the head of an enumeration definition
 --
@@ -781,19 +827,19 @@ enumHead ident  = "data " ++ ident ++ " = "
 
 -- | Haskell code for the body of an enumeration definition
 --
-enumBody                        :: Int -> [(String, Maybe CExpr)] -> String
-enumBody _      []               = ""
-enumBody indent ((ide, _):list)  =
-  ide ++ "\n" ++ replicate indent ' '
-  ++ (if null list then "" else "| " ++ enumBody indent list)
-
+enumBody :: Int -> [(String, Integer)] -> String
+enumBody indent ides  = constrs
+  where
+    constrs = intercalate separator . map fst $ sortBy (comparing snd) ides
+    separator = "\n" ++ replicate indent ' ' ++ "| "
 
 -- | Num instance for C Integers
--- We should preserve type flags and repr if possible 
+-- We should preserve type flags and repr if possible
 instance Num CInteger where
   fromInteger = cInteger
   (+) a b = cInteger (getCInteger a + getCInteger b)
   (*) a b = cInteger (getCInteger a * getCInteger b)
+  (-) a b = cInteger (getCInteger a - getCInteger b)
   abs a = cInteger (abs $ getCInteger a)
   signum a = cInteger (signum $ getCInteger a)
 -- | Haskell code for an instance declaration for 'Enum'
@@ -805,39 +851,72 @@ instance Num CInteger where
 --   following tags are assigned values continuing from the explicitly
 --   specified one
 --
-enumInst :: String -> [(String, Maybe CExpr)] -> [(String, Maybe CExpr)]
-         -> String
-enumInst ident list tolist =
-  "instance Enum " ++ ident ++ " where\n"
-  ++ fromDef list 0 ++ "\n" ++ toDef tolist 0
+enumInst :: String -> [(String, Integer)] -> String
+enumInst ident list' = intercalate "\n"
+  [ "instance Enum " ++ wrap ident ++ " where"
+  , succDef
+  , predDef
+  , enumFromToDef
+  , enumFromDef
+  , fromDef
+  , toDef
+  ]
   where
-    fromDef []                _ = ""
-    fromDef ((ide, exp):list') n =
-      "  fromEnum " ++ ide ++ " = " ++ show' (getCInteger val) ++ "\n"
-      ++ fromDef list' (val + 1)
-      where
-        val = case exp of
-                Nothing                         -> n
-                Just (CConst (CIntConst m _))   -> m
-                Just _                          ->
-                  interr "GenBind.enumInst: Integer constant expected!"
-        --
-        show' x = if x < 0 then "(" ++ show x ++ ")" else show x
-    --
-    toDef []                _ =
-      "  toEnum unmatched = error (\"" ++ ident
-      ++ ".toEnum: Cannot match \" ++ show unmatched)\n"
-    toDef ((ide, exp):list') n =
-      "  toEnum " ++ show' val ++ " = " ++ ide ++ "\n"
-      ++ toDef list' (val + 1)
-      where
-        val = case exp of
-                Nothing                         -> n
-                Just (CConst (CIntConst m _))   -> m
-                Just _                          ->
-                  interr "GenBind.enumInst: Integer constant expected!"
-        --
-        show' x = if x < 0 then "(" ++ show x ++ ")" else show x
+    wrap s = if ' ' `elem` s then "(" ++ s ++ ")" else s
+    concatFor = flip concatMap
+    -- List of _all values_ (including aliases) and their associated tags
+    list   = sortBy (comparing snd) list'
+    -- List of values without aliases and their associated tags
+    toList = stripAliases list
+    -- Generate explicit tags for all values:
+    succDef = let idents = map fst toList
+                  aliases = map (map fst) $ groupBy ((==) `on` snd) list
+                  defs =  concat $ zipWith
+                          (\is s -> concatFor is $ \i -> "  succ " ++ i
+                                                         ++ " = " ++ s ++ "\n")
+                          aliases
+                          (tail idents)
+                  lasts = concatFor (last aliases) $ \i ->
+                              "  succ " ++ i ++ " = error \""
+                                 ++ ident ++ ".succ: " ++ i ++
+                                 " has no successor\"\n"
+                  in defs ++ lasts
+    predDef = let idents = map fst toList
+                  aliases = map (map fst) $ groupBy ((==) `on` snd) list
+                  defs =  concat $ zipWith
+                          (\is s -> concatFor is $ \i -> "  pred " ++ i
+                                                         ++ " = " ++ s ++ "\n")
+                          (tail aliases)
+                          idents
+                  firsts = concatFor (head aliases) $ \i ->
+                               "  pred " ++ i ++ " = error \""
+                                 ++ ident ++ ".pred: " ++ i ++
+                                 " has no predecessor\"\n"
+                  in defs ++ firsts
+    enumFromToDef = intercalate "\n"
+                    [ "  enumFromTo from to = go from"
+                    , "    where"
+                    , "      end = fromEnum to"
+                    , "      go v = case compare (fromEnum v) end of"
+                    , "                 LT -> v : go (succ v)"
+                    , "                 EQ -> [v]"
+                    , "                 GT -> []"
+                    , ""
+                    ]
+    enumFromDef = let lastIdent = fst $ last list
+               in "  enumFrom from = enumFromTo from " ++ lastIdent ++ "\n"
+
+    fromDef = concatFor list (\(ide, val) -> "  fromEnum " ++ ide ++ " = "
+                               ++ show' val ++ "\n")
+
+    toDef = (concatFor toList (\(ide, val) -> "  toEnum " ++ show' val ++ " = "
+                                       ++ ide ++ "\n"))
+            -- Default case:
+            ++ "  toEnum unmatched = error (\"" ++ ident
+               ++ ".toEnum: Cannot match \" ++ show unmatched)\n"
+    show' x = if x < 0 then "(" ++ show x ++ ")" else show x
+    stripAliases :: [(String, Integer)] -> [(String, Integer)]
+    stripAliases = nubBy ((==) `on` snd)
 
 -- | generate a foreign import declaration that is put into the delayed code
 --
@@ -861,15 +940,16 @@ callImport hook isPure isUns ideLexeme hsLexeme cdecl pos =
     traceFunType et = traceGenBind $
       "Imported function type: " ++ showExtType et ++ "\n"
 
-callImportDyn :: CHSHook -> Bool -> Bool -> String -> String -> ExtType
+callImportDyn :: CHSHook -> Bool -> Bool -> String -> String -> CDecl -> ExtType
               -> Position -> GB ()
-callImportDyn hook _isPure isUns ideLexeme hsLexeme ty pos =
+callImportDyn hook _isPure isUns ideLexeme hsLexeme cdecl ty pos =
   do
     -- compute the external type from the declaration, and delay the foreign
     -- export declaration
     --
-    when (isVariadic ty) (variadicErr pos pos) -- FIXME? (posOf cdecl))
-    delayCode hook (foreignImportDyn ideLexeme hsLexeme isUns ty)
+    when (isVariadic ty) (variadicErr pos (posOf cdecl))
+    delayCode hook (foreignImportDyn (extractCallingConvention cdecl)
+                    ideLexeme hsLexeme isUns ty)
     traceFunType ty
   where
     traceFunType et = traceGenBind $
@@ -889,9 +969,10 @@ foreignImport cconv header ident hsIdent isUnsafe ty  =
 
 -- | Haskell code for the foreign import dynamic declaration needed by a call hook
 --
-foreignImportDyn :: String -> String -> Bool -> ExtType -> String
-foreignImportDyn _ident hsIdent isUnsafe ty  =
-  "foreign import ccall " ++ safety ++ " \"dynamic\"\n  " ++
+foreignImportDyn :: CallingConvention -> String -> String -> Bool -> ExtType -> String
+foreignImportDyn cconv _ident hsIdent isUnsafe ty  =
+  "foreign import " ++ showCallingConvention cconv ++ " " ++ safety
+    ++ " \"dynamic\"\n  " ++
     hsIdent ++ " :: FunPtr( " ++ showExtType ty ++ " ) -> " ++
     showExtType ty ++ "\n"
   where
@@ -917,14 +998,16 @@ funDef :: Bool               -- pure function?
        -> Position           -- source location of the hook
        -> Position           -- source location of the start of the hook
        -> GB String          -- Haskell code in text form
-funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
+funDef isPure hsLexeme fiLexeme extTy octxt parms
+       parm@(CHSParm _ hsParmTy _ _ _ _) marsh2 pos hkpos =
   do
+    when (countPlus parms > 1 || isPlus parm) $ illegalPlusErr pos
     (parms', parm', isImpure) <- addDftMarshaller pos parms parm extTy
 
     traceMarsh parms' parm' isImpure
+    marshs <- zipWithM marshArg [1..] parms'
     let
       sig       = hsLexeme ++ " :: " ++ funTy parms' parm' ++ "\n"
-      marshs    = [marshArg i parm'' | (i, parm'') <- zip [1..] parms']
       funArgs   = [funArg   | (funArg, _, _, _, _)   <- marshs, funArg   /= ""]
       marshIns  = [marshIn  | (_, marshIn, _, _, _)  <- marshs]
       callArgs  = [callArg  | (_, _, cs, _, _)  <- marshs, callArg <- cs]
@@ -935,8 +1018,10 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
       call      = if isPure
                   then "  let {res = " ++ fiLexeme ++ joinCallArgs ++ "} in\n"
                   else "  " ++ fiLexeme ++ joinCallArgs ++ case parm of
-                    CHSParm _ "()" _ Nothing _ -> " >>\n"
-                    _                        -> " >>= \\res ->\n"
+                    CHSParm _ "()" _ Nothing _ _ -> " >>\n"
+                    _                        ->
+                      if countPlus parms == 1
+                      then " >>\n" else " >>= \\res ->\n"
       joinCallArgs = case marsh2 of
                         Nothing -> join callArgs
                         Just _  -> join ("b1'" : drop 1 callArgs)
@@ -945,24 +1030,27 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
                         Just m  -> "  " ++ m ++ " " ++
                                    join (take 1 callArgs) ++
                                    " >>= \\b1' ->\n"
-      marshRes  = case parm' of
-                    CHSParm _ _ _twoCVal (Just (_     , CHSVoidArg  )) _ -> ""
-                    CHSParm _ _ _twoCVal (Just (omBody, CHSIOVoidArg)) _ ->
+      marshRes  = if countPlus parms == 1
+                  then ""
+                  else case parm' of
+                    CHSParm _ _ _twoCVal (Just (_     , CHSVoidArg  )) _ _ -> ""
+                    CHSParm _ _ _twoCVal (Just (omBody, CHSIOVoidArg)) _ _ ->
                       "  " ++ marshBody omBody ++ " res >> \n"
-                    CHSParm _ _ _twoCVal (Just (omBody, CHSIOArg     )) _ ->
+                    CHSParm _ _ _twoCVal (Just (omBody, CHSIOArg     )) _ _ ->
                       "  " ++ marshBody omBody ++ " res >>= \\res' ->\n"
-                    CHSParm _ _ _twoCVal (Just (omBody, CHSValArg    )) _ ->
+                    CHSParm _ _ _twoCVal (Just (omBody, CHSValArg    )) _ _ ->
                       "  let {res' = " ++ marshBody omBody ++ " res} in\n"
-                    CHSParm _ _ _       Nothing                    _ ->
+                    CHSParm _ _ _       Nothing                    _ _ ->
                       interr "GenBind.funDef: marshRes: no default?"
 
       marshBody (Left ide) = identToString ide
       marshBody (Right str) = "(" ++ str ++ ")"
 
       retArgs'  = case parm' of
-                    CHSParm _ _ _ (Just (_, CHSVoidArg))   _ ->        retArgs
-                    CHSParm _ _ _ (Just (_, CHSIOVoidArg)) _ ->        retArgs
-                    _                                        -> "res'":retArgs
+                    CHSParm _ _ _ (Just (_, CHSVoidArg))   _ _ ->        retArgs
+                    CHSParm _ _ _ (Just (_, CHSIOVoidArg)) _ _ ->        retArgs
+                    _                                        ->
+                      if countPlus parms == 0 then "res'":retArgs else retArgs
       ret       = "(" ++ concat (intersperse ", " retArgs') ++ ")"
       funBody   = joinLines marshIns  ++
                   mkMarsh2            ++
@@ -978,6 +1066,10 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
 
     return $ pad $ sig ++ funHead ++ funBody
   where
+    countPlus :: [CHSParm] -> Int
+    countPlus = sum . map (\p -> if isPlus p then 1 else 0)
+    isPlus CHSPlusParm = True
+    isPlus _           = False
     join      = concatMap (' ':)
     joinLines = concatMap (\s -> "  " ++ s ++ "\n")
     --
@@ -988,18 +1080,26 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
     --
     funTy parms' parm' =
       let
+        showComment str = if null str
+                          then ""
+                          else " --" ++ str ++ "\n"
         ctxt   = case octxt of
                    Nothing      -> ""
                    Just ctxtStr -> ctxtStr ++ " => "
-        argTys = ["(" ++ ty ++ ")" | CHSParm im ty _ _  _ <- parms'      , notVoid im]
-        resTys = ["(" ++ ty ++ ")" | CHSParm _  ty _ om _ <- parm':parms', notVoid om]
+        argTys = ["(" ++ ty ++ ")" ++ showComment c |
+                     CHSParm im ty _ _  _ c <- parms', notVoid im]
+        resTys = ["(" ++ ty ++ ")" |
+                     CHSParm _  ty _ om _ _ <- parm':parms', notVoid om]
         resTup = let
+                   comment = case parm' of
+                       CHSParm _ _ _ _ _ c -> c
                    (lp, rp) = if isPure && length resTys == 1
                               then ("", "")
                               else ("(", ")")
                    io       = if isPure then "" else "IO "
                  in
-                 io ++ lp ++ concat (intersperse ", " resTys) ++ rp
+                 io ++ lp ++ concat (intersperse ", " resTys) ++ rp ++
+                 showComment comment
 
       in
       ctxt ++ concat (intersperse " -> " (argTys ++ [resTup]))
@@ -1012,7 +1112,7 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
     -- code fragments
     --
     marshArg i (CHSParm (Just (imBody, imArgKind)) _ twoCVal
-                        (Just (omBody, omArgKind)) _        ) =
+                        (Just (omBody, omArgKind)) _ _      ) = do
       let
         a        = "a" ++ show (i :: Int)
         imStr    = marshBody imBody
@@ -1037,12 +1137,25 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms parm marsh2 pos hkpos =
                      CHSIOArg     -> omApp ++ ">>= \\" ++ outBndr ++ " -> "
                      CHSValArg    -> "let {" ++ outBndr ++ " = " ++
                                    omApp ++ "} in "
-        retArg   = if omArgKind == CHSVoidArg || omArgKind == CHSIOVoidArg then "" else outBndr
+        retArg   = if omArgKind == CHSVoidArg || omArgKind == CHSIOVoidArg
+                   then "" else outBndr
 
         marshBody (Left ide) = identToString ide
         marshBody (Right str) = "(" ++ str ++ ")"
-      in
-      (funArg, marshIn, callArgs, marshOut, retArg)
+      return (funArg, marshIn, callArgs, marshOut, retArg)
+    marshArg i CHSPlusParm = do
+      msize <- querySize $ internalIdent hsParmTy
+      case msize of
+        Nothing -> interr "Missing size for \"+\" parameter allocation!"
+        Just size -> do
+          let a = "a" ++ show (i :: Int)
+              bdr1 = a ++ "'"
+              bdr2 = a ++ "''"
+              marshIn = "mallocForeignPtrBytes " ++ show size ++
+                        " >>= \\" ++ bdr2 ++
+                        " -> withForeignPtr " ++ bdr2 ++ " $ \\" ++
+                        bdr1 ++ " -> "
+          return ("", marshIn, [bdr1], "", hsParmTy ++ " " ++ bdr2)
     marshArg _ _ = interr "GenBind.funDef: Missing default?"
     --
     traceMarsh parms' parm' isImpure = traceGenBind $
@@ -1071,14 +1184,14 @@ addDftMarshaller pos parms parm extTy = do
     --
     -- * a default marshaller maybe used for "out" marshalling
     --
-    checkResMarsh (CHSParm (Just _) _  _    _       pos') _   =
+    checkResMarsh (CHSParm (Just _) _  _    _       pos' _) _   =
       resMarshIllegalInErr      pos'
-    checkResMarsh (CHSParm _        _  True _       pos') _   =
+    checkResMarsh (CHSParm _        _  True _       pos' _) _   =
       resMarshIllegalTwoCValErr pos'
-    checkResMarsh (CHSParm _        ty _    omMarsh pos') cTy = do
+    checkResMarsh (CHSParm _        ty _    omMarsh pos' c) cTy = do
       (imMarsh', _       ) <- addDftVoid Nothing
       (omMarsh', isImpure) <- addDftOut pos' omMarsh ty [cTy]
-      return (CHSParm imMarsh' ty False omMarsh' pos', isImpure)
+      return (CHSParm imMarsh' ty False omMarsh' pos' c, isImpure)
     --
     splitFunTy (FunET UnitET ty ) = splitFunTy ty
     splitFunTy (FunET ty1    ty2) = let
@@ -1089,22 +1202,25 @@ addDftMarshaller pos parms parm extTy = do
     --
     -- match Haskell with C arguments (and results)
     --
-    addDft ((CHSParm imMarsh hsTy False omMarsh p):parms'') (cTy    :cTys) = do
+    addDft ((CHSPlusParm):parms'') (_:cTys) = do
+      (parms', _) <- addDft parms'' cTys
+      return (CHSPlusParm : parms', True)
+    addDft ((CHSParm imMarsh hsTy False omMarsh p c):parms'') (cTy    :cTys) = do
       (imMarsh', isImpureIn ) <- addDftIn   p imMarsh hsTy [cTy]
       (omMarsh', isImpureOut) <- addDftVoid    omMarsh
       (parms'  , isImpure   ) <- addDft parms'' cTys
-      return (CHSParm imMarsh' hsTy False omMarsh' p : parms',
+      return (CHSParm imMarsh' hsTy False omMarsh' p c : parms',
               isImpure || isImpureIn || isImpureOut)
-    addDft ((CHSParm imMarsh hsTy True  omMarsh p):parms'') (cTy1:cTy2:cTys) =
+    addDft ((CHSParm imMarsh hsTy True  omMarsh p c):parms'') (cTy1:cTy2:cTys) =
       do
       (imMarsh', isImpureIn ) <- addDftIn   p imMarsh hsTy [cTy1, cTy2]
       (omMarsh', isImpureOut) <- addDftVoid   omMarsh
       (parms'  , isImpure   ) <- addDft parms'' cTys
-      return (CHSParm imMarsh' hsTy True omMarsh' p : parms',
+      return (CHSParm imMarsh' hsTy True omMarsh' p c : parms',
               isImpure || isImpureIn || isImpureOut)
     addDft []                                             []               =
       return ([], False)
-    addDft ((CHSParm _       _    _     _     pos'):_)    []               =
+    addDft ((CHSParm _       _    _     _     pos' _):_)    []               =
       marshArgMismatchErr pos' "This parameter is in excess of the C arguments."
     addDft []                                             (_:_)            =
       marshArgMismatchErr pos "Parameter marshallers are missing."
@@ -1246,12 +1362,17 @@ _                                `declNamed` _   =
 
 -- | Haskell code for writing to or reading from a struct
 --
-setGet :: Position -> CHSAccess -> [BitSize] -> ExtType -> GB String
-setGet pos access offsets ty =
+setGet :: Position -> CHSAccess -> [BitSize] -> Bool -> ExtType -> Maybe Ident
+       -> GB String
+setGet pos access offsets isArr ty onewtype =
   do
-    let pre = case access of
-                CHSSet -> "(\\ptr val -> do {"
-                CHSGet -> "(\\ptr -> do {"
+    let pre = case (access, onewtype) of
+          (CHSSet, Nothing) -> "(\\ptr val -> do {"
+          (CHSGet, Nothing) -> "(\\ptr -> do {"
+          (CHSSet, Just ide) ->
+            "(\\(" ++ identToString ide ++ " ptr) val -> do {"
+          (CHSGet, Just ide) ->
+            "(\\(" ++ identToString ide ++ " ptr) -> do {"
     body <- setGetBody (reverse offsets)
     return $ pre ++ body ++ "})"
   where
@@ -1261,15 +1382,15 @@ setGet pos access offsets ty =
         bf <- checkType ty
         case bf of
           Nothing      -> return $ case access of       -- not a bitfield
-                            CHSGet -> peekOp offset tyTag
-                            CHSSet -> pokeOp offset tyTag "val"
+                            CHSGet -> peekOp offset tyTag isArr
+                            CHSSet -> pokeOp offset tyTag "val" isArr
 --FIXME: must take `bitfieldDirection' into account
           Just (_, bs) -> return $ case access of       -- a bitfield
-                            CHSGet -> "val <- " ++ peekOp offset tyTag
+                            CHSGet -> "val <- " ++ peekOp offset tyTag isArr
                                       ++ extractBitfield
-                            CHSSet -> "org <- " ++ peekOp offset tyTag
+                            CHSSet -> "org <- " ++ peekOp offset tyTag isArr
                                       ++ insertBitfield
-                                      ++ pokeOp offset tyTag "val'"
+                                      ++ pokeOp offset tyTag "val'" isArr
             where
               -- we have to be careful here to ensure proper sign extension;
               -- in particular, shifting right followed by anding a mask is
@@ -1308,9 +1429,13 @@ setGet pos access offsets ty =
     checkType (PrimET    (CSFieldPT bs)) = return $ Just (True , bs)
     checkType _                          = return Nothing
     --
-    peekOp off tyTag     = "peekByteOff ptr " ++ show off ++ " ::IO " ++ tyTag
-    pokeOp off tyTag var = "pokeByteOff ptr " ++ show off ++ " (" ++ var
-                           ++ "::" ++ tyTag ++ ")"
+    peekOp off tyTag False =
+      "peekByteOff ptr " ++ show off ++ " ::IO " ++ tyTag
+    peekOp off tyTag True =
+      "return $ ptr `plusPtr` " ++ show off ++ " ::IO " ++ tyTag
+    pokeOp off tyTag var False =
+      "pokeByteOff ptr " ++ show off ++ " (" ++ var ++ "::" ++ tyTag ++ ")"
+    pokeOp _ tyTag var True = "poke ptr (" ++ var ++ "::" ++ tyTag ++ ")"
 
 -- | generate the type definition for a pointer hook and enter the required type
 -- mapping into the 'ptrmap'
@@ -1335,9 +1460,9 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
         ptrType = ptrCon ++ " (" ++ ptrArg ++ ")"
         thePtr  = (isStar, cNameFull)
     case ptrKind of
-      CHSForeignPtr -> thePtr `ptrMapsTo` ("Ptr (" ++ ptrArg ++ ")",
-                                           "Ptr (" ++ ptrArg ++ ")")
-      _             -> thePtr `ptrMapsTo` (hsName, hsName)
+      CHSForeignPtr _ -> thePtr `ptrMapsTo` ("Ptr (" ++ ptrArg ++ ")",
+                                             "Ptr (" ++ ptrArg ++ ")")
+      _               -> thePtr `ptrMapsTo` (hsName, hsName)
     return $
       case (emit, isNewtype) of
         (False, _)     -> ""    -- suppress code generation
@@ -1351,11 +1476,43 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
       -- safe unwrapping function automatically
       --
       withForeignFun
-        | ptrKind == CHSForeignPtr =
+        | isForeign ptrKind =
           "\nwith" ++ hsName ++ " :: " ++
           hsName ++ " -> (Ptr " ++ hsName ++ " -> IO b) -> IO b" ++
           "\nwith" ++ hsName ++ " (" ++ hsName ++ " fptr) = withForeignPtr fptr"
         | otherwise                = ""
+      isForeign (CHSForeignPtr _) = True
+      isForeign _                 = False
+
+-- | generate a foreign pointer finalizer import declaration that is
+-- put into the delayed code
+--
+doFinalizer :: CHSHook -> CHSPtrType -> String -> GB ()
+doFinalizer hook (CHSForeignPtr (Just (cide, ohside))) ptrHsIde = do
+  (ObjCO cdecl, cide') <- findFunObj cide True
+  let finCIde  = identToString cide'
+      finHsIde = finCIde `maybe` identToString $ ohside
+      cdecl'   = cide' `simplifyDecl` cdecl
+  header <- getSwitch headerSB
+  delayCode hook (finalizerImport (extractCallingConvention cdecl')
+                  header finCIde finHsIde ptrHsIde)
+  traceFunType ptrHsIde
+  where
+    traceFunType et = traceGenBind $
+      "Imported finalizer function type: " ++ et ++ "\n"
+doFinalizer _ _ _ = return ()
+
+-- | Haskell code for the foreign import declaration needed by foreign
+-- pointer finalizers.
+--
+finalizerImport :: CallingConvention -> String -> String -> String ->
+                   String -> String
+finalizerImport cconv header ident hsIdent hsPtrName  =
+  "foreign import " ++ showCallingConvention cconv ++ " " ++ show entity ++
+  "\n  " ++ hsIdent ++ " :: FinalizerPtr " ++ hsPtrName ++ "\n"
+  where
+    entity | null header = "&" ++ ident
+           | otherwise   = header ++ " &" ++ ident
 
 -- | generate the class and instance definitions for a class hook
 --
@@ -1615,7 +1772,7 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
     [(Just declr, _, size)] | isPtrDeclr declr -> ptrType declr
                             | isFunDeclr declr -> funType
                             | otherwise        -> aliasOrSpecType size
-    []                                         -> aliasOrSpecType Nothing
+    _                                          -> aliasOrSpecType Nothing
   where
     -- handle explicit pointer types
     --
@@ -1826,11 +1983,17 @@ extractCallingConvention cdecl
 
     funAttrs (CDecl specs declrs _) =
       let (_,attrs',_,_,_) = partitionDeclSpecs specs
-       in attrs' ++ funEndAttrs declrs
+       in attrs' ++ funEndAttrs declrs ++ funPtrAttrs declrs
 
     -- attrs after the function name, e.g. void foo() __attribute__((...));
     funEndAttrs [(Just ((CDeclr _ (CFunDeclr _ _ _ : _) _ attrs _)), _, _)] = attrs
     funEndAttrs _                                                           = []
+
+    -- attrs appearing within the declarator of a function pointer. As an
+    -- example:
+    -- typedef int (__stdcall *fp)();
+    funPtrAttrs [(Just ((CDeclr _ (CPtrDeclr _ _ : CFunDeclr _ attrs _ : _) _ _ _)), _, _)] = attrs
+    funPtrAttrs _ = []
 
 
 -- | generate the necessary parameter for "foreign import" for the
@@ -2091,7 +2254,7 @@ evalConstCExpr (CVar ide''' at) =
   do
     (cobj, _) <- findValueObj ide''' False
     case cobj of
-      EnumCO ide'' (CEnum _ (Just enumrs) _ _) -> 
+      EnumCO ide'' (CEnum _ (Just enumrs) _ _) ->
         liftM IntResult $ enumTagValue ide'' enumrs 0
       _                             ->
         todo $ "GenBind.evalConstCExpr: variable names not implemented yet " ++
@@ -2134,8 +2297,8 @@ evalCCast (CCast decl expr _) = do
 evalCCast' :: CompType -> Integer -> GB ConstResult
 evalCCast' (ExtType (PrimET primType)) i
   | isIntegralCPrimType primType = return $ IntResult i
-evalCCast' _ _ = todo "GenBind.evalCCast': Only integral trivial casts are implemented"      
- 
+evalCCast' _ _ = todo "GenBind.evalCCast': Only integral trivial casts are implemented"
+
 evalCConst :: CConst -> GB ConstResult
 evalCConst (CIntConst   i _ ) = return $ IntResult (getCInteger i)
 evalCConst (CCharConst  c _ ) = return $ IntResult (getCCharAsInt c)
@@ -2282,6 +2445,13 @@ variadicErr pos cpos  =
     ["Variadic function!",
      "Calling variadic functions is not supported by the FFI; the function",
      "is defined at " ++ show cpos ++ "."]
+
+illegalPlusErr       :: Position -> GB a
+illegalPlusErr pos  =
+  raiseErrorCTExc pos
+    ["Illegal plus parameter!",
+     "The special parameter `+' may only be used in a single input " ++
+     "parameter position in a function hook"]
 
 illegalConstExprErr           :: Position -> String -> GB a
 illegalConstExprErr cpos hint  =

@@ -1,5 +1,5 @@
 Name:           c2hs
-Version:        0.17.2
+Version:        0.20.1
 License:        GPL-2
 License-File:   COPYING
 Copyright:      Copyright (c) 1999-2007 Manuel M T Chakravarty
@@ -18,7 +18,7 @@ Description:    C->Haskell assists in the development of Haskell bindings to C
                 hsc2hs), this ensures that C functions are imported with the
                 correct Haskell types.
 Category:       Development
-Tested-With:    GHC==6.12.3, GHC==7.0.4, GHC==7.6.1, GHC==7.6.3
+Tested-With:    GHC==6.12.3, GHC==7.0.4, GHC==7.6.1, GHC==7.6.3, GHC==7.8.3
 Cabal-Version:  >= 1.8
 Build-Type:     Simple
 
@@ -55,10 +55,26 @@ Extra-Source-Files:
   tests/bugs/issue-43/*.chs tests/bugs/issue-43/*.h tests/bugs/issue-43/*.c
   tests/bugs/issue-44/*.chs tests/bugs/issue-44/*.h tests/bugs/issue-44/*.c
   tests/bugs/issue-45/*.chs tests/bugs/issue-45/*.h tests/bugs/issue-45/*.c
+  tests/bugs/issue-46/*.chs tests/bugs/issue-46/*.h tests/bugs/issue-46/*.c
   tests/bugs/issue-47/*.chs tests/bugs/issue-47/*.h tests/bugs/issue-47/*.c
   tests/bugs/issue-51/*.chs tests/bugs/issue-51/*.h tests/bugs/issue-51/*.c
   tests/bugs/issue-54/*.chs tests/bugs/issue-54/*.h tests/bugs/issue-54/*.c
   tests/bugs/issue-60/*.chs tests/bugs/issue-60/*.h tests/bugs/issue-60/*.c
+  tests/bugs/issue-62/*.chs tests/bugs/issue-62/*.h tests/bugs/issue-62/*.c
+  tests/bugs/issue-65/*.chs tests/bugs/issue-65/*.h tests/bugs/issue-65/*.c
+  tests/bugs/issue-69/*.chs tests/bugs/issue-69/*.h tests/bugs/issue-69/*.c
+  tests/bugs/issue-70/*.chs tests/bugs/issue-70/*.h tests/bugs/issue-70/*.c
+  tests/bugs/issue-73/*.chs tests/bugs/issue-73/*.h tests/bugs/issue-73/*.c
+  tests/bugs/issue-75/*.chs tests/bugs/issue-75/*.h tests/bugs/issue-75/*.c
+  tests/bugs/issue-79/*.chs tests/bugs/issue-79/*.h tests/bugs/issue-79/*.c
+  tests/bugs/issue-80/*.chs tests/bugs/issue-80/*.h tests/bugs/issue-80/*.c
+  tests/bugs/issue-93/*.chs tests/bugs/issue-93/*.h tests/bugs/issue-93/*.c
+  tests/bugs/issue-95/*.chs tests/bugs/issue-95/*.h tests/bugs/issue-95/*.c
+  tests/bugs/issue-96/*.chs tests/bugs/issue-96/*.h tests/bugs/issue-96/*.c
+  tests/bugs/issue-97/*.chs tests/bugs/issue-97/*.h tests/bugs/issue-97/*.c
+  tests/bugs/issue-103/*.chs tests/bugs/issue-103/*.h tests/bugs/issue-103/*.c
+  tests/bugs/issue-107/*.chs
+  tests/bugs/issue-113/*.chs tests/bugs/issue-113/*.h tests/bugs/issue-113/*.c
 
 source-repository head
   type:         git
@@ -68,8 +84,9 @@ flag base3
 
 Executable c2hs
     Build-Depends:  base >= 2 && < 5,
-                    language-c >= 0.4.2 && < 0.5,
-                    filepath
+                    language-c >= 0.4.7 && < 0.5,
+                    filepath,
+                    dlist
 
     if flag(base3)
         Build-Depends: base >= 3, process, directory, array, containers, pretty
@@ -99,7 +116,6 @@ Executable c2hs
       Control.State
       Control.StateTrans
       Data.Attributes
-      Data.DLists
       Data.Errors
       Data.NameSpaces
       System.CIO
@@ -121,7 +137,8 @@ Test-Suite test-bugs
                        test-framework-hunit,
                        HUnit,
                        shelly >= 1.0,
-                       text
+                       text,
+                       transformers
 
 Test-Suite test-system
   type:                exitcode-stdio-1.0
@@ -133,14 +150,21 @@ Test-Suite test-system
                        test-framework-hunit,
                        HUnit,
                        shelly >= 1.0,
-                       text
-
-Test-Suite regression-suite
-  type:                exitcode-stdio-1.0
-  build-depends:       base,
-                       filepath,
-                       shelly >= 1.0,
                        text,
-                       yaml >= 0.8
-  hs-source-dirs:      tests
+                       transformers
+
+Flag regression
+  description: Enable regression suite build.
+  default:     False
+
+Executable regression-suite
   main-is:             regression-suite.hs
+  hs-source-dirs:      tests
+  if flag(regression)
+    build-depends:       base,
+                         filepath,
+                         shelly >= 1.0,
+                         text,
+                         yaml >= 0.8
+  else
+    buildable: False

@@ -73,6 +73,9 @@ module Control.StateTrans (-- the monad and the generic operations
                    throwExc, fatal, catchExc, fatalsHandledBy)
 where
 
+
+import Control.Applicative (Applicative(..))
+import Control.Monad (liftM, ap)
 import Control.Exception (catch)
 import Prelude hiding (catch)
 
@@ -98,6 +101,13 @@ import Prelude hiding (catch)
 --   @Right a@         -- is a successfully delivered result
 --
 newtype STB bs gs a = STB (bs -> gs -> IO (bs, gs, Either (String, String) a))
+
+instance Functor (STB bs gs) where
+  fmap = liftM
+
+instance Applicative (STB bs gs) where
+  pure  = return
+  (<*>) = ap
 
 instance Monad (STB bs gs) where
   return = yield

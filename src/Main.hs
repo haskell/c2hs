@@ -121,10 +121,11 @@ where
 import Data.List (intersperse, partition)
 import Control.Monad (when, unless)
 import Data.Version (showVersion)
+import qualified Data.Version as DV
 import System.Console.GetOpt
                   (ArgOrder(..), OptDescr(..), ArgDescr(..), usageInfo, getOpt)
 import qualified System.FilePath as FilePath
-                  (takeExtension, dropExtension, takeBaseName)
+                  (takeDirectory, takeExtension, dropExtension)
 import System.FilePath ((<.>), (</>), splitSearchPath)
 import System.IO (stderr, openFile, IOMode(..))
 import System.IO.Error (ioeGetErrorString, ioeGetFileName)
@@ -269,7 +270,7 @@ compile  =
   do
     setup
     cmdLine <- CIO.getArgs
-    case getOpt RequireOrder options cmdLine of
+    case getOpt Permute options cmdLine of
       (opts, []  , [])
         | noCompOpts opts -> doExecute opts Nothing
       (opts, args, [])    -> case parseArgs args of
@@ -320,7 +321,8 @@ compile  =
             fnMsg = case ioeGetFileName err of
                        Nothing -> ""
                        Just s  -> " (file: `" ++ s ++ "')"
-        CIO.hPutStrLn stderr (msg ++ fnMsg)
+        name <- CIO.getProgName
+        CIO.hPutStrLn stderr $ concat [name, ": ", msg, fnMsg]
         CIO.exitWith $ CIO.ExitFailure 1
 
 -- | set up base configuration
@@ -360,19 +362,11 @@ execute opts args | Help `elem` opts = help
         let bndFileWithoutSuffix  = FilePath.dropExtension bndFile
         computeOutputName bndFileWithoutSuffix
         process headerFiles bndFileWithoutSuffix
-          `fatalsHandledBy` die
       Nothing ->
         computeOutputName "."   -- we need the output name for library copying
     copyLibrary
-      `fatalsHandledBy` die
   where
     atMostOne = (foldl (\_ x -> [x]) [])
-    --
-    die ioerr =
-      do
-        name <- CIO.getProgName
-        CIO.putStr $ name ++ ": " ++ ioeGetErrorString ioerr ++ "\n"
-        CIO.exitWith $ CIO.ExitFailure 1
 
 -- | emit help message
 --
@@ -529,7 +523,21 @@ process headerFiles bndFile  =
     --
     (chsMod , warnmsgs) <- loadCHS bndFile
     CIO.putStr warnmsgs
-    traceCHSDump chsMod
+    --
+    -- get output directory and create it if it's missing
+    --
+    outFName <- getSwitch outputSB
+    outDir   <- getSwitch outDirSB
+    let outFPath = outDir </> outFName
+    CIO.createDirectoryIfMissing True $ FilePath.takeDirectory outFPath
+    --
+    -- dump the binding file when demanded
+    --
+    flag <- traceSet dumpCHSSW
+    when flag $ do
+      let chsName = outFPath <.> "dump"
+      CIO.putStrLn $ "...dumping CHS to `" ++ chsName ++ "'..."
+      dumpCHS chsName chsMod False
     --
     -- extract CPP and inline-C embedded in the .chs file (all CPP and
     -- inline-C fragments are removed from the .chs tree and conditionals are
@@ -541,24 +549,18 @@ process headerFiles bndFile  =
     -- create new header file, make it #include `headerFile', and emit
     -- CPP and inline-C of .chs file into the new header
     --
-    outFName <- getSwitch outputSB
-    outDir   <- getSwitch outDirSB
     let newHeader     = outFName <.> chssuffix <.> hsuffix
         newHeaderFile = outDir </> newHeader
-        preprocFile   = FilePath.takeBaseName outFName <.> isuffix
+        preprocFile   = outFPath <.> isuffix
     CIO.writeFile newHeaderFile $ concat $
+      [ "#define C2HS_MIN_VERSION(mj,mn,rv) " ++
+        "((mj)<=C2HS_VERSION_MAJOR && " ++
+        "(mn)<=C2HS_VERSION_MINOR && " ++
+        "(rv)<=C2HS_VERSION_REV)\n" ] ++
       [ "#include \"" ++ headerFile ++ "\"\n"
       | headerFile <- headerFiles ]
       ++ header'
-    --
-    -- Check if we can get away without having to keep a separate .chs.h file
-    --
-    case headerFiles of
-      [headerFile] | null header
-        -> setHeader headerFile    -- the generated .hs file will directly
-                                   -- refer to this header rather than going
-                                   -- through a one-line .chs.h file.
-      _ -> setHeader newHeader
+    setHeader newHeader
     --
     -- run C preprocessor over the header
     --
@@ -566,9 +568,16 @@ process headerFiles bndFile  =
     cppOpts  <- getSwitch cppOptsSB
     let nonGNUOpts =
           if hasNonGNU chsMod
-          then ["-U__GNUC__", "-U__GNUC_MINOR__", "-U__GNUC_PATCHLEVEL__"]
+          then [ "-U__GNUC__"
+               , "-U__GNUC_MINOR__"
+               , "-U__GNUC_PATCHLEVEL__" ]
           else []
-        args = cppOpts ++ nonGNUOpts ++ ["-U__BLOCKS__"] ++ [newHeaderFile]
+        [versMajor, versMinor, versRev] = map show $ DV.versionBranch versnum
+        versionOpt = [ "-DC2HS_VERSION_MAJOR=" ++ versMajor
+                     , "-DC2HS_VERSION_MINOR=" ++ versMinor
+                     , "-DC2HS_VERSION_REV=" ++ versRev ]
+        args = cppOpts ++ nonGNUOpts ++ ["-U__BLOCKS__"] ++
+               versionOpt ++ [newHeaderFile]
     tracePreproc (unwords (cpp:args))
     exitCode <- CIO.liftIO $ do
       preprocHnd <- openFile preprocFile WriteMode
@@ -602,17 +611,8 @@ process headerFiles bndFile  =
     --
     -- output the result
     --
-    dumpCHS (outDir </> outFName) hsMod True
-    dumpCHI (outDir </> outFName) chi           -- different suffix will be appended
+    dumpCHS outFPath hsMod True
+    dumpCHI outFPath chi           -- different suffix will be appended
   where
     tracePreproc cmd = putTraceStr tracePhasesSW $
                          "Invoking cpp as `" ++ cmd ++ "'...\n"
-    traceCHSDump mod' = do
-                         flag <- traceSet dumpCHSSW
-                         when flag $
-                           (do
-                              CIO.putStr ("...dumping CHS to `" ++ chsName
-                                         ++ "'...\n")
-                              dumpCHS chsName mod' False)
-
-    chsName = FilePath.takeBaseName bndFile <.> "dump"

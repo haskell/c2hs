@@ -6,6 +6,7 @@ module Main where
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad
 import Shelly hiding (FilePath)
+import Data.Char
 import Data.List (nub)
 import Data.Text (Text)
 import Data.Monoid
@@ -19,8 +20,10 @@ data RegressionTest = RegressionTest
                       , flags :: [Text]
                       , aptPPA :: [Text]
                       , aptPackages :: [Text]
+                      , cabalBuildTools :: [Text]
                       , specialSetup :: [Text]
                       , extraPath :: [Text]
+                      , onTravis :: Bool
                       } deriving (Eq, Show)
 
 instance FromJSON RegressionTest where
@@ -29,8 +32,10 @@ instance FromJSON RegressionTest where
                                         <*> v .:? "flags" .!= []
                                         <*> v .:? "apt-ppa" .!= []
                                         <*> v .:? "apt-packages" .!= []
+                                        <*> v .:? "cabal-build-tools" .!= []
                                         <*> v .:? "special-setup" .!= []
                                         <*> v .:? "extra-path" .!= []
+                                        <*> v .:? "on-travis" .!= True
   parseJSON _ = mzero
 
 readTests :: FilePath -> IO [RegressionTest]
@@ -52,14 +57,22 @@ main = shelly $ do
     exit 0
 
   when travis checkApt
-  tests <- liftIO $ readTests "tests/regression-suite.yaml"
+  let travisCheck t = case travis of
+        False -> True
+        True -> onTravis t
+  tests <- liftIO $ filter travisCheck <$>
+           readTests "tests/regression-suite.yaml"
   let ppas = nub $ concatMap aptPPA tests
       pkgs = nub $ concatMap aptPackages tests
+      buildTools = nub $ concatMap cabalBuildTools tests
       specials = concatMap specialSetup tests
       extraPaths = concatMap extraPath tests
 
   when (not travis) $
     echo "ASSUMING THAT ALL NECESSARY LIBRARIES ALREADY INSTALLED!\n"
+
+  home <- fromText <$> get_env_text "HOME"
+  appendToPath $ home </> ".cabal/bin"
 
   when travis $ do
     when (not (null ppas)) $ do
@@ -75,7 +88,8 @@ main = shelly $ do
 
     when (not (null specials)) $ do
       echo "SPECIAL INSTALL STEPS\n"
-      forM_ specials $ \s -> let (c:as) = T.words s in run_ (fromText c) as
+      forM_ specials $ \s -> let (c:as) = escapedWords s in
+        run_ (fromText c) as
       echo "\n"
 
     when (not (null extraPaths)) $ do
@@ -94,9 +108,31 @@ main = shelly $ do
           Just efs -> infs ++ concatMap (\f -> ["-f", f]) (T.splitOn "," efs)
     echo $ "\nREGRESSION TEST: " <> n <> "\n"
     errExit False $ do
-      run_ "cabal" $ ["install"] ++ fs ++ [n]
+      run_ "cabal" $ ["install", "--jobs=1", "-v"] ++ fs ++ [n]
       lastExitCode
 
   if all (== 0) codes
     then exit 0
-    else errorExit "SOME TESTS FAILED"
+    else do
+    let failed = filter (\(c, _) -> c /= 0) $ zip codes (filter cabal tests)
+    forM_ failed $ \(c, t) -> echo $ "FAILED: " <> name t
+    echo "SOME TESTS FAILED"
+
+escapedWords :: Text -> [Text]
+escapedWords = map (T.pack . reverse) . escWords False "" . T.unpack
+  where escWords :: Bool -> String -> String -> [String]
+        -- End of string: just return the accumulator if there is one.
+        escWords _ acc "" = case acc of
+          "" -> []
+          _  -> [acc]
+        -- Not escaping.
+        escWords False acc (c:cs)
+          | isSpace c = acc : escWords False "" cs
+          | c == '\'' = case acc of
+            "" -> escWords True "" cs
+            _  -> acc : escWords True "" cs
+          | otherwise = escWords False (c:acc) cs
+        -- Escaping.
+        escWords True acc (c:cs)
+          | c == '\'' = acc : escWords False "" cs
+          | otherwise = escWords True (c:acc) cs

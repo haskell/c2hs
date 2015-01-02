@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 --  C->Haskell Compiler: monad for the binding generator
 --
 --  Author : Manuel M T Chakravarty
@@ -72,18 +73,18 @@ module C2HS.Gen.Monad (
 
   HsObject(..), GB, GBState(..), initialGBState, setContext, getLibrary, getPrefix,
   getReplacementPrefix, delayCode, getDelayedCode, ptrMapsTo, queryPtr,
-  objIs, queryObj, queryClass, queryPointer, mergeMaps, dumpMaps,
-  queryEnum, isEnum
+  objIs, queryObj, sizeIs, querySize, queryClass, queryPointer,
+  mergeMaps, dumpMaps, queryEnum, isEnum
 ) where
 
 -- standard libraries
-import Data.Char  (toUpper, toLower, isSpace)
+import Data.Char  (toUpper, toLower)
 import Data.List  (find)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map (empty, insert, lookup, union, toList, fromList)
 import Data.Map   (Map)
 import Data.Set   (Set)
-import qualified Data.Set as Set (empty, insert, member)
+import qualified Data.Set as Set (empty, insert, member, union, toList, fromList)
 
 -- Language.C
 import Language.C.Data.Position
@@ -104,7 +105,7 @@ import C2HS.CHS   (CHSFrag(..), CHSHook(..), CHSTrans(..),
 -- | takes an identifier to a lexeme including a potential mapping by a
 -- translation table
 --
-type TransFun = Ident -> String
+type TransFun = Ident -> Maybe String
 
 -- | translation function for the 'underscoreToCase' flag
 --
@@ -144,16 +145,18 @@ downcaseFirstLetter (c:cs) = toLower c : cs
 --   beginning of this file
 --
 transTabToTransFun :: String -> String -> CHSTrans -> TransFun
-transTabToTransFun prefx rprefx (CHSTrans _2Case chgCase table) =
-  \ide -> let
-            caseTrafo = (if _2Case then underscoreToCase else id) .
-                        (case chgCase of
-                           CHSSameCase -> id
-                           CHSUpCase   -> upcaseFirstLetter
-                           CHSDownCase -> downcaseFirstLetter)
-            lexeme = identToString ide
-            dft    = caseTrafo lexeme             -- default uses case trafo
-          in
+transTabToTransFun prefx rprefx (CHSTrans _2Case chgCase table omits) =
+  \ide ->
+  let caseTrafo = (if _2Case then underscoreToCase else id) .
+                  (case chgCase of
+                      CHSSameCase -> id
+                      CHSUpCase   -> upcaseFirstLetter
+                      CHSDownCase -> downcaseFirstLetter)
+      lexeme = identToString ide
+      dft    = caseTrafo lexeme             -- default uses case trafo
+  in if ide `elem` omits
+     then Nothing
+     else Just $
           case lookup ide table of                  -- lookup original ident
             Just ide' -> identToString ide'         -- original ident matches
             Nothing   ->
@@ -213,6 +216,8 @@ data HsObject    = Pointer {
                  deriving (Show, Read)
 type HsObjectMap = Map Ident HsObject
 
+type SizeMap = Map Ident Int
+
 -- | set of Haskell type names corresponding to C enums.
 type EnumSet = Set String
 
@@ -223,16 +228,35 @@ instance Show HsObject where
   show (Class   osuper  pointer  ) =
     "Class " ++ show ptrType ++ show isNewtype
 -}
+
+-- Remove everything until the next element in the list (given by a
+-- ","), the end of the list (marked by "]"), or the end of a record
+-- "}". Everything inside parenthesis is ignored.
+chopIdent :: String -> String
+chopIdent str = goChop 0 str
+    where goChop :: Int -> String -> String
+          goChop 0 rest@('}':_) = rest
+          goChop 0 rest@(',':_) = rest
+          goChop 0 rest@(']':_) = rest
+          goChop level ('(':rest) = goChop (level+1) rest
+          goChop level (')':rest) = goChop (level-1) rest
+          goChop level (_  :rest) = goChop level rest
+          goChop _     [] = []
+
+extractIdent :: String -> (Ident, String)
+extractIdent str =
+    let isQuote c = c == '\'' || c == '"'
+        (ideChars, rest) = span (not . isQuote)
+                           . tail
+                           . dropWhile (not . isQuote) $ str
+    in
+      if null ideChars
+      then error $ "Could not interpret " ++ show str ++ "as an Ident."
+      else (internalIdent ideChars, (chopIdent . tail) rest)
+
 -- super kludgy (depends on Show instance of Ident)
 instance Read Ident where
-  readsPrec _ ('`':lexeme) = let (ideChars, rest) = span (/= '\'') lexeme
-                             in
-                             if null ideChars
-                             then []
-                             else [(internalIdent ideChars, tail rest)]
-  readsPrec p (c:cs)
-    | isSpace c                                              = readsPrec p cs
-  readsPrec _ _                                              = []
+  readsPrec _ str = [extractIdent str]
 
 -- | the local state consists of
 --
@@ -254,6 +278,7 @@ data GBState  = GBState {
   frags     :: [(CHSHook, CHSFrag)], -- delayed code (with hooks)
   ptrmap    :: PointerMap,           -- pointer representation
   objmap    :: HsObjectMap,          -- generated Haskell objects
+  szmap     :: SizeMap,              -- object sizes
   enums     :: EnumSet               -- enumeration hooks
   }
 
@@ -267,6 +292,7 @@ initialGBState  = GBState {
                     frags  = [],
                     ptrmap = Map.empty,
                     objmap = Map.empty,
+                    szmap = Map.empty,
                     enums = Set.empty
                   }
 
@@ -319,6 +345,10 @@ delayCode hook str  =
               && ide   == ide'   -> return frags'
             | otherwise          -> err (posOf ide) (posOf ide')
           Nothing                -> return $ frags' ++ [newEntry]
+      delay hook'@(CHSPointer _ _ _ _ _ _ _ _) frags' =
+        case find (\(hook'', _) -> hook'' == hook') frags' of
+          Just (CHSPointer _ _ _ _ _ _ _ _, _) -> return frags'
+          Nothing                              -> return $ frags' ++ [newEntry]
       delay _ _                                  =
         interr "GBMonad.delayCode: Illegal delay!"
       --
@@ -358,6 +388,21 @@ queryObj        :: Ident -> GB (Maybe HsObject)
 queryObj hsName  = do
                      fm <- readCT objmap
                      return $ Map.lookup hsName fm
+
+-- | add an entry to the size map
+--
+sizeIs :: Ident -> Int -> GB ()
+hsName `sizeIs` sz =
+  transCT (\state -> (state {
+                        szmap = Map.insert hsName sz (szmap state)
+                      }, ()))
+
+-- | query the size map
+--
+querySize       :: Ident -> GB (Maybe Int)
+querySize hsName  = do
+                     sm <- readCT szmap
+                     return $ Map.lookup hsName sm
 
 -- | query the Haskell object map for a class
 --
@@ -401,14 +446,21 @@ mergeMaps     :: String -> GB ()
 mergeMaps str  =
   transCT (\state -> (state {
                         ptrmap = Map.union readPtrMap (ptrmap state),
-                        objmap = Map.union readObjMap (objmap state)
+                        objmap = Map.union readObjMap (objmap state),
+                        enums = Set.union readEnumSet (enums state)
                       }, ()))
   where
-    (ptrAssoc, objAssoc) = read str
+    -- Deal with variant interface file formats (old .chi files don't
+    -- contain the list of enumerations).
+    (ptrAssoc, objAssoc, enumList) =
+      case reads str of
+        [] -> let (ptr, obj) = read str in (ptr, obj, [])
+        [(r, "")] -> r
     readPtrMap           = Map.fromList [((isStar, internalIdent ide), repr)
                                         | ((isStar, ide), repr) <- ptrAssoc]
     readObjMap           = Map.fromList [(internalIdent ide, obj)
                                         | (ide, obj)            <- objAssoc]
+    readEnumSet          = Set.fromList enumList
 
 -- | convert the whole pointer and Haskell object maps into printable form
 --
@@ -416,10 +468,12 @@ dumpMaps :: GB String
 dumpMaps  = do
               ptrFM <- readCT ptrmap
               objFM <- readCT objmap
+              enumS <- readCT enums
               let dumpable = ([((isStar, identToString ide), repr)
                               | ((isStar, ide), repr) <- Map.toList ptrFM],
                               [(identToString ide, obj)
-                              | (ide, obj)            <- Map.toList objFM])
+                              | (ide, obj)            <- Map.toList objFM],
+                              Set.toList enumS)
               return $ show dumpable
 
 -- | query the enum map
@@ -467,4 +521,3 @@ hsObjExpectedErr ide  =
     ["Unknown name!",
      "`" ++ identToString ide ++ "' is unknown; it has *not* been defined by",
      "a previous hook."]
-
