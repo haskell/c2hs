@@ -41,6 +41,7 @@ Extra-Source-Files:
   tests/bugs/call_capital/*.h
   tests/bugs/call_capital/*.c
   tests/bugs/issue-7/*.chs tests/bugs/issue-7/*.h
+  tests/bugs/issue-09/*.chs tests/bugs/issue-09/*.h tests/bugs/issue-09/*.c
   tests/bugs/issue-10/*.chs tests/bugs/issue-10/*.h tests/bugs/issue-10/*.c
   tests/bugs/issue-16/*.chs tests/bugs/issue-16/*.h tests/bugs/issue-16/*.c
   tests/bugs/issue-19/*.chs tests/bugs/issue-19/*.h tests/bugs/issue-19/*.c

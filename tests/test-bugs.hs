@@ -29,7 +29,8 @@ tests :: [Test]
 tests =
   [ testGroup "Bugs"
     [ testCase "call_capital (issue #??)" call_capital
-    , testCase "Issue #7" issue7
+    , testCase "Issue #7" issue07
+    , testCase "Issue #9" issue09
 --    , testCase "Issue #10" issue10
     , testCase "Issue #16" issue16
     , testCase "Issue #19" issue19
@@ -262,8 +263,11 @@ issue16 = build_issue 16
 issue10 :: Assertion
 issue10 = expect_issue 10 ["SAME", "SAME", "SAME"]
 
-issue7 :: Assertion
-issue7 = c2hsShelly $ do
+issue09 :: Assertion
+issue09 = expect_issue 9 ["PTA:8", "AOP:32", "(32, 64)", "64", "OK"]
+
+issue07 :: Assertion
+issue07 = c2hsShelly $ do
   errExit False $ do
       cd "tests/bugs/issue-7"
       mapM_ rm_f ["Issue7.hs", "Issue7.chs.h", "Issue7.chi"]
