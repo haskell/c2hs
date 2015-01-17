@@ -2093,9 +2093,9 @@ sizeAlignOfStruct decls CUnionTag   =
 sizeAlignOfStructPad :: [CDecl] -> CStructTag -> GB (BitSize, Int)
 sizeAlignOfStructPad decls tag =
   do
-    PlatformSpec {bitfieldAlignmentPS = bitfieldAlignment} <- getPlatform
     (size, align) <- sizeAlignOfStruct decls tag
-    return (alignOffset size align bitfieldAlignment, align)
+    let b = CInfo.size CIntPT
+    return (alignOffset size b b, align)
 
 -- | compute the size and alignment constraint of a given C declaration
 --

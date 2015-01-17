@@ -31,7 +31,7 @@ tests =
     [ testCase "call_capital (issue #??)" call_capital
     , testCase "Issue #7" issue07
     , testCase "Issue #9" issue09
---    , testCase "Issue #10" issue10
+    , testCase "Issue #10" issue10
     , testCase "Issue #16" issue16
     , testCase "Issue #19" issue19
     , testCase "Issue #22" issue22
@@ -261,7 +261,7 @@ issue16 :: Assertion
 issue16 = build_issue 16
 
 issue10 :: Assertion
-issue10 = expect_issue 10 ["SAME", "SAME", "SAME"]
+issue10 = expect_issue 10 ["SAME", "SAME", "SAME", "SAME"]
 
 issue09 :: Assertion
 issue09 = expect_issue 9 ["PTA:8", "AOP:32", "(32,64)", "64", "OK"]
