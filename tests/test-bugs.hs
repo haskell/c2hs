@@ -264,7 +264,7 @@ issue10 :: Assertion
 issue10 = expect_issue 10 ["SAME", "SAME", "SAME"]
 
 issue09 :: Assertion
-issue09 = expect_issue 9 ["PTA:8", "AOP:32", "(32, 64)", "64", "OK"]
+issue09 = expect_issue 9 ["PTA:8", "AOP:32", "(32,64)", "64", "OK"]
 
 issue07 :: Assertion
 issue07 = c2hsShelly $ do

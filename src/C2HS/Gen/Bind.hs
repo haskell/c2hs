@@ -2121,8 +2121,20 @@ sizeAlignOf (CDecl dclspec
     return (fromIntegral len `scaleBitSize` bitsize, align)
 sizeAlignOf (CDecl _ [(Just (CDeclr _ (CArrDeclr _ (CNoArrSize _) _ : _) _ _ _), _init, _expr)] _) =
     interr "GenBind.sizeAlignOf: array of undeclared size."
-sizeAlignOf cdecl =
-    sizeAlignOfSingle cdecl
+sizeAlignOf cdecl = do
+  traceAliasCheck
+  case checkForOneAliasName cdecl of
+    Nothing   -> sizeAlignOfSingle cdecl
+    Just ide  -> do                    -- this is a typedef alias
+      traceAlias ide
+      cdecl' <- getDeclOf ide
+      let CDecl specs [(declr, init', _)] at = ide `simplifyDecl` cdecl'
+          sdecl = CDecl specs [(declr, init', Nothing)] at
+      sizeAlignOf sdecl
+  where
+    traceAliasCheck  = traceGenBind $ "extractCompType: checking for alias\n"
+    traceAlias ide = traceGenBind $
+      "extractCompType: found an alias called `" ++ identToString ide ++ "'\n"
 
 
 sizeAlignOfSingle cdecl  =
