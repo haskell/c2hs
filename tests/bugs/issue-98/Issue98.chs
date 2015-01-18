@@ -1,5 +1,6 @@
 module Main where
 
+import Foreign.C.Types
 import Foreign.C.String
 
 #include "issue98.h"

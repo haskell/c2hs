@@ -169,6 +169,12 @@ lookupDftMarshIn hsTy     [PrimET pt] | isIntegralHsType hsTy
 lookupDftMarshIn hsTy     [PrimET pt] | isFloatHsType hsTy
                                       &&isFloatCPrimType pt    =
   return $ Just (Left cFloatConvIde, CHSValArg)
+lookupDftMarshIn "Char" [PrimET CCharPT] =
+  return $ Just (Left castCharToCCharIde, CHSValArg)
+lookupDftMarshIn "Char" [PrimET CUCharPT] =
+  return $ Just (Left castCharToCUCharIde, CHSValArg)
+lookupDftMarshIn "Char" [PrimET CSCharPT] =
+  return $ Just (Left castCharToCSCharIde, CHSValArg)
 lookupDftMarshIn "String" [PtrET (PrimET CCharPT)]             =
   return $ Just (Left withCStringIde, CHSIOArg)
 lookupDftMarshIn "CString" [PtrET (PrimET CCharPT)]             =
@@ -219,6 +225,12 @@ lookupDftMarshOut hsTy     [PrimET pt] | isIntegralHsType hsTy
 lookupDftMarshOut hsTy     [PrimET pt] | isFloatHsType hsTy
                                        &&isFloatCPrimType pt    =
   return $ Just (Left cFloatConvIde, CHSValArg)
+lookupDftMarshOut "Char" [PrimET CCharPT] =
+  return $ Just (Left castCCharToCharIde, CHSValArg)
+lookupDftMarshOut "Char" [PrimET CUCharPT] =
+  return $ Just (Left castCUCharToCharIde, CHSValArg)
+lookupDftMarshOut "Char" [PrimET CSCharPT] =
+  return $ Just (Left castCSCharToCharIde, CHSValArg)
 lookupDftMarshOut "String" [PtrET (PrimET CCharPT)]             =
   return $ Just (Left peekCStringIde, CHSIOArg)
 lookupDftMarshOut "CString" [PtrET (PrimET CCharPT)]             =
@@ -320,19 +332,27 @@ isFloatCPrimType  = (`elem` [CFloatPT, CDoublePT, CLDoublePT])
 --
 voidIde, cFromBoolIde, cToBoolIde, cIntConvIde, cFloatConvIde,
   withCStringIde, peekIde, peekCStringIde, idIde,
-  newForeignPtr_Ide, withForeignPtrIde, returnIde :: Ident
-voidIde           = internalIdent "void"         -- never appears in the output
-cFromBoolIde      = internalIdent "fromBool"
-cToBoolIde        = internalIdent "toBool"
-cIntConvIde       = internalIdent "fromIntegral"
-cFloatConvIde     = internalIdent "realToFrac"
-withCStringIde    = internalIdent "withCString"
-peekIde           = internalIdent "peek"
-peekCStringIde    = internalIdent "peekCString"
-idIde             = internalIdent "id"
-newForeignPtr_Ide = internalIdent "newForeignPtr_"
-withForeignPtrIde = internalIdent "withForeignPtr"
-returnIde         = internalIdent "return"
+  newForeignPtr_Ide, withForeignPtrIde, returnIde,
+  castCharToCCharIde, castCharToCUCharIde, castCharToCSCharIde,
+  castCCharToCharIde, castCUCharToCharIde, castCSCharToCharIde :: Ident
+voidIde             = internalIdent "void"       -- never appears in the output
+cFromBoolIde        = internalIdent "fromBool"
+cToBoolIde          = internalIdent "toBool"
+cIntConvIde         = internalIdent "fromIntegral"
+cFloatConvIde       = internalIdent "realToFrac"
+withCStringIde      = internalIdent "withCString"
+peekIde             = internalIdent "peek"
+peekCStringIde      = internalIdent "peekCString"
+idIde               = internalIdent "id"
+newForeignPtr_Ide   = internalIdent "newForeignPtr_"
+withForeignPtrIde   = internalIdent "withForeignPtr"
+returnIde           = internalIdent "return"
+castCharToCCharIde  = internalIdent "castCharToCChar"
+castCharToCUCharIde = internalIdent "castCharToCUChar"
+castCharToCSCharIde = internalIdent "castCharToCSChar"
+castCCharToCharIde  = internalIdent "castCCharToChar"
+castCUCharToCharIde = internalIdent "castCUCharToChar"
+castCSCharToCharIde = internalIdent "castCSCharToChar"
 
 
 -- expansion of binding hooks
