@@ -65,6 +65,7 @@ tests =
     , testCase "Issue #96" issue96
     , testCase "Issue #97" issue97
     , testCase "Issue #98" issue98
+    , testCase "Issue #102" issue102
     , testCase "Issue #103" issue103
     , testCase "Issue #107" issue107
     , testCase "Issue #113" issue113
@@ -108,6 +109,9 @@ issue103 = c2hsShelly $ chdir "tests/bugs/issue-103" $ do
   res <- absPath "./Issue103" >>= cmd
   let expected = ["1", "2", "3"]
   liftIO $ assertBool "" (T.lines res == expected)
+
+issue102 :: Assertion
+issue102 = hs_only_expect_issue 102 ["TST 1: 1234", "TST 2: 13 47"]
 
 issue98 :: Assertion
 issue98 = build_issue 98
