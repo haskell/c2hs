@@ -569,7 +569,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) _ =
       "** Indirect call hook for `" ++ identToString (apathToIdent apath) ++ "':\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
-expandHook (CHSFun isPure isUns (CHSRoot _ ide)
+expandHook (CHSFun isPure isUns isVar (CHSRoot _ ide)
             oalias ctxt parms parm pos) hkpos =
   do
     traceEnter
@@ -592,7 +592,7 @@ expandHook (CHSFun isPure isUns (CHSRoot _ ide)
   where
     traceEnter = traceGenBind $
       "** Fun hook for `" ++ identToString ide ++ "':\n"
-expandHook (CHSFun isPure isUns apath oalias ctxt parms parm pos) hkpos =
+expandHook (CHSFun isPure isUns isVar apath oalias ctxt parms parm pos) hkpos =
   do
     traceEnter
 

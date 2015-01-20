@@ -241,6 +241,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTok_2Case  Position          -- `underscoreToCase'
               | CHSTokUnsafe  Position          -- `unsafe'
               | CHSTokUpper   Position          -- `upcaseFirstLetter'
+              | CHSTokVariadic Position          -- `variadic'
               | CHSTokWith    Position Ident    -- `with'
               | CHSTokString  Position String   -- string
               | CHSTokHSVerb  Position String   -- verbatim Haskell (`...')
@@ -303,6 +304,7 @@ instance Pos CHSToken where
   posOf (CHSTok_2Case  pos  ) = pos
   posOf (CHSTokUnsafe  pos  ) = pos
   posOf (CHSTokUpper   pos  ) = pos
+  posOf (CHSTokVariadic pos  ) = pos
   posOf (CHSTokWith    pos _) = pos
   posOf (CHSTokString  pos _) = pos
   posOf (CHSTokHSVerb  pos _) = pos
@@ -365,6 +367,7 @@ instance Eq CHSToken where
   (CHSTok_2Case   _  ) == (CHSTok_2Case   _  ) = True
   (CHSTokUnsafe   _  ) == (CHSTokUnsafe   _  ) = True
   (CHSTokUpper    _  ) == (CHSTokUpper    _  ) = True
+  (CHSTokVariadic _  ) == (CHSTokVariadic _  ) = True
   (CHSTokWith     _ _) == (CHSTokWith     _ _) = True
   (CHSTokString   _ _) == (CHSTokString   _ _) = True
   (CHSTokHSVerb   _ _) == (CHSTokHSVerb   _ _) = True
@@ -429,6 +432,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTok_2Case  _  ) = showString "underscoreToCase"
   showsPrec _ (CHSTokUnsafe  _  ) = showString "unsafe"
   showsPrec _ (CHSTokUpper   _  ) = showString "upcaseFirstLetter"
+  showsPrec _ (CHSTokVariadic _  ) = showString "variadic"
   showsPrec _ (CHSTokWith    _ _) = showString "with"
   showsPrec _ (CHSTokString  _ s) = showString ("\"" ++ s ++ "\"")
   showsPrec _ (CHSTokHSVerb  _ s) = showString ("`" ++ s ++ "'")
@@ -779,6 +783,7 @@ identOrKW  =
     idkwtok pos "underscoreToCase" _    = CHSTok_2Case  pos
     idkwtok pos "unsafe"           _    = CHSTokUnsafe  pos
     idkwtok pos "upcaseFirstLetter"_    = CHSTokUpper   pos
+    idkwtok pos "variadic"         _    = CHSTokVariadic pos
     idkwtok pos "with"             name = mkwith pos name
     idkwtok pos cs                 name = mkid pos cs name
     --
@@ -821,6 +826,7 @@ keywordToIdent tok =
     CHSTok_2Case  pos -> mkid pos "underscoreToCase"
     CHSTokUnsafe  pos -> mkid pos "unsafe"
     CHSTokUpper   pos -> mkid pos "upcaseFirstLetter"
+    CHSTokVariadic pos -> mkid pos "variadic"
     CHSTokWith    pos ide -> CHSTokIdent pos ide
     _ -> tok
     where mkid pos str = CHSTokIdent pos (internalIdent str)

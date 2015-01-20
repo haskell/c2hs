@@ -222,6 +222,7 @@ data CHSHook = CHSImport  Bool                  -- qualified?
                           Position
              | CHSFun     Bool                  -- is a pure function?
                           Bool                  -- is unsafe?
+                          Bool                  -- is variadic?
                           CHSAPath              -- C function
                           (Maybe Ident)         -- Haskell name
                           (Maybe String)        -- type context
@@ -250,20 +251,20 @@ data CHSHook = CHSImport  Bool                  -- qualified?
 
 
 instance Pos CHSHook where
-  posOf (CHSImport  _ _ _         pos) = pos
-  posOf (CHSContext _ _ _         pos) = pos
-  posOf (CHSType    _             pos) = pos
-  posOf (CHSSizeof  _             pos) = pos
-  posOf (CHSAlignof _             pos) = pos
-  posOf (CHSEnum    _ _ _ _ _ _ _ pos) = pos
-  posOf (CHSEnumDefine _ _ _      pos) = pos
-  posOf (CHSCall    _ _ _ _       pos) = pos
-  posOf (CHSFun     _ _ _ _ _ _ _ pos) = pos
-  posOf (CHSField   _ _           pos) = pos
-  posOf (CHSOffsetof _            pos) = pos
-  posOf (CHSPointer _ _ _ _ _ _ _ pos) = pos
-  posOf (CHSClass   _ _ _         pos) = pos
-  posOf (CHSConst   _             pos) = pos
+  posOf (CHSImport  _ _ _           pos) = pos
+  posOf (CHSContext _ _ _           pos) = pos
+  posOf (CHSType    _               pos) = pos
+  posOf (CHSSizeof  _               pos) = pos
+  posOf (CHSAlignof _               pos) = pos
+  posOf (CHSEnum    _ _ _ _ _ _ _   pos) = pos
+  posOf (CHSEnumDefine _ _ _        pos) = pos
+  posOf (CHSCall    _ _ _ _         pos) = pos
+  posOf (CHSFun     _ _ _ _ _ _ _ _ pos) = pos
+  posOf (CHSField   _ _             pos) = pos
+  posOf (CHSOffsetof _              pos) = pos
+  posOf (CHSPointer _ _ _ _ _ _ _   pos) = pos
+  posOf (CHSClass   _ _ _           pos) = pos
+  posOf (CHSConst   _               pos) = pos
 
 -- | two hooks are equal if they have the same Haskell name and reference the
 -- same C object
@@ -285,7 +286,7 @@ instance Eq CHSHook where
     ide1 == ide2
   (CHSCall _ _ ide1 oalias1         _) == (CHSCall _ _ ide2 oalias2         _) =
     oalias1 == oalias2 && ide1 == ide2
-  (CHSFun  _ _ ide1 oalias1 _ _ _   _) == (CHSFun _ _ ide2 oalias2 _ _ _    _) =
+  (CHSFun _ _ _ ide1 oalias1 _ _ _ _) == (CHSFun _ _ _ ide2 oalias2 _ _ _ _) =
     oalias1 == oalias2 && ide1 == ide2
   (CHSField acc1 path1              _) == (CHSField acc2 path2              _) =
     acc1 == acc2 && path1 == path2
@@ -563,10 +564,11 @@ showCHSHook (CHSCall isPure isUns ide oalias _) =
   . (if isPure then showString "pure " else id)
   . (if isUns then showString "unsafe " else id)
   . showApAlias ide oalias
-showCHSHook (CHSFun isPure isUns ide oalias octxt parms parm _) =
+showCHSHook (CHSFun isPure isUns isVar ide oalias octxt parms parm _) =
     showString "fun "
   . (if isPure then showString "pure " else id)
   . (if isUns then showString "unsafe " else id)
+  . (if isVar then showString "variadic " else id)
   . showApAlias ide oalias
   . (case octxt of
        Nothing      -> showChar ' '
@@ -1073,16 +1075,17 @@ parseFun hkpos pos inputToks  =
   do
     (isPure  , toks' ) <- parseIsPure          toks
     (isUnsafe, toks'2) <- parseIsUnsafe        toks'
-    (apath   , toks'3) <- parsePath            toks'2
-    (oalias  , toks'4) <- parseOptAs (apathToIdent apath) False toks'3
-    (octxt   , toks'5) <- parseOptContext      toks'4
-    (parms   , toks'6) <- parseParms           toks'5
-    (parm    , toks'7) <- parseParm            toks'6
-    toks'8             <- parseEndHook         toks'7
-    frags              <- parseFrags           toks'8
+    (isVar,    toks'3) <- parseIsVariadic      toks'2
+    (apath   , toks'4) <- parsePath            toks'3
+    (oalias  , toks'5) <- parseOptAs (apathToIdent apath) False toks'4
+    (octxt   , toks'6) <- parseOptContext      toks'5
+    (parms   , toks'7) <- parseParms           toks'6
+    (parm    , toks'8) <- parseParm            toks'7
+    toks'9             <- parseEndHook         toks'8
+    frags              <- parseFrags           toks'9
     return $
       CHSHook
-        (CHSFun isPure isUnsafe apath oalias octxt parms parm pos) hkpos :
+        (CHSFun isPure isUnsafe isVar apath oalias octxt parms parm pos) hkpos :
       frags
   where
     toks = removeIllPositionedComment inputToks
@@ -1138,6 +1141,10 @@ parseIsPure toks                = return (False, toks)
 parseIsUnsafe :: [CHSToken] -> CST s (Bool, [CHSToken])
 parseIsUnsafe (CHSTokUnsafe _:toks) = return (True , toks)
 parseIsUnsafe toks                  = return (False, toks)
+
+parseIsVariadic :: [CHSToken] -> CST s (Bool, [CHSToken])
+parseIsVariadic (CHSTokVariadic _:toks) = return (True , toks)
+parseIsVariadic toks                    = return (False, toks)
 
 apathToIdent :: CHSAPath -> Ident
 apathToIdent (CHSRoot _ ide) =
