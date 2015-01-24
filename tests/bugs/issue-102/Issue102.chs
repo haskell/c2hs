@@ -2,8 +2,8 @@ module Main where
 
 #include <stdio.h>
 
-{#fun variadic printf as printi {`String' -> `Int'} -> `()'#}
-{#fun variadic printf as printi2 {`String' -> `Int' -> `Int'} -> `()'#}
+{#fun variadic printf as printi {`String', `Int'} -> `()'#}
+{#fun variadic printf as printi2 {`String', `Int', `Int'} -> `()'#}
 
 main :: IO ()
 main = do
