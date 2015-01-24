@@ -111,7 +111,7 @@ import Prelude hiding (exp, lookup)
 import Data.Char     (toLower)
 import Data.Function (on)
 import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, nubBy, intercalate)
-import Data.Map      (lookup)
+import Data.Map      (Map, lookup, fromList)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
 import Control.Arrow (second)
@@ -533,7 +533,7 @@ expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) _ =
     let ideLexeme = identToString ide'  -- orignl name might have been a shadow
         hsLexeme  = ideLexeme `maybe` identToString $ oalias
         cdecl'    = ide' `simplifyDecl` cdecl
-    callImport hook isPure isUns ideLexeme hsLexeme cdecl' pos
+    callImport hook isPure isUns [] ideLexeme hsLexeme cdecl' pos
     return hsLexeme
   where
     traceEnter = traceGenBind $
@@ -569,7 +569,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) _ =
       "** Indirect call hook for `" ++ identToString (apathToIdent apath) ++ "':\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
-expandHook (CHSFun isPure isUns isVar (CHSRoot _ ide)
+expandHook (CHSFun isPure isUns isVar inVarTypes (CHSRoot _ ide)
             oalias ctxt parms parm pos) hkpos =
   do
     traceEnter
@@ -585,14 +585,18 @@ expandHook (CHSFun isPure isUns isVar (CHSRoot _ ide)
         fiIde     = internalIdent fiLexeme
         cdecl'    = cide `simplifyDecl` cdecl
         callHook  = CHSCall isPure isUns (CHSRoot False cide) (Just fiIde) pos
-    callImport callHook isPure isUns (identToString cide) fiLexeme cdecl' pos
+    varTypes <- mapM (convertVarType pos) inVarTypes
+    callImport callHook isPure isUns varTypes (identToString cide)
+      fiLexeme cdecl' pos
 
     extTy <- extractFunType pos cdecl' True
-    funDef isPure hsLexeme fiLexeme extTy ctxt parms parm Nothing pos hkpos
+    funDef isPure hsLexeme fiLexeme extTy varTypes
+      ctxt parms parm Nothing pos hkpos
   where
     traceEnter = traceGenBind $
       "** Fun hook for `" ++ identToString ide ++ "':\n"
-expandHook (CHSFun isPure isUns isVar apath oalias ctxt parms parm pos) hkpos =
+expandHook (CHSFun isPure isUns isVar varTypes
+            apath oalias ctxt parms parm pos) hkpos =
   do
     traceEnter
 
@@ -619,7 +623,7 @@ expandHook (CHSFun isPure isUns isVar apath oalias ctxt parms parm pos) hkpos =
     callImportDyn callHook isPure isUns ideLexeme fiLexeme decl ty pos
 
     set_get <- setGet pos CHSGet offsets False ptrTy Nothing
-    funDef isPure hsLexeme fiLexeme (FunET ptrTy $ purify ty)
+    funDef isPure hsLexeme fiLexeme (FunET ptrTy $ purify ty) []
                   ctxt parms parm (Just set_get) pos hkpos
   where
     -- remove IO from the result type of a function ExtType.  necessary
@@ -943,18 +947,17 @@ enumInst ident list' = intercalate "\n"
 -- * the C declaration is a simplified declaration of the function that we
 --   want to import into Haskell land
 --
-callImport :: CHSHook -> Bool -> Bool -> String -> String -> CDecl -> Position
-           -> GB ()
-callImport hook isPure isUns ideLexeme hsLexeme cdecl pos =
+callImport :: CHSHook -> Bool -> Bool -> [ExtType] -> String ->
+              String -> CDecl -> Position -> GB ()
+callImport hook isPure isUns varTypes ideLexeme hsLexeme cdecl pos =
   do
     -- compute the external type from the declaration, and delay the foreign
     -- export declaration
     --
     extType <- extractFunType pos cdecl isPure
     header  <- getSwitch headerSB
-    when (isVariadic extType) (variadicErr pos (posOf cdecl))
     delayCode hook (foreignImport (extractCallingConvention cdecl)
-                    header ideLexeme hsLexeme isUns extType)
+                    header ideLexeme hsLexeme isUns extType varTypes)
     traceFunType extType
   where
     traceFunType et = traceGenBind $
@@ -977,11 +980,12 @@ callImportDyn hook _isPure isUns ideLexeme hsLexeme cdecl ty pos =
 
 -- | Haskell code for the foreign import declaration needed by a call hook
 --
-foreignImport :: CallingConvention -> String -> String -> String -> Bool -> ExtType -> String
-foreignImport cconv header ident hsIdent isUnsafe ty  =
+foreignImport :: CallingConvention -> String -> String -> String -> Bool ->
+                 ExtType -> [ExtType] -> String
+foreignImport cconv header ident hsIdent isUnsafe ty vas =
   "foreign import " ++ showCallingConvention cconv ++ " " ++ safety
   ++ " " ++ show entity ++
-  "\n  " ++ hsIdent ++ " :: " ++ showExtType ty ++ "\n"
+  "\n  " ++ hsIdent ++ " :: " ++ showExtFunType ty vas ++ "\n"
   where
     safety = if isUnsafe then "unsafe" else "safe"
     entity | null header = ident
@@ -1011,6 +1015,7 @@ funDef :: Bool               -- pure function?
        -> String             -- name of the new Haskell function
        -> String             -- Haskell name of the foreign imported C function
        -> ExtType            -- simplified declaration of the C function
+       -> [ExtType]          -- simplified declaration of the C function
        -> Maybe String       -- type context of the new Haskell function
        -> [CHSParm]          -- parameter marshalling description
        -> CHSParm            -- result marshalling description
@@ -1018,11 +1023,11 @@ funDef :: Bool               -- pure function?
        -> Position           -- source location of the hook
        -> Position           -- source location of the start of the hook
        -> GB String          -- Haskell code in text form
-funDef isPure hsLexeme fiLexeme extTy octxt parms
+funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
        parm@(CHSParm _ hsParmTy _ _ _ _) marsh2 pos hkpos =
   do
     when (countPlus parms > 1 || isPlus parm) $ illegalPlusErr pos
-    (parms', parm', isImpure) <- addDftMarshaller pos parms parm extTy
+    (parms', parm', isImpure) <- addDftMarshaller pos parms parm extTy varExtTys
 
     traceMarsh parms' parm' isImpure
     marshs <- zipWithM marshArg [1..] parms'
@@ -1191,10 +1196,10 @@ funDef isPure hsLexeme fiLexeme extTy octxt parms
 
 -- | add default marshallers for "in" and "out" marshalling
 --
-addDftMarshaller :: Position -> [CHSParm] -> CHSParm -> ExtType
+addDftMarshaller :: Position -> [CHSParm] -> CHSParm -> ExtType -> [ExtType]
                  -> GB ([CHSParm], CHSParm, Bool)
-addDftMarshaller pos parms parm extTy = do
-  let (resTy, argTys)  = splitFunTy extTy
+addDftMarshaller pos parms parm extTy varExTys = do
+  let (resTy, argTys)  = splitFunTy extTy varExTys
   (parm' , isImpure1) <- checkResMarsh parm resTy
   (parms', isImpure2) <- addDft parms argTys
   return (parms', parm', isImpure1 || isImpure2)
@@ -1213,12 +1218,12 @@ addDftMarshaller pos parms parm extTy = do
       (omMarsh', isImpure) <- addDftOut pos' omMarsh ty [cTy]
       return (CHSParm imMarsh' ty False omMarsh' pos' c, isImpure)
     --
-    splitFunTy (FunET UnitET ty ) = splitFunTy ty
-    splitFunTy (FunET ty1    ty2) = let
-                                      (resTy, argTys) = splitFunTy ty2
-                                    in
-                                    (resTy, ty1:argTys)
-    splitFunTy resTy              = (resTy, [])
+    splitFunTy (FunET UnitET ty) vts = splitFunTy ty vts
+    splitFunTy (FunET ty1 ty2) vts = let (resTy, argTys) = splitFunTy ty2 vts
+                                   in (resTy, ty1:argTys)
+    splitFunTy (VarFunET ty2) vts = let (resTy, argTys) = splitFunTy ty2 []
+                                    in (resTy, argTys ++ vts)
+    splitFunTy resTy _ = (resTy, [])
     --
     -- match Haskell with C arguments (and results)
     --
@@ -1693,6 +1698,16 @@ showExtType (PrimET (CSFieldPT bs)) = "CInt{-:" ++ show bs ++ "-}"
 showExtType (PrimET (CUFieldPT bs)) = "CUInt{-:" ++ show bs ++ "-}"
 showExtType UnitET                  = "()"
 
+showExtFunType :: ExtType -> [ExtType] -> String
+showExtFunType (FunET UnitET res) _ = showExtType res
+showExtFunType (FunET arg res) vas =
+  "(" ++ showExtType arg ++ " -> " ++ showExtFunType res vas ++ ")"
+showExtFunType (VarFunET res) [] = showExtFunType res []
+showExtFunType t@(VarFunET res) (va:vas) =
+  "(" ++ showExtType va ++ " -> " ++ showExtFunType t vas ++ ")"
+showExtFunType (IOET t) vas = "(IO " ++ showExtFunType t vas ++ ")"
+showExtFunType t _ = showExtType t
+
 -- | compute the type of the C function declared by the given C object
 --
 -- * the identifier specifies in which of the declarators we are interested
@@ -1908,6 +1923,29 @@ typeMap  = [([void]                      , UnitET           ),
              signed   = CSignedType undefined
              unsigned = CUnsigType  undefined
              enum     = CEnumType   undefined undefined
+
+typeNameMap :: Map String CTypeSpec
+typeNameMap = fromList [ ("void",     CVoidType   undefined)
+                       , ("char",     CCharType   undefined)
+                       , ("short",    CShortType  undefined)
+                       , ("int",      CIntType    undefined)
+                       , ("long",     CLongType   undefined)
+                       , ("float",    CFloatType  undefined)
+                       , ("double",   CDoubleType undefined)
+                       , ("signed",   CSignedType undefined)
+                       , ("unsigned", CUnsigType  undefined)
+                       , ("enum",     CEnumType   undefined undefined) ]
+
+convertVarType :: Position -> [String] -> GB ExtType
+convertVarType pos ts = do
+  let mtns = map (flip lookup typeNameMap) ts
+  case any isNothing mtns of
+    True -> variadicTypeErr pos
+    False -> do
+      st <- specType pos (map (CTypeSpec . fromJust) mtns) Nothing
+      case st of
+        ExtType et -> return et
+        _ -> variadicTypeErr pos
 
 -- | compute the complex (external) type determined by a list of type specifiers
 --
@@ -2477,6 +2515,12 @@ variadicErr pos cpos  =
     ["Variadic function!",
      "Calling variadic functions is not supported by the FFI; the function",
      "is defined at " ++ show cpos ++ "."]
+
+variadicTypeErr          :: Position -> GB a
+variadicTypeErr pos  =
+  raiseErrorCTExc pos
+    ["Variadic function argument type!",
+     "Calling variadic functions is only supported for simple C types"]
 
 illegalPlusErr       :: Position -> GB a
 illegalPlusErr pos  =

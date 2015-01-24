@@ -223,6 +223,7 @@ data CHSHook = CHSImport  Bool                  -- qualified?
              | CHSFun     Bool                  -- is a pure function?
                           Bool                  -- is unsafe?
                           Bool                  -- is variadic?
+                          [[String]]            -- variadic C parameter types
                           CHSAPath              -- C function
                           (Maybe Ident)         -- Haskell name
                           (Maybe String)        -- type context
@@ -251,20 +252,20 @@ data CHSHook = CHSImport  Bool                  -- qualified?
 
 
 instance Pos CHSHook where
-  posOf (CHSImport  _ _ _           pos) = pos
-  posOf (CHSContext _ _ _           pos) = pos
-  posOf (CHSType    _               pos) = pos
-  posOf (CHSSizeof  _               pos) = pos
-  posOf (CHSAlignof _               pos) = pos
-  posOf (CHSEnum    _ _ _ _ _ _ _   pos) = pos
-  posOf (CHSEnumDefine _ _ _        pos) = pos
-  posOf (CHSCall    _ _ _ _         pos) = pos
-  posOf (CHSFun     _ _ _ _ _ _ _ _ pos) = pos
-  posOf (CHSField   _ _             pos) = pos
-  posOf (CHSOffsetof _              pos) = pos
-  posOf (CHSPointer _ _ _ _ _ _ _   pos) = pos
-  posOf (CHSClass   _ _ _           pos) = pos
-  posOf (CHSConst   _               pos) = pos
+  posOf (CHSImport  _ _ _             pos) = pos
+  posOf (CHSContext _ _ _             pos) = pos
+  posOf (CHSType    _                 pos) = pos
+  posOf (CHSSizeof  _                 pos) = pos
+  posOf (CHSAlignof _                 pos) = pos
+  posOf (CHSEnum    _ _ _ _ _ _ _     pos) = pos
+  posOf (CHSEnumDefine _ _ _          pos) = pos
+  posOf (CHSCall    _ _ _ _           pos) = pos
+  posOf (CHSFun     _ _ _ _ _ _ _ _ _ pos) = pos
+  posOf (CHSField   _ _               pos) = pos
+  posOf (CHSOffsetof _                pos) = pos
+  posOf (CHSPointer _ _ _ _ _ _ _     pos) = pos
+  posOf (CHSClass   _ _ _             pos) = pos
+  posOf (CHSConst   _                 pos) = pos
 
 -- | two hooks are equal if they have the same Haskell name and reference the
 -- same C object
@@ -286,8 +287,8 @@ instance Eq CHSHook where
     ide1 == ide2
   (CHSCall _ _ ide1 oalias1         _) == (CHSCall _ _ ide2 oalias2         _) =
     oalias1 == oalias2 && ide1 == ide2
-  (CHSFun _ _ _ ide1 oalias1 _ _ _ _) == (CHSFun _ _ _ ide2 oalias2 _ _ _ _) =
-    oalias1 == oalias2 && ide1 == ide2
+  (CHSFun _ _ _ _ ide1 oalias1 _ _ _ _) ==
+    (CHSFun _ _ _ _ ide2 oalias2 _ _ _ _) = oalias1 == oalias2 && ide1 == ide2
   (CHSField acc1 path1              _) == (CHSField acc2 path2              _) =
     acc1 == acc2 && path1 == path2
   (CHSOffsetof path1                _) == (CHSOffsetof path2                _) =
@@ -564,12 +565,12 @@ showCHSHook (CHSCall isPure isUns ide oalias _) =
   . (if isPure then showString "pure " else id)
   . (if isUns then showString "unsafe " else id)
   . showApAlias ide oalias
-showCHSHook (CHSFun isPure isUns isVar ide oalias octxt parms parm _) =
+showCHSHook (CHSFun isPure isUns isVar varTypes ide oalias octxt parms parm _) =
     showString "fun "
   . (if isPure then showString "pure " else id)
   . (if isUns then showString "unsafe " else id)
   . (if isVar then showString "variadic " else id)
-  . showApAlias ide oalias
+  . showFunAlias ide varTypes oalias
   . (case octxt of
        Nothing      -> showChar ' '
        Just ctxtStr -> showString ctxtStr . showString " => ")
@@ -644,6 +645,21 @@ showApAlias apath oalias  =
   . (case oalias of
        Nothing  -> id
        Just ide -> showString " as " . showCHSIdent ide)
+
+showFunAlias            :: CHSAPath -> [[String]] -> Maybe Ident -> ShowS
+showFunAlias apath vas oalias  =
+    showCHSAPath apath
+  . (if null vas
+     then showString ""
+     else showString "("
+          . foldr (.) id (intersperse (showString ", ") (map showDecl vas))
+          . showString ")")
+  . (case oalias of
+       Nothing  -> id
+       Just ide -> showString " as " . showCHSIdent ide)
+
+showDecl :: [String] -> ShowS
+showDecl is = foldr (.) id (intersperse (showString " ") (map showString is))
 
 showCHSParm                                                :: CHSParm -> ShowS
 showCHSParm CHSPlusParm = showChar '+'
@@ -1077,15 +1093,17 @@ parseFun hkpos pos inputToks  =
     (isUnsafe, toks'2) <- parseIsUnsafe        toks'
     (isVar,    toks'3) <- parseIsVariadic      toks'2
     (apath   , toks'4) <- parsePath            toks'3
-    (oalias  , toks'5) <- parseOptAs (apathToIdent apath) False toks'4
-    (octxt   , toks'6) <- parseOptContext      toks'5
-    (parms   , toks'7) <- parseParms           toks'6
-    (parm    , toks'8) <- parseParm            toks'7
-    toks'9             <- parseEndHook         toks'8
-    frags              <- parseFrags           toks'9
+    (varTypes, toks'5) <- parseVarTypes        toks'4
+    (oalias  , toks'6) <- parseOptAs (apathToIdent apath) False toks'5
+    (octxt   , toks'7) <- parseOptContext      toks'6
+    (parms   , toks'8) <- parseParms           toks'7
+    (parm    , toks'9) <- parseParm            toks'8
+    toks'10            <- parseEndHook         toks'9
+    frags              <- parseFrags           toks'10
     return $
       CHSHook
-        (CHSFun isPure isUnsafe isVar apath oalias octxt parms parm pos) hkpos :
+        (CHSFun isPure isUnsafe isVar varTypes
+         apath oalias octxt parms parm pos) hkpos :
       frags
   where
     toks = removeIllPositionedComment inputToks
@@ -1093,6 +1111,21 @@ parseFun hkpos pos inputToks  =
       return (Just ctxt, toks')
     parseOptContext toks'                                      =
       return (Nothing  , toks')
+    --
+    parseVarTypes (CHSTokLParen _:CHSTokIdent _ i:toks') = do
+      (is, toks'2) <- parseVarTypes'' toks'
+      (ts, toks'3) <- parseVarTypes' toks'2
+      return ((identToString i:is):ts, toks'3)
+    parseVarTypes toks' = return ([], toks')
+    parseVarTypes' (CHSTokRParen _:toks') = return ([], toks')
+    parseVarTypes' (CHSTokComma _:CHSTokIdent _ i:toks') = do
+      (is, toks'2) <- parseVarTypes'' toks'
+      (ts, toks'3) <- parseVarTypes' toks'2
+      return ((identToString i:is):ts, toks'3)
+    parseVarTypes'' (CHSTokIdent _ i:toks') = do
+      (is, toks'2) <- parseVarTypes'' toks'
+      return (identToString i:is, toks'2)
+    parseVarTypes'' toks' = return ([], toks')
     --
     parseParms (CHSTokLBrace _:CHSTokRBrace _:CHSTokArrow _:toks') =
       return ([], toks')

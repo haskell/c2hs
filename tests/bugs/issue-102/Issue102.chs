@@ -1,9 +1,13 @@
 module Main where
 
+import Foreign.Ptr
+import Foreign.C.Types
+import Foreign.C.String
+
 #include <stdio.h>
 
-{#fun variadic printf as printi {`String', `Int'} -> `()'#}
-{#fun variadic printf as printi2 {`String', `Int', `Int'} -> `()'#}
+{#fun variadic printf(int) as printi {`String', `Int'} -> `()'#}
+{#fun variadic printf(int, int) as printi2 {`String', `Int', `Int'} -> `()'#}
 
 main :: IO ()
 main = do
