@@ -1,3 +1,9 @@
+0.22.1
+ - First (not very good) implementation of support for variadic
+   functions [#102]
+ - Default marshallers for Char types [#98]
+ - Improve sizeof computations [#9, #10]
+
 0.21.1
  - Parametrized pointer types in pointer hooks [#36]
  - Special "+" parameters for efficient foreign pointer marshalling [#46]
