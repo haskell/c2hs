@@ -223,7 +223,7 @@ data CHSHook = CHSImport  Bool                  -- qualified?
              | CHSFun     Bool                  -- is a pure function?
                           Bool                  -- is unsafe?
                           Bool                  -- is variadic?
-                          [[String]]            -- variadic C parameter types
+                          [String]              -- variadic C parameter types
                           CHSAPath              -- C function
                           (Maybe Ident)         -- Haskell name
                           (Maybe String)        -- type context
@@ -646,20 +646,17 @@ showApAlias apath oalias  =
        Nothing  -> id
        Just ide -> showString " as " . showCHSIdent ide)
 
-showFunAlias            :: CHSAPath -> [[String]] -> Maybe Ident -> ShowS
+showFunAlias            :: CHSAPath -> [String] -> Maybe Ident -> ShowS
 showFunAlias apath vas oalias  =
     showCHSAPath apath
   . (if null vas
      then showString ""
      else showString "("
-          . foldr (.) id (intersperse (showString ", ") (map showDecl vas))
+          . foldr (.) id (intersperse (showString ", ") (map showString vas))
           . showString ")")
   . (case oalias of
        Nothing  -> id
        Just ide -> showString " as " . showCHSIdent ide)
-
-showDecl :: [String] -> ShowS
-showDecl is = foldr (.) id (intersperse (showString " ") (map showString is))
 
 showCHSParm                                                :: CHSParm -> ShowS
 showCHSParm CHSPlusParm = showChar '+'
@@ -1115,17 +1112,42 @@ parseFun hkpos pos inputToks  =
     parseVarTypes (CHSTokLParen _:CHSTokIdent _ i:toks') = do
       (is, toks'2) <- parseVarTypes'' toks'
       (ts, toks'3) <- parseVarTypes' toks'2
-      return ((identToString i:is):ts, toks'3)
+      return ((identToString i ++ " " ++ is):ts, toks'3)
+    parseVarTypes (CHSTokLParen _:CHSTokConst _:toks') = do
+      (is, toks'2) <- parseVarTypes'' toks'
+      (ts, toks'3) <- parseVarTypes' toks'2
+      return (("const " ++ is):ts, toks'3)
+    parseVarTypes (CHSTokLParen _:CHSTokStruct _:toks') = do
+      (is, toks'2) <- parseVarTypes'' toks'
+      (ts, toks'3) <- parseVarTypes' toks'2
+      return (("struct " ++ is):ts, toks'3)
     parseVarTypes toks' = return ([], toks')
     parseVarTypes' (CHSTokRParen _:toks') = return ([], toks')
     parseVarTypes' (CHSTokComma _:CHSTokIdent _ i:toks') = do
       (is, toks'2) <- parseVarTypes'' toks'
       (ts, toks'3) <- parseVarTypes' toks'2
-      return ((identToString i:is):ts, toks'3)
+      return ((identToString i ++ " " ++ is):ts, toks'3)
+    parseVarTypes' (CHSTokComma _:CHSTokConst _:toks') = do
+      (is, toks'2) <- parseVarTypes'' toks'
+      (ts, toks'3) <- parseVarTypes' toks'2
+      return (("const " ++ is):ts, toks'3)
+    parseVarTypes' (CHSTokComma _:CHSTokStruct _:toks') = do
+      (is, toks'2) <- parseVarTypes'' toks'
+      (ts, toks'3) <- parseVarTypes' toks'2
+      return (("struct " ++ is):ts, toks'3)
     parseVarTypes'' (CHSTokIdent _ i:toks') = do
       (is, toks'2) <- parseVarTypes'' toks'
-      return (identToString i:is, toks'2)
-    parseVarTypes'' toks' = return ([], toks')
+      return (identToString i ++ " " ++ is, toks'2)
+    parseVarTypes'' (CHSTokConst _:toks') = do
+      (is, toks'2) <- parseVarTypes'' toks'
+      return ("const " ++ is, toks'2)
+    parseVarTypes'' (CHSTokStruct _:toks') = do
+      (is, toks'2) <- parseVarTypes'' toks'
+      return ("struct " ++ is, toks'2)
+    parseVarTypes'' (CHSTokStar _:toks') = do
+      (is, toks'2) <- parseVarTypes'' toks'
+      return ("* " ++ is, toks'2)
+    parseVarTypes'' toks' = return ("", toks')
     --
     parseParms (CHSTokLBrace _:CHSTokRBrace _:CHSTokArrow _:toks') =
       return ([], toks')

@@ -207,7 +207,7 @@ ghFrag (_frag@(CHSHook (CHSConst cident pos) hkpos) : frags) =
   where
   newConstIdent =
     liftM internalIdent $ transCST $
-    \supply -> (tail supply, "c2hs__const__" ++ show (nameId $ head supply))
+    \supply -> (tail supply, "__c2hs__const__" ++ show (nameId $ head supply))
   constDef ide =
     -- This is a little nasty.  We write a definition of an *integer*
     -- C value into the header, regardless of what type it really

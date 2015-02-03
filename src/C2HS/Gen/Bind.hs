@@ -574,6 +574,7 @@ expandHook (CHSFun isPure isUns isVar inVarTypes (CHSRoot _ ide)
   do
     traceEnter
     traceGenBind $ "ide = '" ++ show ide ++ "'\n"
+    traceGenBind $ "inVarTypes = " ++ show inVarTypes ++ "\n"
     -- get the corresponding C declaration; raises error if not found or not a
     -- function; we use shadow identifiers, so the returned identifier is used
     -- afterwards instead of the original one
@@ -1936,9 +1937,9 @@ typeNameMap = fromList [ ("void",     CVoidType   undefined)
                        , ("unsigned", CUnsigType  undefined)
                        , ("enum",     CEnumType   undefined undefined) ]
 
-convertVarType :: Position -> [String] -> GB ExtType
-convertVarType pos ts = do
-  let mtns = map (flip lookup typeNameMap) ts
+convertVarType :: Position -> String -> GB ExtType
+convertVarType pos t = do
+  let mtns = map (flip lookup typeNameMap) ["int"]
   case any isNothing mtns of
     True -> variadicTypeErr pos
     False -> do
