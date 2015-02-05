@@ -7,16 +7,16 @@ import Foreign.C.String
 #include <stdio.h>
 #include <fcntl.h>
 
-{#fun variadic printf(int) as printi {`String', `Int'} -> `()'#}
-{#fun variadic printf(int, int) as printi2 {`String', `Int', `Int'} -> `()'#}
-{#fun variadic printf(const char *) as prints {`String', `String'} -> `()'#}
+{#fun variadic printf[int] as printi {`String', `Int'} -> `()'#}
+{#fun variadic printf[int, int] as printi2 {`String', `Int', `Int'} -> `()'#}
+{#fun variadic printf[const char *] as prints {`String', `String'} -> `()'#}
 
 {#enum define FCntlAction {F_GETLK as GetLock, F_SETLK as SetLock}
           deriving (Eq, Ord)#}
 {#pointer *flock as FLock#}
-{#fun variadic fcntl(struct flock *) as
+{#fun variadic fcntl[struct flock *] as
          f_get_lock {`Int', `Int', `FLock'} -> `Int'#}
-{#fun variadic fcntl(struct flock *) as
+{#fun variadic fcntl[struct flock *] as
          f_set_lock {`Int', `Int', `FLock'} -> `Int'#}
 
 main :: IO ()

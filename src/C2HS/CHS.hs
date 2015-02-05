@@ -651,9 +651,9 @@ showFunAlias apath vas oalias  =
     showCHSAPath apath
   . (if null vas
      then showString ""
-     else showString "("
+     else showString "["
           . foldr (.) id (intersperse (showString ", ") (map showString vas))
-          . showString ")")
+          . showString "]")
   . (case oalias of
        Nothing  -> id
        Just ide -> showString " as " . showCHSIdent ide)
@@ -1109,45 +1109,14 @@ parseFun hkpos pos inputToks  =
     parseOptContext toks'                                      =
       return (Nothing  , toks')
     --
-    parseVarTypes (CHSTokLParen _:CHSTokIdent _ i:toks') = do
-      (is, toks'2) <- parseVarTypes'' toks'
-      (ts, toks'3) <- parseVarTypes' toks'2
-      return ((identToString i ++ " " ++ is):ts, toks'3)
-    parseVarTypes (CHSTokLParen _:CHSTokConst _:toks') = do
-      (is, toks'2) <- parseVarTypes'' toks'
-      (ts, toks'3) <- parseVarTypes' toks'2
-      return (("const " ++ is):ts, toks'3)
-    parseVarTypes (CHSTokLParen _:CHSTokStruct _:toks') = do
-      (is, toks'2) <- parseVarTypes'' toks'
-      (ts, toks'3) <- parseVarTypes' toks'2
-      return (("struct " ++ is):ts, toks'3)
+    parseVarTypes (CHSTokLBrack _:CHSTokCArg _ t:toks') = do
+      (ts, toks'2) <- parseVarTypes' toks'
+      return (t:ts, toks'2)
     parseVarTypes toks' = return ([], toks')
-    parseVarTypes' (CHSTokRParen _:toks') = return ([], toks')
-    parseVarTypes' (CHSTokComma _:CHSTokIdent _ i:toks') = do
-      (is, toks'2) <- parseVarTypes'' toks'
-      (ts, toks'3) <- parseVarTypes' toks'2
-      return ((identToString i ++ " " ++ is):ts, toks'3)
-    parseVarTypes' (CHSTokComma _:CHSTokConst _:toks') = do
-      (is, toks'2) <- parseVarTypes'' toks'
-      (ts, toks'3) <- parseVarTypes' toks'2
-      return (("const " ++ is):ts, toks'3)
-    parseVarTypes' (CHSTokComma _:CHSTokStruct _:toks') = do
-      (is, toks'2) <- parseVarTypes'' toks'
-      (ts, toks'3) <- parseVarTypes' toks'2
-      return (("struct " ++ is):ts, toks'3)
-    parseVarTypes'' (CHSTokIdent _ i:toks') = do
-      (is, toks'2) <- parseVarTypes'' toks'
-      return (identToString i ++ " " ++ is, toks'2)
-    parseVarTypes'' (CHSTokConst _:toks') = do
-      (is, toks'2) <- parseVarTypes'' toks'
-      return ("const " ++ is, toks'2)
-    parseVarTypes'' (CHSTokStruct _:toks') = do
-      (is, toks'2) <- parseVarTypes'' toks'
-      return ("struct " ++ is, toks'2)
-    parseVarTypes'' (CHSTokStar _:toks') = do
-      (is, toks'2) <- parseVarTypes'' toks'
-      return ("* " ++ is, toks'2)
-    parseVarTypes'' toks' = return ("", toks')
+    parseVarTypes' (CHSTokRBrack _:toks') = return ([], toks')
+    parseVarTypes' (CHSTokComma _:CHSTokCArg _ t:toks') = do
+      (ts, toks'2) <- parseVarTypes' toks'
+      return (t:ts, toks'2)
     --
     parseParms (CHSTokLBrace _:CHSTokRBrace _:CHSTokArrow _:toks') =
       return ([], toks')

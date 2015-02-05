@@ -173,7 +173,7 @@ module C2HS.CHS.Lexer (CHSToken(..), lexCHS, keywordToIdent)
 where
 
 import Data.List     ((\\))
-import Data.Char     (isDigit)
+import Data.Char     (isDigit, isSpace)
 
 import Language.C.Data.Ident
 import Language.C.Data.Name
@@ -206,6 +206,8 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokRBrace  Position          -- `}'
               | CHSTokLParen  Position          -- `('
               | CHSTokRParen  Position          -- `)'
+              | CHSTokLBrack  Position          -- `['
+              | CHSTokRBrack  Position          -- `]'
               | CHSTokHook    Position          -- `{#'
               | CHSTokEndHook Position          -- `#}'
               | CHSTokAdd     Position          -- `add'
@@ -254,6 +256,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokCtrl    Position Char     -- control code
               | CHSTokComment Position String   -- comment
               | CHSTokCIdentTail Position Ident -- C identifier without prefix
+              | CHSTokCArg Position String      -- C type argument
 
 instance Pos CHSToken where
   posOf (CHSTokArrow   pos  ) = pos
@@ -269,6 +272,8 @@ instance Pos CHSToken where
   posOf (CHSTokRBrace  pos  ) = pos
   posOf (CHSTokLParen  pos  ) = pos
   posOf (CHSTokRParen  pos  ) = pos
+  posOf (CHSTokLBrack  pos  ) = pos
+  posOf (CHSTokRBrack  pos  ) = pos
   posOf (CHSTokHook    pos  ) = pos
   posOf (CHSTokEndHook pos  ) = pos
   posOf (CHSTokAdd     pos  ) = pos
@@ -317,6 +322,7 @@ instance Pos CHSToken where
   posOf (CHSTokCtrl    pos _) = pos
   posOf (CHSTokComment pos _) = pos
   posOf (CHSTokCIdentTail pos _) = pos
+  posOf (CHSTokCArg    pos _) = pos
 
 instance Eq CHSToken where
   (CHSTokArrow    _  ) == (CHSTokArrow    _  ) = True
@@ -332,6 +338,8 @@ instance Eq CHSToken where
   (CHSTokRBrace   _  ) == (CHSTokRBrace   _  ) = True
   (CHSTokLParen   _  ) == (CHSTokLParen   _  ) = True
   (CHSTokRParen   _  ) == (CHSTokRParen   _  ) = True
+  (CHSTokLBrack   _  ) == (CHSTokLBrack   _  ) = True
+  (CHSTokRBrack   _  ) == (CHSTokRBrack   _  ) = True
   (CHSTokHook     _  ) == (CHSTokHook     _  ) = True
   (CHSTokEndHook  _  ) == (CHSTokEndHook  _  ) = True
   (CHSTokAdd      _  ) == (CHSTokAdd      _  ) = True
@@ -380,6 +388,7 @@ instance Eq CHSToken where
   (CHSTokCtrl     _ _) == (CHSTokCtrl     _ _) = True
   (CHSTokComment  _ _) == (CHSTokComment  _ _) = True
   (CHSTokCIdentTail _ _) == (CHSTokCIdentTail _ _) = True
+  (CHSTokCArg     _ _) == (CHSTokCArg     _ _) = True
   _                    == _                    = False
 
 instance Show CHSToken where
@@ -397,6 +406,8 @@ instance Show CHSToken where
   showsPrec _ (CHSTokRBrace  _  ) = showString "}"
   showsPrec _ (CHSTokLParen  _  ) = showString "("
   showsPrec _ (CHSTokRParen  _  ) = showString ")"
+  showsPrec _ (CHSTokLBrack  _  ) = showString "["
+  showsPrec _ (CHSTokRBrack  _  ) = showString "]"
   showsPrec _ (CHSTokHook    _  ) = showString "{#"
   showsPrec _ (CHSTokEndHook _  ) = showString "#}"
   showsPrec _ (CHSTokAdd     _  ) = showString "add"
@@ -447,6 +458,7 @@ instance Show CHSToken where
                                                 then ""
                                                 else " --" ++ s ++ "\n")
   showsPrec _ (CHSTokCIdentTail _ i) = (showString . identToString) i
+  showsPrec _ (CHSTokCArg    _ s) = showString s
 
 -- lexer state
 -- -----------
@@ -701,6 +713,7 @@ bhLexer  =      identOrKW
            >||< hsverb
            >||< hsquot
            >||< whitespace
+           >||< arglist
            >||< endOfHook
            >||< string "--" +> anyButNL`star` epsilon  -- comment
                 `lexaction` \cs pos -> Just (CHSTokComment pos (drop 2 cs))
@@ -710,6 +723,24 @@ bhLexer  =      identOrKW
                          `lexmeta`
                           \_ pos s -> (Just $ Right (CHSTokEndHook pos),
                                        incPos pos 2, s, Just chslexer)
+             arglist = string "["
+                       `lexmeta` \_ pos s -> (Just $ Right (CHSTokLBrack pos),
+                                              incPos pos 1, s, Just alLexer)
+
+-- | lexer for C function types for variadic functions
+--
+alLexer :: CHSLexer
+alLexer =      sym ","  CHSTokComma
+          >||< endOfArgList
+          >||< cArg
+  where sym cs con = string cs `lexaction` \_ pos -> Just (con pos)
+        endOfArgList = string "]"
+                       `lexmeta`
+                       \_ pos s -> (Just $ Right (CHSTokRBrack pos),
+                                    incPos pos 1, s, Just bhLexer)
+        cArg = ((alt (anySet \\ ",]")) `star` epsilon) `lexaction`
+               \cs pos -> Just (CHSTokCArg pos $ trim cs)
+        trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
 
 -- | the inline-C lexer
 --
