@@ -61,7 +61,8 @@ import C2HS.State (CST, runCST, transCST, raiseError, catchExc,
                   throwExc, errorsPresent, showErrors, fatal)
 
 -- friends
-import C2HS.CHS  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSChangeCase(..), CHSTrans(..))
+import C2HS.CHS  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSChangeCase(..),
+                  CHSTrans(..), CHSAPath(..))
 
 
 -- | The header generation monad
@@ -217,6 +218,15 @@ ghFrag (_frag@(CHSHook (CHSConst cident pos) hkpos) : frags) =
             Just (CInitExpr (CVar cident undefNode) undefNode),
             Nothing)]
           undefNode
+
+ghFrag (frag@(CHSHook (CHSFun _ _ True varTypes
+                       (CHSRoot _ ide) oalias _ _ _ pos) hkpos) : frags) = do
+  let ideLexeme = identToString ide
+      hsLexeme  = ideLexeme `maybe` identToString $ oalias
+      vaIdent base idx = "__c2hs__vararg__" ++ base ++ "_" ++ show idx
+      ides = map (vaIdent hsLexeme) [0..length varTypes - 1]
+      defs = zipWith (\t i -> t ++ " " ++ i ++ ";\n") varTypes ides
+  return (DL.fromList defs, Frag frag, frags)
 
 ghFrag (frag@(CHSHook  _    _) : frags) = return (DL.empty, Frag frag, frags)
 ghFrag (frag@(CHSLine  _    ) : frags) = return (DL.empty, Frag frag, frags)
