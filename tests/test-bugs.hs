@@ -95,7 +95,7 @@ issue113 :: Assertion
 issue113 = build_issue 113
 
 issue107 :: Assertion
-issue107 = hs_only_expect_issue 107 ["True"]
+issue107 = hs_only_expect_issue 107 True ["True"]
 
 issue103 :: Assertion
 issue103 = c2hsShelly $ chdir "tests/bugs/issue-103" $ do
@@ -111,7 +111,10 @@ issue103 = c2hsShelly $ chdir "tests/bugs/issue-103" $ do
   liftIO $ assertBool "" (T.lines res == expected)
 
 issue102 :: Assertion
-issue102 = hs_only_expect_issue 102 ["TST 1: 1234", "TST 2: 13 47"]
+issue102 = hs_only_expect_issue 102 False ["TST 1: 1234",
+                                           "TST 2: 13 47",
+                                           "TST 3: testing",
+                                           "Unlocked"]
 
 issue98 :: Assertion
 issue98 = build_issue 98
@@ -142,7 +145,7 @@ issue82 :: Assertion
 issue82 = hs_only_build_issue 82
 
 issue83 :: Assertion
-issue83 = hs_only_expect_issue 83 ["(-3,0)", "TEST_VAL", "8415", "8415"]
+issue83 = hs_only_expect_issue 83 True ["(-3,0)", "TEST_VAL", "8415", "8415"]
 
 issue80 :: Assertion
 issue80 = build_issue 80
@@ -307,8 +310,9 @@ unordered_expect_issue :: Int -> [Text] -> Assertion
 unordered_expect_issue n expected =
   expect_issue_with False True n "" [] expected
 
-hs_only_expect_issue :: Int -> [Text] -> Assertion
-hs_only_expect_issue n expected = expect_issue_with True False n "" [] expected
+hs_only_expect_issue :: Int -> Bool -> [Text] -> Assertion
+hs_only_expect_issue n ordered expected =
+  expect_issue_with ordered False n "" [] expected
 
 expect_issue_with :: Bool -> Bool -> Int -> String -> [Text] -> [Text]
                   -> Assertion
