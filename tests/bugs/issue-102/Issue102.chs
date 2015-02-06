@@ -25,6 +25,6 @@ main = do
   printi2 "TST 2: %d %d\n" 13 47
   prints "TST 3: %s\n" "testing"
 
-get_lcok, set_lock :: Int -> FLock -> IO Int
+get_lock, set_lock :: Int -> FLock -> IO Int
 get_lock fd lck = f_set_lock fd (fromEnum GetLock) lck
 set_lock fd lck = f_set_lock fd (fromEnum SetLock) lck

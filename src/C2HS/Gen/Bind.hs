@@ -115,7 +115,7 @@ import Data.Map      (Map, lookup, fromList)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
 import Control.Arrow (second)
-import Control.Monad (when, unless, liftM, mapAndUnzipM, zipWithM)
+import Control.Monad (when, unless, liftM, mapAndUnzipM, zipWithM, forM)
 import Data.Ord      (comparing)
 
 -- Language.C / compiler toolkit
@@ -586,7 +586,7 @@ expandHook (CHSFun isPure isUns isVar inVarTypes (CHSRoot _ ide)
         fiIde     = internalIdent fiLexeme
         cdecl'    = cide `simplifyDecl` cdecl
         callHook  = CHSCall isPure isUns (CHSRoot False cide) (Just fiIde) pos
-    varTypes <- mapM (convertVarType pos) inVarTypes
+    varTypes <- convertVarTypes hsLexeme pos inVarTypes
     callImport callHook isPure isUns varTypes (identToString cide)
       fiLexeme cdecl' pos
 
@@ -1925,28 +1925,20 @@ typeMap  = [([void]                      , UnitET           ),
              unsigned = CUnsigType  undefined
              enum     = CEnumType   undefined undefined
 
-typeNameMap :: Map String CTypeSpec
-typeNameMap = fromList [ ("void",     CVoidType   undefined)
-                       , ("char",     CCharType   undefined)
-                       , ("short",    CShortType  undefined)
-                       , ("int",      CIntType    undefined)
-                       , ("long",     CLongType   undefined)
-                       , ("float",    CFloatType  undefined)
-                       , ("double",   CDoubleType undefined)
-                       , ("signed",   CSignedType undefined)
-                       , ("unsigned", CUnsigType  undefined)
-                       , ("enum",     CEnumType   undefined undefined) ]
-
-convertVarType :: Position -> String -> GB ExtType
-convertVarType pos t = do
-  let mtns = map (flip lookup typeNameMap) ["int"]
-  case any isNothing mtns of
-    True -> variadicTypeErr pos
-    False -> do
-      st <- specType pos (map (CTypeSpec . fromJust) mtns) Nothing
-      case st of
-        ExtType et -> return et
-        _ -> variadicTypeErr pos
+convertVarTypes :: String -> Position -> [String] -> GB [ExtType]
+convertVarTypes base pos ts = do
+  let vaIdent i = internalIdent $ "__c2hs__vararg__" ++ base ++ "_" ++ show i
+      ides = map vaIdent [0..length ts - 1]
+      doone ide = do
+        Just (ObjCO cdecl) <- findObj ide
+        return cdecl
+  cdecls <- mapM doone ides
+  traceGenBind $ "HERE: " ++ show cdecls ++ "\n"
+  forM cdecls $ \cdecl -> do
+    st <- extractCompType True True cdecl
+    case st of
+      ExtType et -> return et
+      _ -> variadicTypeErr pos
 
 -- | compute the complex (external) type determined by a list of type specifiers
 --
