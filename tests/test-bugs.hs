@@ -32,6 +32,7 @@ tests =
     , testCase "Issue #7" issue07
     , testCase "Issue #9" issue09
     , testCase "Issue #10" issue10
+    , testCase "Issue #15" issue15
     , testCase "Issue #16" issue16
     , testCase "Issue #19" issue19
     , testCase "Issue #22" issue22
@@ -271,6 +272,9 @@ issue19 = expect_issue 19 ["Did it!"]
 
 issue16 :: Assertion
 issue16 = build_issue 16
+
+issue15 :: Assertion
+issue15 = hs_only_expect_issue 15 True ["1234"]
 
 issue10 :: Assertion
 issue10 = expect_issue 10 ["SAME", "SAME", "SAME", "SAME"]
