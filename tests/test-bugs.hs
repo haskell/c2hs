@@ -145,7 +145,8 @@ issue82 :: Assertion
 issue82 = hs_only_build_issue 82
 
 issue83 :: Assertion
-issue83 = hs_only_expect_issue 83 True ["(-3,0)", "TEST_VAL", "8415", "8415"]
+issue83 = hs_only_expect_issue 83 True ["(-3,0)", "TEST_VAL",
+                                        "8415", "8415", "TESTING"]
 
 issue80 :: Assertion
 issue80 = build_issue 80

@@ -15,6 +15,9 @@ import Foreign.C.Types
 {#fun getenv as ^ {`String'} -> `CString'#}
 {#fun sin as hsin {`Double'} -> `Double'#}
 {#fun sin as csin {`CDouble'} -> `CDouble'#}
+{#fun malloc as ^ {`CULong'} -> `Ptr ()'#}
+{#fun free as ^ {`Ptr ()'} -> `()'#}
+{#fun strcpy as ^ {`CString', `CString'} -> `()'#}
 
 main :: IO ()
 main = do
@@ -31,3 +34,11 @@ main = do
   print (round (10000 * cx) :: Integer)
   hx <- hsin 1.0
   print (round (10000 * hx) :: Integer)
+  let s = "TESTING"
+  p <- malloc $ fromIntegral $ length s + 1
+  let ps = castPtr p :: CString
+  cs <- newCString s
+  strcpy ps cs
+  res <- peekCString ps
+  putStrLn res
+  free p

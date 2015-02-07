@@ -110,7 +110,8 @@ import Prelude hiding (exp, lookup)
 -- standard libraries
 import Data.Char     (toLower)
 import Data.Function (on)
-import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, nubBy, intercalate)
+import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, nubBy,
+                      intercalate, isPrefixOf)
 import Data.Map      (Map, lookup, fromList)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
@@ -182,8 +183,6 @@ lookupDftMarshIn "CString" [PtrET (PrimET CCharPT)]             =
 lookupDftMarshIn "String" [PtrET (PrimET CCharPT), PrimET pt]
   | isIntegralCPrimType pt                                     =
   return $ Just (Right stringIn , CHSIOArg)
-lookupDftMarshIn hsTy     [PtrET ty]  | showExtType ty == hsTy =
-  return $ Just (Right stringIn, CHSIOArg)
 lookupDftMarshIn hsTy     [PtrET (PrimET pt)]
   | isIntegralHsType hsTy && isIntegralCPrimType pt            =
   return $ Just (Right "with . fromIntegral", CHSIOArg)
@@ -193,6 +192,8 @@ lookupDftMarshIn hsTy     [PtrET (PrimET pt)]
 lookupDftMarshIn "Bool"   [PtrET (PrimET pt)]
   | isIntegralCPrimType pt                                     =
   return $ Just (Right "with . fromBool", CHSIOArg)
+lookupDftMarshIn hsTy [PtrET UnitET] | "Ptr " `isPrefixOf` hsTy =
+  return $ Just (Left idIde, CHSValArg)
 -- Default case deals with:
 lookupDftMarshIn hsty _ = do
   om <- readCT objmap
@@ -239,8 +240,8 @@ lookupDftMarshOut "String" [PtrET (PrimET CCharPT), PrimET pt]
   | isIntegralCPrimType pt                                      =
   return $ Just (Right "\\(s, n) -> peekCStringLen (s, fromIntegral n)",
                  CHSIOArg)
-lookupDftMarshOut hsTy     [PtrET ty]  | showExtType ty == hsTy =
-  return $ Just (Left peekIde, CHSIOArg)
+lookupDftMarshOut hsTy [PtrET UnitET] | "Ptr " `isPrefixOf` hsTy =
+  return $ Just (Left idIde, CHSValArg)
 -- Default case deals with:
 lookupDftMarshOut hsty _ = do
   om <- readCT objmap
@@ -1933,7 +1934,6 @@ convertVarTypes base pos ts = do
         Just (ObjCO cdecl) <- findObj ide
         return cdecl
   cdecls <- mapM doone ides
-  traceGenBind $ "HERE: " ++ show cdecls ++ "\n"
   forM cdecls $ \cdecl -> do
     st <- extractCompType True True cdecl
     case st of
