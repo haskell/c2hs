@@ -1,3 +1,5 @@
+const int tst_val(void);
+
 enum Tst {
   kClippingCreator = 'drag',
   kClippingPictureType = 'clpp',

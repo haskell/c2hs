@@ -112,7 +112,7 @@ import Data.Char     (toLower)
 import Data.Function (on)
 import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, nubBy,
                       intercalate, isPrefixOf)
-import Data.Map      (Map, lookup, fromList)
+import Data.Map      (lookup)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
 import Control.Arrow (second)
@@ -332,7 +332,7 @@ isFloatCPrimType  = (`elem` [CFloatPT, CDoublePT, CLDoublePT])
 -- | standard conversions
 --
 voidIde, cFromBoolIde, cToBoolIde, cIntConvIde, cFloatConvIde,
-  withCStringIde, peekIde, peekCStringIde, idIde,
+  withCStringIde, peekCStringIde, idIde,
   newForeignPtr_Ide, withForeignPtrIde, returnIde,
   castCharToCCharIde, castCharToCUCharIde, castCharToCSCharIde,
   castCCharToCharIde, castCUCharToCharIde, castCSCharToCharIde :: Ident
@@ -342,7 +342,6 @@ cToBoolIde          = internalIdent "toBool"
 cIntConvIde         = internalIdent "fromIntegral"
 cFloatConvIde       = internalIdent "realToFrac"
 withCStringIde      = internalIdent "withCString"
-peekIde             = internalIdent "peek"
 peekCStringIde      = internalIdent "peekCString"
 idIde               = internalIdent "id"
 newForeignPtr_Ide   = internalIdent "newForeignPtr_"
@@ -570,7 +569,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) _ =
       "** Indirect call hook for `" ++ identToString (apathToIdent apath) ++ "':\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
-expandHook (CHSFun isPure isUns isVar inVarTypes (CHSRoot _ ide)
+expandHook (CHSFun isPure isUns _ inVarTypes (CHSRoot _ ide)
             oalias ctxt parms parm pos) hkpos =
   do
     traceEnter
@@ -597,8 +596,7 @@ expandHook (CHSFun isPure isUns isVar inVarTypes (CHSRoot _ ide)
   where
     traceEnter = traceGenBind $
       "** Fun hook for `" ++ identToString ide ++ "':\n"
-expandHook (CHSFun isPure isUns isVar varTypes
-            apath oalias ctxt parms parm pos) hkpos =
+expandHook (CHSFun isPure isUns _ _ apath oalias ctxt parms parm pos) hkpos =
   do
     traceEnter
 

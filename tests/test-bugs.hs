@@ -274,7 +274,7 @@ issue16 :: Assertion
 issue16 = build_issue 16
 
 issue15 :: Assertion
-issue15 = hs_only_expect_issue 15 True ["1234"]
+issue15 = expect_issue 15 ["True"]
 
 issue10 :: Assertion
 issue10 = expect_issue 10 ["SAME", "SAME", "SAME", "SAME"]
