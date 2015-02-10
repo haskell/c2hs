@@ -111,7 +111,7 @@ import Prelude hiding (exp, lookup)
 import Data.Char     (toLower)
 import Data.Function (on)
 import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, nubBy,
-                      intercalate, isPrefixOf)
+                      intercalate, isPrefixOf, foldl')
 import Data.Map      (lookup)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
@@ -2362,7 +2362,9 @@ evalCCast' _ _ = todo "GenBind.evalCCast': Only integral trivial casts are imple
 
 evalCConst :: CConst -> GB ConstResult
 evalCConst (CIntConst   i _ ) = return $ IntResult (getCInteger i)
-evalCConst (CCharConst  c _ ) = return $ IntResult (getCCharAsInt c)
+evalCConst (CCharConst  c@(CChar _ _) _ ) = return $ IntResult (getCCharAsInt c)
+evalCConst (CCharConst  (CChars cs _) _ ) = return $ IntResult (foldl' add 0 cs)
+  where add tot ch = tot * 0x100 + fromIntegral (fromEnum ch)
 evalCConst (CFloatConst _ _ ) =
   todo "GenBind.evalCConst: Float conversion from literal misses."
 evalCConst (CStrConst   _ at) =
