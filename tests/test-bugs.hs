@@ -280,7 +280,10 @@ issue10 :: Assertion
 issue10 = expect_issue 10 ["SAME", "SAME", "SAME", "SAME"]
 
 issue09 :: Assertion
-issue09 = expect_issue 9 ["PTA:8", "AOP:32", "(32,64)", "64", "OK"]
+issue09 = expect_issue 9 archDependValues
+  where archDependValues
+          | (maxBound::Int) == 2147483647 = ["PTA:4", "AOP:16", "(32,64)", "64", "OK"] -- 32bit
+          | otherwise                     = ["PTA:8", "AOP:32", "(32,64)", "64", "OK"] -- 64bit
 
 issue07 :: Assertion
 issue07 = c2hsShelly $ do
