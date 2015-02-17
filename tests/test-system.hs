@@ -4,15 +4,26 @@
 import Test.Framework (defaultMain, testGroup, Test)
 import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test, assert)
+import Control.Monad.IO.Class
 import Shelly
 import qualified Shelly as Sh
+import Prelude hiding (FilePath)
 import Control.Monad (forM_)
-import Data.Text.Lazy (Text)
-import qualified Data.Text.Lazy as LT
-default (LT.Text)
+import Data.Text (Text)
+import Data.Monoid
+import qualified Data.Text as T
+import Paths_c2hs
+default (T.Text)
 
 main :: IO ()
 main = defaultMain tests
+
+c2hsShelly :: MonadIO m => Sh a -> m a
+c2hsShelly as = shelly $ do
+  oldpath <- get_env_text "PATH"
+  let newpath = "../../../dist/build/c2hs:" <> oldpath
+  setenv "PATH" newpath
+  as
 
 tests :: [Test]
 tests =
@@ -29,7 +40,7 @@ tests =
   ]
 
 run_test_exit_code :: Sh.FilePath -> [(Sh.FilePath, [Text])] -> Assertion
-run_test_exit_code dir cmds = shelly $ chdir dir $ do
+run_test_exit_code dir cmds = c2hsShelly $ chdir dir $ do
   forM_ (init cmds) $ \(c, as) -> run c as
   errExit False $ run (fst $ last cmds) (snd $ last cmds)
   code <- lastExitCode
@@ -37,10 +48,10 @@ run_test_exit_code dir cmds = shelly $ chdir dir $ do
 
 run_test_expect :: Sh.FilePath -> [(Sh.FilePath, [Text])] ->
                    Sh.FilePath -> [Text] -> Assertion
-run_test_expect dir cmds expcmd expected = shelly $ chdir dir $ do
+run_test_expect dir cmds expcmd expected = c2hsShelly $ chdir dir $ do
   forM_ cmds $ \(c, as) -> run c as
   res <- absPath expcmd >>= cmd
-  liftIO $ assertBool "" (LT.lines res == expected)
+  liftIO $ assertBool "" (T.lines res == expected)
 
 
 test_calls :: Assertion

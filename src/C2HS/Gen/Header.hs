@@ -53,15 +53,16 @@ import Language.C.Data
 import Language.C.Pretty
 import Language.C.Syntax
 import Data.Errors       (interr)
-import Data.DLists (DList)
-import qualified Data.DLists as DL
+import Data.DList (DList)
+import qualified Data.DList as DL
 
 -- C->Haskell
 import C2HS.State (CST, runCST, transCST, raiseError, catchExc,
                   throwExc, errorsPresent, showErrors, fatal)
 
 -- friends
-import C2HS.CHS  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSChangeCase(..), CHSTrans(..))
+import C2HS.CHS  (CHSModule(..), CHSFrag(..), CHSHook(..), CHSChangeCase(..),
+                  CHSTrans(..), CHSAPath(..))
 
 
 -- | The header generation monad
@@ -132,7 +133,7 @@ ghModule (CHSModule frags) =
     (header, frags', last', _rest) <- ghFrags frags
     when (not . isEOF $ last') $
       notOpenCondErr (posOf last')
-    return (DL.close header, CHSModule frags')
+    return (DL.toList header, CHSModule frags')
 
 -- | Collect header and fragments up to eof or a CPP directive that is part of a
 -- conditional
@@ -142,7 +143,7 @@ ghModule (CHSModule frags) =
 --   concatenation of lines that go into the header.
 --
 ghFrags :: [CHSFrag] -> GH (DList String, [CHSFrag], FragElem, [CHSFrag])
-ghFrags []    = return (DL.zero, [], EOF, [])
+ghFrags []    = return (DL.empty, [], EOF, [])
 ghFrags frags =
   do
     (header, frag, rest) <- ghFrag frags
@@ -150,7 +151,7 @@ ghFrags frags =
       Frag aFrag -> do
                       (header2, frags', frag', rest') <- ghFrags rest
                       -- FIXME: Not tail rec
-                      return (header `DL.join` header2, aFrag:frags',
+                      return (header `DL.append` header2, aFrag:frags',
                               frag', rest')
       _          -> return (header, [], frag, rest)
 
@@ -162,43 +163,82 @@ ghFrag :: [CHSFrag] -> GH (DList String, -- partial header file
                            FragElem,     -- processed fragment
                            [CHSFrag])    -- not yet processed fragments
 ghFrag []                              =
-  return (DL.zero, EOF, [])
+  return (DL.empty, EOF, [])
 ghFrag (frag@(CHSVerb  _ _  ) : frags) =
-  return (DL.zero, Frag frag, frags)
+  return (DL.empty, Frag frag, frags)
 
--- generate an enum __c2hs__enum__'id { __c2hs_enr__'id = DEF1, ... } and then process an
--- ordinary enum directive
-ghFrag (_frag@(CHSHook (CHSEnumDefine hsident trans instances pos)) : frags) =
+-- generate an
+--   enum __c2hs__enum__'id { __c2hs_enr__'id = DEF1, ... }
+-- and then process an ordinary enum directive
+ghFrag (_frag@(CHSHook (CHSEnumDefine hsident trans
+                        instances pos) hkpos) : frags) =
   do ide <- newEnumIdent
      (enrs,trans') <- createEnumerators trans
-     return (DL.open [show.pretty $ enumDef ide enrs,";\n"], Frag (enumFrag (identToString ide) trans'), frags)
+     return (DL.fromList [show.pretty $ enumDef ide enrs,";\n"],
+             Frag (enumFrag (identToString ide) trans'), frags)
   where
-  newEnumIdent = liftM internalIdent $ transCST $ \supply -> (tail supply, "__c2hs_enum__" ++ show (nameId $ head supply))
-  newEnrIdent  = liftM internalIdent $ transCST $ \supply -> (tail supply, "__c2hs_enr__" ++ show (nameId $ head supply))
-  createEnumerators (CHSTrans isUnderscore changeCase aliases)
-    | isUnderscore = raiseErrorGHExc pos ["underScoreToCase is meaningless for `enum define' hooks"]
-    | changeCase /= CHSSameCase = raiseErrorGHExc pos ["changing case is meaningless for `enum define' hooks"]
+  newEnumIdent = liftM internalIdent $ transCST $
+                 \supply -> (tail supply, "__c2hs_enum__" ++
+                                          show (nameId $ head supply))
+  newEnrIdent  = liftM internalIdent $ transCST $
+                 \supply -> (tail supply, "__c2hs_enr__" ++
+                                          show (nameId $ head supply))
+  createEnumerators (CHSTrans isUnderscore changeCase aliases omits)
+    | isUnderscore =
+      raiseErrorGHExc pos ["underScoreToCase is meaningless " ++
+                           "for `enum define' hooks"]
+    | changeCase /= CHSSameCase =
+        raiseErrorGHExc pos ["changing case is meaningless " ++
+                             "for `enum define' hooks"]
     | otherwise =
       do (enrs,transtbl') <- liftM unzip (mapM createEnumerator aliases)
-         return (enrs,CHSTrans False CHSSameCase transtbl')
-  createEnumerator (cid,hsid) = liftM (\enr -> ((enr,cid),(enr,hsid))) newEnrIdent
+         return (enrs,CHSTrans False CHSSameCase transtbl' omits)
+  createEnumerator (cid,hsid) =
+    liftM (\enr -> ((enr,cid),(enr,hsid))) newEnrIdent
   enumDef ide enrs = CEnum (Just ide) (Just$ map mkEnr enrs) [] undefNode
     where mkEnr (name,value) = (name, Just $ CVar value undefNode)
-  enumFrag ide trans' = CHSHook (CHSEnum (internalIdent ide) (Just hsident) trans' Nothing instances pos)
+  enumFrag ide trans' = CHSHook (CHSEnum (internalIdent ide) (Just hsident)
+                                 trans' True Nothing Nothing
+                                 instances pos) hkpos
 
-ghFrag (frag@(CHSHook  _    ) : frags) =
-  return (DL.zero, Frag frag, frags)
-ghFrag (frag@(CHSLine  _    ) : frags) =
-  return (DL.zero, Frag frag, frags)
+ghFrag (_frag@(CHSHook (CHSConst cident pos) hkpos) : frags) =
+  do ide <- newConstIdent
+     return (DL.fromList [show.pretty $ constDef ide,";\n"],
+             Frag (CHSHook (CHSConst ide pos) hkpos), frags)
+  where
+  newConstIdent =
+    liftM internalIdent $ transCST $
+    \supply -> (tail supply, "__c2hs__const__" ++ show (nameId $ head supply))
+  constDef ide =
+    -- This is a little nasty.  We write a definition of an *integer*
+    -- C value into the header, regardless of what type it really
+    -- is...
+    CDecl [CTypeSpec (CIntType undefNode)]
+          [(Just (CDeclr (Just ide) [] Nothing [] undefNode),
+            Just (CInitExpr (CVar cident undefNode) undefNode),
+            Nothing)]
+          undefNode
+
+ghFrag (frag@(CHSHook (CHSFun _ _ True varTypes
+                       (CHSRoot _ ide) oalias _ _ _ _) _) : frags) = do
+  let ideLexeme = identToString ide
+      hsLexeme  = ideLexeme `maybe` identToString $ oalias
+      vaIdent base idx = "__c2hs__vararg__" ++ base ++ "_" ++ show idx
+      ides = map (vaIdent hsLexeme) [0..length varTypes - 1]
+      defs = zipWith (\t i -> t ++ " " ++ i ++ ";\n") varTypes ides
+  return (DL.fromList defs, Frag frag, frags)
+
+ghFrag (frag@(CHSHook  _    _) : frags) = return (DL.empty, Frag frag, frags)
+ghFrag (frag@(CHSLine  _    ) : frags) = return (DL.empty, Frag frag, frags)
 ghFrag (     (CHSC    s  _  ) : frags) =
   do
     (header, frag, frags' ) <- ghFrag frags     -- scan for next CHS fragment
-    return (DL.unit s `DL.join` header, frag, frags')
+    return (DL.singleton s `DL.append` header, frag, frags')
     -- FIXME: this is not tail recursive...
 
 ghFrag (     (CHSCond _  _  ) : _    ) =
   interr "GenHeader.ghFrags: There can't be a structured conditional yet!"
-ghFrag (     (CHSCPP  s  pos) : frags) =
+ghFrag (     (CHSCPP s pos nl) : frags) =
   let
     (directive, _) =   break (`elem` " \t")
                      . dropWhile (`elem` " \t")
@@ -208,10 +248,11 @@ ghFrag (     (CHSCPP  s  pos) : frags) =
     "if"     -> openIf s pos frags
     "ifdef"  -> openIf s pos frags
     "ifndef" -> openIf s pos frags
-    "else"   -> return (DL.zero              , Else   pos               , frags)
-    "elif"   -> return (DL.zero              , Elif s pos               , frags)
-    "endif"  -> return (DL.zero              , Endif  pos               , frags)
-    _        -> return (DL.open ['#':s, "\n"], Frag   (CHSVerb "" nopos), frags)
+    "else"   -> return (DL.empty                 , Else   pos           , frags)
+    "elif"   -> return (DL.empty                 , Elif s pos           , frags)
+    "endif"  -> return (DL.empty                 , Endif  pos           , frags)
+    _        -> return (DL.fromList ['#':s, "\n"],
+                        Frag (CHSVerb (if nl then "\n" else "") pos), frags)
   where
     -- enter a new conditional (may be an #if[[n]def] or #elif)
     --
@@ -230,7 +271,7 @@ ghFrag (     (CHSCPP  s  pos) : frags) =
                              Endif   _    -> closeIf
                                               ((headerTh
                                                 `DL.snoc` "#else\n")
-                                               `DL.join`
+                                               `DL.append`
                                                (headerEl
                                                 `DL.snoc` "#endif\n"))
                                               (s', fragsTh)
@@ -242,7 +283,7 @@ ghFrag (     (CHSCPP  s  pos) : frags) =
                            (headerEl, condFrag, rest') <- openIf s'' pos' rest
                            case condFrag of
                              Frag (CHSCond alts dft) ->
-                               closeIf (headerTh `DL.join` headerEl)
+                               closeIf (headerTh `DL.append` headerEl)
                                        (s, fragsTh)
                                        alts
                                        dft
@@ -250,7 +291,7 @@ ghFrag (     (CHSCPP  s  pos) : frags) =
                              _                       ->
                                interr "GenHeader.ghFrag: Expected CHSCond!"
           Endif   _   -> closeIf (headerTh `DL.snoc` "#endif\n")
-                                 (s, fragsTh)
+                                 (s', fragsTh)
                                  []
                                  (Just [])
                                  rest
@@ -269,9 +310,9 @@ ghFrag (     (CHSCPP  s  pos) : frags) =
                        -- don't use an internal ident, as we need to test for
                        -- equality with identifiers read from the .i file
                        -- during binding hook expansion
-            header = DL.open ['#':s', "\n",
+            header = DL.fromList ['#':s', "\n",
                              "struct ", sentryName, ";\n"]
-                            `DL.join` headerTail
+                            `DL.append` headerTail
         return (header, Frag (CHSCond ((sentry, fragsTh):alts) oelse), rest)
 
 

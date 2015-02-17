@@ -64,17 +64,19 @@ import C2HS.Config (PlatformSpec, defaultPlatformSpec)
 -- | all switches of the toolkit
 --
 data SwitchBoard = SwitchBoard {
-                     cppOptsSB :: [String],     -- cpp options
-                     cppSB     :: FilePath,     -- cpp executable
-                     keepSB    :: Bool,         -- keep intermediate file
-                     librarySB :: Bool,         -- copy library in
-                     tracesSB  :: Traces,       -- trace flags
-                     outputSB  :: FilePath,     -- basename of generated files
-                     outDirSB  :: FilePath,     -- dir where generated files go
-                     platformSB:: PlatformSpec, -- target platform spec.
-                     headerSB  :: FilePath,     -- generated header file
-                     chiPathSB :: [FilePath]    -- .chi file directories
-                   }
+  cppOptsSB :: [String],      -- cpp options
+  cppSB     :: FilePath,      -- cpp executable
+  noGnuSB    :: Bool,         -- suppress GNU preproc. symbols
+  noBlocksSB :: Bool,         -- suppress MacOS __BLOCKS__ symbol
+  keepSB    :: Bool,          -- keep intermediate file
+  librarySB :: Bool,          -- copy library in
+  tracesSB  :: Traces,        -- trace flags
+  outputSB  :: FilePath,      -- basename of generated files
+  outDirSB  :: FilePath,      -- dir where generated files go
+  platformSB:: PlatformSpec,  -- target platform spec.
+  headerSB  :: FilePath,      -- generated header file
+  chiPathSB :: [FilePath]     -- .chi file directories
+  }
 
 -- | switch states on startup
 --
@@ -82,6 +84,8 @@ initialSwitchBoard :: SwitchBoard
 initialSwitchBoard  = SwitchBoard {
                         cppOptsSB  = [],
                         cppSB      = "cpp",
+                        noGnuSB    = False,
+                        noBlocksSB = False,
                         keepSB     = False,
                         librarySB  = False,
                         tracesSB   = initialTraces,

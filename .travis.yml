@@ -1,7 +1,16 @@
 language: haskell
 
+env:
+ global:
+  - AWS_ACCESS_KEY_ID=AKIAIKUEH2ETWTBS2CKQ
+  - secure: "Jzawnhgk3dX2INzbZIlnHCH+aKWqy96B9T1hzBh/Fqp4whglaZDO0mTLHQnhypqAt1rXO2o3yBNcKgGOcgfUuE71uBCzzaXieB0p8BhYn7cwYeANbuKNOGrsP6oDutS5F57FNWwgRp+2oanpgJNOs/6wvfElA7W6ibN8tZiLQrw="
+
 install:
-  - cabal install --only-dependencies --enable-tests
+  - sudo apt-get update -qq
+  - sudo pip install awscli
+  - cabal update
+  - cabal install --only-dependencies --enable-tests -fregression
 
 script:
-  - cabal install && cabal configure --enable-tests && cabal build && cabal test
+  - cabal install && cabal configure --enable-tests -fregression && cabal build && cabal test
+  - ./dist/build/regression-suite/regression-suite

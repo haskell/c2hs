@@ -1,0 +1,1187 @@
+CHANGES ABOVE THIS POINT ARE FOR VERSIONS AFTER THE MOVE OF THE REPOSITORY
+TO GITHUB AND ARE DESCRIBED IN THE MAIN ChangeLog FILE.
+
+
+2005-12-12  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs/gen/GenBind.hs: When translating the target type of a
+	pointer hook into a Haskell type, don't take the pointer hook
+	alias map into account.
+
+	* c2hs.cabal: version 0.14.5
+
+	* c2hs/gen/GenBind.hs: Suppress code generation if requested
+
+	* c2hs/chs/CHS.hs: Added `nocode' to pointer hooks
+
+	* c2hs/chs/CHSLexer.hs: Added `nocode'
+
+2005-12-05	Jelmer Vernooij <jelmer@samba.org>
+
+	* c2hs/c/CTrav.hs: only match in `checkForOneCUName' if there are 
+	no indirections
+
+2005-12-05	Jelmer Vernooij <jelmer@samba.org>
+
+	* c2hs/gen/GenBind.hs: support mapping struct and union names to haskell
+	types
+
+	* c2hs/c/CTrav.hs: added `checkForOneCUName'
+
+Fri Nov 25 10:54:56 EST 2005  Jelmer Vernooij <jelmer@samba.org>
+
+	* add prettify functions for structs, enums and unions
+
+2005-08-10  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs/gen/GBMonad.hs: apply `upcaseFirstLetter' and
+	`downcaseFirstLetter' if specified
+
+	* c2hs/chs/CHS.hs: added `upcaseFirstLetter' and `downcaseFirstLetter'
+
+2005-08-09  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs/gen/CInfo.hs: exports `getPlatform'
+
+2005-08-08  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs/toplevel/Main.hs: Added --platform switch for cross compilation
+
+	* c2hs.cabal: 0.14.3
+
+2005-08-08  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs.cabal: 0.14.2
+	* Support asm construct (Duncon Coutts)
+	* Hierachical modules  (Duncon Coutts)
+
+2005-07-13  Duncan Coutts  <duncan.coutts@worc.ox.ac.uk>
+
+	* Remove old C lexer & parser and replace them with new ones using
+	alex and happy
+
+2005-07-14  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* C2HS library as a single file added to the generated binding
+	code
+
+2005-07-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* Cabal-ised the build system
+	* c2hs.cabal (Version): 0.14.0
+
+2005-05-18  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.13.6
+
+2005-03-14  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CParser.hs: Allow lists of GNU C attributes (patch contributed
+	by Duncan Coutts <duncan.coutts@worc.ox.ac.uk>)
+
+	* chs/CHSLexer.hs (instr): Allow 8-bit characters (Volker Wysk
+	<post@volker-wysk.de> requested support for umlauts in strings)
+
+	* toplevel/Version.hs (versnum): 0.13.5
+
+2004-10-18  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs (showCHSModule): Don't add extra '\n' after directive
+	during pretty printing
+
+	* chs/CHSLexer.hs (cpp): forgot to adapt lexing of #c to the new
+	situation where directives don't consume the following '\n'
+
+2004-10-17  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs.conf.in: Modernised package deps and options
+
+	* gen/GenBind.hs (expandHook): We use the shadow identifier for
+	generating the Haskell name.
+
+	* chs/CHSLexer.hs (identOrKW): Identifier may be put in single quotes
+
+	* toplevel/Version.hs (versnum): 0.13.4
+
+2004-10-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHSLexer.hs (cpp): fixed lexing of directives such that they
+	don't consume the '\n' that ends them
+
+	* toplevel/Version.hs (versnum): 0.13.3
+
+	* toplevel/Main.hs (Flag): Added `--output-dir' option and removed
+	`--old-ffi'.
+
+	* gen/GenBind.hs (noDftMarshErr): better error message when
+	default marshallers are not available
+	(isIntegralCPrimType): handle C chars as integral types for marshalling
+
+	* toplevel/Main.hs (process): if there is no explicit output file
+	specified, the header file is put in the same directory as the
+	binding file; otherwise, it goes in the directory where the output
+	file is put
+
+2004-10-09  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Main.hs (process): store header file name in switch board
+
+	* state/Switches.hs: Store the name of the generated header file
+	(needed to generate complete foreign import declarations)
+
+	* gen/GenBind.hs (foreignImport): Add name of header file to
+	extent strings of generated foreign import declarations
+
+	* c/CAttrs.hs (applyPrefix): never create empty shadow identifiers
+
+2004-10-08  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs (dumpCHS): Header doesn't contain the "-- **"
+	sequence anymore that Haddock dislikes.
+
+	* c/CParser.hs (parseCStructUnion): We allow structs and unions
+	with no declarations, as GNU C does
+
+	* toplevel/Version.hs (versnum): 0.13.2
+
+2004-08-21  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* tests/Makefile: use configured $HC (courtesy Don Stewart
+	<dons@cse.unsw.edu.au>)
+
+2004-06-11  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (pointerDef): Adapted to the standard interface
+	for foreign pointers
+
+2004-06-10  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CParser.hs: Added parsing of function bodies
+
+	* c/CLexer.hs: Added tokens occuring in the statement syntax
+
+2004-06-09  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CAST.hs: Added function bodies
+
+	* c/CPretty.hs: Added `auto' and `register' storage specifiers
+
+	* c/CLexer.hs: Added tokens for `auto' and `register' keywords
+
+	* toplevel/Version.hs (versnum): 0.13.1
+
+2004-05-15  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CParser.hs (parseCHeader): Duncan Coutts
+	<duncan.coutts@worcester.oxford.ac.uk> identified a space (and
+	time) leak in the old typedef-name morphing setup; this has been
+	rewritten now
+
+2004-05-14  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.13.0 "Pressing Forward"
+
+2003-10-20  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (foreignImport): brought generated foreign import
+	declarations in line with FFI Addendum
+
+	* toplevel/C2HSConfig.hs.in: removed legacy FFI support
+
+	* configure.in: removed legacy FFI support
+
+	* mk/config.mk.in: removed legacy FFI support
+
+	* lib/Makefile: Removed all deprecated code and support code for
+	old versions of the FFI
+
+	* toplevel/Version.hs (versnum): 0.12.1
+
+2003-10-19  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs.spec.in: Contributions by Jens Petersen
+	<petersen@haskell.org>: specify ghc version to build with;
+	don't redundantly provide c2hs; separate library out into
+	separate ghc version specific subpackage; put docs into separate
+	subpackage; disable empty debuginfo subpackage generation -
+	remove buildroot before installing; remove installed doc files,
+	since they're explicitly listed
+
+	* c/CLexer.hs (linedir): allow an arbitrary number of ints after
+	the filename in a #line directive; problem was first reported by Sean
+	Seefried <sseefried@cse.unsw.edu.au>
+
+	* gen/GBMonad.hs (delayCode): Generate appropriate line numbers
+	for delayed code; problem reported by Sean Seefried
+	<sseefried@cse.unsw.edu.au>
+
+	* chs/CHS.hs (showCHSModule): Never generate negative line numbers
+
+	* toplevel/Version.hs (versnum): 0.12.0 "Springtime"
+
+2003-06-10  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.11.5
+
+2003-05-30  Jens Petersen  <petersen@redhat.com>
+
+	* configure.in: Search for compiler named HC too.
+
+2003-05-30  Jens Petersen  <petersen@redhat.com>
+
+	* c2hs.spec.in (Version): Set directly.
+	(Release): Ditto.
+	(%prep): Quieten setup.
+	(%build): Use configure macro.
+	(%install): Use makeinstall macro.
+	(%post): Use _bindir.
+	(%files): Make root own files.  Use _bindir, _libdir and _mandir.
+
+2003-05-22  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (Ord): Need instance for `<=' for indirectly
+	defined `compare'; bug reported by Ian Lynagh <igloo@earth.li>
+
+	* toplevel/Version.hs (versnum): 0.11.4
+
+2003-04-16  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenHeader.hs (ghFrag): sentries for conditionals must not be
+	turned into internal identifiers, as this spoils later equality
+	tests with identifiers read from the pre-processed header file;
+	bug reported by Axel Simon <A.Simon@ukc.ac.uk>
+
+	* toplevel/Version.hs (versnum): 0.11.3
+
+2003-03-04  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (evalConstCExpr): supporting enumerators in
+	constant expressions
+
+	* toplevel/Version.hs (versnum): 0.11.2
+
+2003-02-13  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs: removed the "header" tag (we now support the CPP
+	#include directive)
+
+	* Configuration-related patch by Ian Lynagh <igloo@earth.li> that
+	removes issues with GHC 5.05
+
+2003-02-12  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandFrag): Expanding conditionals
+
+	* chs/CHSLexer.hs (haskell): the lexeme for one-line comments
+	shouldn't include the terminating newline, as this removes the
+	newline for following lexemes (eg, CPP directives) and is not
+	really necessary due to the Principle of the Longest Match
+
+	* gen/GenHeader.hs: debugging
+
+2003-02-05  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenHeader.hs: New module extracting CPP directives and
+	inline-C from a .chs file
+
+	* toplevel/Main.hs (process): Integrated generation of custom C header
+
+	* c/CParser.hs (parseCHeader): Header file may be empty
+
+2003-02-01  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs (showCHSModule): emitting GHC line pragmas
+	(CHSFrag): added representations for cpp directives and inline-C
+	code, and adapted the functions processind the representations
+
+	* chs/CHSLexer.hs: Added support for pre-processor directives and
+	inline-C code
+
+2003-01-31  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Main.hs (process): Now reading the binding module
+	before the C header
+
+2003-01-30  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CParser.hs: Allow more GNU attributes contributed by Axel
+	Simon <A.Simon@ukc.ac.uk>
+
+2002-09-17  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
+
+	* gen/GBMonad.hs (HsObject): working around a problem with
+	deriving Read in GHC 5.04.1
+
+2002-09-16  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
+
+	* Makefile (ghci): target to load all of c2hs into GHCi
+
+2002-09-13  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
+
+	* toplevel/c2hs_config.c: removed the `signed' modifier on
+	suggestion of Seth Kurtzberg <seth@cql.com> as it apparently
+	confuses the Solaris 8 C compiler
+
+2002-09-07  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
+
+	* c2hs.spec.in: add post install and uninstall scripts to register
+	and deregister the package with GHC
+
+	* configure.in: fixed REQUIRES_HASKELL for ghc
+
+	* toplevel/Version.hs (versnum): 0.10.17
+
+2002-09-06  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
+
+	* toplevel/C2HSConfig.hs.in (cppopts): Added "-x c" on suggestion
+	by Axel Simon
+
+	* Makefile (install): using --update-package instead of --add-package
+
+	* configure.in: Fixed some nhc98 related issues
+
+	* toplevel/Version.hs (versnum): 0.10.16
+
+2002-07-12  Manuel M T Chakravarty  <chak@AttitudeAdjuster>
+
+	* c2hs-config.in: added the system for which the package was
+	compiled to the output of the --version option
+
+	* c/CParser.hs (parseCStructUnion): Allow __extension__ in
+	structure declarations and added `inline'.
+
+	* c/CAST.hs: Added `inline'
+
+	* c/CLexer.hs: Added support for `inline' keyword
+
+2002-07-06  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.10.15
+
+2002-05-16  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HSMarsh.hs: added support for bit masks
+
+	* toplevel/Version.hs (versnum): 0.10.14
+
+2002-05-10  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (setGet): corrected bug in bit fiddling
+
+2002-05-02  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.10.13
+
+2002-04-16  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.10.12
+
+2002-03-20  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHSLexer.hs (haskell): Debug the handling of character literals
+
+	* toplevel/Version.hs (versnum): 0.10.11
+
+2002-03-12  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs.spec.in: we now require the Haskell compiler to be the one
+	for which the package was build
+
+	* Makefile: adapted to revised build system
+
+	* toplevel/Version.hs (versnum): 0.10.10
+
+2002-03-06  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHSLexer.hs (haskell): Escape characters in Haskell strings
+	haven't been handled correctly in all cases as reported by Volker
+	Wysk <post@volker-wysk.de>; we also have to handle character
+	constants specially, because '"' is a legal Haskell character
+	constant
+
+2002-03-03  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* configure.in: Package handling fix by Jens Petersen
+
+	* toplevel/Version.hs (versnum): 0.10.9
+
+2002-02-25  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs: debugging
+
+2002-02-24  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs (parseOptAs): `^' as synonym for previous identifier,
+	but with underscores rewritten to caps
+
+	* chs/CHSLexer.hs: added `CHSTokHat'
+
+2002-02-23  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HSMarsh.hs: added some more convenience functions
+
+2002-02-21  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs: Completed processing of function hooks
+
+2002-02-18  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHSLexer.hs: Added `CHSTokMinus'
+
+	* chs/CHS.hs: Revised the syntax of fun hooks
+
+	* chs/CHSLexer.hs: Added `CHSTokAmp' (representing `&')
+
+	* gen/GenBind.hs (foreignImport): factorised the code for call
+	hook generation to make those portions that are also useful for
+	fun hooks reusable
+	(expandHook): implemented fun hooks
+
+	* gen/GBMonad.hs: extracted monad-related code from `GenBind.hs'
+
+	* gen/GenBind.hs: split off the monad definition and operations
+	into `GBMonad.hs'
+
+2002-02-17  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHSLexer.hs: introduced `hsverb' tokens
+
+	* chs/CHS.hs: `pure' instead of `fun' to indicate calls to pure
+	C functions (`fun' retained for backwards compatibility)
+
+	* chs/CHSLexer.hs: introduced the keyword `pure'
+
+2002-02-13  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* Makefile: adapted to using GHC package management
+
+2002-02-11  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/Makefile (depend): increase portability
+
+2002-02-06  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* configure.in: probe for `grep'
+
+2002-02-05  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* aclocal.m4 (CTK_GHC_VERSION): no \+ in sed on Solaris
+
+	* toplevel/Version.hs (versnum): 0.10.7
+
+2002-01-15  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (mergeMaps): now, the read map overrides any
+	entires for shared keys in the map that is already in the monad;
+	this is so that, if multiple import hooks add entries for shared
+	keys, the textually latest prevails; any local entries are entered
+	after all import hooks anyway
+
+	* toplevel/Version.hs (versnum): 0.10.6
+
+2002-01-10  Jens Petersen  <juhp@01.246.ne.jp>
+
+	* c/CParser.hs (parseC): corrected "contained contained" in
+	proceeding comments.
+
+	* ../doc/c2hs/c2hs.sgml (Set Hooks): correct #get to #set
+
+	* ../doc/c2hs/Makefile (TOP): "../../.." to "../.."
+
+2002-01-10  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.10.5
+
+2001-12-20  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): fixed a sizeof bug pointed out by Jens
+	Petersen <petersen@redhat.com>
+
+	* toplevel/Version.hs (versnum): 0.10.4
+
+2001-12-11  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/c2hs_config.c: now conforms to ISO C
+
+	* toplevel/Version.hs (versnum): 0.10.3
+
+2001-11-14  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (setGet): debugged
+
+2001-11-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (setGet): reading and writing of bitfields
+	(alignOffset): now handles alignment of bit fields
+	(extractCompType): debugging
+
+2001-11-12  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (specType): added bitfield handling
+	(BitSize): introduced size specs for partially filled storage units
+
+	* toplevel/C2HSConfig.hs.in (bitfieldDirection): added
+	(bitfieldPadding): added
+	(bitfieldIntSigned): added
+
+	* toplevel/c2hs_config.c: runtime configuration query functions
+
+	* gen/CInfo.hs (CPrimType): extended by variants for bitfields
+	(size): now a function instead of an array
+	(alignment): now a function instead of an array
+
+	* gen/GenBind.hs (showExtType): simplified `showExtType' again;
+	the brace level idea doen't work for `DefinedET' anyway; so, let's
+	simplify the code
+
+2001-11-08  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.10.2
+
+2001-10-17  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CParser.hs (parseCDecl): corrected the precise locatio where
+	an __attribute__ annotation may occur.
+
+2001-10-16  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (evalConstCExpr): added `alignof'
+
+	* c/CNames.hs (naCExpr): added `alignof'
+
+	* c/CAST.hs: added `alignof'
+
+	* c/CParser.hs (parseCUnaryExpr): added `alignof' expressions
+
+	* c/CLexer.hs: added keyword `alignof'
+
+	* toplevel/Version.hs (versnum): 0.10.1
+
+2001-10-08  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs: debugged
+
+2001-10-07  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs: handling class hooks
+
+	* Makefile: improved cleaning targets
+
+	* chs/CHS.hs (parseClass): added class hooks
+
+	* chs/CHSLexer.hs: added tokens `class' and `=>'
+
+	* gen/GenBind.hs (isFunExtType): IO types are function types
+
+	* toplevel/Version.hs (versnum): 0.10.0 "Altocumulus Stratiformis
+	Perlucidus Undulatus"
+
+2001-08-26  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (foreignImport): `libName' removed until the new
+	FFI conventions for libs are implemented in GHC
+
+	* c/CTrav.hs (dropPtrDeclr): fixed pointer to pointer case
+
+	* c/CPretty.hs: implemented pretty-printing for part of the C AST
+
+2001-08-25  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (setGet): missed ";" in code generation
+
+	* c/CParser.hs (cidOrTN): after struct or union tag we may have a
+	normal idenifier or a type name; spotted by Simon Bowden
+	<simonb@cse.unsw.edu.au> and Michael Zinn <michaelz@cse.unsw.edu.au>
+
+2001-08-23  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): adding parenthesis around the
+	generated type; problem pointed out by Matthew Tarnawsky
+	<matthewt@ics.mq.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.9.9
+
+2001-06-20  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): added sizeof hook
+	(sizeAlignOf): corrected size computation for structures to
+	conform to [K&R A7.4.8]
+	(sizeAlignOf): improved handling of `DefinedET', which led to an
+	endless loop
+
+	* chs/CHS.hs: added sizeof hook
+
+	* chs/CHSLexer.hs: added keyword `sizeof'
+
+	* gen/GenBind.hs (evalConstCExpr): sizeof now supported
+
+	* lib/C2HSDeprecated.hs: includes Storable methods of the new
+	Storable in addition to those of the old
+
+	* toplevel/Version.hs (versnum): 0.9.8
+
+2001-06-18  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CParser.hs (parseCExpr): `CComma' requires at least two
+	expressions; patch by Armin Sander <armin@mindwalker.org>
+
+	* toplevel/Version.hs (versnum): 0.9.7
+
+2001-06-16  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs: local prefix for enum hooks; courtesy of Armin
+	Sander <armin@mindwalker.org>
+
+	* gen/GenBind.hs (expandHook): correctly uses a `FunPtr' for
+	pointers to functional types
+	(setGet): no deep check required as set/get do not perform a deep
+	copy; bug reported by Armin Sander <armin@mindwalker.org>
+	(expandHook): local prefix for enum hooks; courtesy of Armin
+	Sander <armin@mindwalker.org>
+
+	* toplevel/Version.hs (versnum): 0.9.6
+
+2001-05-20  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (enumInst): Fix for avoiding warnings when
+	generated bindings are compiled with -Wall contributed by Armin
+	Sander <armin@mindwalker.org>
+
+2001-05-14  Axel Simon <simona@i2.informatik.rwth-aachen.de>
+
+ 	* toplevel/Main.hs, state/Switchboard.hs, chs/CHS.hs: add
+ 	-i flag which takes a colon separated list of search paths for 
+ 	.chi files.
+ 
+ 	* fixed some bugs in parsing import hooks
+ 	
+2001-05-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.9.5
+
+	* gen/GenBind.hs (expandHook): revised to properly handle struct,
+	union, and enum tags as C identifiers in pointer hooks; also
+	handles non-abstract pointers with explicit "*" now better; the
+	problems were pointed out by Marcin Kowalczyk <qrczak@knm.org.pl>
+
+	* c/CTrav.hs (findTypeObjMaybe): added
+	(lookupDeclOrTag): added
+	(enumName): added
+	(tagName): added
+
+	* c/CLexer.hs (charconst): Patch from Armin Sander
+	<armin@mindwalker.org> regarding character constants
+
+2001-05-11  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs-config.in: Patch from Jens-Ulrik Petersen
+	<juhp@01.246.ne.jp> fixes $sys variable setting
+
+	* toplevel/Version.hs (versnum): 0.9.4
+
+2001-05-06  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (extractCompType): rewrote that thing again
+
+	* c/CTrav.hs (checkForOneAliasName): added
+
+2001-05-05  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CTrav.hs (chaseDecl): simplified
+
+	* gen/GenBind.hs (expandHook): debugged the pointer hook
+
+	* c/CTrav.hs (findAndChaseDecl): correction
+
+	* toplevel/Version.hs (versnum): 0.9.3
+
+2001-05-03  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): added import hook
+	(mergePtrMap): added
+	(dumpPtrMap): added
+
+	* chs/CHS.hs (loadCHI): added
+	(dumpCHI): added
+	(CHSHook): added `import' hook
+
+	* chs/CHSLexer.hs: Added the keywords `import' and `qualified'
+
+	* toplevel/Version.hs (versnum): 0.9.2
+
+2001-05-02  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (extractCompType): as pointed out by Axel Simon,
+	we can't return `ForeignPtr's from imported foreign functions
+	(setGet): the `accessType' story is largely redundant with the new
+	formulation of `extractCompType', but we still need to check the
+	marshaled type
+	(setGet): `DefinedET' now takes a declaration rather than an
+	identifier as its first argument; this is necessary for anonymous
+	declerators
+	(extractCompType): functions are now extracted correctly
+
+	* c/CTrav.hs (isPtrDecl): works on identifiers now and chases
+	declarations
+	(dropPtrDeclr): added
+
+	* gen/GenBind.hs (extractCompType): completely rewrote this
+	function to properly handle pointer and function types and honour
+	aliases introduced by pointer hooks
+
+2001-05-01  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CTrav.hs (isPtrDeclr): functions types without an explizit
+	pointer constructor are no longer regarded as pointers
+
+	* gen/CInfo.hs: renamed `CAddrPT' and `CFunAddrPT' to `CPtrPT' and
+	`CFunPtrPT', respectively
+
+	* gen/GenBind.hs (extractCompType): revised for pointer hooks
+
+2001-04-30  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (setGet): uses FunPtr for functions
+	(extractPtrType): added
+
+2001-04-28  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): rewrote `alias'hook into `pointer' hook
+
+	* chs/CHS.hs: rewrote the `alias' hook into the `pointer' hook
+
+	* chs/CHSLexer.hs: removed `alias' token and added `pointer' and
+	`newtype'
+
+	* toplevel/Version.hs (versnum): 0.9.1
+
+	* gen/GenBind.hs: clean up
+
+2001-04-21  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHSLexer.hs: Added `(' and `)'
+
+	* chs/CHS.hs: Added code implementing the `alias' hook and the
+	`deriving' option for the `enum' hook.  This code was contributed
+	by Axel Simon <simona_@web.de> (also related code in CHSLexer.hs);
+	but added parenthesis to `deriving'
+
+	* c/CTrav.hs: Added code implementing the `alias' hook, which
+	was contributed by Axel Simon <simona_@web.de>
+
+	* gen/GenBind.hs: The following patch was contributed by Axel
+	Simon <simona_@web.de>: `extractCompType' generates addresses
+	of type `Ptr <type>' instead of `Addr' (if `--old-ffi=no', which
+	is the default)
+
+	* configure.in: Adapted for ghc 5.00
+
+	* toplevel/Version.hs (versnum): 0.9.0 "Blue Ginger"
+
+2001-02-22  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HSDeprecated.hs: Corrected String marshalling for 4.11;
+	suggested by Marcin 'Qrczak' Kowalczyk <qrczak@knm.org.pl>
+
+2001-02-19  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c2hs-config.in: generated code needs -package lang for
+	compilation and linking
+
+	* toplevel/Version.hs (versnum): 0.8.3 "Gentle Moon"
+
+2001-02-13  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/NewStablePtr.hs.in: Adaptation layer for StablePtr for the
+	legacy FFI interface
+
+2001-02-12  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HS.hs: Forgot to export `FunPtr' and associated functions
+
+	* lib/C2HSDeprecated.hs: Some exports had been missing
+
+	* c/CTrav.hs: Handle `CAttrs.BuiltinCO'
+
+	* c/CNames.hs (nameAnalysis): add builtin type definitions
+
+	* c/CBuiltin.hs: predefine `__builtin_va_list' as a
+	typedef'd name
+
+	* c/CParser.hs (parseCHeader): use `CBuiltin'
+
+	* toplevel/Version.hs (versnum): 0.8.2
+
+2001-02-11  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* releasing version 0.8.1 "Gentle Moon"
+	* ../doc/c2hs/: Documentation updated & added the Haskell FFI
+	Marshalling Library specification
+
+2001-02-09  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/Makefile: Debugging for 4.11
+
+2001-02-05  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/C2HSConfig.hs.in: Moved the primitive characteristics
+	table to `CInfo' (it is based now on getting the information from
+	the FFI of the Haskell compiler compiling c2hs)
+
+	* gen/CInfo.hs: Added
+
+2001-02-04  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HSMarsh.hs: Moved almost everything to `C2HSDeprecated'
+
+	* lib/C2HSBase.hs: Much simplified conversion routines and the old
+	`Storable' definition died
+
+2001-02-03  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* configure.in: Removed all the stuff that had to be there for the
+	late `lib/C2HSConfig.hs.in'
+
+	* lib/C2HSConfig.hs.in: RIP - All the relevant information is now
+	available from the Standard FFI
+
+	* C2HSDeprecated.hs: Added old C type names
+
+	* lib/C2HS.hs: Added support for the New FFI Libraries (so that
+	they are also useable with Haskell systems only supporting the old
+	libraries)
+
+2000-08-22  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HSDeprecated.hs: contains a compatibility interface to the
+	"Afterthought" series
+
+2000-08-18  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.8.0 "Gentle Moon"
+
+	** WARNING: Only the FFI of GHC 4.08 upwards is supported **
+
+	** WARNING: Code breaking changes to the marshalling library **
+	**          Compatibility library provided		     **
+
+2000-08-12  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HSBase.hs (IntConv): instances for Int8, Word8, and Char
+
+	* toplevel/Version.hs (versnum): 0.7.10
+
+2000-08-06  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs (showCHSTrans): corrected syntax
+	(parseTrans): comma now correctly required after underscoreToCase
+
+	* gen/GenBind.hs (transTabToTransFun): properly handles prefixes
+	in the translation function
+	(enumDef): prefixes are now generally removed from enumerators
+	without the constraint that the prefix has to be removed from all
+	enumerators or none
+
+2000-08-04  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (usualArithConv): forgot a case; patch
+	contributed by Axel Simon <simona@pool.Informatik.rwth-aachen.de>
+
+	* toplevel/Version.hs (versnum): 0.7.9
+
+2000-07-06  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (specType.matches): forgot a case; bug spotted by
+	Axel Simon <simona@pool.Informatik.rwth-aachen.de>
+
+	* lib/C2HSBase.hs (plusAddr): ugly kludge for GHC 4.08 (doesn't
+	work with any older version for the moment)
+
+	* toplevel/Version.hs (versnum): 0.7.8
+
+2000-04-15  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* c/CLexer.hs (pragma): ignores `#pragma's
+
+	* toplevel/Version.hs (versnum): 0.7.7
+
+2000-04-09  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* mk/config.mk.in: added
+
+	* gen/GenBind.hs: added `long long's
+	(specType): added error message for unsupported types
+
+	* lib/C2HSConfig.hs.in: added `long long's
+
+	* toplevel/C2HSConfig.hs.in: added `long long's
+
+	* toplevel/Version.hs (versnum): 0.7.6
+
+2000-04-08  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* configure.in: corrected sed expression for Solaris
+
+2000-03-02  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* tests/Makefile: added & revised all the tests
+
+	* configure.in: debugging
+
+2000-03-01  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* lib/C2HSMarsh.hs (addrWithMarkerToList): debugged
+
+2000-02-28  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (expandHook): adapted to new `CHSContext' def
+
+	* c/CParser.hs: Using `Utils.Tag' class to make `CToken' an instance of
+	`Token'
+
+	* c/CLexer.hs: Making `CToken' an instance of `Utils.Tag' instead
+	of `Eq'
+
+2000-02-25  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* chs/CHS.hs: added `header' tag in context hook
+
+	* chs/CHSLexer.hs: added keyword `header'
+
+	* c/CLexer.hs, c/CParser.hs, c/CAST.hs: added C99 type qualifier
+	  `restrict'; thanks to "Marcin 'Qrczak' Kowalczyk"
+	  <qrczak@knm.org.pl> for pointing this out
+
+2000-02-24  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* gen/GenBind.hs (foreignImport): system-dependent library suffix
+
+	* configure.in,toplevel/C2HSConfig.hs.in: DLSUFFIX
+
+2000-02-23  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
+
+	* toplevel/Version.hs (versnum): 0.7.5
+
+1999-12-04  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* lib/C2HSBase.hs (BoolConv): added
+
+1999-11-24  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* ../doc/c2hs/Makefile: corrections by Michael Weber
+ 	<michael.weber@Post.RWTH-Aachen.DE>
+
+1999-11-17  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* Man pages and debianisation, courtesy of Michael Weber
+	<michael.weber@Post.RWTH-Aachen.DE>
+
+	* c/CNames.hs: no new range for tag definitions is started when
+	entering a struct declaration list or a parameter list; thanks to
+	Volker Wysk <volker.wysk@student.uni-tuebingen.de> for the bug report
+
+	* c/CAttrs.hs (enterNewObjRangeC): added
+	(leaveObjRangeC): added
+
+1999-11-16  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* c/CTrav.hs (extractAlias): now correctly handles anonymous
+	declarations; introduced new function `declaredDeclr'; thanks to
+	Michael Weber <michael.weber@Post.RWTH-Aachen.DE> for the bug report
+
+	* toplevel/Version.hs (versnum): 0.7.4
+
+1999-11-07  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* lib/C2HSBase.hs: adapted to new `assign' and `deref' routines
+
+	* gen/GenBind.hs: debugged
+
+	* c/CTrav.hs (extractStruct): takes care that forward declerations 
+	of structs are followed to the full definition
+
+	* lib/C2HSMarsh.hs: added `nothingIf', `nothingIfNull';
+	generalised string handling to `listToAddrWithLen' and
+	`addrWithLenToList' 
+
+1999-11-06  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* toplevel/Main.hs: Header file search in standard directories and 
+	directories passed in `-IDIR' options to cpp.
+
+	* c2hs-config.in: Added `--c2hs' option to `c2hs-config'
+
+	* lib/C2HSMarsh.hs: Michael's `Int'/`Word' patch
+
+1999-11-03  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* lib/C2HSMarsh.hs: more instances for `ToAddr' & `FromAddr'
+
+	* toplevel/Version.hs (versnum): 0.7.3
+
+1999-10-30  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* Makefile: adapted to modularised CTK and added installation support
+
+	* c2hs-config.in: added
+
+	* toplevel/Version.hs (versnum): 0.7.2
+
+1999-10-28  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* c/CNames.hs: multiple declarations for the same object are
+	now allowed (thanx Michael)
+
+	* lib/C2HSMarsh.hs: added some suggestions from Michael Weber
+
+	* c/CLexer.hs: #line directives
+
+1999-10-26  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* configure.in: no sizeof or align tests for char
+
+1999-10-25  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* gen/GenBind.hs: some clean up and improved error message with
+	more position information
+
+	* chs/CHS.hs: Positions are maintained for improved error messages.
+
+	* toplevel/Main.hs: removes intermediate file (but it can be
+	retained on explicit request)
+
+	* toplevel/Version.hs (versnum): 0.7.1
+
+1999-10-24  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* examples/libghttpHS/Ghttp.chs: adapted to new syntax & features
+
+	* configure.in: Solaris patch from Michael Weber
+	<michael.weber@Post.RWTH-Aachen.DE>
+
+	* gen/GenBind.hs: new hook syntax
+
+	* chs/CHS.hs (and friends): grok new hook syntax
+
+1999-10-23  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* toplevel/Version.hs (versnum): 0.7.0 (align hook syntax with paper)
+
+	* c/CTrav.hs: routines from `CNames' and `GenBind' generalised and 
+	exported from `CTrav'
+	(defTag): handles enum tags now correctly
+
+1999-10-22  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* c/CNames.hs: sets up the object associations for usage positions
+
+1999-10-21  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* c/CTrav.hs (defTag): handles refined struct definitions
+
+	* toplevel/Main.hs: Command line option patch from Michael Weber
+	<michael.weber@Post.RWTH-Aachen.DE>
+
+	* c/CNames.hs: computes the object reference attributes now
+
+	* c/CTrav.hs (isTypedef): added
+
+	* toplevel/Version.hs (versnum): 0.6.2
+
+1999-10-20  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* examples/libghttpHS/Ghttp.chs: uses `C2HS's exception handling
+
+	* lib/C2HSMarsh.hs: debugging
+
+	* toplevel/Version.hs (versnum): 0.6.1
+
+1999-10-18  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* c/CLexer.hs: computes attributes for identifiers
+
+1999-10-17  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* c/CNames.hs: moved gathering of definitions from `C', starting a 
+	more standard name analysis pass
+
+	* c/CTrav.hs: basic traversal support for name space and
+	definition attribute operations
+
+	* c/CAttrs.hs: C definition attribute data type and operations
+
+	* toplevel/Version.hs: 0.6.0
+
+1999-10-16  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* lib/C2HSMarsh.hs: Marshaling idioms & exception handling
+
+1999-10-13  Manuel M. T. Chakravarty  <chak@is.tsukuba.ac.jp>
+
+	* examples/libghttpHS/Ghttp.chs: compiles
+
+	* toplevel/Main.hs (execute): debugged
+
+	* lib/C2HS.hs: Advanced marshaling support
+
+	
+Pre-GNU style change log
+------------------------
+
+0.5.1
+~~~~~
+12Oct99 lib/C2HSMarsh -> lib/C2HSBase; lib/C2HSMarsh new
+
+0.5.0
+~~~~~
+08Oct99 Debugging
+06Oct99 (# ... #) to {# ... #}; extended `C2HSMarsh'; `Ghttp' example
+
+0.4.1
+~~~~~
+01Oct99 Improved autoconf support for computing the information necessary for
+	determining struct offsets & corresponding changes in `GenBind'
+	plus full struct and union support
+
+0.4.0
+~~~~~
+29Sep99 Debugging
+28Sep99 Improving marshaling lib
+27Sep99 Autoconf support
+26Sep99 More lexer debugging, typedef chasing & field hooks with indirections;
+	preprocessing of the C header implemented
+21Sep99 Debugged CHS lexer (Haskell comments etc)
+
+0.3.0
+~~~~~
+06Sep99 Enums correctly lead to `CInt's in foreign import declarations
+01Sep99 Added dot syntax for field hooks
+
+0.2.2
+~~~~~
+01Sep99 Added support for explicit tag values in enumerations
+31Aug99 added tag objects to `CAttrs.hs' and `C.hs'; enumeration hooks are
+	partial functional
+
+0.2.1
+~~~~~
+30Aug99 context and call hooks are functional
+
+0.2.0
+~~~~~
+29Aug99 full path completed
+19Aug99 started `lib' part
+17Aug99 started `gen' part
+17Aug99 finished the CHS parser and printing routines in `CHS.hs'
+16Aug99 finished first version of CHS lexer; added `CHS.hs'
+15Aug99 started `chs' part
+
+0.1.1
+~~~~~
+12Aug99 Various fixes to the C lexer and parser; added toplevel/Main.hs and
+	c/C.hs
+
+0.1.0
+~~~~~
+03Apr99 Finished first complete version of C lexer and parser
+27Feb99 starting project

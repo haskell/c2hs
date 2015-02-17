@@ -87,15 +87,16 @@
 --    transfers control to the following binding-hook lexer:
 --
 --      ident       -> letter (letter | digit | `\'')*
---      reservedid  -> `as' | `call' | `class' | `context' | `deriving'
+--      cidenttail  -> digit (letter | digit)*
+--      reservedid  -> `add' | `as' | `call' | `class' | `context' | `deriving'
 --                   | `enum' | `foreign' | `fun' | `get' | `lib'
---                   | `downcaseFirstLetter'
+--                   | `downcaseFirstLetter' | `finalizer'
 --                   | `newtype' | `nocode' | `pointer' | `prefix' | `pure'
---                   | `set' | `sizeof' | `stable' | `type'
+--                   | `set' | `sizeof' | `stable' | `struct' | `type'
 --                   | `underscoreToCase' | `upcaseFirstLetter' | `unsafe' |
---                   | `with'
+--                   | `with' | `const' | `omit'
 --      reservedsym -> `{#' | `#}' | `{' | `}' | `,' | `.' | `->' | `='
---                   | `=>' | '-' | `*' | `&' | `^'
+--                   | `=>' | '-' | `*' | `&' | `^' | `+'
 --      string      -> `"' instr* `"'
 --      verbhs      -> `\`' inhsverb* `\''
 --      quoths      -> `\'' inhsverb* `\''
@@ -172,7 +173,7 @@ module C2HS.CHS.Lexer (CHSToken(..), lexCHS, keywordToIdent)
 where
 
 import Data.List     ((\\))
-import Data.Char     (isDigit)
+import Data.Char     (isDigit, isSpace)
 
 import Language.C.Data.Ident
 import Language.C.Data.Name
@@ -200,18 +201,26 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokStar    Position          -- `*'
               | CHSTokAmp     Position          -- `&'
               | CHSTokHat     Position          -- `^'
+              | CHSTokPlus    Position          -- `+'
               | CHSTokLBrace  Position          -- `{'
               | CHSTokRBrace  Position          -- `}'
               | CHSTokLParen  Position          -- `('
               | CHSTokRParen  Position          -- `)'
+              | CHSTokLBrack  Position          -- `['
+              | CHSTokRBrack  Position          -- `]'
+              | CHSTokHook    Position          -- `{#'
               | CHSTokEndHook Position          -- `#}'
+              | CHSTokAdd     Position          -- `add'
               | CHSTokAs      Position          -- `as'
               | CHSTokCall    Position          -- `call'
               | CHSTokClass   Position          -- `class'
+              | CHSTokConst   Position          -- `const'
               | CHSTokContext Position          -- `context'
+              | CHSTokNonGNU  Position          -- `nonGNU'
               | CHSTokDerive  Position          -- `deriving'
               | CHSTokDown    Position          -- `downcaseFirstLetter'
               | CHSTokEnum    Position          -- `enum'
+              | CHSTokFinal   Position          -- `finalizer'
               | CHSTokForeign Position          -- `foreign'
               | CHSTokFun     Position          -- `fun'
               | CHSTokGet     Position          -- `get'
@@ -220,6 +229,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokNewtype Position          -- `newtype'
               | CHSTokNocode  Position          -- `nocode'
               | CHSTokOffsetof Position         -- `offsetof'
+              | CHSTokOmit    Position          -- `omit'
               | CHSTokPointer Position          -- `pointer'
               | CHSTokPrefix  Position          -- `prefix'
               | CHSTokPure    Position          -- `pure'
@@ -228,20 +238,25 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokSizeof  Position          -- `sizeof'
               | CHSTokAlignof Position          -- `alignof'
               | CHSTokStable  Position          -- `stable'
+              | CHSTokStruct  Position          -- `struct'
               | CHSTokType    Position          -- `type'
               | CHSTok_2Case  Position          -- `underscoreToCase'
               | CHSTokUnsafe  Position          -- `unsafe'
               | CHSTokUpper   Position          -- `upcaseFirstLetter'
-              | CHSTokWith    Position          -- `with'
+              | CHSTokVariadic Position          -- `variadic'
+              | CHSTokWith    Position Ident    -- `with'
               | CHSTokString  Position String   -- string
               | CHSTokHSVerb  Position String   -- verbatim Haskell (`...')
               | CHSTokHSQuot  Position String   -- quoted Haskell ('...')
               | CHSTokIdent   Position Ident    -- identifier
               | CHSTokHaskell Position String   -- verbatim Haskell code
-              | CHSTokCPP     Position String   -- pre-processor directive
+              | CHSTokCPP     Position String Bool -- pre-processor directive
               | CHSTokLine    Position          -- line pragma
               | CHSTokC       Position String   -- verbatim C code
               | CHSTokCtrl    Position Char     -- control code
+              | CHSTokComment Position String   -- comment
+              | CHSTokCIdentTail Position Ident -- C identifier without prefix
+              | CHSTokCArg Position String      -- C type argument
 
 instance Pos CHSToken where
   posOf (CHSTokArrow   pos  ) = pos
@@ -257,14 +272,21 @@ instance Pos CHSToken where
   posOf (CHSTokRBrace  pos  ) = pos
   posOf (CHSTokLParen  pos  ) = pos
   posOf (CHSTokRParen  pos  ) = pos
+  posOf (CHSTokLBrack  pos  ) = pos
+  posOf (CHSTokRBrack  pos  ) = pos
+  posOf (CHSTokHook    pos  ) = pos
   posOf (CHSTokEndHook pos  ) = pos
+  posOf (CHSTokAdd     pos  ) = pos
   posOf (CHSTokAs      pos  ) = pos
   posOf (CHSTokCall    pos  ) = pos
   posOf (CHSTokClass   pos  ) = pos
+  posOf (CHSTokConst   pos  ) = pos
   posOf (CHSTokContext pos  ) = pos
+  posOf (CHSTokNonGNU  pos  ) = pos
   posOf (CHSTokDerive  pos  ) = pos
   posOf (CHSTokDown    pos  ) = pos
   posOf (CHSTokEnum    pos  ) = pos
+  posOf (CHSTokFinal   pos  ) = pos
   posOf (CHSTokForeign pos  ) = pos
   posOf (CHSTokFun     pos  ) = pos
   posOf (CHSTokGet     pos  ) = pos
@@ -273,6 +295,7 @@ instance Pos CHSToken where
   posOf (CHSTokNewtype pos  ) = pos
   posOf (CHSTokNocode  pos  ) = pos
   posOf (CHSTokOffsetof pos ) = pos
+  posOf (CHSTokOmit    pos  ) = pos
   posOf (CHSTokPointer pos  ) = pos
   posOf (CHSTokPrefix  pos  ) = pos
   posOf (CHSTokPure    pos  ) = pos
@@ -281,20 +304,25 @@ instance Pos CHSToken where
   posOf (CHSTokSizeof  pos  ) = pos
   posOf (CHSTokAlignof pos  ) = pos
   posOf (CHSTokStable  pos  ) = pos
+  posOf (CHSTokStruct  pos  ) = pos
   posOf (CHSTokType    pos  ) = pos
   posOf (CHSTok_2Case  pos  ) = pos
   posOf (CHSTokUnsafe  pos  ) = pos
   posOf (CHSTokUpper   pos  ) = pos
-  posOf (CHSTokWith    pos  ) = pos
+  posOf (CHSTokVariadic pos  ) = pos
+  posOf (CHSTokWith    pos _) = pos
   posOf (CHSTokString  pos _) = pos
   posOf (CHSTokHSVerb  pos _) = pos
   posOf (CHSTokHSQuot  pos _) = pos
   posOf (CHSTokIdent   pos _) = pos
   posOf (CHSTokHaskell pos _) = pos
-  posOf (CHSTokCPP     pos _) = pos
+  posOf (CHSTokCPP     pos _ _) = pos
   posOf (CHSTokLine    pos  ) = pos
   posOf (CHSTokC       pos _) = pos
   posOf (CHSTokCtrl    pos _) = pos
+  posOf (CHSTokComment pos _) = pos
+  posOf (CHSTokCIdentTail pos _) = pos
+  posOf (CHSTokCArg    pos _) = pos
 
 instance Eq CHSToken where
   (CHSTokArrow    _  ) == (CHSTokArrow    _  ) = True
@@ -310,14 +338,21 @@ instance Eq CHSToken where
   (CHSTokRBrace   _  ) == (CHSTokRBrace   _  ) = True
   (CHSTokLParen   _  ) == (CHSTokLParen   _  ) = True
   (CHSTokRParen   _  ) == (CHSTokRParen   _  ) = True
+  (CHSTokLBrack   _  ) == (CHSTokLBrack   _  ) = True
+  (CHSTokRBrack   _  ) == (CHSTokRBrack   _  ) = True
+  (CHSTokHook     _  ) == (CHSTokHook     _  ) = True
   (CHSTokEndHook  _  ) == (CHSTokEndHook  _  ) = True
+  (CHSTokAdd      _  ) == (CHSTokAdd      _  ) = True
   (CHSTokAs       _  ) == (CHSTokAs       _  ) = True
   (CHSTokCall     _  ) == (CHSTokCall     _  ) = True
   (CHSTokClass    _  ) == (CHSTokClass    _  ) = True
+  (CHSTokConst    _  ) == (CHSTokConst    _  ) = True
   (CHSTokContext  _  ) == (CHSTokContext  _  ) = True
+  (CHSTokNonGNU   _  ) == (CHSTokNonGNU   _  ) = True
   (CHSTokDerive   _  ) == (CHSTokDerive   _  ) = True
   (CHSTokDown     _  ) == (CHSTokDown     _  ) = True
   (CHSTokEnum     _  ) == (CHSTokEnum     _  ) = True
+  (CHSTokFinal    _  ) == (CHSTokFinal    _  ) = True
   (CHSTokForeign  _  ) == (CHSTokForeign  _  ) = True
   (CHSTokFun      _  ) == (CHSTokFun      _  ) = True
   (CHSTokGet      _  ) == (CHSTokGet      _  ) = True
@@ -326,6 +361,7 @@ instance Eq CHSToken where
   (CHSTokNewtype  _  ) == (CHSTokNewtype  _  ) = True
   (CHSTokNocode   _  ) == (CHSTokNocode   _  ) = True
   (CHSTokOffsetof _  ) == (CHSTokOffsetof _  ) = True
+  (CHSTokOmit     _  ) == (CHSTokOmit     _  ) = True
   (CHSTokPointer  _  ) == (CHSTokPointer  _  ) = True
   (CHSTokPrefix   _  ) == (CHSTokPrefix   _  ) = True
   (CHSTokPure     _  ) == (CHSTokPure     _  ) = True
@@ -334,20 +370,25 @@ instance Eq CHSToken where
   (CHSTokSizeof   _  ) == (CHSTokSizeof   _  ) = True
   (CHSTokAlignof  _  ) == (CHSTokAlignof  _  ) = True
   (CHSTokStable   _  ) == (CHSTokStable   _  ) = True
+  (CHSTokStruct   _  ) == (CHSTokStruct   _  ) = True
   (CHSTokType     _  ) == (CHSTokType     _  ) = True
   (CHSTok_2Case   _  ) == (CHSTok_2Case   _  ) = True
   (CHSTokUnsafe   _  ) == (CHSTokUnsafe   _  ) = True
   (CHSTokUpper    _  ) == (CHSTokUpper    _  ) = True
-  (CHSTokWith     _  ) == (CHSTokWith     _  ) = True
+  (CHSTokVariadic _  ) == (CHSTokVariadic _  ) = True
+  (CHSTokWith     _ _) == (CHSTokWith     _ _) = True
   (CHSTokString   _ _) == (CHSTokString   _ _) = True
   (CHSTokHSVerb   _ _) == (CHSTokHSVerb   _ _) = True
   (CHSTokHSQuot   _ _) == (CHSTokHSQuot   _ _) = True
   (CHSTokIdent    _ _) == (CHSTokIdent    _ _) = True
   (CHSTokHaskell  _ _) == (CHSTokHaskell  _ _) = True
-  (CHSTokCPP      _ _) == (CHSTokCPP      _ _) = True
+  (CHSTokCPP    _ _ _) == (CHSTokCPP    _ _ _) = True
   (CHSTokLine     _  ) == (CHSTokLine     _  ) = True
   (CHSTokC        _ _) == (CHSTokC        _ _) = True
   (CHSTokCtrl     _ _) == (CHSTokCtrl     _ _) = True
+  (CHSTokComment  _ _) == (CHSTokComment  _ _) = True
+  (CHSTokCIdentTail _ _) == (CHSTokCIdentTail _ _) = True
+  (CHSTokCArg     _ _) == (CHSTokCArg     _ _) = True
   _                    == _                    = False
 
 instance Show CHSToken where
@@ -360,18 +401,26 @@ instance Show CHSToken where
   showsPrec _ (CHSTokStar    _  ) = showString "*"
   showsPrec _ (CHSTokAmp     _  ) = showString "&"
   showsPrec _ (CHSTokHat     _  ) = showString "^"
+  showsPrec _ (CHSTokPlus    _  ) = showString "+"
   showsPrec _ (CHSTokLBrace  _  ) = showString "{"
   showsPrec _ (CHSTokRBrace  _  ) = showString "}"
   showsPrec _ (CHSTokLParen  _  ) = showString "("
   showsPrec _ (CHSTokRParen  _  ) = showString ")"
+  showsPrec _ (CHSTokLBrack  _  ) = showString "["
+  showsPrec _ (CHSTokRBrack  _  ) = showString "]"
+  showsPrec _ (CHSTokHook    _  ) = showString "{#"
   showsPrec _ (CHSTokEndHook _  ) = showString "#}"
+  showsPrec _ (CHSTokAdd     _  ) = showString "add"
   showsPrec _ (CHSTokAs      _  ) = showString "as"
   showsPrec _ (CHSTokCall    _  ) = showString "call"
   showsPrec _ (CHSTokClass   _  ) = showString "class"
+  showsPrec _ (CHSTokConst   _  ) = showString "const"
   showsPrec _ (CHSTokContext _  ) = showString "context"
+  showsPrec _ (CHSTokNonGNU  _  ) = showString "nonGNU"
   showsPrec _ (CHSTokDerive  _  ) = showString "deriving"
   showsPrec _ (CHSTokDown    _  ) = showString "downcaseFirstLetter"
   showsPrec _ (CHSTokEnum    _  ) = showString "enum"
+  showsPrec _ (CHSTokFinal   _  ) = showString "finalizer"
   showsPrec _ (CHSTokForeign _  ) = showString "foreign"
   showsPrec _ (CHSTokFun     _  ) = showString "fun"
   showsPrec _ (CHSTokGet     _  ) = showString "get"
@@ -380,6 +429,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokNewtype _  ) = showString "newtype"
   showsPrec _ (CHSTokNocode  _  ) = showString "nocode"
   showsPrec _ (CHSTokOffsetof _ ) = showString "offsetof"
+  showsPrec _ (CHSTokOmit    _  ) = showString "omit"
   showsPrec _ (CHSTokPointer _  ) = showString "pointer"
   showsPrec _ (CHSTokPrefix  _  ) = showString "prefix"
   showsPrec _ (CHSTokPure    _  ) = showString "pure"
@@ -388,21 +438,27 @@ instance Show CHSToken where
   showsPrec _ (CHSTokSizeof  _  ) = showString "sizeof"
   showsPrec _ (CHSTokAlignof _  ) = showString "alignof"
   showsPrec _ (CHSTokStable  _  ) = showString "stable"
+  showsPrec _ (CHSTokStruct  _  ) = showString "struct"
   showsPrec _ (CHSTokType    _  ) = showString "type"
   showsPrec _ (CHSTok_2Case  _  ) = showString "underscoreToCase"
   showsPrec _ (CHSTokUnsafe  _  ) = showString "unsafe"
   showsPrec _ (CHSTokUpper   _  ) = showString "upcaseFirstLetter"
-  showsPrec _ (CHSTokWith    _  ) = showString "with"
+  showsPrec _ (CHSTokVariadic _  ) = showString "variadic"
+  showsPrec _ (CHSTokWith    _ _) = showString "with"
   showsPrec _ (CHSTokString  _ s) = showString ("\"" ++ s ++ "\"")
   showsPrec _ (CHSTokHSVerb  _ s) = showString ("`" ++ s ++ "'")
   showsPrec _ (CHSTokHSQuot  _ s) = showString ("'" ++ s ++ "'")
   showsPrec _ (CHSTokIdent   _ i) = (showString . identToString) i
   showsPrec _ (CHSTokHaskell _ s) = showString s
-  showsPrec _ (CHSTokCPP     _ s) = showString s
+  showsPrec _ (CHSTokCPP  _ s nl) = showString (if nl then "\n" else "" ++ s)
   showsPrec _ (CHSTokLine    _  ) = id            --TODO show line num?
   showsPrec _ (CHSTokC       _ s) = showString s
   showsPrec _ (CHSTokCtrl    _ c) = showChar c
-
+  showsPrec _ (CHSTokComment _ s) = showString (if null s
+                                                then ""
+                                                else " --" ++ s ++ "\n")
+  showsPrec _ (CHSTokCIdentTail _ i) = (showString . identToString) i
+  showsPrec _ (CHSTokCArg    _ s) = showString s
 
 -- lexer state
 -- -----------
@@ -469,6 +525,7 @@ chslexer  =      haskell        -- Haskell code
             >||< ctrl           -- control code (that has to be preserved)
             >||< hook           -- start of a binding hook
             >||< cpp            -- a pre-processor directive (or `#c')
+            >||< startmarker    -- marks beginning of input
 
 -- | stream of Haskell code (terminated by a control character or binding hook)
 --
@@ -590,7 +647,16 @@ ctrl  =
 --
 hook :: CHSLexer
 hook  = string "{#"
-        `lexmeta` \_ pos s -> (Nothing, incPos pos 2, s, Just bhLexer)
+        `lexmeta` \_ pos s -> (Just $ Right (CHSTokHook pos),
+                               incPos pos 2, s, Just bhLexer)
+
+-- | start marker: used to identify pre-processor directive at
+-- beginning of input -- this lexer just drops the start marker if it
+-- hasn't been used to handle a pre-processor directive
+--
+startmarker :: CHSLexer
+startmarker = char '\000' `lexmeta`
+              \_ pos s -> (Nothing, incPos pos 1, s, Just chslexer)
 
 -- | pre-processor directives and `#c'
 --
@@ -602,21 +668,25 @@ cpp :: CHSLexer
 cpp = directive
       where
         directive =
-          string "\n#" +> alt ('\t':inlineSet)`star` epsilon
+          --(string "\n#" >|< string "\0#") +>
+          alt "\n\0" +> alt " \t" `star` string "#" +>
+          alt ('\t':inlineSet)`star` epsilon
           `lexmeta`
-             \(_:_:dir) pos s ->        -- strip off the "\n#"
-               case dir of
+             \t@(ld:spdir) pos s ->      -- strip off the "\n" or "\0"
+             let dir = drop 1 $ dropWhile (`elem` " \t") spdir
+             in case dir of
                  ['c']                      ->          -- #c
-                   (Nothing, retPos pos, s, Just cLexer)
+                   (Nothing, incPos pos (length t), s, Just cLexer)
                  -- a #c may be followed by whitespace
                  'c':sp:_ | sp `elem` " \t" ->          -- #c
-                   (Nothing, retPos pos, s, Just cLexer)
+                   (Nothing, incPos pos (length t), s, Just cLexer)
                  ' ':line@(n:_) | isDigit n ->                 -- C line pragma
                    let pos' = adjustPosByCLinePragma line pos
                     in (Just $ Right (CHSTokLine pos'), pos', s, Nothing)
                  _                            ->        -- CPP directive
-                   (Just $ Right (CHSTokCPP pos dir),
-                    retPos pos, s, Nothing)
+                   (Just $ Right (CHSTokCPP pos dir (ld == '\n')),
+                    if ld == '\n' then retPos pos else incPos pos (length t),
+                    s, Nothing)
 
 adjustPosByCLinePragma :: String -> Position -> Position
 adjustPosByCLinePragma str pos = adjustPos fname' row' pos
@@ -643,15 +713,34 @@ bhLexer  =      identOrKW
            >||< hsverb
            >||< hsquot
            >||< whitespace
+           >||< arglist
            >||< endOfHook
-           >||< string "--" +> anyButNL`star` char '\n'   -- comment
-                `lexmeta` \_ pos s -> (Nothing, retPos pos, s, Nothing)
+           >||< string "--" +> anyButNL`star` epsilon  -- comment
+                `lexaction` \cs pos -> Just (CHSTokComment pos (drop 2 cs))
            where
              anyButNL  = alt (anySet \\ ['\n'])
              endOfHook = string "#}"
                          `lexmeta`
                           \_ pos s -> (Just $ Right (CHSTokEndHook pos),
                                        incPos pos 2, s, Just chslexer)
+             arglist = string "["
+                       `lexmeta` \_ pos s -> (Just $ Right (CHSTokLBrack pos),
+                                              incPos pos 1, s, Just alLexer)
+
+-- | lexer for C function types for variadic functions
+--
+alLexer :: CHSLexer
+alLexer =      sym ","  CHSTokComma
+          >||< endOfArgList
+          >||< cArg
+  where sym cs con = string cs `lexaction` \_ pos -> Just (con pos)
+        endOfArgList = string "]"
+                       `lexmeta`
+                       \_ pos s -> (Just $ Right (CHSTokRBrack pos),
+                                    incPos pos 1, s, Just bhLexer)
+        cArg = ((alt (anySet \\ ",]")) `star` epsilon) `lexaction`
+               \cs pos -> Just (CHSTokCArg pos $ trim cs)
+        trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
 
 -- | the inline-C lexer
 --
@@ -687,14 +776,22 @@ identOrKW  =
        -- identifier or keyword
        (letter +> (letter >|< digit >|< char '\'')`star` epsilon
        `lexactionName` \cs pos name -> (idkwtok $!pos) cs name)
+       >||<
+       (digit +> (letter >|< digit)`star` epsilon
+        `lexactionName` \cs pos name ->
+        CHSTokCIdentTail pos (mkIdent pos cs name))
   where
+    idkwtok pos "add"              _    = CHSTokAdd     pos
     idkwtok pos "as"               _    = CHSTokAs      pos
     idkwtok pos "call"             _    = CHSTokCall    pos
     idkwtok pos "class"            _    = CHSTokClass   pos
+    idkwtok pos "const"            _    = CHSTokConst   pos
     idkwtok pos "context"          _    = CHSTokContext pos
+    idkwtok pos "nonGNU"           _    = CHSTokNonGNU  pos
     idkwtok pos "deriving"         _    = CHSTokDerive  pos
     idkwtok pos "downcaseFirstLetter" _ = CHSTokDown    pos
     idkwtok pos "enum"             _    = CHSTokEnum    pos
+    idkwtok pos "finalizer"        _    = CHSTokFinal   pos
     idkwtok pos "foreign"          _    = CHSTokForeign pos
     idkwtok pos "fun"              _    = CHSTokFun     pos
     idkwtok pos "get"              _    = CHSTokGet     pos
@@ -703,6 +800,7 @@ identOrKW  =
     idkwtok pos "newtype"          _    = CHSTokNewtype pos
     idkwtok pos "nocode"           _    = CHSTokNocode  pos
     idkwtok pos "offsetof"         _    = CHSTokOffsetof pos
+    idkwtok pos "omit"             _    = CHSTokOmit    pos
     idkwtok pos "pointer"          _    = CHSTokPointer pos
     idkwtok pos "prefix"           _    = CHSTokPrefix  pos
     idkwtok pos "pure"             _    = CHSTokPure    pos
@@ -711,25 +809,32 @@ identOrKW  =
     idkwtok pos "sizeof"           _    = CHSTokSizeof  pos
     idkwtok pos "alignof"          _    = CHSTokAlignof pos
     idkwtok pos "stable"           _    = CHSTokStable  pos
+    idkwtok pos "struct"           _    = CHSTokStruct  pos
     idkwtok pos "type"             _    = CHSTokType    pos
     idkwtok pos "underscoreToCase" _    = CHSTok_2Case  pos
     idkwtok pos "unsafe"           _    = CHSTokUnsafe  pos
     idkwtok pos "upcaseFirstLetter"_    = CHSTokUpper   pos
-    idkwtok pos "with"             _    = CHSTokWith    pos
+    idkwtok pos "variadic"         _    = CHSTokVariadic pos
+    idkwtok pos "with"             name = mkwith pos name
     idkwtok pos cs                 name = mkid pos cs name
     --
     mkid pos cs name = CHSTokIdent pos (mkIdent pos cs name)
+    mkwith pos name = CHSTokWith pos (mkIdent pos "with" name)
 
 keywordToIdent :: CHSToken -> CHSToken
 keywordToIdent tok =
   case tok of
+    CHSTokAdd     pos -> mkid pos "add"
     CHSTokAs      pos -> mkid pos "as"
     CHSTokCall    pos -> mkid pos "call"
     CHSTokClass   pos -> mkid pos "class"
+    CHSTokConst   pos -> mkid pos "const"
     CHSTokContext pos -> mkid pos "context"
+    CHSTokNonGNU  pos -> mkid pos "nonGNU"
     CHSTokDerive  pos -> mkid pos "deriving"
     CHSTokDown    pos -> mkid pos "downcaseFirstLetter"
     CHSTokEnum    pos -> mkid pos "enum"
+    CHSTokFinal   pos -> mkid pos "finalizer"
     CHSTokForeign pos -> mkid pos "foreign"
     CHSTokFun     pos -> mkid pos "fun"
     CHSTokGet     pos -> mkid pos "get"
@@ -738,6 +843,7 @@ keywordToIdent tok =
     CHSTokNewtype pos -> mkid pos "newtype"
     CHSTokNocode  pos -> mkid pos "nocode"
     CHSTokOffsetof pos -> mkid pos "offsetof"
+    CHSTokOmit    pos -> mkid pos "omit"
     CHSTokPointer pos -> mkid pos "pointer"
     CHSTokPrefix  pos -> mkid pos "prefix"
     CHSTokPure    pos -> mkid pos "pure"
@@ -746,11 +852,13 @@ keywordToIdent tok =
     CHSTokSizeof  pos -> mkid pos "sizeof"
     CHSTokAlignof pos -> mkid pos "alignof"
     CHSTokStable  pos -> mkid pos "stable"
+    CHSTokStruct  pos -> mkid pos "struct"
     CHSTokType    pos -> mkid pos "type"
     CHSTok_2Case  pos -> mkid pos "underscoreToCase"
     CHSTokUnsafe  pos -> mkid pos "unsafe"
     CHSTokUpper   pos -> mkid pos "upcaseFirstLetter"
-    CHSTokWith    pos -> mkid pos "with"
+    CHSTokVariadic pos -> mkid pos "variadic"
+    CHSTokWith    pos ide -> CHSTokIdent pos ide
     _ -> tok
     where mkid pos str = CHSTokIdent pos (internalIdent str)
 
@@ -766,6 +874,7 @@ symbol  =      sym "->" CHSTokArrow
           >||< sym "*"  CHSTokStar
           >||< sym "&"  CHSTokAmp
           >||< sym "^"  CHSTokHat
+          >||< sym "+"  CHSTokPlus
           >||< sym "{"  CHSTokLBrace
           >||< sym "}"  CHSTokRBrace
           >||< sym "("  CHSTokLParen
@@ -803,7 +912,7 @@ inhsverb  = alt ([' '..'\127'] \\ "'")
 -- | character sets
 --
 anySet, inlineSet, specialSet, commentSpecialSet, ctrlSet :: [Char]
-anySet            = ['\0'..'\255']
+anySet            = ['\1'..'\255']
 inlineSet         = anySet \\ ctrlSet
 specialSet        = ['{', '-', '"', '\'']
 commentSpecialSet = ['{', '-']
@@ -825,7 +934,7 @@ lexCHS cs pos  =
   do
     nameSupply <- getNameSupply
     state <- initialState nameSupply
-    let (ts, lstate, errs) = execLexer chslexer (cs, pos, state)
+    let (ts, lstate, errs) = execLexer chslexer ('\0':cs, pos, state)
         (_, pos', state')  = lstate
     mapM_ raise errs
     assertFinalState pos' state'

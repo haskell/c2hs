@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 --  C->Haskell Compiler: monad for the binding generator
 --
 --  Author : Manuel M T Chakravarty
@@ -55,6 +56,12 @@
 --  about these Haskell objects.  The Haskell object map is dumped into and
 --  read from `.chi' files.
 --
+--  Enumeration map
+--  ---------------
+--
+--  Map maintaining information about enum hooks for use in generation
+--  of default marshalling code.
+--
 --- TODO ----------------------------------------------------------------------
 --
 --  * Look up in translation tables is naive - this probably doesn't affect
@@ -64,17 +71,20 @@
 module C2HS.Gen.Monad (
   TransFun, transTabToTransFun,
 
-  HsObject(..), GB, initialGBState, setContext, getLibrary, getPrefix,
-  delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs, queryObj, queryClass,
-  queryPointer, mergeMaps, dumpMaps
+  HsObject(..), GB, GBState(..), initialGBState, setContext, getLibrary, getPrefix,
+  getReplacementPrefix, delayCode, getDelayedCode, ptrMapsTo, queryPtr,
+  objIs, queryObj, sizeIs, querySize, queryClass, queryPointer,
+  mergeMaps, dumpMaps, queryEnum, isEnum
 ) where
 
 -- standard libraries
-import Data.Char  (toUpper, toLower, isSpace)
+import Data.Char  (toUpper, toLower)
 import Data.List  (find)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map (empty, insert, lookup, union, toList, fromList)
 import Data.Map   (Map)
+import Data.Set   (Set)
+import qualified Data.Set as Set (empty, insert, member, union, toList, fromList)
 
 -- Language.C
 import Language.C.Data.Position
@@ -95,7 +105,7 @@ import C2HS.CHS   (CHSFrag(..), CHSHook(..), CHSTrans(..),
 -- | takes an identifier to a lexeme including a potential mapping by a
 -- translation table
 --
-type TransFun = Ident -> String
+type TransFun = Ident -> Maybe String
 
 -- | translation function for the 'underscoreToCase' flag
 --
@@ -134,17 +144,19 @@ downcaseFirstLetter (c:cs) = toLower c : cs
 -- * the details of handling the prefix are given in the DOCU section at the
 --   beginning of this file
 --
-transTabToTransFun :: String -> CHSTrans -> TransFun
-transTabToTransFun prefx (CHSTrans _2Case chgCase table) =
-  \ide -> let
-            caseTrafo = (if _2Case then underscoreToCase else id) .
-                        (case chgCase of
-                           CHSSameCase -> id
-                           CHSUpCase   -> upcaseFirstLetter
-                           CHSDownCase -> downcaseFirstLetter)
-            lexeme = identToString ide
-            dft    = caseTrafo lexeme             -- default uses case trafo
-          in
+transTabToTransFun :: String -> String -> CHSTrans -> TransFun
+transTabToTransFun prefx rprefx (CHSTrans _2Case chgCase table omits) =
+  \ide ->
+  let caseTrafo = (if _2Case then underscoreToCase else id) .
+                  (case chgCase of
+                      CHSSameCase -> id
+                      CHSUpCase   -> upcaseFirstLetter
+                      CHSDownCase -> downcaseFirstLetter)
+      lexeme = identToString ide
+      dft    = caseTrafo lexeme             -- default uses case trafo
+  in if ide `elem` omits
+     then Nothing
+     else Just $
           case lookup ide table of                  -- lookup original ident
             Just ide' -> identToString ide'         -- original ident matches
             Nothing   ->
@@ -152,8 +164,9 @@ transTabToTransFun prefx (CHSTrans _2Case chgCase table) =
                 Nothing          -> dft             -- no match & no prefix
                 Just eatenLexeme ->
                   let
-                    eatenIde = internalIdentAt (posOf ide) eatenLexeme
-                    eatenDft = caseTrafo eatenLexeme
+                    eatenIde = internalIdentAt (posOf ide)
+                               (rprefx ++ eatenLexeme)
+                    eatenDft = caseTrafo rprefx ++ caseTrafo eatenLexeme
                   in
                   case lookup eatenIde table of     -- lookup without prefix
                     Nothing   -> eatenDft           -- orig ide without prefix
@@ -203,6 +216,11 @@ data HsObject    = Pointer {
                  deriving (Show, Read)
 type HsObjectMap = Map Ident HsObject
 
+type SizeMap = Map Ident Int
+
+-- | set of Haskell type names corresponding to C enums.
+type EnumSet = Set String
+
 {- FIXME: What a mess...
 instance Show HsObject where
   show (Pointer ptrType isNewtype) =
@@ -210,16 +228,35 @@ instance Show HsObject where
   show (Class   osuper  pointer  ) =
     "Class " ++ show ptrType ++ show isNewtype
 -}
+
+-- Remove everything until the next element in the list (given by a
+-- ","), the end of the list (marked by "]"), or the end of a record
+-- "}". Everything inside parenthesis is ignored.
+chopIdent :: String -> String
+chopIdent str = goChop 0 str
+    where goChop :: Int -> String -> String
+          goChop 0 rest@('}':_) = rest
+          goChop 0 rest@(',':_) = rest
+          goChop 0 rest@(']':_) = rest
+          goChop level ('(':rest) = goChop (level+1) rest
+          goChop level (')':rest) = goChop (level-1) rest
+          goChop level (_  :rest) = goChop level rest
+          goChop _     [] = []
+
+extractIdent :: String -> (Ident, String)
+extractIdent str =
+    let isQuote c = c == '\'' || c == '"'
+        (ideChars, rest) = span (not . isQuote)
+                           . tail
+                           . dropWhile (not . isQuote) $ str
+    in
+      if null ideChars
+      then error $ "Could not interpret " ++ show str ++ "as an Ident."
+      else (internalIdent ideChars, (chopIdent . tail) rest)
+
 -- super kludgy (depends on Show instance of Ident)
 instance Read Ident where
-  readsPrec _ ('`':lexeme) = let (ideChars, rest) = span (/= '\'') lexeme
-                             in
-                             if null ideChars
-                             then []
-                             else [(internalIdent ideChars, tail rest)]
-  readsPrec p (c:cs)
-    | isSpace c                                              = readsPrec p cs
-  readsPrec _ _                                              = []
+  readsPrec _ str = [extractIdent str]
 
 -- | the local state consists of
 --
@@ -235,12 +272,15 @@ instance Read Ident where
 -- which we use an instance here
 --
 data GBState  = GBState {
-                  lib     :: String,               -- dynamic library
-                  prefix  :: String,               -- prefix
-                  frags   :: [(CHSHook, CHSFrag)], -- delayed code (with hooks)
-                  ptrmap  :: PointerMap,           -- pointer representation
-                  objmap  :: HsObjectMap           -- generated Haskell objects
-               }
+  lib       :: String,               -- dynamic library
+  prefix    :: String,               -- prefix
+  repprefix :: String,               -- replacement prefix
+  frags     :: [(CHSHook, CHSFrag)], -- delayed code (with hooks)
+  ptrmap    :: PointerMap,           -- pointer representation
+  objmap    :: HsObjectMap,          -- generated Haskell objects
+  szmap     :: SizeMap,              -- object sizes
+  enums     :: EnumSet               -- enumeration hooks
+  }
 
 type GB a = CT GBState a
 
@@ -248,17 +288,21 @@ initialGBState :: GBState
 initialGBState  = GBState {
                     lib    = "",
                     prefix = "",
+                    repprefix = "",
                     frags  = [],
                     ptrmap = Map.empty,
-                    objmap = Map.empty
+                    objmap = Map.empty,
+                    szmap = Map.empty,
+                    enums = Set.empty
                   }
 
 -- | set the dynamic library and library prefix
 --
-setContext             :: (Maybe String) -> (Maybe String) -> GB ()
-setContext lib' prefix' =
-  transCT $ \state -> (state {lib    = fromMaybe "" lib',
-                              prefix = fromMaybe "" prefix'},
+setContext :: (Maybe String) -> (Maybe String) -> (Maybe String) -> GB ()
+setContext lib' prefix' repprefix' =
+  transCT $ \state -> (state {lib       = fromMaybe "" lib',
+                              prefix    = fromMaybe "" prefix',
+                              repprefix = fromMaybe "" repprefix'},
                        ())
 
 -- | get the dynamic library
@@ -270,6 +314,11 @@ getLibrary  = readCT lib
 --
 getPrefix :: GB String
 getPrefix  = readCT prefix
+
+-- | get the replacement prefix string
+--
+getReplacementPrefix :: GB String
+getReplacementPrefix  = readCT repprefix
 
 -- | add code to the delayed fragments (the code is made to start at a new line)
 --
@@ -296,6 +345,10 @@ delayCode hook str  =
               && ide   == ide'   -> return frags'
             | otherwise          -> err (posOf ide) (posOf ide')
           Nothing                -> return $ frags' ++ [newEntry]
+      delay hook'@(CHSPointer _ _ _ _ _ _ _ _) frags' =
+        case find (\(hook'', _) -> hook'' == hook') frags' of
+          Just (CHSPointer _ _ _ _ _ _ _ _, _) -> return frags'
+          Nothing                              -> return $ frags' ++ [newEntry]
       delay _ _                                  =
         interr "GBMonad.delayCode: Illegal delay!"
       --
@@ -335,6 +388,21 @@ queryObj        :: Ident -> GB (Maybe HsObject)
 queryObj hsName  = do
                      fm <- readCT objmap
                      return $ Map.lookup hsName fm
+
+-- | add an entry to the size map
+--
+sizeIs :: Ident -> Int -> GB ()
+hsName `sizeIs` sz =
+  transCT (\state -> (state {
+                        szmap = Map.insert hsName sz (szmap state)
+                      }, ()))
+
+-- | query the size map
+--
+querySize       :: Ident -> GB (Maybe Int)
+querySize hsName  = do
+                     sm <- readCT szmap
+                     return $ Map.lookup hsName sm
 
 -- | query the Haskell object map for a class
 --
@@ -378,14 +446,21 @@ mergeMaps     :: String -> GB ()
 mergeMaps str  =
   transCT (\state -> (state {
                         ptrmap = Map.union readPtrMap (ptrmap state),
-                        objmap = Map.union readObjMap (objmap state)
+                        objmap = Map.union readObjMap (objmap state),
+                        enums = Set.union readEnumSet (enums state)
                       }, ()))
   where
-    (ptrAssoc, objAssoc) = read str
+    -- Deal with variant interface file formats (old .chi files don't
+    -- contain the list of enumerations).
+    (ptrAssoc, objAssoc, enumList) =
+      case reads str of
+        [] -> let (ptr, obj) = read str in (ptr, obj, [])
+        [(r, "")] -> r
     readPtrMap           = Map.fromList [((isStar, internalIdent ide), repr)
                                         | ((isStar, ide), repr) <- ptrAssoc]
     readObjMap           = Map.fromList [(internalIdent ide, obj)
                                         | (ide, obj)            <- objAssoc]
+    readEnumSet          = Set.fromList enumList
 
 -- | convert the whole pointer and Haskell object maps into printable form
 --
@@ -393,11 +468,26 @@ dumpMaps :: GB String
 dumpMaps  = do
               ptrFM <- readCT ptrmap
               objFM <- readCT objmap
+              enumS <- readCT enums
               let dumpable = ([((isStar, identToString ide), repr)
                               | ((isStar, ide), repr) <- Map.toList ptrFM],
                               [(identToString ide, obj)
-                              | (ide, obj)            <- Map.toList objFM])
+                              | (ide, obj)            <- Map.toList objFM],
+                              Set.toList enumS)
               return $ show dumpable
+
+-- | query the enum map
+--
+queryEnum :: String -> GB Bool
+queryEnum hsName  = do
+  es <- readCT enums
+  return $ hsName `Set.member` es
+
+-- | add an entry to the enum map
+--
+isEnum :: String -> GB ()
+isEnum hsName =
+  transCT (\state -> (state { enums = Set.insert hsName (enums state) }, ()))
 
 
 -- error messages
@@ -431,4 +521,3 @@ hsObjExpectedErr ide  =
     ["Unknown name!",
      "`" ++ identToString ide ++ "' is unknown; it has *not* been defined by",
      "a previous hook."]
-

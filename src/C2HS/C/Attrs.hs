@@ -207,8 +207,8 @@ lookupDefTagCShadow ac ide  =
 -- * case is not relevant in the prefix and underscores between the prefix and
 --   the stem of an identifier are also dropped
 --
-applyPrefix           :: AttrC -> String -> AttrC
-applyPrefix ac prefix  =
+applyPrefix           :: AttrC -> String -> String -> AttrC
+applyPrefix ac prefix repprefix  =
   let
     shadows    = shadowsAC ac
     names      =    map fst (nameSpaceToList (defObjsAC ac))
@@ -218,11 +218,10 @@ applyPrefix ac prefix  =
   ac {shadowsAC = foldl define shadows newShadows}
   where
     strip prefx ide = case eat prefx (identToString ide) of
-                        Nothing      -> Nothing
-                        Just ""      -> Nothing
-                        Just newName -> Just
-                                          (internalIdentAt (posOf ide) newName,
-                                           ide)
+      Nothing      -> Nothing
+      Just ""      -> Nothing
+      Just newName ->
+        Just (internalIdentAt (posOf ide) (repprefix ++ newName), ide)
     --
     eat []        ('_':cs)                        = eat [] cs
     eat []        cs                              = Just cs

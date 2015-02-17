@@ -70,10 +70,11 @@ module C2HS.C.Trav (CT, readCT, transCT, runCT, throwCTExc, ifCTExc,
               -- C structure tree query functions
               --
               isTypedef, simplifyDecl, declrFromDecl, declrNamed,
-              declaredDeclr, declaredName, structMembers, expandDecl,
-              structName, enumName, tagName, isPtrDeclr, dropPtrDeclr,
-              isPtrDecl, isFunDeclr, structFromDecl, funResultAndArgs,
-              chaseDecl, findAndChaseDecl, checkForAlias, checkForOneCUName,
+              declaredDeclr, initDeclr, declaredName, structMembers, expandDecl,
+              structName, enumName, tagName, isPtrDeclr, isArrDeclr,
+              dropPtrDeclr, isPtrDecl, isArrDecl, isFunDeclr, structFromDecl,
+              funResultAndArgs, chaseDecl, findAndChaseDecl,
+              findAndChaseDeclOrTag, checkForAlias, checkForOneCUName,
               checkForOneAliasName, lookupEnum, lookupStructUnion,
               lookupDeclOrTag)
 where
@@ -160,7 +161,7 @@ runCT m ac s  = runCST m' (ac, s)
 ctExc :: String
 ctExc  = "ctExc"
 
--- | throw an exception 
+-- | throw an exception
 --
 throwCTExc :: CT s a
 throwCTExc  = throwExc ctExc "Error during traversal of a C structure tree"
@@ -240,9 +241,7 @@ defTag ide tag  =
     traceCTrav $ "Defining tag "++show ide++"...\n"
     otag <- transAttrCCT $ \ac -> addDefTagC ac ide tag
     case otag of
-      Nothing      -> do
-                        assertIfEnumThenFull tag
-                        return Nothing                  -- no collision
+      Nothing      -> return Nothing                  -- no collision
       Just prevTag -> case isRefinedOrUse prevTag tag of
                          Nothing                 -> return otag
                          Just (fullTag, foreIde) -> do
@@ -270,8 +269,11 @@ defTag ide tag  =
     isRefinedOrUse tag'@(StructUnionCT (CStruct _ (Just _  ) _  _ _))
                         (StructUnionCT (CStruct _ (Just ide') Nothing _ _)) =
       Just (tag', ide')
-    isRefinedOrUse tag'@(EnumCT        (CEnum (Just _  ) _  _ _))
-                        (EnumCT        (CEnum (Just ide') Nothing _ _))     =
+    isRefinedOrUse      (EnumCT        (CEnum (Just ide') Nothing _ _))
+                   tag'@(EnumCT        (CEnum (Just _  ) _  _ _)) =
+      Just (tag', ide')
+    isRefinedOrUse tag'@(EnumCT        (CEnum (Just ide') _ _ _))
+                        (EnumCT        (CEnum (Just _  ) _  _ _)) =
       Just (tag', ide')
     isRefinedOrUse _ _                                             = Nothing
 
@@ -293,9 +295,9 @@ findTagShadow ide  = readAttrCCT $ \ac -> lookupDefTagCShadow ac ide
 --   discarded, ie, all associations that existed before the transformation
 --   started are still in effect after the transformation
 --
-applyPrefixToNameSpaces        :: String -> CT s ()
-applyPrefixToNameSpaces prefix  =
-  transAttrCCT $ \ac -> (applyPrefix ac prefix, ())
+applyPrefixToNameSpaces        :: String -> String -> CT s ()
+applyPrefixToNameSpaces prefix repprefix  =
+  transAttrCCT $ \ac -> (applyPrefix ac prefix repprefix, ())
 
 -- definition attribute
 --
@@ -315,7 +317,7 @@ getDefOf ide  = do
 -- | set the definition of an identifier
 --
 refersToDef         :: Ident -> CDef -> CT s ()
-refersToDef ide def  = 
+refersToDef ide def  =
   do traceCTrav $ "linking identifier: "++ dumpIdent ide ++ " --> " ++ show def
      transAttrCCT $ \akl -> (setDefOfIdentC akl ide def, ())
 
@@ -337,9 +339,9 @@ getDeclOf ide  =
       DontCareCD -> interr "CTrav.getDeclOf: Don't care!"
       TagCD _    -> interr "CTrav.getDeclOf: Illegal tag!"
       ObjCD obj  -> case obj of
-                      TypeCO    decl -> traceTypeCO >>
+                      TypeCO    decl -> traceTypeCO decl >>
                                         return decl
-                      ObjCO     decl -> traceObjCO >>
+                      ObjCO     decl -> traceObjCO decl >>
                                         return decl
                       EnumCO    _ _  -> illegalEnum
                       BuiltinCO      -> illegalBuiltin
@@ -353,10 +355,10 @@ getDeclOf ide  =
     traceEnter  = traceCTrav $
                     "Entering `getDeclOf' for `" ++ identToString ide
                     ++ "'...\n"
-    traceTypeCO = traceCTrav $
-                    "...found a type object.\n"
-    traceObjCO  = traceCTrav $
-                    "...found a vanilla object.\n"
+    traceTypeCO decl = traceCTrav $
+                    "...found a type object.\n" ++ show decl ++ "\n"
+    traceObjCO decl = traceCTrav $
+                    "...found a vanilla object.\n" ++ show decl ++ "\n"
 
 
 -- convenience functions
@@ -475,6 +477,15 @@ declaredDeclr decl                          =
   interr $ "CTrav.declaredDeclr: Too many declarators!\n\
            \  Declaration at " ++ show (posOf decl)
 
+-- | get the initialiser of a declaration that has at most one initialiser
+--
+initDeclr                            :: CDecl -> Maybe (CInitializer NodeInfo)
+initDeclr (CDecl _ []            _)  = Nothing
+initDeclr (CDecl _ [(_, ini, _)] _)  = ini
+initDeclr decl                          =
+  interr $ "CTrav.initDeclr: Too many declarators!\n\
+           \  Declaration at " ++ show (posOf decl)
+
 -- | get the name declared by a declaration that has exactly one declarator
 --
 declaredName      :: CDecl -> Maybe Ident
@@ -526,6 +537,13 @@ isPtrDeclr (CDeclr _ (CPtrDeclr _ _:_) _ _ _) = True
 isPtrDeclr (CDeclr _ (CArrDeclr _ _ _:_) _ _ _) = True
 isPtrDeclr _ = False
 
+-- | Need to distinguish between pointer and array declarations within
+-- structures.
+--
+isArrDeclr                                 :: CDeclr -> Bool
+isArrDeclr (CDeclr _ (CArrDeclr _ _ _:_) _ _ _) = True
+isArrDeclr _ = False
+
 -- | drops the first pointer level from the given declarator
 --
 -- * the declarator must declare a pointer object
@@ -537,12 +555,12 @@ isPtrDeclr _ = False
 --        into an anonymous declarator and also change its attributes
 --
 dropPtrDeclr :: CDeclr -> CDeclr
-dropPtrDeclr (CDeclr ide (outermost:derived) asm ats node) = 
+dropPtrDeclr (CDeclr ide (outermost:derived) asm ats node) =
   case outermost of
     (CPtrDeclr _ _) -> CDeclr ide derived asm ats node
     (CArrDeclr _ _ _) -> CDeclr ide derived asm ats node
     _ -> interr "CTrav.dropPtrDeclr: No pointer!"
-  
+
 -- | checks whether the given declaration defines a pointer object
 --
 -- * there may only be a single declarator in the declaration
@@ -552,6 +570,12 @@ isPtrDecl (CDecl _ []                   _)  = False
 isPtrDecl (CDecl _ [(Just declr, _, _)] _)  = isPtrDeclr declr
 isPtrDecl _                                 =
   interr "CTrav.isPtrDecl: There was more than one declarator!"
+
+isArrDecl                                  :: CDecl -> Bool
+isArrDecl (CDecl _ []                   _)  = False
+isArrDecl (CDecl _ [(Just declr, _, _)] _)  = isArrDeclr declr
+isArrDecl _                                 =
+  interr "CTrav.isArrDecl: There was more than one declarator!"
 
 -- | checks whether the given declarator defines a function object
 --
@@ -565,6 +589,12 @@ structFromDecl                       :: Position -> CDecl -> CT s CStructUnion
 structFromDecl pos (CDecl specs _ _)  =
   case head [ts | CTypeSpec ts <- specs] of
     CSUType su _ -> extractStruct pos (StructUnionCT su)
+    _            -> structExpectedErr pos
+
+structFromDecl' :: Position -> CDecl -> CT s (Maybe CStructUnion)
+structFromDecl' pos (CDecl specs _ _)  =
+  case head [ts | CTypeSpec ts <- specs] of
+    CSUType su _ -> extractStruct' pos (StructUnionCT su)
     _            -> structExpectedErr pos
 
 -- | extracts the arguments from a function declaration (must be a unique
@@ -583,7 +613,7 @@ funResultAndArgs cdecl@(CDecl specs [(Just declr, _, _)] _) =
   where
     funArgs (CDeclr _ide derived _asm _ats node) =
       case derived of
-        (CFunDeclr (Right (args,variadic)) _ats' _dnode : derived') -> 
+        (CFunDeclr (Right (args,variadic)) _ats' _dnode : derived') ->
           (args, CDeclr Nothing derived' Nothing [] node, variadic)
         (CFunDeclr (Left _) _ _ : _) ->
           interr "CTrav.funResultAndArgs: Old style function definition"
@@ -632,10 +662,33 @@ chaseDecl ide ind  =
 findAndChaseDecl                    :: Ident -> Bool -> Bool -> CT s CDecl
 findAndChaseDecl ide ind useShadows  =
   do
+    traceCTrav $ "findAndChaseDecl: " ++ show ide ++ " (" ++
+      show useShadows ++ ")\n"
     (obj, ide') <- findTypeObj ide useShadows   -- is there an object def?
     ide  `refersToNewDef` ObjCD obj
     ide' `refersToNewDef` ObjCD obj             -- assoc needed for chasing
     chaseDecl ide' ind
+
+findAndChaseDeclOrTag               :: Ident -> Bool -> Bool -> CT s CDecl
+findAndChaseDeclOrTag ide ind useShadows  =
+  do
+    traceCTrav $ "findAndChaseDeclOrTag: " ++ show ide ++ " (" ++
+      show useShadows ++ ")\n"
+    mobjide <- findTypeObjMaybe ide useShadows   -- is there an object def?
+    case mobjide of
+      Just (obj, ide') -> do
+        ide  `refersToNewDef` ObjCD obj
+        ide' `refersToNewDef` ObjCD obj             -- assoc needed for chasing
+        chaseDecl ide' ind
+      Nothing -> do
+        otag <- if useShadows
+                then findTagShadow ide
+                else liftM (fmap (\tag -> (tag, ide))) $ findTag ide
+        case otag of
+          Just (StructUnionCT su, _) -> do
+            let (CStruct _ _ _ _ nodeinfo) = su
+            return $ CDecl [CTypeSpec (CSUType su nodeinfo)] [] nodeinfo
+          _ -> unknownObjErr ide
 
 -- | given a declaration (which must have exactly one declarator), if the
 -- declarator is an alias, chase it to the actual declaration
@@ -656,7 +709,7 @@ checkForOneAliasName decl  = fmap fst $ extractAlias decl False
 checkForOneCUName        :: CDecl -> Maybe Ident
 checkForOneCUName decl@(CDecl specs _ _)  =
   case [ts | CTypeSpec ts <- specs] of
-    [CSUType (CStruct _ n _ _ _) _] -> 
+    [CSUType (CStruct _ n _ _ _) _] ->
         case declaredDeclr decl of
           Nothing                       -> n
           Just (CDeclr _ [] _ _ _)      -> n -- no type derivations
@@ -697,11 +750,8 @@ lookupEnum ide useShadows =
 -- or a type definition referring to a struct/union in the object name space;
 -- raises an error and exception if the identifier is not defined
 --
--- * if `ind = True', the identifier names a reference type to the searched
---   for struct/union
---
--- * typedef chasing is used only if there is no tag of the same name or an
---   indirection (ie, `ind = True') is explicitly required
+-- * the parameter `preferTag' determines whether tags or typedefs are
+--   searched first
 --
 -- * if the third argument is `True', use `findTagShadow'
 --
@@ -709,19 +759,37 @@ lookupEnum ide useShadows =
 --   definition
 --
 lookupStructUnion :: Ident -> Bool -> Bool -> CT s CStructUnion
-lookupStructUnion ide ind useShadows
-  | ind       = chase
-  | otherwise =
-    do
-      otag <- if useShadows
-              then liftM (fmap fst) $ findTagShadow ide
-              else findTag ide
-      maybe chase (extractStruct (posOf ide)) otag  -- `chase' if `Nothing'
-  where
-    chase =
-      do
-        decl <- findAndChaseDecl ide ind useShadows
+lookupStructUnion ide preferTag useShadows = do
+  traceCTrav $ "lookupStructUnion: ide=" ++ show ide ++ " preferTag=" ++
+    show preferTag ++ " useShadows=" ++ show useShadows ++ "\n"
+  otag <- if useShadows
+          then liftM (fmap fst) $ findTagShadow ide
+          else findTag ide
+  mobj <- if useShadows
+          then findObjShadow ide
+          else liftM (fmap (\obj -> (obj, ide))) $ findObj ide
+  let oobj = case mobj of
+        Just obj@(TypeCO _ , _) -> Just obj
+        Just obj@(BuiltinCO, _) -> Just obj
+        _                       -> Nothing
+  case preferTag of
+    True -> case otag of
+      Just tag -> extractStruct (posOf ide) tag
+      Nothing -> do
+        decl <- findAndChaseDecl ide True useShadows
         structFromDecl (posOf ide) decl
+    False -> case oobj of
+      Just _ -> do
+        decl <- findAndChaseDecl ide True useShadows
+        mres <- structFromDecl' (posOf ide) decl
+        case mres of
+          Just su -> return su
+          Nothing -> case otag of
+            Just tag -> extractStruct (posOf ide) tag
+            Nothing  -> unknownObjErr ide
+      Nothing -> case otag of
+        Just tag -> extractStruct (posOf ide) tag
+        Nothing  -> unknownObjErr ide
 
 -- | for the given identifier, check for the existance of both a type definition
 -- or a struct, union, or enum definition
@@ -791,19 +859,36 @@ extractAlias decl@(CDecl specs _ _) ind =
 --
 extractStruct                        :: Position -> CTag -> CT s CStructUnion
 extractStruct pos (EnumCT        _ )  = structExpectedErr pos
-extractStruct pos (StructUnionCT su)  =
+extractStruct pos (StructUnionCT su)  = do
+  traceCTrav $ "extractStruct: " ++ show su ++ "\n"
   case su of
     CStruct _ (Just ide') Nothing _ _ -> do            -- found forward definition
                                     def <- getDefOf ide'
+                                    traceCTrav $ "def=" ++ show def ++ "\n"
                                     case def of
                                       TagCD tag -> extractStruct pos tag
                                       bad_obj       -> err ide' bad_obj
     _                          -> return su
   where
-    err ide bad_obj = 
-      do interr $ "CTrav.extractStruct: Illegal reference! Expected " ++ dumpIdent ide ++ 
+    err ide bad_obj =
+      do interr $ "CTrav.extractStruct: Illegal reference! Expected " ++ dumpIdent ide ++
                   " to link to TagCD but refers to "++ (show bad_obj) ++ "\n"
-                               
+
+extractStruct' :: Position -> CTag -> CT s (Maybe CStructUnion)
+extractStruct' pos (EnumCT        _ )  = structExpectedErr pos
+extractStruct' pos (StructUnionCT su)  = do
+  traceCTrav $ "extractStruct': " ++ show su ++ "\n"
+  case su of
+    CStruct _ (Just ide') Nothing _ _ -> do
+      def <- getDefOf ide'
+      traceCTrav $ "def=" ++ show def ++ "\n"
+      case def of
+        TagCD tag -> do
+          res <- extractStruct pos tag
+          return . Just $ res
+        _ -> return Nothing
+    _         -> return . Just $ su
+
 -- | yield the name declared by a declarator if any
 --
 declrName                          :: CDeclr -> Maybe Ident
@@ -819,13 +904,6 @@ assertFunDeclr pos (CDeclr _ (CFunDeclr _ _ _:retderiv) _ _ _) =
     _                   -> return () -- ok, we have a function which doesn't return an array
 assertFunDeclr pos _                                                 =
   funExpectedErr pos
-
--- | raise an error if the given tag defines an enumeration, but does not fully
--- define it
---
-assertIfEnumThenFull                          :: CTag -> CT s ()
-assertIfEnumThenFull (EnumCT (CEnum _ Nothing _ at))  = enumForwardErr (posOf at)
-assertIfEnumThenFull _                         = return ()
 
 -- | trace for this module
 --
@@ -879,9 +957,3 @@ structExpectedErr pos  =
   raiseErrorCTExc pos
     ["Expected a struct!",
      "Expected a structure or union; instead found an enum or basic type."]
-
-enumForwardErr     :: Position -> CT s a
-enumForwardErr pos  =
-  raiseErrorCTExc pos
-    ["Forward definition of enumeration!",
-     "ANSI C does not permit foreward definitions of enumerations!"]
