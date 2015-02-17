@@ -35,6 +35,7 @@ tests =
     , testCase "Issue #15" issue15
     , testCase "Issue #16" issue16
     , testCase "Issue #19" issue19
+    , testCase "Issue #20" issue20
     , testCase "Issue #22" issue22
     , testCase "Issue #23" issue23
     , testCase "Issue #29" issue29
@@ -266,6 +267,9 @@ issue23 = expect_issue 23 ["H1"]
 
 issue22 :: Assertion
 issue22 = expect_issue 22 ["abcdef", "2", "20"]
+
+issue20 :: Assertion
+issue20 = expect_issue 20 ["4"]
 
 issue19 :: Assertion
 issue19 = expect_issue 19 ["Did it!"]
