@@ -146,7 +146,7 @@ issue82 :: Assertion
 issue82 = hs_only_build_issue 82
 
 issue83 :: Assertion
-issue83 = hs_only_expect_issue 83 True ["(-3,0)", "TEST_VAL",
+issue83 = hs_only_expect_issue 83 True ["(True,True)", "TEST_VAL",
                                         "8415", "8415", "TESTING"]
 
 issue80 :: Assertion
@@ -280,7 +280,10 @@ issue10 :: Assertion
 issue10 = expect_issue 10 ["SAME", "SAME", "SAME", "SAME"]
 
 issue09 :: Assertion
-issue09 = expect_issue 9 ["PTA:8", "AOP:32", "(32,64)", "64", "OK"]
+issue09 = expect_issue 9 $ archdep ++ ["(32,64)", "64", "OK"]
+  where archdep
+          | (maxBound::Int) == 2147483647 = ["PTA:4", "AOP:16"] -- 32 bit
+          | otherwise =                     ["PTA:8", "AOP:32"] -- 64 bit
 
 issue07 :: Assertion
 issue07 = c2hsShelly $ do

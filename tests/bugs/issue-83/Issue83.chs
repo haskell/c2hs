@@ -26,7 +26,7 @@ main = do
     withCString s2 $ \cs2 -> strcmp cs1 cs2
   res2 <- withCString s2 $ \cs2 ->
     withCString s3 $ \cs3 -> strcmp cs2 cs3
-  print (res1, res2)
+  print (res1 < 0, res2 == 0)
   void $ setenv "TEST_VAR" "TEST_VAL" 1
   h <- getenv "TEST_VAR"
   peekCString h >>= putStrLn
