@@ -220,7 +220,7 @@ ghFrag (_frag@(CHSHook (CHSConst cident pos) hkpos) : frags) =
           undefNode
 
 ghFrag (frag@(CHSHook (CHSFun _ _ True varTypes
-                       (CHSRoot _ ide) oalias _ _ _ pos) hkpos) : frags) = do
+                       (CHSRoot _ ide) oalias _ _ _ _) _) : frags) = do
   let ideLexeme = identToString ide
       hsLexeme  = ideLexeme `maybe` identToString $ oalias
       vaIdent base idx = "__c2hs__vararg__" ++ base ++ "_" ++ show idx
