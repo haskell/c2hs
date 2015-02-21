@@ -249,6 +249,13 @@ data CHSHook = CHSImport  Bool                  -- qualified?
                           Position
              | CHSConst   Ident                 -- C identifier
                           Position
+             | CHSDefault Ident                 -- C type name
+                          Ident                 -- Haskell type name
+                          CHSMarsh              -- "in" marshaller
+                          CHSMarsh              -- "out" marshaller
+                          CHSMarsh              -- "ptr_in" marshaller
+                          CHSMarsh              -- "ptr_out" marshaller
+                          Position
 
 
 instance Pos CHSHook where
@@ -266,6 +273,7 @@ instance Pos CHSHook where
   posOf (CHSPointer _ _ _ _ _ _ _     pos) = pos
   posOf (CHSClass   _ _ _             pos) = pos
   posOf (CHSConst   _                 pos) = pos
+  posOf (CHSDefault _ _ _ _ _ _       pos) = pos
 
 -- | two hooks are equal if they have the same Haskell name and reference the
 -- same C object
@@ -299,6 +307,8 @@ instance Eq CHSHook where
   (CHSClass _ ide1 _                _) == (CHSClass _ ide2 _                _) =
     ide1 == ide2
   (CHSConst ide1                    _) == (CHSConst ide2                    _) =
+    ide1 == ide2
+  (CHSDefault ide1 _ _ _ _ _        _) == (CHSDefault ide2 _ _ _ _ _        _) =
     ide1 == ide2
   _                               == _                          = False
 
@@ -616,6 +626,21 @@ showCHSHook (CHSClass oclassIde classIde typeIde _) =
 showCHSHook (CHSConst constIde _) =
     showString "const "
   . showCHSIdent constIde
+showCHSHook (CHSDefault cIde hsIde mIn mOut mPtrIn mPtrOut _) =
+    showString "default "
+  . showCHSIdent cIde
+  . showCHSIdent hsIde
+  . showMarsh "in" mIn
+  . showMarsh "out" mOut
+  . showMarsh "ptr_in" mPtrIn
+  . showMarsh "ptr_out" mPtrOut
+  where showMarsh _ Nothing = showString ""
+        showMarsh typ (Just (Left ide, arg)) =
+          showString typ . showString "=" . showCHSIdent ide . showArg arg
+        showMarsh typ (Just (Right s, arg)) =
+          showString typ . showString "=" . showString s . showArg arg
+        showArg CHSIOArg = showString "*"
+        showArg _ = showString ""
 
 showPrefix                        :: Maybe String -> Bool -> ShowS
 showPrefix Nothing       _         = showString ""

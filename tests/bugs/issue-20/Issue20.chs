@@ -5,7 +5,7 @@ import Foreign.C
 
 #include "issue20.h"
 
-{#typedef size_t `CSize'#}
+{#default size_t `CSize'#}
 {#fun foo {`Int'} -> `CSize'#}
 
 main :: IO ()
