@@ -63,6 +63,7 @@
 --            | `pointer' ['*'] idalias ptrkind ['nocode']
 --            | `class' [ident `=>'] ident ident
 --            | `const' ident
+--            | `default' ident ident [dft ...]
 --  ctxt     -> [`lib' `=' string] [prefix]
 --  idalias  -> ident
 --            | looseident [`as' (ident | `^' | `'' ident1 ident2 ... `'')]
@@ -82,6 +83,8 @@
 --            | `downcaseFirstLetter'
 --            | ident `as' ident
 --  ptrkind  -> [`foreign' [`finalizer' idalias] | `stable'] ['newtype' | '->' ident]
+--  dft      -> dfttype `=` ident [`*']
+--  dfttype  -> `in' | `out' | `ptr_in' | `ptr_out'
 --
 --  If `underscoreToCase', `upcaseFirstLetter', or `downcaseFirstLetter'
 --  occurs in a translation table, it must be the first entry, or if two of
@@ -105,6 +108,8 @@ where
 -- standard libraries
 import Data.Char (isSpace, toUpper, toLower)
 import Data.List (intersperse)
+import Data.Map (Map)
+import qualified Data.Map as M
 import Control.Monad (when)
 import System.FilePath ((<.>), (</>))
 
@@ -953,6 +958,9 @@ parseFrags tokens  = do
                  CHSTokConst   pos  :toks) = parseConst   hkpos pos
                                              (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
+                 CHSTokDefault pos  :toks) = parseDefault hkpos pos
+                                             (removeCommentInHook toks)
+    parseFrags0 (CHSTokHook hkpos:
                  CHSTokPointer pos  :toks) = parsePointer hkpos pos
                                              (removeCommentInHook toks)
     parseFrags0 (CHSTokHook _       :toks) = syntaxError toks
@@ -1356,6 +1364,41 @@ parseConst hkpos pos (CHSTokIdent  _ constIde : toks)                     =
     frags <- parseFrags toks'
     return $ CHSHook (CHSConst constIde pos) hkpos : frags
 parseConst _ _ toks = syntaxError toks
+
+parseDefault :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseDefault hkpos pos (CHSTokIdent _ cIde : CHSTokIdent _ hsIde : toks) =
+  do
+    (mmap, toks') <- parseMarshallers toks
+    toks'' <- parseEndHook toks'
+    frags <- parseFrags toks''
+    let min     = M.lookup "in" mmap
+        mout    = M.lookup "out" mmap
+        mptrin  = M.lookup "ptr_in" mmap
+        mptrout = M.lookup "ptr_out" mmap
+    return $ CHSHook (CHSDefault cIde hsIde min mout mptrin mptrout pos) hkpos : frags
+  where parseMarshallers :: [CHSToken]
+                         -> CST s (Map String (Either Ident String, CHSArg),
+                                   [CHSToken])
+        parseMarshallers (CHSTokEndHook _ : toks) = return (M.empty, toks)
+        parseMarshallers toks@(t : CHSTokEqual _ : CHSTokIdent _ mide : ts)
+          | isMarshaller t = do
+            (hasStar, toks') <- parseOptStar ts
+            let argtype = if hasStar then CHSIOArg else CHSValArg
+            (mmap, toks'') <- parseMarshallers toks'
+            return (M.insert (show t) (Left mide, argtype) mmap, toks'')
+          | otherwise = syntaxError toks
+        isMarshaller :: CHSToken -> Bool
+        isMarshaller (CHSTokIn _) = True
+        isMarshaller (CHSTokOut _) = True
+        isMarshaller (CHSTokPtrIn _) = True
+        isMarshaller (CHSTokPtrOut _) = True
+        isMarshaller _ = False
+
+parseDefault _ _ toks = syntaxError toks
+
+parseOptStar :: [CHSToken] -> CST s (Bool, [CHSToken])
+parseOptStar (CHSTokStar _ : toks) = return (True, toks)
+parseOptStar toks = return (False, toks)
 
 parseOptLib :: [CHSToken] -> CST s (Maybe String, [CHSToken])
 parseOptLib (CHSTokLib    _    :

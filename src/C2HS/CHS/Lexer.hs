@@ -217,6 +217,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokConst   Position          -- `const'
               | CHSTokContext Position          -- `context'
               | CHSTokNonGNU  Position          -- `nonGNU'
+              | CHSTokDefault Position          -- `default'
               | CHSTokDerive  Position          -- `deriving'
               | CHSTokDown    Position          -- `downcaseFirstLetter'
               | CHSTokEnum    Position          -- `enum'
@@ -245,6 +246,10 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokUpper   Position          -- `upcaseFirstLetter'
               | CHSTokVariadic Position          -- `variadic'
               | CHSTokWith    Position Ident    -- `with'
+              | CHSTokIn      Position          -- `in'
+              | CHSTokOut     Position          -- `out'
+              | CHSTokPtrIn   Position          -- `ptr_in'
+              | CHSTokPtrOut  Position          -- `ptr_out'
               | CHSTokString  Position String   -- string
               | CHSTokHSVerb  Position String   -- verbatim Haskell (`...')
               | CHSTokHSQuot  Position String   -- quoted Haskell ('...')
@@ -284,6 +289,7 @@ instance Pos CHSToken where
   posOf (CHSTokContext pos  ) = pos
   posOf (CHSTokNonGNU  pos  ) = pos
   posOf (CHSTokDerive  pos  ) = pos
+  posOf (CHSTokDefault pos  ) = pos
   posOf (CHSTokDown    pos  ) = pos
   posOf (CHSTokEnum    pos  ) = pos
   posOf (CHSTokFinal   pos  ) = pos
@@ -311,6 +317,10 @@ instance Pos CHSToken where
   posOf (CHSTokUpper   pos  ) = pos
   posOf (CHSTokVariadic pos  ) = pos
   posOf (CHSTokWith    pos _) = pos
+  posOf (CHSTokIn      pos  ) = pos
+  posOf (CHSTokOut     pos  ) = pos
+  posOf (CHSTokPtrIn   pos  ) = pos
+  posOf (CHSTokPtrOut  pos  ) = pos
   posOf (CHSTokString  pos _) = pos
   posOf (CHSTokHSVerb  pos _) = pos
   posOf (CHSTokHSQuot  pos _) = pos
@@ -349,6 +359,7 @@ instance Eq CHSToken where
   (CHSTokConst    _  ) == (CHSTokConst    _  ) = True
   (CHSTokContext  _  ) == (CHSTokContext  _  ) = True
   (CHSTokNonGNU   _  ) == (CHSTokNonGNU   _  ) = True
+  (CHSTokDefault  _  ) == (CHSTokDefault  _  ) = True
   (CHSTokDerive   _  ) == (CHSTokDerive   _  ) = True
   (CHSTokDown     _  ) == (CHSTokDown     _  ) = True
   (CHSTokEnum     _  ) == (CHSTokEnum     _  ) = True
@@ -377,6 +388,10 @@ instance Eq CHSToken where
   (CHSTokUpper    _  ) == (CHSTokUpper    _  ) = True
   (CHSTokVariadic _  ) == (CHSTokVariadic _  ) = True
   (CHSTokWith     _ _) == (CHSTokWith     _ _) = True
+  (CHSTokIn       _  ) == (CHSTokIn       _  ) = True
+  (CHSTokOut      _  ) == (CHSTokOut      _  ) = True
+  (CHSTokPtrIn    _  ) == (CHSTokPtrIn    _  ) = True
+  (CHSTokPtrOut   _  ) == (CHSTokPtrOut   _  ) = True
   (CHSTokString   _ _) == (CHSTokString   _ _) = True
   (CHSTokHSVerb   _ _) == (CHSTokHSVerb   _ _) = True
   (CHSTokHSQuot   _ _) == (CHSTokHSQuot   _ _) = True
@@ -417,6 +432,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokConst   _  ) = showString "const"
   showsPrec _ (CHSTokContext _  ) = showString "context"
   showsPrec _ (CHSTokNonGNU  _  ) = showString "nonGNU"
+  showsPrec _ (CHSTokDefault _  ) = showString "default"
   showsPrec _ (CHSTokDerive  _  ) = showString "deriving"
   showsPrec _ (CHSTokDown    _  ) = showString "downcaseFirstLetter"
   showsPrec _ (CHSTokEnum    _  ) = showString "enum"
@@ -445,6 +461,10 @@ instance Show CHSToken where
   showsPrec _ (CHSTokUpper   _  ) = showString "upcaseFirstLetter"
   showsPrec _ (CHSTokVariadic _  ) = showString "variadic"
   showsPrec _ (CHSTokWith    _ _) = showString "with"
+  showsPrec _ (CHSTokIn      _  ) = showString "in"
+  showsPrec _ (CHSTokOut     _  ) = showString "out"
+  showsPrec _ (CHSTokPtrIn   _  ) = showString "ptr_in"
+  showsPrec _ (CHSTokPtrOut  _  ) = showString "ptr_out"
   showsPrec _ (CHSTokString  _ s) = showString ("\"" ++ s ++ "\"")
   showsPrec _ (CHSTokHSVerb  _ s) = showString ("`" ++ s ++ "'")
   showsPrec _ (CHSTokHSQuot  _ s) = showString ("'" ++ s ++ "'")
@@ -788,6 +808,7 @@ identOrKW  =
     idkwtok pos "const"            _    = CHSTokConst   pos
     idkwtok pos "context"          _    = CHSTokContext pos
     idkwtok pos "nonGNU"           _    = CHSTokNonGNU  pos
+    idkwtok pos "default"          _    = CHSTokDefault pos
     idkwtok pos "deriving"         _    = CHSTokDerive  pos
     idkwtok pos "downcaseFirstLetter" _ = CHSTokDown    pos
     idkwtok pos "enum"             _    = CHSTokEnum    pos
@@ -816,6 +837,10 @@ identOrKW  =
     idkwtok pos "upcaseFirstLetter"_    = CHSTokUpper   pos
     idkwtok pos "variadic"         _    = CHSTokVariadic pos
     idkwtok pos "with"             name = mkwith pos name
+    idkwtok pos "in"               _    = CHSTokIn      pos
+    idkwtok pos "out"              _    = CHSTokOut     pos
+    idkwtok pos "ptr_in"           _    = CHSTokPtrIn   pos
+    idkwtok pos "ptr_out"          _    = CHSTokPtrOut  pos
     idkwtok pos cs                 name = mkid pos cs name
     --
     mkid pos cs name = CHSTokIdent pos (mkIdent pos cs name)
@@ -831,6 +856,7 @@ keywordToIdent tok =
     CHSTokConst   pos -> mkid pos "const"
     CHSTokContext pos -> mkid pos "context"
     CHSTokNonGNU  pos -> mkid pos "nonGNU"
+    CHSTokDefault pos -> mkid pos "default"
     CHSTokDerive  pos -> mkid pos "deriving"
     CHSTokDown    pos -> mkid pos "downcaseFirstLetter"
     CHSTokEnum    pos -> mkid pos "enum"
@@ -859,6 +885,10 @@ keywordToIdent tok =
     CHSTokUpper   pos -> mkid pos "upcaseFirstLetter"
     CHSTokVariadic pos -> mkid pos "variadic"
     CHSTokWith    pos ide -> CHSTokIdent pos ide
+    CHSTokIn      pos -> mkid pos "in"
+    CHSTokOut     pos -> mkid pos "out"
+    CHSTokPtrIn   pos -> mkid pos "ptr_in"
+    CHSTokPtrOut  pos -> mkid pos "ptr_out"
     _ -> tok
     where mkid pos str = CHSTokIdent pos (internalIdent str)
 
