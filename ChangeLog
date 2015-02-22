@@ -1,3 +1,9 @@
+0.23.1
+ - Typedef and default marshalling hooks [#20, #25, #48]
+ - Test fixes for 32-bit platforms (Jürgen Keck: @j-keck)
+ - Multi-character constants for OS X [#15]
+ - Better support for binding to variadic functions [#102]
+
 0.22.1
  - First (not very good) implementation of support for variadic
    functions [#102]
