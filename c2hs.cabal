@@ -43,10 +43,13 @@ Extra-Source-Files:
   tests/bugs/issue-7/*.chs tests/bugs/issue-7/*.h
   tests/bugs/issue-9/*.chs tests/bugs/issue-9/*.h tests/bugs/issue-9/*.c
   tests/bugs/issue-10/*.chs tests/bugs/issue-10/*.h tests/bugs/issue-10/*.c
+  tests/bugs/issue-15/*.chs tests/bugs/issue-15/*.h tests/bugs/issue-15/*.c
   tests/bugs/issue-16/*.chs tests/bugs/issue-16/*.h tests/bugs/issue-16/*.c
   tests/bugs/issue-19/*.chs tests/bugs/issue-19/*.h tests/bugs/issue-19/*.c
+  tests/bugs/issue-20/*.chs tests/bugs/issue-20/*.h tests/bugs/issue-20/*.c
   tests/bugs/issue-22/*.chs tests/bugs/issue-22/*.h tests/bugs/issue-22/*.c
   tests/bugs/issue-23/*.chs tests/bugs/issue-23/*.h tests/bugs/issue-23/*.c
+  tests/bugs/issue-25/*.chs
   tests/bugs/issue-29/*.chs tests/bugs/issue-29/*.h
   tests/bugs/issue-30/*.chs tests/bugs/issue-30/*.h tests/bugs/issue-30/*.c
   tests/bugs/issue-31/*.chs tests/bugs/issue-31/*.h tests/bugs/issue-31/*.c
@@ -59,6 +62,7 @@ Extra-Source-Files:
   tests/bugs/issue-45/*.chs tests/bugs/issue-45/*.h tests/bugs/issue-45/*.c
   tests/bugs/issue-46/*.chs tests/bugs/issue-46/*.h tests/bugs/issue-46/*.c
   tests/bugs/issue-47/*.chs tests/bugs/issue-47/*.h tests/bugs/issue-47/*.c
+  tests/bugs/issue-48/*.chs tests/bugs/issue-48/*.h tests/bugs/issue-48/*.c
   tests/bugs/issue-51/*.chs tests/bugs/issue-51/*.h tests/bugs/issue-51/*.c
   tests/bugs/issue-54/*.chs tests/bugs/issue-54/*.h tests/bugs/issue-54/*.c
   tests/bugs/issue-60/*.chs tests/bugs/issue-60/*.h tests/bugs/issue-60/*.c

@@ -127,3 +127,9 @@
 /tests/system/sizeof/Sizeof.hs
 /tests/system/structs/structs
 /tests/system/structs/Structs.hs
+/tests/bugs/issue-20/Issue20
+/tests/bugs/issue-20/Issue20.hs
+/tests/bugs/issue-25/Issue25
+/tests/bugs/issue-25/Issue25.hs
+/tests/bugs/issue-48/Issue48
+/tests/bugs/issue-48/Issue48.hs

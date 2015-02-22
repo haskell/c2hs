@@ -100,7 +100,8 @@
 
 module C2HS.CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
             CHSChangeCase(..), CHSParm(..), CHSMarsh, CHSArg(..), CHSAccess(..),
-            CHSAPath(..), CHSPtrType(..),
+            CHSAPath(..), CHSPtrType(..), CHSTypedefInfo, CHSDefaultMarsh,
+            Direction(..),
             loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI, chisuffix,
             showCHSParm, apathToIdent, apathRootIdent, hasNonGNU)
 where
@@ -108,11 +109,8 @@ where
 -- standard libraries
 import Data.Char (isSpace, toUpper, toLower)
 import Data.List (intersperse)
-import Data.Map (Map)
-import qualified Data.Map as M
 import Control.Monad (when)
 import System.FilePath ((<.>), (</>))
-
 
 
 -- Language.C
@@ -124,6 +122,7 @@ import Data.Errors       (interr)
 import C2HS.State (CST, getSwitch, chiPathSB, catchExc, throwExc, raiseError,
                   fatal, errorsPresent, showErrors, Traces(..), putTraceStr)
 import qualified System.CIO as CIO
+import C2HS.C.Info (CPrimType(..))
 import C2HS.Version    (version)
 
 -- friends
@@ -254,14 +253,17 @@ data CHSHook = CHSImport  Bool                  -- qualified?
                           Position
              | CHSConst   Ident                 -- C identifier
                           Position
-             | CHSDefault Ident                 -- C type name
+             | CHSTypedef Ident                 -- C type name
                           Ident                 -- Haskell type name
-                          CHSMarsh              -- "in" marshaller
-                          CHSMarsh              -- "out" marshaller
-                          CHSMarsh              -- "ptr_in" marshaller
-                          CHSMarsh              -- "ptr_out" marshaller
+                          Position
+             | CHSDefault Direction             -- in or out marshaller?
+                          String                -- Haskell type name
+                          String                -- C type string
+                          Bool                  -- is it a C pointer?
+                          (Either Ident String, CHSArg) -- marshaller
                           Position
 
+data Direction = In | Out deriving (Eq, Ord, Show)
 
 instance Pos CHSHook where
   posOf (CHSImport  _ _ _             pos) = pos
@@ -278,7 +280,8 @@ instance Pos CHSHook where
   posOf (CHSPointer _ _ _ _ _ _ _     pos) = pos
   posOf (CHSClass   _ _ _             pos) = pos
   posOf (CHSConst   _                 pos) = pos
-  posOf (CHSDefault _ _ _ _ _ _       pos) = pos
+  posOf (CHSTypedef _ _               pos) = pos
+  posOf (CHSDefault _ _ _ _ _         pos) = pos
 
 -- | two hooks are equal if they have the same Haskell name and reference the
 -- same C object
@@ -313,7 +316,9 @@ instance Eq CHSHook where
     ide1 == ide2
   (CHSConst ide1                    _) == (CHSConst ide2                    _) =
     ide1 == ide2
-  (CHSDefault ide1 _ _ _ _ _        _) == (CHSDefault ide2 _ _ _ _ _        _) =
+  (CHSTypedef ide1 _                _) == (CHSTypedef ide2 _                _) =
+    ide1 == ide2
+  (CHSDefault _ ide1 _ _ _          _) == (CHSDefault _ ide2 _ _ _          _) =
     ide1 == ide2
   _                               == _                          = False
 
@@ -333,6 +338,12 @@ data CHSChangeCase = CHSSameCase
 --   and flag indicating whether it has to be executed in the IO monad
 --
 type CHSMarsh = Maybe (Either Ident String, CHSArg)
+
+-- | Type default information
+type CHSTypedefInfo = (Ident, CPrimType)
+
+-- | Type default information
+type CHSDefaultMarsh = (Either Ident String, CHSArg)
 
 -- | marshalling descriptor for function hooks
 --
@@ -631,19 +642,19 @@ showCHSHook (CHSClass oclassIde classIde typeIde _) =
 showCHSHook (CHSConst constIde _) =
     showString "const "
   . showCHSIdent constIde
-showCHSHook (CHSDefault cIde hsIde mIn mOut mPtrIn mPtrOut _) =
-    showString "default "
+showCHSHook (CHSTypedef cIde hsIde _) =
+    showString "typedef "
   . showCHSIdent cIde
   . showCHSIdent hsIde
-  . showMarsh "in" mIn
-  . showMarsh "out" mOut
-  . showMarsh "ptr_in" mPtrIn
-  . showMarsh "ptr_out" mPtrOut
-  where showMarsh _ Nothing = showString ""
-        showMarsh typ (Just (Left ide, arg)) =
-          showString typ . showString "=" . showCHSIdent ide . showArg arg
-        showMarsh typ (Just (Right s, arg)) =
-          showString typ . showString "=" . showString s . showArg arg
+showCHSHook (CHSDefault dir hsTy cTy cPtr marsh _) =
+    showString "default "
+    . showString (if dir == In then "in" else "out")
+    . showChar '`' . showString hsTy . showChar '\''
+    . showChar '[' . showString cTy
+    . showString (if cPtr then " *" else "") . showChar ']'
+    . showMarsh marsh
+  where showMarsh (Left ide, arg) = showCHSIdent ide . showArg arg
+        showMarsh (Right s, arg) = showString s . showArg arg
         showArg CHSIOArg = showString "*"
         showArg _ = showString ""
 
@@ -956,6 +967,9 @@ parseFrags tokens  = do
                                              (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
                  CHSTokConst   pos  :toks) = parseConst   hkpos pos
+                                             (removeCommentInHook toks)
+    parseFrags0 (CHSTokHook hkpos:
+                 CHSTokTypedef pos  :toks) = parseTypedef hkpos pos
                                              (removeCommentInHook toks)
     parseFrags0 (CHSTokHook hkpos:
                  CHSTokDefault pos  :toks) = parseDefault hkpos pos
@@ -1365,35 +1379,43 @@ parseConst hkpos pos (CHSTokIdent  _ constIde : toks)                     =
     return $ CHSHook (CHSConst constIde pos) hkpos : frags
 parseConst _ _ toks = syntaxError toks
 
-parseDefault :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
-parseDefault hkpos pos (CHSTokIdent _ cIde : CHSTokIdent _ hsIde : toks) =
+parseTypedef :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseTypedef hkpos pos (CHSTokIdent _ cIde : CHSTokIdent _ hsIde :
+                        CHSTokEndHook _ : toks) =
   do
-    (mmap, toks') <- parseMarshallers toks
-    toks'' <- parseEndHook toks'
-    frags <- parseFrags toks''
-    let min     = M.lookup "in" mmap
-        mout    = M.lookup "out" mmap
-        mptrin  = M.lookup "ptr_in" mmap
-        mptrout = M.lookup "ptr_out" mmap
-    return $ CHSHook (CHSDefault cIde hsIde min mout mptrin mptrout pos) hkpos : frags
-  where parseMarshallers :: [CHSToken]
-                         -> CST s (Map String (Either Ident String, CHSArg),
-                                   [CHSToken])
-        parseMarshallers (CHSTokEndHook _ : toks) = return (M.empty, toks)
-        parseMarshallers toks@(t : CHSTokEqual _ : CHSTokIdent _ mide : ts)
-          | isMarshaller t = do
-            (hasStar, toks') <- parseOptStar ts
-            let argtype = if hasStar then CHSIOArg else CHSValArg
-            (mmap, toks'') <- parseMarshallers toks'
-            return (M.insert (show t) (Left mide, argtype) mmap, toks'')
-          | otherwise = syntaxError toks
-        isMarshaller :: CHSToken -> Bool
-        isMarshaller (CHSTokIn _) = True
-        isMarshaller (CHSTokOut _) = True
-        isMarshaller (CHSTokPtrIn _) = True
-        isMarshaller (CHSTokPtrOut _) = True
-        isMarshaller _ = False
+    frags <- parseFrags toks
+    return $ CHSHook (CHSTypedef cIde hsIde pos) hkpos : frags
+parseTypedef _ _ toks = syntaxError toks
 
+parseDefault :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
+parseDefault hkpos pos
+  toks@(dirtok :
+        CHSTokHSVerb _ hsTy :
+        CHSTokLBrack _ :
+        CHSTokCArg _ cTyIn :
+        CHSTokRBrack _ :
+        toks1) =
+  do
+    dir <- case dirtok of
+      CHSTokIn _  -> return In
+      CHSTokOut _ -> return Out
+      _           -> syntaxError toks
+    (marsh, toks2) <- parseMarshaller toks1
+    let trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
+        cTy' = trim cTyIn
+        (cTy, cPtr) = if last cTy' == '*'
+                      then (trim $ init cTy', True)
+                      else (cTy', False)
+    toks3 <- parseEndHook toks2
+    frags <- parseFrags toks3
+    return $ CHSHook (CHSDefault dir hsTy cTy cPtr marsh pos) hkpos : frags
+  where parseMarshaller :: [CHSToken]
+                         -> CST s ((Either Ident String, CHSArg), [CHSToken])
+        parseMarshaller (CHSTokIdent _ mide : toks') = do
+            (hasStar, toks'') <- parseOptStar toks'
+            let argtype = if hasStar then CHSIOArg else CHSValArg
+            return ((Left mide, argtype), toks'')
+        parseMarshaller toks' = syntaxError toks'
 parseDefault _ _ toks = syntaxError toks
 
 parseOptStar :: [CHSToken] -> CST s (Bool, [CHSToken])

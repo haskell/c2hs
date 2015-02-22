@@ -1,17 +1,11 @@
 module Main where
 
-import Foreign
 import Foreign.C
-import Foreign.C.String
 
-#include <wchar.h>
 #include "issue20.h"
 
-{#default size_t CSize in=id out=id#}
+{#typedef size_t CSize#}
 {#fun foo {`Int'} -> `CSize'#}
-
-{#default wchar_t CWChar ptr_in=withCWString* ptr_out=peekCWString*#}
-{#fun wcscmp {`CWString', `CWString'} -> `Int'#}
 
 main :: IO ()
 main = do

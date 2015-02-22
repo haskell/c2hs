@@ -71,10 +71,12 @@
 module C2HS.Gen.Monad (
   TransFun, transTabToTransFun,
 
-  HsObject(..), GB, GBState(..), initialGBState, setContext, getLibrary, getPrefix,
+  HsObject(..), GB, GBState(..),
+  initialGBState, setContext, getLibrary, getPrefix,
   getReplacementPrefix, delayCode, getDelayedCode, ptrMapsTo, queryPtr,
   objIs, queryObj, sizeIs, querySize, queryClass, queryPointer,
-  mergeMaps, dumpMaps, queryEnum, isEnum
+  mergeMaps, dumpMaps, queryEnum, isEnum,
+  queryTypedef, isC2HSTypedef, queryDefaultMarsh, isDefaultMarsh
 ) where
 
 -- standard libraries
@@ -96,7 +98,8 @@ import C2HS.C     (CT, readCT, transCT, raiseErrorCTExc)
 
 -- friends
 import C2HS.CHS   (CHSFrag(..), CHSHook(..), CHSTrans(..),
-                   CHSChangeCase(..), CHSPtrType(..))
+                   CHSChangeCase(..), CHSPtrType(..),
+                   CHSTypedefInfo, CHSDefaultMarsh, Direction(..))
 
 
 -- translation tables
@@ -221,6 +224,12 @@ type SizeMap = Map Ident Int
 -- | set of Haskell type names corresponding to C enums.
 type EnumSet = Set String
 
+-- Map from C type names to type default definitions.
+type TypedefMap = Map Ident CHSTypedefInfo
+
+-- Map from C type names to type default definitions.
+type DefaultMarshMap = Map (Direction, String, Bool) CHSDefaultMarsh
+
 {- FIXME: What a mess...
 instance Show HsObject where
   show (Pointer ptrType isNewtype) =
@@ -279,7 +288,9 @@ data GBState  = GBState {
   ptrmap    :: PointerMap,           -- pointer representation
   objmap    :: HsObjectMap,          -- generated Haskell objects
   szmap     :: SizeMap,              -- object sizes
-  enums     :: EnumSet               -- enumeration hooks
+  enums     :: EnumSet,              -- enumeration hooks
+  tdmap     :: TypedefMap,           -- typedefs
+  dmmap     :: DefaultMarshMap       -- user-defined default marshallers
   }
 
 type GB a = CT GBState a
@@ -293,7 +304,9 @@ initialGBState  = GBState {
                     ptrmap = Map.empty,
                     objmap = Map.empty,
                     szmap = Map.empty,
-                    enums = Set.empty
+                    enums = Set.empty,
+                    tdmap = Map.empty,
+                    dmmap = Map.empty
                   }
 
 -- | set the dynamic library and library prefix
@@ -488,6 +501,32 @@ queryEnum hsName  = do
 isEnum :: String -> GB ()
 isEnum hsName =
   transCT (\state -> (state { enums = Set.insert hsName (enums state) }, ()))
+
+-- | query the type default map
+--
+queryTypedef :: Ident -> GB (Maybe CHSTypedefInfo)
+queryTypedef cIde  = do
+  tds <- readCT tdmap
+  return $ cIde `Map.lookup` tds
+
+-- | add an entry to the type default map
+--
+isC2HSTypedef :: Ident -> CHSTypedefInfo -> GB ()
+isC2HSTypedef cIde td =
+  transCT (\state -> (state { tdmap = Map.insert cIde td (tdmap state) }, ()))
+
+-- | query the default marshaller map
+--
+queryDefaultMarsh :: (Direction, String, Bool) -> GB (Maybe CHSDefaultMarsh)
+queryDefaultMarsh k  = do
+  dms <- readCT dmmap
+  return $ k `Map.lookup` dms
+
+-- | add an entry to the type default map
+--
+isDefaultMarsh :: (Direction, String, Bool) -> CHSDefaultMarsh -> GB ()
+isDefaultMarsh k dm =
+  transCT (\state -> (state { dmmap = Map.insert k dm (dmmap state) }, ()))
 
 
 -- error messages

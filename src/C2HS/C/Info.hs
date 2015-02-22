@@ -54,18 +54,12 @@
 --
 
 module C2HS.C.Info (
-  CPrimType(..), size, alignment, getPlatform
+  CPrimType(..), size
 ) where
 
 import Foreign    (Ptr, FunPtr)
-import qualified Foreign.Storable as Storable (Storable(sizeOf, alignment))
+import qualified Foreign.Storable as Storable (Storable(sizeOf))
 import Foreign.C
-
-import C2HS.Config (PlatformSpec(..))
-import C2HS.State  (getSwitch)
-import C2HS.Switches   (platformSB)
-import C2HS.Gen.Monad    (GB)
-import Data.Errors
 
 
 -- calibration of C's primitive types
@@ -94,7 +88,8 @@ data CPrimType = CPtrPT         -- void *
                | CLDoublePT     -- long double
                | CSFieldPT  Int -- signed bit field
                | CUFieldPT  Int -- unsigned bit field
-               deriving (Eq)
+               | CAliasedPT String String CPrimType
+               deriving (Eq, Show)
 
 -- | size of primitive type of C
 --
@@ -123,65 +118,4 @@ size CLDoublePT      = Storable.sizeOf (undefined :: CLDouble)
 #endif
 size (CSFieldPT bs)  = -bs
 size (CUFieldPT bs)  = -bs
-
--- | alignment of C's primitive types
---
--- * more precisely, the padding put before the type's member starts when the
---   preceding component is a char
---
-alignment                :: CPrimType -> GB Int
-alignment CPtrPT          = return $ Storable.alignment (undefined :: Ptr ())
-alignment CFunPtrPT       = return $ Storable.alignment (undefined :: FunPtr ())
-alignment CCharPT         = return $ 1
-alignment CUCharPT        = return $ 1
-alignment CSCharPT        = return $ 1
-alignment CIntPT          = return $ Storable.alignment (undefined :: CInt)
-alignment CShortPT        = return $ Storable.alignment (undefined :: CShort)
-alignment CLongPT         = return $ Storable.alignment (undefined :: CLong)
-alignment CLLongPT        = return $ Storable.alignment (undefined :: CLLong)
-alignment CUIntPT         = return $ Storable.alignment (undefined :: CUInt)
-alignment CUShortPT       = return $ Storable.alignment (undefined :: CUShort)
-alignment CULongPT        = return $ Storable.alignment (undefined :: CULong)
-alignment CULLongPT       = return $ Storable.alignment (undefined :: CULLong)
-alignment CFloatPT        = return $ Storable.alignment (undefined :: CFloat)
-alignment CDoublePT       = return $ Storable.alignment (undefined :: CDouble)
-#if MIN_VERSION_base(4,2,0)
-alignment CLDoublePT      = interr "Info.alignment: CLDouble not supported"
-#else
-alignment CLDoublePT      = return $ Storable.alignment (undefined :: CLDouble)
-#endif
-alignment (CSFieldPT bs)  = fieldAlignment bs
-alignment (CUFieldPT bs)  = fieldAlignment bs
-
--- | alignment constraint for a C bitfield
---
--- * gets the bitfield size (in bits) as an argument
---
--- * alignments constraints smaller or equal to zero are reserved for bitfield
---   alignments
---
--- * bitfields of size 0 always trigger padding; thus, they get the maximal
---   size
---
--- * if bitfields whose size exceeds the space that is still available in a
---   partially filled storage unit trigger padding, the size of a storage unit
---   is provided as the alignment constraint; otherwise, it is 0 (meaning it
---   definitely starts at the current position)
---
--- * here, alignment constraint /= 0 are somewhat subtle; they mean that is
---   the given number of bits doesn't fit in what's left in the current
---   storage unit, alignment to the start of the next storage unit has to be
---   triggered
---
-fieldAlignment :: Int -> GB Int
-fieldAlignment 0  = return $ - (size CIntPT - 1)
-fieldAlignment bs =
-  do
-    PlatformSpec {bitfieldPaddingPS = bitfieldPadding} <- getPlatform
-    return $ if bitfieldPadding then - bs else 0
-
--- | obtain platform from switchboard
---
-getPlatform :: GB PlatformSpec
-getPlatform = getSwitch platformSB
-
+size (CAliasedPT _ _ pt) = size pt

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 --  C->Haskell Compiler: binding generator
 --
@@ -118,6 +119,9 @@ import Data.Bits     ((.|.), (.&.))
 import Control.Arrow (second)
 import Control.Monad (when, unless, liftM, mapAndUnzipM, zipWithM, forM)
 import Data.Ord      (comparing)
+import qualified Foreign.Storable as Storable (Storable(alignment))
+import Foreign    (Ptr, FunPtr)
+import Foreign.C
 
 -- Language.C / compiler toolkit
 import Language.C.Data.Position
@@ -125,25 +129,31 @@ import Language.C.Data.Ident
 import Language.C.Pretty
 import Text.PrettyPrint.HughesPJ (render)
 import Data.Errors
+import C2HS.Config (PlatformSpec(..))
+import C2HS.State  (getSwitch)
+import C2HS.Switches   (platformSB)
+
 
 -- C->Haskell
-import C2HS.Config (PlatformSpec(..))
 import C2HS.State  (CST, errorsPresent, showErrors, fatal,
-                   SwitchBoard(..), Traces(..), putTraceStr, getSwitch)
+                   SwitchBoard(..), Traces(..), putTraceStr)
 import C2HS.C
 
 -- friends
-import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..),
-                   CHSParm(..), CHSMarsh, CHSArg(..), CHSAccess(..), CHSAPath(..),
+import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..), CHSParm(..),
+                   CHSMarsh, CHSArg(..), CHSAccess(..), CHSAPath(..),
+                   CHSTypedefInfo, Direction(..),
                    CHSPtrType(..), showCHSParm, apathToIdent, apathRootIdent)
-import C2HS.C.Info      (CPrimType(..), alignment, getPlatform)
+import C2HS.C.Info      (CPrimType(..))
 import qualified C2HS.C.Info as CInfo
 import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
                           GBState(..),
                    initialGBState, setContext, getPrefix, getReplacementPrefix,
                    delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
                    sizeIs, querySize, queryClass, queryPointer,
-                   mergeMaps, dumpMaps, queryEnum, isEnum)
+                   mergeMaps, dumpMaps, queryEnum, isEnum,
+                   queryTypedef, isC2HSTypedef,
+                   queryDefaultMarsh, isDefaultMarsh)
 
 
 -- default marshallers
@@ -194,6 +204,20 @@ lookupDftMarshIn "Bool"   [PtrET (PrimET pt)]
   return $ Just (Right "with . fromBool", CHSIOArg)
 lookupDftMarshIn hsTy [PtrET UnitET] | "Ptr " `isPrefixOf` hsTy =
   return $ Just (Left idIde, CHSValArg)
+lookupDftMarshIn hsTy [PrimET (CAliasedPT tds hsAlias _)] = do
+  mm <- queryDefaultMarsh $ (In, tds, False)
+  case mm of
+    Nothing -> if hsTy == hsAlias
+               then return $ Just (Left idIde, CHSValArg)
+               else return Nothing
+    Just m -> return $ Just m
+lookupDftMarshIn hsTy [PtrET (PrimET (CAliasedPT tds hsAlias _pt))] = do
+  mm <- queryDefaultMarsh $ (In, tds, True)
+  case mm of
+    Nothing -> if hsTy == hsAlias
+               then return $ Just (Left idIde, CHSValArg)
+               else return Nothing
+    Just m -> return $ Just m
 -- Default case deals with:
 lookupDftMarshIn hsty _ = do
   om <- readCT objmap
@@ -221,10 +245,10 @@ lookupDftMarshOut "()"     _                                    =
 lookupDftMarshOut "Bool"   [PrimET pt] | isIntegralCPrimType pt =
   return $ Just (Left cToBoolIde, CHSValArg)
 lookupDftMarshOut hsTy     [PrimET pt] | isIntegralHsType hsTy
-                                       &&isIntegralCPrimType pt =
+                                      && isIntegralCPrimType pt =
   return $ Just (Left cIntConvIde, CHSValArg)
 lookupDftMarshOut hsTy     [PrimET pt] | isFloatHsType hsTy
-                                       &&isFloatCPrimType pt    =
+                                      && isFloatCPrimType pt    =
   return $ Just (Left cFloatConvIde, CHSValArg)
 lookupDftMarshOut "Char" [PrimET CCharPT] =
   return $ Just (Left castCCharToCharIde, CHSValArg)
@@ -242,7 +266,20 @@ lookupDftMarshOut "String" [PtrET (PrimET CCharPT), PrimET pt]
                  CHSIOArg)
 lookupDftMarshOut hsTy [PtrET UnitET] | "Ptr " `isPrefixOf` hsTy =
   return $ Just (Left idIde, CHSValArg)
--- Default case deals with:
+lookupDftMarshOut hsTy [PrimET (CAliasedPT tds hsAlias _)] = do
+  mm <- queryDefaultMarsh $ (Out, tds, False)
+  case mm of
+    Nothing -> if hsTy == hsAlias
+               then return $ Just (Left idIde, CHSValArg)
+               else return Nothing
+    Just m -> return $ Just m
+lookupDftMarshOut hsTy [PtrET (PrimET (CAliasedPT tds hsAlias _pt))] = do
+  mm <- queryDefaultMarsh $ (Out, tds, True)
+  case mm of
+    Nothing -> if hsTy == hsAlias
+               then return $ Just (Left idIde, CHSValArg)
+               else return Nothing
+    Just m -> return $ Just m
 lookupDftMarshOut hsty _ = do
   om <- readCT objmap
   isenum <- queryEnum hsty
@@ -783,6 +820,35 @@ expandHook (CHSConst cIde _) _ =
     Just (ObjCO cdecl) <- findObj cIde
     let (Just ini) = initDeclr cdecl
     return . show . pretty $ ini
+expandHook (CHSTypedef cIde hsIde pos) _ =
+  do
+    traceGenBind $ "** Typedef hook: " ++ identToString cIde ++
+      " -> " ++ identToString hsIde ++ "\n"
+    let def = "__c2hs_typedef__" ++
+              identToString cIde ++ "__" ++ identToString hsIde
+    Just (ObjCO cdecl) <- findObj $ internalIdent def
+    st <- extractCompType True True cdecl
+    et <- case st of
+      ExtType (PrimET e) -> return e
+      _ -> typeDefaultErr pos
+    cIde `isC2HSTypedef` (hsIde, et)
+    return ""
+expandHook (CHSDefault dir hsTy cTy cPtr marsh pos) _ =
+  do
+    traceGenBind $ "** Default hook: " ++ hsTy ++ " [" ++ cTy ++
+      (if cPtr then " *" else "") ++ "]\n"
+    mtypedef <- queryTypedef $ internalIdent cTy
+    case mtypedef of
+      Nothing -> typeDefaultErr pos
+      Just (tdide, _) -> do
+        let def = "__c2hs_typedef__" ++ cTy ++ "__" ++ identToString tdide
+        Just (ObjCO cdecl) <- findObj $ internalIdent def
+        st <- extractCompType True True cdecl
+        case st of
+          ExtType (PrimET _) -> do
+            (dir, cTy, cPtr) `isDefaultMarsh` marsh
+            return ""
+          _ -> typeDefaultErr pos
 
 apathNewtypeName :: CHSAPath -> GB (Maybe Ident)
 apathNewtypeName path = do
@@ -1129,8 +1195,8 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
       in
       ctxt ++ concat (intersperse " -> " (argTys ++ [resTup]))
       where
-        notVoid Nothing          = interr "GenBind.funDef: \
-                                          \No default marshaller?"
+        notVoid Nothing
+          = interr "GenBind.funDef: No default marshaller?"
         notVoid (Just (_, kind)) = kind /= CHSVoidArg && kind /= CHSIOVoidArg
     --
     -- for an argument marshaller, generate all "in" and "out" marshalling
@@ -1557,14 +1623,13 @@ classDef :: Position                     -- for error messages
 classDef pos className typeName ptrType isNewtype superClasses =
   do
     let
-      toMethodName    = case typeName of
-                          ""   -> interr "GenBind.classDef: \
-                                         \Illegal identifier!"
-                          c:cs -> toLower c : cs
+      toMethodName = case typeName of
+        ""   -> interr "GenBind.classDef: Illegal identifier!"
+        c:cs -> toLower c : cs
       fromMethodName  = "from" ++ typeName
       classDefContext = case superClasses of
-                          []                  -> ""
-                          (superName, _, _):_ -> superName ++ " p => "
+        []                  -> ""
+        (superName, _, _):_ -> superName ++ " p => "
       classDefStr     =
         "class " ++ classDefContext ++ className ++ " p where\n"
         ++ "  " ++ toMethodName   ++ " :: p -> " ++ typeName ++ "\n"
@@ -1582,9 +1647,8 @@ classDef pos className typeName ptrType isNewtype superClasses =
         unless (ptrType == ptrType') $
           pointerTypeMismatchErr pos className superName
         let toMethodName    = case ptrName of
-                                ""   -> interr "GenBind.classDef: \
-                                         \Illegal identifier - 2!"
-                                c:cs -> toLower c : cs
+              ""   -> interr "GenBind.classDef: Illegal identifier - 2!"
+              c:cs -> toLower c : cs
             fromMethodName  = "from" ++ ptrName
             castFun         = "cast" ++ show ptrType
             typeConstr      = if isNewtype  then typeName ++ " " else ""
@@ -1633,6 +1697,7 @@ data ExtType = FunET     ExtType ExtType        -- function
              | PrimET    CPrimType              -- basic C type
              | UnitET                           -- void
              | VarFunET  ExtType                -- variadic function
+             deriving Show
 
 instance Eq ExtType where
   (FunET     t1 t2) == (FunET     t1' t2') = t1 == t1' && t2 == t2'
@@ -1696,6 +1761,7 @@ showExtType (PrimET CDoublePT)      = "CDouble"
 showExtType (PrimET CLDoublePT)     = "CLDouble"
 showExtType (PrimET (CSFieldPT bs)) = "CInt{-:" ++ show bs ++ "-}"
 showExtType (PrimET (CUFieldPT bs)) = "CUInt{-:" ++ show bs ++ "-}"
+showExtType (PrimET (CAliasedPT _ hs _)) = hs
 showExtType UnitET                  = "()"
 
 showExtFunType :: ExtType -> [ExtType] -> String
@@ -1703,7 +1769,7 @@ showExtFunType (FunET UnitET res) _ = showExtType res
 showExtFunType (FunET arg res) vas =
   "(" ++ showExtType arg ++ " -> " ++ showExtFunType res vas ++ ")"
 showExtFunType (VarFunET res) [] = showExtFunType res []
-showExtFunType t@(VarFunET res) (va:vas) =
+showExtFunType t@(VarFunET _) (va:vas) =
   "(" ++ showExtType va ++ " -> " ++ showExtFunType t vas ++ ")"
 showExtFunType (IOET t) vas = "(IO " ++ showExtFunType t vas ++ ")"
 showExtFunType t _ = showExtType t
@@ -1838,6 +1904,12 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
                 traceFunType
                 et <- extractFunType (posOf cdecl) cdecl False
                 returnX et
+
+    makeAliasedCompType :: Ident -> CHSTypedefInfo -> GB CompType
+    makeAliasedCompType cIde (hsIde, et) = do
+      return $ ExtType $ PrimET $
+        CAliasedPT (identToString cIde) (identToString hsIde) et
+
     --
     -- handle all types, which are not obviously pointers or functions
     --
@@ -1847,18 +1919,22 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
       case checkForOneAliasName cdecl of
         Nothing   -> specType (posOf cdecl) specs' size
         Just ide  -> do                    -- this is a typedef alias
-          traceAlias ide
-          oHsRepr <- queryPtr (False, ide) -- check for pointer hook alias
-          case oHsRepr of
-            Just repr | usePtrAliases
-               -> ptrAlias repr    -- found a pointer hook alias
-            _  -> do               -- skip current alias (only one)
-                    cdecl' <- getDeclOf ide
-                    let CDecl specs [(declr, init', _)] at =
-                          ide `simplifyDecl` cdecl'
-                        sdecl = CDecl specs [(declr, init', size)] at
-                        -- propagate `size' down (slightly kludgy)
-                    extractCompType isResult usePtrAliases sdecl
+          oDefault <- queryTypedef ide
+          case oDefault of
+            Just tdefault -> makeAliasedCompType ide tdefault
+            Nothing -> do
+              traceAlias ide
+              oHsRepr <- queryPtr (False, ide) -- check for pointer hook alias
+              case oHsRepr of
+                Just repr | usePtrAliases
+                   -> ptrAlias repr    -- found a pointer hook alias
+                _  -> do               -- skip current alias (only one)
+                        cdecl' <- getDeclOf ide
+                        let CDecl specs [(declr, init', _)] at =
+                              ide `simplifyDecl` cdecl'
+                            sdecl = CDecl specs [(declr, init', size)] at
+                            -- propagate `size' down (slightly kludgy)
+                        extractCompType isResult usePtrAliases sdecl
     --
     -- compute the result for a pointer alias
     --
@@ -2362,7 +2438,8 @@ evalCCast' _ _ = todo "GenBind.evalCCast': Only integral trivial casts are imple
 
 evalCConst :: CConst -> GB ConstResult
 evalCConst (CIntConst   i _ ) = return $ IntResult (getCInteger i)
-evalCConst (CCharConst  c@(CChar _ _) _ ) = return $ IntResult (getCCharAsInt c)
+evalCConst (CCharConst  c@(C2HS.C.CChar _ _) _ ) =
+  return $ IntResult (getCCharAsInt c)
 evalCConst (CCharConst  (CChars cs _) _ ) = return $ IntResult (foldl' add 0 cs)
   where add tot ch = tot * 0x100 + fromIntegral (fromEnum ch)
 evalCConst (CFloatConst _ _ ) =
@@ -2490,16 +2567,16 @@ illegalTypeSpecErr      :: Position -> GB a
 illegalTypeSpecErr cpos  =
   raiseErrorCTExc cpos
     ["Illegal type!",
-     "The type specifiers of this declaration do not form a legal ANSI C(89) \
-     \type."
+     "The type specifiers of this declaration do not form a " ++
+     "legal ANSI C(89) type."
     ]
 
 unsupportedTypeSpecErr      :: Position -> GB a
 unsupportedTypeSpecErr cpos  =
   raiseErrorCTExc cpos
     ["Unsupported type!",
-     "The type specifier of this declaration is not supported by your \
-     \combination of C compiler and Haskell compiler."
+     "The type specifier of this declaration is not supported by your " ++
+     "combination of C compiler and Haskell compiler."
     ]
 
 variadicErr          :: Position -> Position -> GB a
@@ -2514,6 +2591,12 @@ variadicTypeErr pos  =
   raiseErrorCTExc pos
     ["Variadic function argument type!",
      "Calling variadic functions is only supported for simple C types"]
+
+typeDefaultErr      :: Position -> GB a
+typeDefaultErr pos  =
+  raiseErrorCTExc pos
+    ["Internal type default error!",
+     "Something went wrong."]
 
 illegalPlusErr       :: Position -> GB a
 illegalPlusErr pos  =
@@ -2544,8 +2627,8 @@ ptrExpectedErr     :: Position -> GB a
 ptrExpectedErr pos  =
   raiseErrorCTExc pos
     ["Expected a pointer object!",
-     "Attempt to dereference a non-pointer object or to use it in a `pointer' \
-     \hook."]
+     "Attempt to dereference a non-pointer object or to use it in a " ++
+     "`pointer' hook."]
 
 funPtrExpectedErr     :: Position -> GB a
 funPtrExpectedErr pos  =
@@ -2617,10 +2700,74 @@ noDftMarshErr :: Position -> String -> String -> [ExtType] -> GB a
 noDftMarshErr pos inOut hsTy cTys  =
   raiseErrorCTExc pos
     ["Missing " ++ inOut ++ " marshaller!",
-     "There is no default marshaller for this combination of Haskell and \
-     \C type:",
+     "There is no default marshaller for this combination of Haskell and " ++
+     "C type:",
      "Haskell type: " ++ hsTy,
      "C type      : " ++ concat (intersperse " " (map showExtType cTys))]
 
 undefEnumErr :: Position -> GB a
 undefEnumErr pos = raiseErrorCTExc pos ["Incomplete enum type!"]
+
+
+-- | alignment of C's primitive types
+--
+-- * more precisely, the padding put before the type's member starts when the
+--   preceding component is a char
+--
+alignment                :: CPrimType -> GB Int
+alignment CPtrPT          = return $ Storable.alignment (undefined :: Ptr ())
+alignment CFunPtrPT       = return $ Storable.alignment (undefined :: FunPtr ())
+alignment CCharPT         = return $ 1
+alignment CUCharPT        = return $ 1
+alignment CSCharPT        = return $ 1
+alignment CIntPT          = return $ Storable.alignment (undefined :: CInt)
+alignment CShortPT        = return $ Storable.alignment (undefined :: CShort)
+alignment CLongPT         = return $ Storable.alignment (undefined :: CLong)
+alignment CLLongPT        = return $ Storable.alignment (undefined :: CLLong)
+alignment CUIntPT         = return $ Storable.alignment (undefined :: CUInt)
+alignment CUShortPT       = return $ Storable.alignment (undefined :: CUShort)
+alignment CULongPT        = return $ Storable.alignment (undefined :: CULong)
+alignment CULLongPT       = return $ Storable.alignment (undefined :: CULLong)
+alignment CFloatPT =
+  return $ Storable.alignment (undefined :: Foreign.C.CFloat)
+alignment CDoublePT       = return $ Storable.alignment (undefined :: CDouble)
+#if MIN_VERSION_base(4,2,0)
+alignment CLDoublePT      = interr "Info.alignment: CLDouble not supported"
+#else
+alignment CLDoublePT      = return $ Storable.alignment (undefined :: CLDouble)
+#endif
+alignment (CSFieldPT bs)  = fieldAlignment bs
+alignment (CUFieldPT bs)  = fieldAlignment bs
+alignment (CAliasedPT _ _ pt) = alignment pt
+
+-- | alignment constraint for a C bitfield
+--
+-- * gets the bitfield size (in bits) as an argument
+--
+-- * alignments constraints smaller or equal to zero are reserved for bitfield
+--   alignments
+--
+-- * bitfields of size 0 always trigger padding; thus, they get the maximal
+--   size
+--
+-- * if bitfields whose size exceeds the space that is still available in a
+--   partially filled storage unit trigger padding, the size of a storage unit
+--   is provided as the alignment constraint; otherwise, it is 0 (meaning it
+--   definitely starts at the current position)
+--
+-- * here, alignment constraint /= 0 are somewhat subtle; they mean that is
+--   the given number of bits doesn't fit in what's left in the current
+--   storage unit, alignment to the start of the next storage unit has to be
+--   triggered
+--
+fieldAlignment :: Int -> GB Int
+fieldAlignment 0  = return $ - (CInfo.size CIntPT - 1)
+fieldAlignment bs =
+  do
+    PlatformSpec {bitfieldPaddingPS = bitfieldPadding} <- getPlatform
+    return $ if bitfieldPadding then - bs else 0
+
+-- | obtain platform from switchboard
+--
+getPlatform :: GB PlatformSpec
+getPlatform = getSwitch platformSB

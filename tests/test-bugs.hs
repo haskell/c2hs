@@ -38,6 +38,7 @@ tests =
     , testCase "Issue #20" issue20
     , testCase "Issue #22" issue22
     , testCase "Issue #23" issue23
+    , testCase "Issue #25" issue25
     , testCase "Issue #29" issue29
     , testCase "Issue #30" issue30
     , testCase "Issue #31" issue31
@@ -49,6 +50,7 @@ tests =
     , testCase "Issue #45" issue45
     , testCase "Issue #46" issue46
     , testCase "Issue #47" issue47
+    , testCase "Issue #48" issue48
     , testCase "Issue #51" issue51
     , testCase "Issue #54" issue54
     , testCase "Issue #60" issue60
@@ -196,6 +198,9 @@ issue51 = do
   expect_issue_with True True 51 "nonGNU" [] ["0"]
   expect_issue_with True True 51 "GNU" [] ["1"]
 
+issue48 :: Assertion
+issue48 = expect_issue 48 ["2", "5"]
+
 issue47 :: Assertion
 issue47 = build_issue 47
 
@@ -261,6 +266,9 @@ issue29 = c2hsShelly $ do
       run "c2hs" [toTextIgnore "Issue29.chs"]
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
+
+issue25 :: Assertion
+issue25 = hs_only_expect_issue 25 True ["-1", "abcdef"]
 
 issue23 :: Assertion
 issue23 = expect_issue 23 ["H1"]

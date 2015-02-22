@@ -228,6 +228,13 @@ ghFrag (frag@(CHSHook (CHSFun _ _ True varTypes
       defs = zipWith (\t i -> t ++ " " ++ i ++ ";\n") varTypes ides
   return (DL.fromList defs, Frag frag, frags)
 
+ghFrag (frag@(CHSHook (CHSTypedef cIde hsIde _) _) : frags) = do
+  let cTypLexeme = identToString cIde
+      hsTypLexeme = identToString hsIde
+      defs = [cTypLexeme ++ " __c2hs_typedef__" ++
+              cTypLexeme ++ "__" ++ hsTypLexeme ++ ";\n"]
+  return (DL.fromList defs, Frag frag, frags)
+
 ghFrag (frag@(CHSHook  _    _) : frags) = return (DL.empty, Frag frag, frags)
 ghFrag (frag@(CHSLine  _    ) : frags) = return (DL.empty, Frag frag, frags)
 ghFrag (     (CHSC    s  _  ) : frags) =
