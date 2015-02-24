@@ -5,6 +5,7 @@ import Test.Framework (defaultMain, testGroup, Test)
 import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test, assert)
 import System.FilePath (searchPathSeparator)
+import System.Info (os)
 import Prelude hiding (FilePath)
 import Control.Monad.IO.Class
 import Shelly
@@ -25,9 +26,12 @@ c2hsShelly as = shelly $ do
   setenv "PATH" newpath
   as
 
+cc :: FilePath
+cc = if os == "cygwin32" || os == "mingw32" then "gcc" else "cc"
+
 tests :: [Test]
 tests =
-  [ testGroup "Bugs"
+  [ testGroup "Bugs" $
     [ testCase "call_capital (issue #??)" call_capital
     , testCase "Issue #7" issue07
     , testCase "Issue #9" issue09
@@ -50,7 +54,6 @@ tests =
     , testCase "Issue #45" issue45
     , testCase "Issue #46" issue46
     , testCase "Issue #47" issue47
-    , testCase "Issue #48" issue48
     , testCase "Issue #51" issue51
     , testCase "Issue #54" issue54
     , testCase "Issue #60" issue60
@@ -63,19 +66,23 @@ tests =
     , testCase "Issue #79" issue79
     , testCase "Issue #80" issue80
     , testCase "Issue #82" issue82
-    , testCase "Issue #83" issue83
     , testCase "Issue #93" issue93
     , testCase "Issue #95" issue95
     , testCase "Issue #96" issue96
     , testCase "Issue #97" issue97
     , testCase "Issue #98" issue98
-    , testCase "Issue #102" issue102
     , testCase "Issue #103" issue103
     , testCase "Issue #107" issue107
     , testCase "Issue #113" issue113
     , testCase "Issue #115" issue115
     , testCase "Issue #116" issue116
-    ]
+    ] ++
+    -- Some tests that won't work on Windows.
+    if os /= "cygwin32" && os /= "mingw32"
+    then [ testCase "Issue #48" issue48
+         , testCase "Issue #83" issue83
+         , testCase "Issue #102" issue102 ]
+    else [ ]
   ]
 
 call_capital :: Assertion
@@ -83,7 +90,7 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
   mapM_ rm_f ["Capital.hs", "Capital.chs.h", "Capital.chi",
               "Capital_c.o", "Capital"]
   cmd "c2hs" "-d" "genbind" "Capital.chs"
-  cmd "cc" "-c" "-o" "Capital_c.o" "Capital.c"
+  cmd cc "-c" "-o" "Capital_c.o" "Capital.c"
   cmd "ghc" "--make" "-cpp" "Capital_c.o" "Capital.hs"
   res <- absPath "./Capital" >>= cmd
   let expected = ["upper C();", "lower c();", "upper C();"]
@@ -108,7 +115,7 @@ issue103 = c2hsShelly $ chdir "tests/bugs/issue-103" $ do
               "issue103_c.o", "Issue103"]
   cmd "c2hs" "Issue103A.chs"
   cmd "c2hs" "Issue103.chs"
-  cmd "cc" "-c" "-o" "issue103_c.o" "issue103.c"
+  cmd cc "-c" "-o" "issue103_c.o" "issue103.c"
   cmd "ghc" "--make" "issue103_c.o" "Issue103A.hs" "Issue103.hs"
   res <- absPath "./Issue103" >>= cmd
   let expected = ["1", "2", "3"]
@@ -130,7 +137,7 @@ issue97 = c2hsShelly $ chdir "tests/bugs/issue-97" $ do
               "issue97_c.o", "Issue97"]
   cmd "c2hs" "Issue97A.chs"
   cmd "c2hs" "Issue97.chs"
-  cmd "cc" "-c" "-o" "issue97_c.o" "issue97.c"
+  cmd cc "-c" "-o" "issue97_c.o" "issue97.c"
   cmd "ghc" "--make" "issue97_c.o" "Issue97A.hs" "Issue97.hs"
   res <- absPath "./Issue97" >>= cmd
   let expected = ["42"]
@@ -249,9 +256,9 @@ issue30 = c2hsShelly $ chdir "tests/bugs/issue-30" $ do
   mv "Issue30Aux2.chi" "test 2"
   let sp = T.pack $ "test 1" ++ [searchPathSeparator] ++ "test 2"
   cmd "c2hs" "--include" sp "Issue30.chs"
-  cmd "cc" "-c" "-o" "issue30_c.o" "issue30.c"
-  cmd "cc" "-c" "-o" "issue30aux1_c.o" "issue30aux1.c"
-  cmd "cc" "-c" "-o" "issue30aux2_c.o" "issue30aux2.c"
+  cmd cc "-c" "-o" "issue30_c.o" "issue30.c"
+  cmd cc "-c" "-o" "issue30aux1_c.o" "issue30aux1.c"
+  cmd cc "-c" "-o" "issue30aux2_c.o" "issue30aux2.c"
   cmd "ghc" "--make" "issue30_c.o" "issue30aux1_c.o" "issue30aux2_c.o"
     "Issue30Aux1.hs" "Issue30Aux2.hs" "Issue30.hs"
   res <- absPath "./Issue30" >>= cmd
@@ -318,7 +325,7 @@ do_issue_build cbuild n ext c2hsargs =
     cd wdir
     mapM_ rm_f [uc <.> "hs", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
     run "c2hs" $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
-    when cbuild $ cmd "cc" "-c" "-o" (lcc <.> "o") (lc <.> "c")
+    when cbuild $ cmd cc "-c" "-o" (lcc <.> "o") (lc <.> "c")
     if cbuild
       then cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
       else cmd "ghc" "-Wall" "-Werror" "--make" (uc <.> "hs")
