@@ -76,6 +76,7 @@ tests =
     , testCase "Issue #113" issue113
     , testCase "Issue #115" issue115
     , testCase "Issue #116" issue116
+    , testCase "Issue #117" issue117
     , testCase "Issue #123" issue123
     ] ++
     -- Some tests that won't work on Windows.
@@ -99,6 +100,18 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
 
 issue123 :: Assertion
 issue123 = expect_issue 123  ["[8,43,94]", "[7,42,93]", "[2,4,8]", "[3,9,27]"]
+
+issue117 :: Assertion
+issue117 = c2hsShelly $ chdir "tests/bugs/issue-117" $ do
+  mapM_ rm_f ["Issue117.hs", "Issue117.chs.h", "Issue117.chs.c", "Issue117.chi",
+              "issue117_c.o", "Issue117.chs.o", "Issue117"]
+  cmd "c2hs" "Issue117.chs"
+  cmd cc "-c" "-o" "issue117_c.o" "issue117.c"
+  cmd cc "-c" "Issue117.chs.c"
+  cmd "ghc" "--make" "issue117_c.o" "Issue117.chs.o" "Issue117.hs"
+  res <- absPath "./Issue117" >>= cmd
+  let expected = ["5"]
+  liftIO $ assertBool "" (T.lines res == expected)
 
 issue116 :: Assertion
 issue116 = build_issue 116

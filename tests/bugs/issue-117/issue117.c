@@ -2,7 +2,8 @@
 
 #include "issue117.h"
 
-int coord_x(coord_t c) {
+int coord_x(coord_t c, int dummy)
+{
     return c.x;
 }
 

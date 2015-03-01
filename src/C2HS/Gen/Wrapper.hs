@@ -22,13 +22,15 @@
 --
 
 module C2HS.Gen.Wrapper (
-  genWrapper
+  genWrappers
 ) where
 
 -- Language.C / Compiler Toolkit
-import Language.C.Data
-import Language.C.Pretty
 import Language.C.Syntax
+import Language.C.Pretty
+import Text.PrettyPrint.HughesPJ (render)
+import Language.C.Data.Node (undefNode)
+import Language.C.Data.Ident (Ident(..), internalIdent)
 import Data.DList (DList)
 import qualified Data.DList as DL
 
@@ -36,38 +38,58 @@ import qualified Data.DList as DL
 import C2HS.State (CST)
 
 -- friends
-import C2HS.CHS (CHSModule(..), CHSFrag(..), CHSHook(..),
-                 CHSParm(..), CHSAPath(..), isParmWrapped)
+import C2HS.Gen.Monad (Wrapper(..))
 
-import Debug.Trace
 
 -- | Generate a custom C wrapper from a CHS binding module for
 -- functions that require marshalling of bare C structs.
 --
-genWrapper :: CHSModule -> CST s [String]
-genWrapper mod' = return $ gwModule mod'
-
-
--- | Generate the C wrapper for an entire .chs module.
---
-gwModule :: CHSModule -> [String]
-gwModule (CHSModule frags) = DL.toList $ DL.concat $ map gwFrag frags
+genWrappers :: [Wrapper] -> CST s [String]
+genWrappers ws = return $ DL.toList $ DL.concat $ map genWrapper $ reverse ws
 
 
 -- | Process a single fragment.
 --
-gwFrag :: CHSFrag -> DList String
-gwFrag (CHSHook (CHSFun _ _ _ _
-                 (CHSRoot _ ide) oalias _ ips op _) _) =
-  if any isParmWrapped ips
-  then trace ("INPUT: " ++ show ips ++ "\nOUTPUT: " ++ show op) $
-       DL.fromList ["WRAPPED:" ++ wrappername ++ "\n"]
-  else DL.empty
-  where wrappername = "__c2hs_wrapper__" ++ identToString ide
-  -- let ideLexeme = identToString ide
-  --     hsLexeme  = ideLexeme `maybe` identToString $ oalias
-  --     vaIdent base idx = "__c2hs__vararg__" ++ base ++ "_" ++ show idx
-  --     ides = map (vaIdent hsLexeme) [0..length varTypes - 1]
-  --     defs = zipWith (\t i -> t ++ " " ++ i ++ ";\n") varTypes ides
-  -- return (DL.fromList defs, Frag frag, frags)
-gwFrag _ = DL.empty
+genWrapper :: Wrapper -> DList String
+genWrapper (Wrapper wfn ofn (CDecl specs [(Just decl, _, _)] _) args) =
+  DL.fromList [render (pretty wrapfn) ++ "\n"]
+  where wrapfn = CFunDef specs wrapdecl [] body undefNode
+        wrapdecl = fixArgs args $ rename (internalIdent wfn) decl
+        body = CCompound [] [CBlockStmt (CReturn expr undefNode)] undefNode
+        expr = Just $ callBody ofn args decl
+genWrapper (Wrapper wfn ofn _ _) = error $ "WRAPPER BORKED FOR " ++ ofn
+
+rename :: Ident -> CDeclarator a -> CDeclarator a
+rename ide (CDeclr _ dds str attrs n) = CDeclr (Just ide) dds str attrs n
+
+fixArgs :: [Bool] -> CDeclarator a -> CDeclarator a
+fixArgs args (CDeclr ide [fd] str attrs n) = CDeclr ide [fd'] str attrs n
+  where fd' = fixFunArgs args fd
+
+fixFunArgs :: [Bool] -> CDerivedDeclarator a -> CDerivedDeclarator a
+fixFunArgs args (CFunDeclr (Right (adecls, flg)) attrs n) =
+  CFunDeclr (Right (adecls', flg)) attrs n
+  where adecls' = zipWith fixDecl args adecls
+
+fixDecl :: Bool -> CDeclaration a -> CDeclaration a
+fixDecl False d = d
+fixDecl True (CDecl specs [(Just decl, Nothing, Nothing)] n) =
+  CDecl specs [(Just decl', Nothing, Nothing)] n
+  where decl' = addPtr decl
+
+addPtr :: CDeclarator a -> CDeclarator a
+addPtr (CDeclr ide [] cs attrs n) =
+  CDeclr ide [CPtrDeclr [] n] cs attrs n
+
+callBody :: String -> [Bool] -> CDeclarator a -> CExpression a
+callBody fn args (CDeclr _ [fd] _ _ n) =
+   CCall (CVar (internalIdent fn) n) (zipWith makeArg args (funArgs fd)) n
+
+makeArg :: Bool -> CDeclaration a -> CExpression a
+makeArg arg (CDecl _ [(Just (CDeclr (Just i) _ _ _ _), _, _)] n) =
+  case arg of
+    False -> CVar i n
+    True -> CUnary CIndOp (CVar i n) n
+
+funArgs :: CDerivedDeclarator a -> [CDeclaration a]
+funArgs (CFunDeclr (Right (adecls, _)) _ _) = adecls

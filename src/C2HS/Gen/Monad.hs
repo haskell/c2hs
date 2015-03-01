@@ -71,12 +71,13 @@
 module C2HS.Gen.Monad (
   TransFun, transTabToTransFun,
 
-  HsObject(..), GB, GBState(..),
+  HsObject(..), Wrapper(..), GB, GBState(..),
   initialGBState, setContext, getLibrary, getPrefix,
   getReplacementPrefix, delayCode, getDelayedCode, ptrMapsTo, queryPtr,
   objIs, queryObj, sizeIs, querySize, queryClass, queryPointer,
   mergeMaps, dumpMaps, queryEnum, isEnum,
-  queryTypedef, isC2HSTypedef, queryDefaultMarsh, isDefaultMarsh
+  queryTypedef, isC2HSTypedef, queryDefaultMarsh, isDefaultMarsh,
+  addWrapper, getWrappers
 ) where
 
 -- standard libraries
@@ -91,6 +92,7 @@ import qualified Data.Set as Set (empty, insert, member, union, toList, fromList
 -- Language.C
 import Language.C.Data.Position
 import Language.C.Data.Ident
+import Language.C.Syntax
 import Data.Errors
 
 -- C -> Haskell
@@ -230,6 +232,13 @@ type TypedefMap = Map Ident CHSTypedefInfo
 -- Map from C type names to type default definitions.
 type DefaultMarshMap = Map (Direction, String, Bool) CHSDefaultMarsh
 
+-- Definitions for bare structure function wrappers.
+data Wrapper = Wrapper { wrapFn :: String
+                       , wrapOrigFn ::String
+                       , wrapDecl :: CDecl
+                       , wrapArgs :: [Bool] }
+             deriving Show
+
 {- FIXME: What a mess...
 instance Show HsObject where
   show (Pointer ptrType isNewtype) =
@@ -290,7 +299,8 @@ data GBState  = GBState {
   szmap     :: SizeMap,              -- object sizes
   enums     :: EnumSet,              -- enumeration hooks
   tdmap     :: TypedefMap,           -- typedefs
-  dmmap     :: DefaultMarshMap       -- user-defined default marshallers
+  dmmap     :: DefaultMarshMap,      -- user-defined default marshallers
+  wrappers  :: [Wrapper]
   }
 
 type GB a = CT GBState a
@@ -306,7 +316,8 @@ initialGBState  = GBState {
                     szmap = Map.empty,
                     enums = Set.empty,
                     tdmap = Map.empty,
-                    dmmap = Map.empty
+                    dmmap = Map.empty,
+                    wrappers = []
                   }
 
 -- | set the dynamic library and library prefix
@@ -527,6 +538,15 @@ queryDefaultMarsh k  = do
 isDefaultMarsh :: (Direction, String, Bool) -> CHSDefaultMarsh -> GB ()
 isDefaultMarsh k dm =
   transCT (\state -> (state { dmmap = Map.insert k dm (dmmap state) }, ()))
+
+-- | add a wrapper definition
+addWrapper :: String -> String -> CDecl -> [Bool] -> GB ()
+addWrapper wfn ofn cdecl args =
+  let w = Wrapper wfn ofn cdecl args
+  in transCT (\st -> (st { wrappers = w : (wrappers st) }, ()))
+
+getWrappers :: GB [Wrapper]
+getWrappers = readCT wrappers
 
 
 -- error messages

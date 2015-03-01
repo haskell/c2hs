@@ -142,18 +142,18 @@ import C2HS.C
 -- friends
 import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..), CHSParm(..),
                    CHSMarsh, CHSArg(..), CHSAccess(..), CHSAPath(..),
-                   CHSTypedefInfo, Direction(..),
+                   CHSTypedefInfo, Direction(..), isParmWrapped,
                    CHSPtrType(..), showCHSParm, apathToIdent, apathRootIdent)
 import C2HS.C.Info      (CPrimType(..))
 import qualified C2HS.C.Info as CInfo
 import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
-                          GBState(..),
+                          GBState(..), Wrapper(..),
                    initialGBState, setContext, getPrefix, getReplacementPrefix,
                    delayCode, getDelayedCode, ptrMapsTo, queryPtr, objIs,
                    sizeIs, querySize, queryClass, queryPointer,
                    mergeMaps, dumpMaps, queryEnum, isEnum,
                    queryTypedef, isC2HSTypedef,
-                   queryDefaultMarsh, isDefaultMarsh)
+                   queryDefaultMarsh, isDefaultMarsh, addWrapper, getWrappers)
 
 
 -- default marshallers
@@ -404,12 +404,13 @@ castCSCharToCharIde = internalIdent "castCSCharToChar"
 --
 -- * also returns all warning messages encountered (last component of result)
 --
-expandHooks        :: AttrC -> CHSModule -> CST s (CHSModule, String, String)
-expandHooks ac mod'  = do
-                        (_, res) <- runCT (expandModule mod') ac initialGBState
-                        return res
+expandHooks :: AttrC -> CHSModule ->
+               CST s (CHSModule, String, [Wrapper], String)
+expandHooks ac mod' = do
+  (_, res) <- runCT (expandModule mod') ac initialGBState
+  return res
 
-expandModule                   :: CHSModule -> GB (CHSModule, String, String)
+expandModule :: CHSModule -> GB (CHSModule, String, [Wrapper], String)
 expandModule (CHSModule mfrags)  =
   do
     -- expand hooks
@@ -434,7 +435,8 @@ expandModule (CHSModule mfrags)  =
       else do
         traceInfoOK
         warnmsgs <- showErrors
-        return (CHSModule (frags' ++ delayedFrags), chi, warnmsgs)
+        wraps <- getWrappers
+        return (CHSModule (frags' ++ delayedFrags), chi, wraps, warnmsgs)
   where
     traceInfoExpand = putTraceStr tracePhasesSW
                         ("...expanding binding hooks...\n")
@@ -571,7 +573,7 @@ expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) _ =
     let ideLexeme = identToString ide'  -- orignl name might have been a shadow
         hsLexeme  = ideLexeme `maybe` identToString $ oalias
         cdecl'    = ide' `simplifyDecl` cdecl
-    callImport hook isPure isUns [] ideLexeme hsLexeme cdecl' pos
+    callImport hook isPure isUns [] ideLexeme hsLexeme cdecl' Nothing pos
     return hsLexeme
   where
     traceEnter = traceGenBind $
@@ -625,11 +627,13 @@ expandHook (CHSFun isPure isUns _ inVarTypes (CHSRoot _ ide)
         fiIde     = internalIdent fiLexeme
         cdecl'    = cide `simplifyDecl` cdecl
         callHook  = CHSCall isPure isUns (CHSRoot False cide) (Just fiIde) pos
+        wrapped   = Just $ map isParmWrapped parms
+
     varTypes <- convertVarTypes hsLexeme pos inVarTypes
     callImport callHook isPure isUns varTypes (identToString cide)
-      fiLexeme cdecl' pos
+      fiLexeme cdecl' wrapped pos
 
-    extTy <- extractFunType pos cdecl' True
+    extTy <- extractFunType pos cdecl' True wrapped
     funDef isPure hsLexeme fiLexeme extTy varTypes
       ctxt parms parm Nothing pos hkpos
   where
@@ -703,7 +707,7 @@ expandHook (CHSOffsetof path pos) _ =
     checkType decl offsets >>= \ offset -> return $ "(" ++ show offset ++ ")"
   where
     checkType decl [BitSize offset _] =
-        extractCompType True True decl >>= \ compTy ->
+        extractCompType True True False decl >>= \ compTy ->
         case compTy of
           (VarFunET  _) -> variadicErr pos pos
           (IOET      _) ->
@@ -826,7 +830,7 @@ expandHook (CHSTypedef cIde hsIde pos) _ =
     let def = "__c2hs_typedef__" ++
               identToString cIde ++ "__" ++ identToString hsIde
     Just (ObjCO cdecl) <- findObj $ internalIdent def
-    st <- extractCompType True True cdecl
+    st <- extractCompType True True False cdecl
     et <- case st of
       PrimET e -> return e
       _ -> typeDefaultErr pos
@@ -842,7 +846,7 @@ expandHook (CHSDefault dir hsTy cTy cPtr marsh pos) _ =
       Just (tdide, _) -> do
         let def = "__c2hs_typedef__" ++ cTy ++ "__" ++ identToString tdide
         Just (ObjCO cdecl) <- findObj $ internalIdent def
-        st <- extractCompType True True cdecl
+        st <- extractCompType True True False cdecl
         case st of
           PrimET _ -> do
             (dir, cTy, cPtr) `isDefaultMarsh` marsh
@@ -1013,16 +1017,22 @@ enumInst ident list' = intercalate "\n"
 --   want to import into Haskell land
 --
 callImport :: CHSHook -> Bool -> Bool -> [ExtType] -> String ->
-              String -> CDecl -> Position -> GB ()
-callImport hook isPure isUns varTypes ideLexeme hsLexeme cdecl pos =
+              String -> CDecl -> Maybe [Bool] -> Position -> GB ()
+callImport hook isPure isUns varTypes ideLexeme hsLexeme cdecl owrapped pos =
   do
     -- compute the external type from the declaration, and delay the foreign
     -- export declaration
     --
-    extType <- extractFunType pos cdecl isPure
+    extType <- extractFunType pos cdecl isPure owrapped
     header  <- getSwitch headerSB
+    let (needwrapper, wraps, ide) = case owrapped of
+          Nothing -> (False, [], ideLexeme)
+          Just ws -> if or ws
+                     then (True, ws, "__c2hs_wrapped__" ++ ideLexeme)
+                     else (False, [], ideLexeme)
     delayCode hook (foreignImport (extractCallingConvention cdecl)
-                    header ideLexeme hsLexeme isUns extType varTypes)
+                    header ide hsLexeme isUns extType varTypes)
+    when needwrapper $ addWrapper ide ideLexeme cdecl wraps
     traceFunType extType
   where
     traceFunType et = traceGenBind $
@@ -1709,11 +1719,8 @@ instance Eq ExtType where
   (DefinedET _  s ) == (DefinedET _   s' ) = s == s'
   (PrimET    t    ) == (PrimET    t'     ) = t == t'
   (VarFunET  t    ) == (VarFunET  t'     ) = t == t'
-  (SUET      t    ) == (SUET      t'     ) = t `structUnionEq` t'
+  (SUET (CStruct _ i _ _ _)) == (SUET (CStruct _ i' _ _ _)) = i == i'
   UnitET            == UnitET              = True
-
-structUnionEq :: CStructUnion -> CStructUnion -> Bool
-(CStruct _ oide1 _ _ _) `structUnionEq` (CStruct _ oide2 _ _ _) = oide1 == oide2
 
 -- | check whether an external type denotes a function type
 --
@@ -1733,7 +1740,7 @@ numArgs _           = 0
 --   brackets; this however doesn't work consistently due to `DefinedET'; so,
 --   we give up on the idea (preferring simplicity)
 --
-showExtType                        :: ExtType -> String
+showExtType :: ExtType -> String
 showExtType (FunET UnitET res)      = showExtType res
 showExtType (FunET arg res)         = "(" ++ showExtType arg ++ " -> "
                                       ++ showExtType res ++ ")"
@@ -1765,7 +1772,7 @@ showExtType (PrimET (CSFieldPT bs)) = "CInt{-:" ++ show bs ++ "-}"
 showExtType (PrimET (CUFieldPT bs)) = "CUInt{-:" ++ show bs ++ "-}"
 showExtType (PrimET (CAliasedPT _ hs _)) = hs
 showExtType UnitET                  = "()"
-showExtType (SUET _su)              = "() {-struct/union-}"
+showExtType (SUET _)                = "(Ptr ())"
 
 showExtFunType :: ExtType -> [ExtType] -> String
 showExtFunType (FunET UnitET res) _ = showExtType res
@@ -1787,8 +1794,8 @@ showExtFunType t _ = showExtType t
 -- * the caller has to guarantee that the object does indeed refer to a
 --   function
 --
-extractFunType                  :: Position -> CDecl -> Bool -> GB ExtType
-extractFunType pos cdecl isPure  =
+extractFunType :: Position -> CDecl -> Bool -> Maybe [Bool] -> GB ExtType
+extractFunType pos cdecl isPure wrapped =
   do
     -- remove all declarators except that of the function we are processing;
     -- then, extract the functions arguments and result type (also check that
@@ -1811,7 +1818,10 @@ extractFunType pos cdecl isPure  =
     -- prototype with `void' as its single argument declares a nullary
     -- function)
     --
-    argTypes <- mapM (extractCompType False True) args
+    let wrap = case wrapped of
+          Just w  -> w
+          Nothing -> repeat False
+    argTypes <- zipWithM (extractCompType False True) wrap args
     return $ foldr FunET resultType argTypes
 
 -- | compute a non-struct/union type from the given declaration
@@ -1819,7 +1829,7 @@ extractFunType pos cdecl isPure  =
 -- * the declaration may have at most one declarator
 --
 extractSimpleType :: Bool -> Position -> CDecl -> GB ExtType
-extractSimpleType isResult _ cdecl  = extractCompType isResult True cdecl
+extractSimpleType isResult _ cdecl  = extractCompType isResult True False cdecl
 
 -- | compute a Haskell type for a type referenced in a C pointer type
 --
@@ -1833,10 +1843,10 @@ extractSimpleType isResult _ cdecl  = extractCompType isResult True cdecl
 --
 extractPtrType :: CDecl -> GB ExtType
 extractPtrType cdecl = do
-  ct <- extractCompType False False cdecl
+  ct <- extractCompType False False False cdecl
   case ct of
-    SUET  _  -> return UnitET
-    _        -> return ct
+    SUET _ -> return UnitET
+    _      -> return ct
 
 -- | compute a Haskell type from the given C declaration, where C functions are
 -- represented by function pointers
@@ -1858,12 +1868,12 @@ extractPtrType cdecl = do
 --                   `extractCompType' from looking further "into" the
 --                   definition of that pointer.
 --
-extractCompType :: Bool -> Bool -> CDecl -> GB ExtType
-extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
+extractCompType :: Bool -> Bool -> Bool -> CDecl -> GB ExtType
+extractCompType isResult usePtrAliases isPtr cdecl@(CDecl specs' declrs ats) =
   if length declrs > 1
   then interr "GenBind.extractCompType: Too many declarators!"
   else case declrs of
-    [(Just declr, _, size)] | isPtrDeclr declr -> ptrType declr
+    [(Just declr, _, size)] | isPtr || isPtrDeclr declr -> ptrType declr
                             | isFunDeclr declr -> funType
                             | otherwise        -> aliasOrSpecType size
     _                                          -> aliasOrSpecType Nothing
@@ -1872,7 +1882,9 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
     --
     ptrType declr = do
       tracePtrType
-      let declrs' = dropPtrDeclr declr          -- remove indirection
+      let declrs' = if isPtr    -- remove indirection
+                    then declr
+                    else dropPtrDeclr declr
           cdecl'  = CDecl specs' [(Just declrs', Nothing, Nothing)] ats
           oalias  = checkForOneAliasName cdecl' -- is only an alias remaining?
           osu     = checkForOneCUName cdecl'
@@ -1883,7 +1895,7 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
       case oHsRepr of
         Just repr | usePtrAliases  -> ptrAlias repr     -- got an alias
         _                          -> do                -- no alias => recurs
-          ct <- extractCompType False usePtrAliases cdecl'
+          ct <- extractCompType False usePtrAliases False cdecl'
           return $ case ct of
             SUET _  -> PtrET UnitET
             _ -> PtrET ct
@@ -1895,7 +1907,8 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
     --
     funType = do
       traceFunType
-      extractFunType (posOf cdecl) cdecl False
+      -- ??? IS Nothing OK HERE?
+      extractFunType (posOf cdecl) cdecl False Nothing
 
     makeAliasedCompType :: Ident -> CHSTypedefInfo -> GB ExtType
     makeAliasedCompType cIde (hsIde, et) = do
@@ -1926,7 +1939,7 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
                               ide `simplifyDecl` cdecl'
                             sdecl = CDecl specs [(declr, init', size)] at
                             -- propagate `size' down (slightly kludgy)
-                        extractCompType isResult usePtrAliases sdecl
+                        extractCompType isResult usePtrAliases False sdecl
     --
     -- compute the result for a pointer alias
     --
@@ -1997,7 +2010,7 @@ convertVarTypes base pos ts = do
         return cdecl
   cdecls <- mapM doone ides
   forM cdecls $ \cdecl -> do
-    st <- extractCompType True True cdecl
+    st <- extractCompType True True False cdecl
     case st of
       SUET _ -> variadicTypeErr pos
       _ -> return st
@@ -2258,7 +2271,7 @@ sizeAlignOf cdecl = do
 
 
 sizeAlignOfSingle cdecl = do
-  ct <- extractCompType False False cdecl
+  ct <- extractCompType False False False cdecl
   case ct of
     FunET _ _ -> do
       align <- alignment CFunPtrPT
@@ -2411,7 +2424,7 @@ evalConstCExpr (CConst c) = evalCConst c
 
 evalCCast :: CExpr -> GB ConstResult
 evalCCast (CCast decl expr _) = do
-    compType <- extractCompType False False decl
+    compType <- extractCompType False False False decl
     evalCCast' compType (getConstInt expr)
   where
     getConstInt (CConst (CIntConst (CInteger i _ _) _)) = i
@@ -2542,14 +2555,6 @@ unknownFieldErr cpos ide  =
      "The structure has no member called `" ++ identToString ide
      ++ "'.  The structure is defined at",
      show cpos ++ "."]
-
-illegalStructUnionErr          :: Position -> Position -> GB a
-illegalStructUnionErr cpos pos  =
-  raiseErrorCTExc pos
-    ["Illegal structure or union type!",
-     "There is not automatic support for marshaling of structures and",
-     "unions; the offending type is declared at "
-     ++ show cpos ++ "."]
 
 illegalTypeSpecErr      :: Position -> GB a
 illegalTypeSpecErr cpos  =
