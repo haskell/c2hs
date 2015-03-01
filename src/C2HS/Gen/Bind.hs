@@ -586,7 +586,7 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) _ =
         _ -> funPtrExpectedErr pos
 
     traceValueType ty
-    set_get <- setGet pos CHSGet offsets False ptrTy Nothing
+    set_get <- setGet pos CHSGet offsets Nothing ptrTy Nothing
 
     -- get the corresponding C declaration; raises error if not found or not a
     -- function; we use shadow identifiers, so the returned identifier is used
@@ -659,7 +659,7 @@ expandHook (CHSFun isPure isUns _ _ apath oalias ctxt parms parm pos) hkpos =
         callHook  = CHSCall isPure isUns apath (Just fiIde) pos
     callImportDyn callHook isPure isUns ideLexeme fiLexeme decl ty pos
 
-    set_get <- setGet pos CHSGet offsets False ptrTy Nothing
+    set_get <- setGet pos CHSGet offsets Nothing ptrTy Nothing
     funDef isPure hsLexeme fiLexeme (FunET ptrTy $ purify ty) []
                   ctxt parms parm (Just set_get) pos hkpos
   where
@@ -1453,9 +1453,9 @@ _                                `declNamed` _   =
 
 -- | Haskell code for writing to or reading from a struct
 --
-setGet :: Position -> CHSAccess -> [BitSize] -> Bool -> ExtType -> Maybe Ident
-       -> GB String
-setGet pos access offsets isArr ty onewtype =
+setGet :: Position -> CHSAccess -> [BitSize] -> Maybe Int ->
+          ExtType -> Maybe Ident -> GB String
+setGet pos access offsets arrSize ty onewtype =
   do
     let pre = case (access, onewtype) of
           (CHSSet, Nothing) -> "(\\ptr val -> do {"
@@ -1473,15 +1473,15 @@ setGet pos access offsets isArr ty onewtype =
         bf <- checkType ty
         case bf of
           Nothing      -> return $ case access of       -- not a bitfield
-                            CHSGet -> peekOp offset tyTag isArr
-                            CHSSet -> pokeOp offset tyTag "val" isArr
+                            CHSGet -> peekOp offset tyTag arrSize
+                            CHSSet -> pokeOp offset tyTag "val" arrSize
 --FIXME: must take `bitfieldDirection' into account
           Just (_, bs) -> return $ case access of       -- a bitfield
-                            CHSGet -> "val <- " ++ peekOp offset tyTag isArr
+                            CHSGet -> "val <- " ++ peekOp offset tyTag arrSize
                                       ++ extractBitfield
-                            CHSSet -> "org <- " ++ peekOp offset tyTag isArr
+                            CHSSet -> "org <- " ++ peekOp offset tyTag arrSize
                                       ++ insertBitfield
-                                      ++ pokeOp offset tyTag "val'" isArr
+                                      ++ pokeOp offset tyTag "val'" arrSize
             where
               -- we have to be careful here to ensure proper sign extension;
               -- in particular, shifting right followed by anding a mask is
@@ -1520,13 +1520,15 @@ setGet pos access offsets isArr ty onewtype =
     checkType (PrimET    (CSFieldPT bs)) = return $ Just (True , bs)
     checkType _                          = return Nothing
     --
-    peekOp off tyTag False =
+    peekOp off tyTag Nothing =
       "peekByteOff ptr " ++ show off ++ " ::IO " ++ tyTag
-    peekOp off tyTag True =
+    peekOp off tyTag (Just _) =
       "return $ ptr `plusPtr` " ++ show off ++ " ::IO " ++ tyTag
-    pokeOp off tyTag var False =
+    pokeOp off tyTag var Nothing =
       "pokeByteOff ptr " ++ show off ++ " (" ++ var ++ "::" ++ tyTag ++ ")"
-    pokeOp _ tyTag var True = "poke ptr (" ++ var ++ "::" ++ tyTag ++ ")"
+    pokeOp off tyTag var (Just sz) =
+      "copyArray (ptr `plusPtr` " ++ show off ++ ") (" ++
+          var ++ "::" ++ tyTag ++ ") " ++ show sz
 
 -- | generate the type definition for a pointer hook and enter the required type
 -- mapping into the 'ptrmap'

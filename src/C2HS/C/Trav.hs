@@ -99,6 +99,7 @@ import C2HS.C.Attrs     (AttrC(..), enterNewRangeC, enterNewObjRangeC,
                    setDefOfIdentC, updDefOfIdentC, CObj(..), CTag(..),
                    CDef(..))
 
+
 -- the C traversal monad
 -- ---------------------
 
@@ -540,9 +541,13 @@ isPtrDeclr _ = False
 -- | Need to distinguish between pointer and array declarations within
 -- structures.
 --
-isArrDeclr                                 :: CDeclr -> Bool
-isArrDeclr (CDeclr _ (CArrDeclr _ _ _:_) _ _ _) = True
-isArrDeclr _ = False
+isArrDeclr                                 :: CDeclr -> Maybe Int
+isArrDeclr (CDeclr _ (CArrDeclr _ sz _:_) _ _ _) = Just $ szToInt sz
+  where szToInt (CArrSize _ (CConst (CIntConst s _))) =
+          fromIntegral $ getCInteger s
+        szToInt _ = 1
+isArrDeclr _ = Nothing
+
 
 -- | drops the first pointer level from the given declarator
 --
@@ -571,8 +576,8 @@ isPtrDecl (CDecl _ [(Just declr, _, _)] _)  = isPtrDeclr declr
 isPtrDecl _                                 =
   interr "CTrav.isPtrDecl: There was more than one declarator!"
 
-isArrDecl                                  :: CDecl -> Bool
-isArrDecl (CDecl _ []                   _)  = False
+isArrDecl                                  :: CDecl -> Maybe Int
+isArrDecl (CDecl _ []                   _)  = Nothing
 isArrDecl (CDecl _ [(Just declr, _, _)] _)  = isArrDeclr declr
 isArrDecl _                                 =
   interr "CTrav.isArrDecl: There was more than one declarator!"
