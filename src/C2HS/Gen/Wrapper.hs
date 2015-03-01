@@ -57,7 +57,7 @@ genWrapper (Wrapper wfn ofn (CDecl specs [(Just decl, _, _)] _) args) =
         wrapdecl = fixArgs args $ rename (internalIdent wfn) decl
         body = CCompound [] [CBlockStmt (CReturn expr undefNode)] undefNode
         expr = Just $ callBody ofn args decl
-genWrapper (Wrapper wfn ofn _ _) = error $ "WRAPPER BORKED FOR " ++ ofn
+genWrapper (Wrapper _ ofn _ _) = error $ "WRAPPER BORKED FOR " ++ ofn
 
 rename :: Ident -> CDeclarator a -> CDeclarator a
 rename ide (CDeclr _ dds str attrs n) = CDeclr (Just ide) dds str attrs n

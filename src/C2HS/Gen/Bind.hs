@@ -142,7 +142,7 @@ import C2HS.C
 -- friends
 import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..), CHSParm(..),
                    CHSMarsh, CHSArg(..), CHSAccess(..), CHSAPath(..),
-                   CHSTypedefInfo, Direction(..), isParmWrapped,
+                   CHSTypedefInfo, Direction(..),
                    CHSPtrType(..), showCHSParm, apathToIdent, apathRootIdent)
 import C2HS.C.Info      (CPrimType(..))
 import qualified C2HS.C.Info as CInfo
@@ -627,7 +627,11 @@ expandHook (CHSFun isPure isUns _ inVarTypes (CHSRoot _ ide)
         fiIde     = internalIdent fiLexeme
         cdecl'    = cide `simplifyDecl` cdecl
         callHook  = CHSCall isPure isUns (CHSRoot False cide) (Just fiIde) pos
-        wrapped   = Just $ map isParmWrapped parms
+        isWrapped (CHSParm _ _ twovals _ w _ _)
+          | twovals = [w, w]
+          | otherwise = [w]
+        isWrapped _ = [False]
+        wrapped   = Just $ concatMap isWrapped parms
 
     varTypes <- convertVarTypes hsLexeme pos inVarTypes
     callImport callHook isPure isUns varTypes (identToString cide)
@@ -1823,6 +1827,7 @@ extractFunType pos cdecl isPure wrapped =
           Nothing -> repeat False
     argTypes <- zipWithM (extractCompType False True) wrap args
     return $ foldr FunET resultType argTypes
+
 
 -- | compute a non-struct/union type from the given declaration
 --

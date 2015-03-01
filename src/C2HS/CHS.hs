@@ -1259,7 +1259,7 @@ parseParm toks =
           return (hsTyStr, True , pos, toks'2)
         (CHSTokHSVerb pos hsTyStr            :toks'2) ->
           return (hsTyStr, False, pos, toks'2)
-        _toks                                          -> syntaxError toks'
+        _toks                                          -> syntaxError toks''
     (oomMarsh, toks'3) <- parseOptMarsh toks'2
     (comments, toks'4) <- parseOptComments toks'3
     return (CHSParm oimMarsh hsTyStr twoCVals oomMarsh wrapped pos
