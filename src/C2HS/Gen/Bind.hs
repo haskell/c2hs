@@ -1090,7 +1090,7 @@ funDef :: Bool               -- pure function?
        -> Position           -- source location of the start of the hook
        -> GB String          -- Haskell code in text form
 funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
-       parm@(CHSParm _ hsParmTy _ _ _ _) marsh2 pos hkpos =
+       parm@(CHSParm _ hsParmTy _ _ _ _ _) marsh2 pos hkpos =
   do
     when (countPlus parms > 1 || isPlus parm) $ illegalPlusErr pos
     (parms', parm', isImpure) <- addDftMarshaller pos parms parm extTy varExtTys
@@ -1109,7 +1109,7 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
       call      = if isPure
                   then "  let {res = " ++ fiLexeme ++ joinCallArgs ++ "} in\n"
                   else "  " ++ fiLexeme ++ joinCallArgs ++ case parm of
-                    CHSParm _ "()" _ Nothing _ _ -> " >>\n"
+                    CHSParm _ "()" _ Nothing _ _ _ -> " >>\n"
                     _                        ->
                       if countPlus parms == 1
                       then " >>\n" else " >>= \\res ->\n"
@@ -1124,22 +1124,22 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
       marshRes  = if countPlus parms == 1
                   then ""
                   else case parm' of
-                    CHSParm _ _ _twoCVal (Just (_     , CHSVoidArg  )) _ _ -> ""
-                    CHSParm _ _ _twoCVal (Just (omBody, CHSIOVoidArg)) _ _ ->
+                    CHSParm _ _ _twoCVal (Just (_     , CHSVoidArg  )) _ _ _ -> ""
+                    CHSParm _ _ _twoCVal (Just (omBody, CHSIOVoidArg)) _ _ _ ->
                       "  " ++ marshBody omBody ++ " res >> \n"
-                    CHSParm _ _ _twoCVal (Just (omBody, CHSIOArg     )) _ _ ->
+                    CHSParm _ _ _twoCVal (Just (omBody, CHSIOArg     )) _ _ _ ->
                       "  " ++ marshBody omBody ++ " res >>= \\res' ->\n"
-                    CHSParm _ _ _twoCVal (Just (omBody, CHSValArg    )) _ _ ->
+                    CHSParm _ _ _twoCVal (Just (omBody, CHSValArg    )) _ _ _ ->
                       "  let {res' = " ++ marshBody omBody ++ " res} in\n"
-                    CHSParm _ _ _       Nothing                    _ _ ->
+                    CHSParm _ _ _       Nothing                    _ _ _ ->
                       interr "GenBind.funDef: marshRes: no default?"
 
       marshBody (Left ide) = identToString ide
       marshBody (Right str) = "(" ++ str ++ ")"
 
       retArgs'  = case parm' of
-                    CHSParm _ _ _ (Just (_, CHSVoidArg))   _ _ ->        retArgs
-                    CHSParm _ _ _ (Just (_, CHSIOVoidArg)) _ _ ->        retArgs
+                    CHSParm _ _ _ (Just (_, CHSVoidArg))   _ _ _ ->      retArgs
+                    CHSParm _ _ _ (Just (_, CHSIOVoidArg)) _ _ _ ->      retArgs
                     _                                        ->
                       if countPlus parms == 0 then "res'":retArgs else retArgs
       ret       = "(" ++ concat (intersperse ", " retArgs') ++ ")"
@@ -1178,12 +1178,12 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
                    Nothing      -> ""
                    Just ctxtStr -> ctxtStr ++ " => "
         argTys = ["(" ++ ty ++ ")" ++ showComment c |
-                     CHSParm im ty _ _  _ c <- parms', notVoid im]
+                     CHSParm im ty _ _  _ _ c <- parms', notVoid im]
         resTys = ["(" ++ ty ++ ")" |
-                     CHSParm _  ty _ om _ _ <- parm':parms', notVoid om]
+                     CHSParm _  ty _ om _ _ _ <- parm':parms', notVoid om]
         resTup = let
                    comment = case parm' of
-                       CHSParm _ _ _ _ _ c -> c
+                       CHSParm _ _ _ _ _ _ c -> c
                    (lp, rp) = if isPure && length resTys == 1
                               then ("", "")
                               else ("(", ")")
@@ -1203,7 +1203,7 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
     -- code fragments
     --
     marshArg i (CHSParm (Just (imBody, imArgKind)) _ twoCVal
-                        (Just (omBody, omArgKind)) _ _      ) = do
+                        (Just (omBody, omArgKind)) _ _ _    ) = do
       let
         a        = "a" ++ show (i :: Int)
         imStr    = marshBody imBody
@@ -1275,14 +1275,14 @@ addDftMarshaller pos parms parm extTy varExTys = do
     --
     -- * a default marshaller maybe used for "out" marshalling
     --
-    checkResMarsh (CHSParm (Just _) _  _    _       pos' _) _   =
+    checkResMarsh (CHSParm (Just _) _  _    _       _ pos' _) _   =
       resMarshIllegalInErr      pos'
-    checkResMarsh (CHSParm _        _  True _       pos' _) _   =
+    checkResMarsh (CHSParm _        _  True _       _ pos' _) _   =
       resMarshIllegalTwoCValErr pos'
-    checkResMarsh (CHSParm _        ty _    omMarsh pos' c) cTy = do
+    checkResMarsh (CHSParm _        ty _    omMarsh _ pos' c) cTy = do
       (imMarsh', _       ) <- addDftVoid Nothing
       (omMarsh', isImpure) <- addDftOut pos' omMarsh ty [cTy]
-      return (CHSParm imMarsh' ty False omMarsh' pos' c, isImpure)
+      return (CHSParm imMarsh' ty False omMarsh' False pos' c, isImpure)
     --
     splitFunTy (FunET UnitET ty) vts = splitFunTy ty vts
     splitFunTy (FunET ty1 ty2) vts = let (resTy, argTys) = splitFunTy ty2 vts
@@ -1296,22 +1296,22 @@ addDftMarshaller pos parms parm extTy varExTys = do
     addDft ((CHSPlusParm):parms'') (_:cTys) = do
       (parms', _) <- addDft parms'' cTys
       return (CHSPlusParm : parms', True)
-    addDft ((CHSParm imMarsh hsTy False omMarsh p c):parms'') (cTy    :cTys) = do
+    addDft ((CHSParm imMarsh hsTy False omMarsh _ p c):parms'') (cTy    :cTys) = do
       (imMarsh', isImpureIn ) <- addDftIn   p imMarsh hsTy [cTy]
       (omMarsh', isImpureOut) <- addDftVoid    omMarsh
       (parms'  , isImpure   ) <- addDft parms'' cTys
-      return (CHSParm imMarsh' hsTy False omMarsh' p c : parms',
+      return (CHSParm imMarsh' hsTy False omMarsh' False p c : parms',
               isImpure || isImpureIn || isImpureOut)
-    addDft ((CHSParm imMarsh hsTy True  omMarsh p c):parms'') (cTy1:cTy2:cTys) =
+    addDft ((CHSParm imMarsh hsTy True  omMarsh _ p c):parms'') (cTy1:cTy2:cTys) =
       do
       (imMarsh', isImpureIn ) <- addDftIn   p imMarsh hsTy [cTy1, cTy2]
       (omMarsh', isImpureOut) <- addDftVoid   omMarsh
       (parms'  , isImpure   ) <- addDft parms'' cTys
-      return (CHSParm imMarsh' hsTy True omMarsh' p c : parms',
+      return (CHSParm imMarsh' hsTy True omMarsh' False p c : parms',
               isImpure || isImpureIn || isImpureOut)
     addDft []                                             []               =
       return ([], False)
-    addDft ((CHSParm _       _    _     _     pos' _):_)    []               =
+    addDft ((CHSParm _       _    _     _     _ pos' _):_)    []               =
       marshArgMismatchErr pos' "This parameter is in excess of the C arguments."
     addDft []                                             (_:_)            =
       marshArgMismatchErr pos "Parameter marshallers are missing."

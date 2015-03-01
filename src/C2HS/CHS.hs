@@ -352,6 +352,7 @@ data CHSParm = CHSPlusParm       -- special "+" parameter
                        String    -- Haskell type
                        Bool      -- C repr: two values?
                        CHSMarsh  -- "out" marshaller
+                       Bool      -- wrapped?
                        Position
                        String    -- Comment for this para
 
@@ -701,9 +702,10 @@ showFunAlias apath vas oalias  =
 
 showCHSParm                                                :: CHSParm -> ShowS
 showCHSParm CHSPlusParm = showChar '+'
-showCHSParm (CHSParm oimMarsh hsTyStr twoCVals oomMarsh _ comment)  =
+showCHSParm (CHSParm oimMarsh hsTyStr twoCVals oomMarsh wrapped _ comment)  =
     showOMarsh oimMarsh
   . showChar ' '
+  . (if wrapped then showChar '%' else id)
   . showHsVerb hsTyStr
   . (if twoCVals then showChar '&' else id)
   . showChar ' '
@@ -1240,8 +1242,11 @@ parseParm (CHSTokPlus _:toks') = return (CHSPlusParm, toks')
 parseParm toks =
   do
     (oimMarsh, toks' ) <- parseOptMarsh toks
+    let (wrapped, toks'') = case toks' of
+          (CHSTokPercent _:tokstmp) -> (True,  tokstmp)
+          _                         -> (False, toks')
     (hsTyStr, twoCVals, pos, toks'2) <-
-      case toks' of
+      case toks'' of
         (CHSTokHSVerb pos hsTyStr:CHSTokAmp _:toks'2) ->
           return (hsTyStr, True , pos, toks'2)
         (CHSTokHSVerb pos hsTyStr            :toks'2) ->
@@ -1249,7 +1254,7 @@ parseParm toks =
         _toks                                          -> syntaxError toks'
     (oomMarsh, toks'3) <- parseOptMarsh toks'2
     (comments, toks'4) <- parseOptComments toks'3
-    return (CHSParm oimMarsh hsTyStr twoCVals oomMarsh pos
+    return (CHSParm oimMarsh hsTyStr twoCVals oomMarsh wrapped pos
             (concat (intersperse " " comments)), toks'4)
   where
     parseOptMarsh :: [CHSToken] -> CST s (CHSMarsh, [CHSToken])

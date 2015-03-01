@@ -96,7 +96,7 @@
 --                   | `underscoreToCase' | `upcaseFirstLetter' | `unsafe' |
 --                   | `with' | `const' | `omit'
 --      reservedsym -> `{#' | `#}' | `{' | `}' | `,' | `.' | `->' | `='
---                   | `=>' | '-' | `*' | `&' | `^' | `+'
+--                   | `=>' | '-' | `*' | `&' | `^' | `+' | `%'
 --      string      -> `"' instr* `"'
 --      verbhs      -> `\`' inhsverb* `\''
 --      quoths      -> `\'' inhsverb* `\''
@@ -201,6 +201,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokStar    Position          -- `*'
               | CHSTokAmp     Position          -- `&'
               | CHSTokHat     Position          -- `^'
+              | CHSTokPercent Position          -- `%'
               | CHSTokPlus    Position          -- `+'
               | CHSTokLBrace  Position          -- `{'
               | CHSTokRBrace  Position          -- `}'
@@ -413,6 +414,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokStar    _  ) = showString "*"
   showsPrec _ (CHSTokAmp     _  ) = showString "&"
   showsPrec _ (CHSTokHat     _  ) = showString "^"
+  showsPrec _ (CHSTokPercent _  ) = showString "%"
   showsPrec _ (CHSTokPlus    _  ) = showString "+"
   showsPrec _ (CHSTokLBrace  _  ) = showString "{"
   showsPrec _ (CHSTokRBrace  _  ) = showString "}"
@@ -898,6 +900,7 @@ symbol  =      sym "->" CHSTokArrow
           >||< sym "*"  CHSTokStar
           >||< sym "&"  CHSTokAmp
           >||< sym "^"  CHSTokHat
+          >||< sym "%"  CHSTokPercent
           >||< sym "+"  CHSTokPlus
           >||< sym "{"  CHSTokLBrace
           >||< sym "}"  CHSTokRBrace
