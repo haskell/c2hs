@@ -103,7 +103,8 @@ module C2HS.CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
             CHSAPath(..), CHSPtrType(..), CHSTypedefInfo, CHSDefaultMarsh,
             Direction(..),
             loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI, chisuffix,
-            showCHSParm, apathToIdent, apathRootIdent, hasNonGNU)
+            showCHSParm, apathToIdent, apathRootIdent, hasNonGNU,
+            isParmWrapped)
 where
 
 -- standard libraries
@@ -355,6 +356,12 @@ data CHSParm = CHSPlusParm       -- special "+" parameter
                        Bool      -- wrapped?
                        Position
                        String    -- Comment for this para
+
+-- | Check whether parameter requires wrapping for bare structures.
+--
+isParmWrapped :: CHSParm -> Bool
+isParmWrapped (CHSParm _ _ _ _ w _ _) = w
+isParmWrapped _ = False
 
 -- | kinds of arguments in function hooks
 --
@@ -1144,6 +1151,7 @@ parseFun hkpos pos inputToks  =
     (octxt   , toks'7) <- parseOptContext      toks'6
     (parms   , toks'8) <- parseParms           toks'7
     (parm    , toks'9) <- parseParm            toks'8
+    when (isParmWrapped parm) $ errorOutWrap $ head toks'8
     toks'10            <- parseEndHook         toks'9
     frags              <- parseFrags           toks'10
     return $
@@ -1644,6 +1652,13 @@ errorEOF  = do
                 ["Premature end of file!",
                  "The .chs file ends in the middle of a binding hook."]
               raiseSyntaxError
+
+errorOutWrap :: CHSToken -> CST s a
+errorOutWrap tok = do
+  raiseError (posOf tok)
+    ["Syntax error!",
+     "Structure wrapping is not allowed for return parameters."]
+  raiseSyntaxError
 
 errorCHICorrupt      :: String -> CST s a
 errorCHICorrupt ide  = do

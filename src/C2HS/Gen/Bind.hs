@@ -538,7 +538,8 @@ expandHook (CHSSizeof ide _) _ =
       "Size of declaration\n" ++ show decl ++ "\nis "
       ++ show (padBits size) ++ "\n"
 expandHook (CHSEnumDefine _ _ _ _) _ =
-  interr "Binding generation error : enum define hooks should be eliminated via preprocessing "
+  interr $ "Binding generation error : enum define hooks " ++
+           "should be eliminated via preprocessing "
 expandHook (CHSEnum cide oalias chsTrans emit oprefix orepprefix derive pos) _ =
   do
     -- get the corresponding C declaration
@@ -603,7 +604,8 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) _ =
              ++ hsLexeme ++ " f" ++ args ++ ")"
   where
     traceEnter = traceGenBind $
-      "** Indirect call hook for `" ++ identToString (apathToIdent apath) ++ "':\n"
+      "** Indirect call hook for `" ++
+      identToString (apathToIdent apath) ++ "':\n"
     traceValueType et  = traceGenBind $
       "Type of accessed value: " ++ showExtType et ++ "\n"
 expandHook (CHSFun isPure isUns _ inVarTypes (CHSRoot _ ide)
@@ -703,17 +705,14 @@ expandHook (CHSOffsetof path pos) _ =
     checkType decl [BitSize offset _] =
         extractCompType True True decl >>= \ compTy ->
         case compTy of
-          ExtType et ->
-            case et of
-              (VarFunET  _) -> variadicErr pos pos
-              (IOET      _) ->
-                interr "GenBind.expandHook(CHSOffsetOf): Illegal type!"
-              (UnitET     ) -> voidFieldErr pos
-              (DefinedET _ _) -> return offset
-              (PrimET (CUFieldPT _)) -> offsetBitfieldErr pos
-              (PrimET (CSFieldPT _)) -> offsetBitfieldErr pos
-              _             -> return offset
-          SUType _ -> return offset
+          (VarFunET  _) -> variadicErr pos pos
+          (IOET      _) ->
+            interr "GenBind.expandHook(CHSOffsetOf): Illegal type!"
+          (UnitET     ) -> voidFieldErr pos
+          (DefinedET _ _) -> return offset
+          (PrimET (CUFieldPT _)) -> offsetBitfieldErr pos
+          (PrimET (CSFieldPT _)) -> offsetBitfieldErr pos
+          _             -> return offset
     checkType _ _ = offsetDerefErr pos
 expandHook hook@(CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
                  pos) _ =
@@ -829,7 +828,7 @@ expandHook (CHSTypedef cIde hsIde pos) _ =
     Just (ObjCO cdecl) <- findObj $ internalIdent def
     st <- extractCompType True True cdecl
     et <- case st of
-      ExtType (PrimET e) -> return e
+      PrimET e -> return e
       _ -> typeDefaultErr pos
     cIde `isC2HSTypedef` (hsIde, et)
     return ""
@@ -845,7 +844,7 @@ expandHook (CHSDefault dir hsTy cTy cPtr marsh pos) _ =
         Just (ObjCO cdecl) <- findObj $ internalIdent def
         st <- extractCompType True True cdecl
         case st of
-          ExtType (PrimET _) -> do
+          PrimET _ -> do
             (dir, cTy, cPtr) `isDefaultMarsh` marsh
             return ""
           _ -> typeDefaultErr pos
@@ -1057,9 +1056,11 @@ foreignImport cconv header ident hsIdent isUnsafe ty vas =
     entity | null header = ident
            | otherwise   = header ++ " " ++ ident
 
--- | Haskell code for the foreign import dynamic declaration needed by a call hook
+-- | Haskell code for the foreign import dynamic declaration needed by
+-- a call hook
 --
-foreignImportDyn :: CallingConvention -> String -> String -> Bool -> ExtType -> String
+foreignImportDyn :: CallingConvention -> String -> String -> Bool ->
+                    ExtType -> String
 foreignImportDyn cconv _ident hsIdent isUnsafe ty  =
   "foreign import " ++ showCallingConvention cconv ++ " " ++ safety
     ++ " \"dynamic\"\n  " ++
@@ -1124,22 +1125,22 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
       marshRes  = if countPlus parms == 1
                   then ""
                   else case parm' of
-                    CHSParm _ _ _twoCVal (Just (_     , CHSVoidArg  )) _ _ _ -> ""
+                    CHSParm _ _ _twoCVal (Just (_, CHSVoidArg)) _ _ _ -> ""
                     CHSParm _ _ _twoCVal (Just (omBody, CHSIOVoidArg)) _ _ _ ->
                       "  " ++ marshBody omBody ++ " res >> \n"
-                    CHSParm _ _ _twoCVal (Just (omBody, CHSIOArg     )) _ _ _ ->
+                    CHSParm _ _ _twoCVal (Just (omBody, CHSIOArg)) _ _ _ ->
                       "  " ++ marshBody omBody ++ " res >>= \\res' ->\n"
-                    CHSParm _ _ _twoCVal (Just (omBody, CHSValArg    )) _ _ _ ->
+                    CHSParm _ _ _twoCVal (Just (omBody, CHSValArg)) _ _ _ ->
                       "  let {res' = " ++ marshBody omBody ++ " res} in\n"
-                    CHSParm _ _ _       Nothing                    _ _ _ ->
+                    CHSParm _ _ _ Nothing _ _ _ ->
                       interr "GenBind.funDef: marshRes: no default?"
 
       marshBody (Left ide) = identToString ide
       marshBody (Right str) = "(" ++ str ++ ")"
 
       retArgs'  = case parm' of
-                    CHSParm _ _ _ (Just (_, CHSVoidArg))   _ _ _ ->      retArgs
-                    CHSParm _ _ _ (Just (_, CHSIOVoidArg)) _ _ _ ->      retArgs
+                    CHSParm _ _ _ (Just (_, CHSVoidArg))   _ _ _ -> retArgs
+                    CHSParm _ _ _ (Just (_, CHSIOVoidArg)) _ _ _ -> retArgs
                     _                                        ->
                       if countPlus parms == 0 then "res'":retArgs else retArgs
       ret       = "(" ++ concat (intersperse ", " retArgs') ++ ")"
@@ -1296,46 +1297,44 @@ addDftMarshaller pos parms parm extTy varExTys = do
     addDft ((CHSPlusParm):parms'') (_:cTys) = do
       (parms', _) <- addDft parms'' cTys
       return (CHSPlusParm : parms', True)
-    addDft ((CHSParm imMarsh hsTy False omMarsh _ p c):parms'') (cTy    :cTys) = do
-      (imMarsh', isImpureIn ) <- addDftIn   p imMarsh hsTy [cTy]
-      (omMarsh', isImpureOut) <- addDftVoid    omMarsh
+    addDft ((CHSParm imMarsh hsTy False omMarsh _ p c):parms'') (cTy:cTys) = do
+      (imMarsh', isImpureIn ) <- addDftIn p imMarsh hsTy [cTy]
+      (omMarsh', isImpureOut) <- addDftVoid omMarsh
       (parms'  , isImpure   ) <- addDft parms'' cTys
       return (CHSParm imMarsh' hsTy False omMarsh' False p c : parms',
               isImpure || isImpureIn || isImpureOut)
-    addDft ((CHSParm imMarsh hsTy True  omMarsh _ p c):parms'') (cTy1:cTy2:cTys) =
+    addDft ((CHSParm imMarsh hsTy True  omMarsh _ p c):parms'') (ct1:ct2:cts) =
       do
-      (imMarsh', isImpureIn ) <- addDftIn   p imMarsh hsTy [cTy1, cTy2]
-      (omMarsh', isImpureOut) <- addDftVoid   omMarsh
-      (parms'  , isImpure   ) <- addDft parms'' cTys
+      (imMarsh', isImpureIn ) <- addDftIn p imMarsh hsTy [ct1, ct2]
+      (omMarsh', isImpureOut) <- addDftVoid omMarsh
+      (parms'  , isImpure   ) <- addDft parms'' cts
       return (CHSParm imMarsh' hsTy True omMarsh' False p c : parms',
               isImpure || isImpureIn || isImpureOut)
-    addDft []                                             []               =
-      return ([], False)
-    addDft ((CHSParm _       _    _     _     _ pos' _):_)    []               =
+    addDft [] [] = return ([], False)
+    addDft ((CHSParm _ _ _ _ _ pos' _):_) [] =
       marshArgMismatchErr pos' "This parameter is in excess of the C arguments."
-    addDft []                                             (_:_)            =
+    addDft [] (_:_) =
       marshArgMismatchErr pos "Parameter marshallers are missing."
     --
-    addDftIn _    imMarsh@(Just (_, kind)) _    _    = return (imMarsh,
-                                                              kind == CHSIOArg)
-    addDftIn pos'  _imMarsh@Nothing        hsTy cTys = do
-      marsh <- lookupDftMarshIn hsTy cTys
+    addDftIn _ imMarsh@(Just (_, kind)) _ _ = return (imMarsh, kind == CHSIOArg)
+    addDftIn pos' _imMarsh@Nothing hsTy cts = do
+      marsh <- lookupDftMarshIn hsTy cts
       when (isNothing marsh) $
-        noDftMarshErr pos' "\"in\"" hsTy cTys
+        noDftMarshErr pos' "\"in\"" hsTy cts
       return (marsh, case marsh of {Just (_, kind) -> kind == CHSIOArg})
     --
-    addDftOut _    omMarsh@(Just (_, kind)) _    _    = return (omMarsh,
-                                                              kind == CHSIOArg)
-    addDftOut pos' _omMarsh@Nothing         hsTy cTys = do
-      marsh <- lookupDftMarshOut hsTy cTys
+    addDftOut _ omMarsh@(Just (_, kind)) _ _ =
+      return (omMarsh, kind == CHSIOArg)
+    addDftOut pos' _omMarsh@Nothing hsTy cts = do
+      marsh <- lookupDftMarshOut hsTy cts
       when (isNothing marsh) $
-        noDftMarshErr pos' "\"out\"" hsTy cTys
+        noDftMarshErr pos' "\"out\"" hsTy cts
       return (marsh, case marsh of {Just (_, kind) -> kind == CHSIOArg})
     --
     -- add void marshaller if no explict one is given
     --
     addDftVoid marsh@(Just (_, kind)) = return (marsh, kind == CHSIOArg)
-    addDftVoid        Nothing         = do
+    addDftVoid Nothing = do
       return (Just (Left (internalIdent "void"), CHSVoidArg), False)
 
 -- | compute from an access path, the declarator finally accessed and the index
@@ -1399,7 +1398,8 @@ accessPath (CHSDeref path _pos) =                        -- *a
       do
         declr' <- derefDeclr declr
         return $ CDecl specs [(Just declr', oinit, oexpr)] at
-    derefDeclr (CDeclr oid (CPtrDeclr _ _: derived') asm ats n) = return $ CDeclr oid derived' asm ats n
+    derefDeclr (CDeclr oid (CPtrDeclr _ _: derived') asm ats n) =
+      return $ CDeclr oid derived' asm ats n
     derefDeclr (CDeclr _oid _unexp_deriv _ _ n) = ptrExpectedErr (posOf n)
 
 -- | replaces a decleration by its alias if any
@@ -1699,6 +1699,7 @@ data ExtType = FunET     ExtType ExtType        -- function
              | PrimET    CPrimType              -- basic C type
              | UnitET                           -- void
              | VarFunET  ExtType                -- variadic function
+             | SUET      CStructUnion           -- structure or union
              deriving Show
 
 instance Eq ExtType where
@@ -1708,12 +1709,11 @@ instance Eq ExtType where
   (DefinedET _  s ) == (DefinedET _   s' ) = s == s'
   (PrimET    t    ) == (PrimET    t'     ) = t == t'
   (VarFunET  t    ) == (VarFunET  t'     ) = t == t'
+  (SUET      t    ) == (SUET      t'     ) = t `structUnionEq` t'
   UnitET            == UnitET              = True
 
--- | composite C type
---
-data CompType = ExtType  ExtType                -- external type
-              | SUType   CStructUnion           -- structure or union
+structUnionEq :: CStructUnion -> CStructUnion -> Bool
+(CStruct _ oide1 _ _ _) `structUnionEq` (CStruct _ oide2 _ _ _) = oide1 == oide2
 
 -- | check whether an external type denotes a function type
 --
@@ -1765,6 +1765,7 @@ showExtType (PrimET (CSFieldPT bs)) = "CInt{-:" ++ show bs ++ "-}"
 showExtType (PrimET (CUFieldPT bs)) = "CUInt{-:" ++ show bs ++ "-}"
 showExtType (PrimET (CAliasedPT _ hs _)) = hs
 showExtType UnitET                  = "()"
+showExtType (SUET _su)              = "() {-struct/union-}"
 
 showExtFunType :: ExtType -> [ExtType] -> String
 showExtFunType (FunET UnitET res) _ = showExtType res
@@ -1810,25 +1811,15 @@ extractFunType pos cdecl isPure  =
     -- prototype with `void' as its single argument declares a nullary
     -- function)
     --
-    argTypes <- mapM (extractSimpleType False pos) args
+    argTypes <- mapM (extractCompType False True) args
     return $ foldr FunET resultType argTypes
 
 -- | compute a non-struct/union type from the given declaration
 --
 -- * the declaration may have at most one declarator
 --
-extractSimpleType                    :: Bool -> Position -> CDecl -> GB ExtType
-extractSimpleType isResult pos cdecl  =
-  do
-    traceEnter
-    ct <- extractCompType isResult True cdecl
-    case ct of
-      ExtType et -> return et
-      SUType  _  -> illegalStructUnionErr (posOf cdecl) pos
-  where
-    traceEnter = traceGenBind $
-      "Entering `extractSimpleType' (" ++ (if isResult then "" else "not ")
-      ++ "for a result)...\n"
+extractSimpleType :: Bool -> Position -> CDecl -> GB ExtType
+extractSimpleType isResult _ cdecl  = extractCompType isResult True cdecl
 
 -- | compute a Haskell type for a type referenced in a C pointer type
 --
@@ -1844,8 +1835,8 @@ extractPtrType :: CDecl -> GB ExtType
 extractPtrType cdecl = do
   ct <- extractCompType False False cdecl
   case ct of
-    ExtType et -> return et
-    SUType  _  -> return UnitET
+    SUET  _  -> return UnitET
+    _        -> return ct
 
 -- | compute a Haskell type from the given C declaration, where C functions are
 -- represented by function pointers
@@ -1867,7 +1858,7 @@ extractPtrType cdecl = do
 --                   `extractCompType' from looking further "into" the
 --                   definition of that pointer.
 --
-extractCompType :: Bool -> Bool -> CDecl -> GB CompType
+extractCompType :: Bool -> Bool -> CDecl -> GB ExtType
 extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
   if length declrs > 1
   then interr "GenBind.extractCompType: Too many declarators!"
@@ -1893,9 +1884,9 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
         Just repr | usePtrAliases  -> ptrAlias repr     -- got an alias
         _                          -> do                -- no alias => recurs
           ct <- extractCompType False usePtrAliases cdecl'
-          returnX $ case ct of
-                      ExtType et -> PtrET et
-                      SUType  _  -> PtrET UnitET
+          return $ case ct of
+            SUET _  -> PtrET UnitET
+            _ -> PtrET ct
     --
     -- handle explicit function types
     --
@@ -1903,19 +1894,18 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
     --        functions); is this ever going to be a problem?
     --
     funType = do
-                traceFunType
-                et <- extractFunType (posOf cdecl) cdecl False
-                returnX et
+      traceFunType
+      extractFunType (posOf cdecl) cdecl False
 
-    makeAliasedCompType :: Ident -> CHSTypedefInfo -> GB CompType
+    makeAliasedCompType :: Ident -> CHSTypedefInfo -> GB ExtType
     makeAliasedCompType cIde (hsIde, et) = do
-      return $ ExtType $ PrimET $
+      return $ PrimET $
         CAliasedPT (identToString cIde) (identToString hsIde) et
 
     --
     -- handle all types, which are not obviously pointers or functions
     --
-    aliasOrSpecType :: Maybe CExpr -> GB CompType
+    aliasOrSpecType :: Maybe CExpr -> GB ExtType
     aliasOrSpecType size = do
       traceAliasOrSpecType size
       case checkForOneAliasName cdecl of
@@ -1941,11 +1931,7 @@ extractCompType isResult usePtrAliases cdecl@(CDecl specs' declrs ats)  =
     -- compute the result for a pointer alias
     --
     ptrAlias (repr1, repr2) =
-      returnX $ DefinedET cdecl (if isResult then repr2 else repr1)
-    --
-    -- wrap an `ExtType' into a `CompType'
-    --
-    returnX retval            = return $ ExtType retval
+      return $ DefinedET cdecl (if isResult then repr2 else repr1)
     --
     tracePtrType = traceGenBind $ "extractCompType: explicit pointer type\n"
     traceFunType = traceGenBind $ "extractCompType: explicit function type\n"
@@ -2013,24 +1999,24 @@ convertVarTypes base pos ts = do
   forM cdecls $ \cdecl -> do
     st <- extractCompType True True cdecl
     case st of
-      ExtType et -> return et
-      _ -> variadicTypeErr pos
+      SUET _ -> variadicTypeErr pos
+      _ -> return st
 
 -- | compute the complex (external) type determined by a list of type specifiers
 --
 -- * may not be called for a specifier that defines a typedef alias
 --
-specType :: Position -> [CDeclSpec] -> Maybe CExpr -> GB CompType
+specType :: Position -> [CDeclSpec] -> Maybe CExpr -> GB ExtType
 specType cpos specs'' osize =
   let tspecs = [ts | CTypeSpec ts <- specs'']
   in case lookupTSpec tspecs typeMap of
     Just et | isUnsupportedType et -> unsupportedTypeSpecErr cpos
-            | isNothing osize      -> return $ ExtType et     -- not a bitfield
+            | isNothing osize      -> return et   -- not a bitfield
             | otherwise            -> bitfieldSpec tspecs et osize  -- bitfield
     Nothing                        ->
       case tspecs of
-        [CSUType   cu _] -> return $ SUType cu               -- struct or union
-        [CEnumType _  _] -> return $ ExtType (PrimET CIntPT) -- enum
+        [CSUType   cu _] -> return $ SUET cu                 -- struct or union
+        [CEnumType _  _] -> return $ PrimET CIntPT           -- enum
         [CTypeDef  _  _] -> interr "GenBind.specType: Illegal typedef alias!"
         _                -> illegalTypeSpecErr cpos
   where
@@ -2065,7 +2051,7 @@ specType cpos specs'' osize =
     eqSpec (CTypeDef  _ _) (CTypeDef  _ _) = True
     eqSpec _               _               = False
     --
-    bitfieldSpec :: [CTypeSpec] -> ExtType -> Maybe CExpr -> GB CompType
+    bitfieldSpec :: [CTypeSpec] -> ExtType -> Maybe CExpr -> GB ExtType
     bitfieldSpec tspecs et (Just sizeExpr) =  -- never called with 'Nothing'
       do
         PlatformSpec {bitfieldIntSignedPS = bitfieldIntSigned} <- getPlatform
@@ -2085,7 +2071,7 @@ specType cpos specs'' osize =
                                                   else CUFieldPT size
               _                                   -> illegalFieldSizeErr pos
             where
-              returnCT = return . ExtType . PrimET
+              returnCT = return . PrimET
               --
               int    = CIntType    undefined
               signed = CSignedType undefined
@@ -2113,13 +2099,16 @@ extractCallingConvention cdecl
        in attrs' ++ funEndAttrs declrs ++ funPtrAttrs declrs
 
     -- attrs after the function name, e.g. void foo() __attribute__((...));
-    funEndAttrs [(Just ((CDeclr _ (CFunDeclr _ _ _ : _) _ attrs _)), _, _)] = attrs
-    funEndAttrs _                                                           = []
+    funEndAttrs [(Just ((CDeclr _ (CFunDeclr _ _ _ : _) _ attrs _)), _, _)] =
+      attrs
+    funEndAttrs _ = []
 
     -- attrs appearing within the declarator of a function pointer. As an
     -- example:
     -- typedef int (__stdcall *fp)();
-    funPtrAttrs [(Just ((CDeclr _ (CPtrDeclr _ _ : CFunDeclr _ attrs _ : _) _ _ _)), _, _)] = attrs
+    funPtrAttrs [(Just ((CDeclr _ (CPtrDeclr _ _ :
+                                   CFunDeclr _ attrs _ : _) _ _ _)), _, _)] =
+      attrs
     funPtrAttrs _ = []
 
 
@@ -2155,8 +2144,9 @@ instance Ord BitSize where
 
 -- | add two bit size values
 --
-addBitSize                                 :: BitSize -> BitSize -> BitSize
-addBitSize (BitSize o1 b1) (BitSize o2 b2)  = BitSize (o1 + o2 + overflow * CInfo.size CIntPT) rest
+addBitSize :: BitSize -> BitSize -> BitSize
+addBitSize (BitSize o1 b1) (BitSize o2 b2) =
+  BitSize (o1 + o2 + overflow * CInfo.size CIntPT) rest
   where
     bitsPerBitfield  = CInfo.size CIntPT * 8
     (overflow, rest) = (b1 + b2) `divMod` bitsPerBitfield
@@ -2238,15 +2228,18 @@ sizeAlignOfSingle :: CDecl -> GB (BitSize, Int)
 --   declared.  At this time I don't care.  -- U.S. 05/2006
 --
 sizeAlignOf (CDecl dclspec
-                   [(Just (CDeclr oide (CArrDeclr _ (CArrSize _ lexpr) _ : derived') _asm _ats n), init', expr)]
+                   [(Just (CDeclr oide (CArrDeclr _ (CArrSize _ lexpr) _ :
+                                        derived') _asm _ats n), init', expr)]
                    attr) =
   do
-    (bitsize, align) <- sizeAlignOf (CDecl dclspec
-                                           [(Just (CDeclr oide derived' Nothing [] n), init', expr)]
-                                           attr)
+    (bitsize, align) <-
+      sizeAlignOf (CDecl dclspec
+                   [(Just (CDeclr oide derived' Nothing [] n), init', expr)]
+                   attr)
     IntResult len <- evalConstCExpr lexpr
     return (fromIntegral len `scaleBitSize` bitsize, align)
-sizeAlignOf (CDecl _ [(Just (CDeclr _ (CArrDeclr _ (CNoArrSize _) _ : _) _ _ _), _init, _expr)] _) =
+sizeAlignOf (CDecl _ [(Just (CDeclr _ (CArrDeclr _ (CNoArrSize _) _ :
+                                       _) _ _ _), _init, _expr)] _) =
     interr "GenBind.sizeAlignOf: array of undeclared size."
 sizeAlignOf cdecl = do
   traceAliasCheck
@@ -2264,50 +2257,41 @@ sizeAlignOf cdecl = do
       "extractCompType: found an alias called `" ++ identToString ide ++ "'\n"
 
 
-sizeAlignOfSingle cdecl  =
-  do
-    ct <- extractCompType False False cdecl
-    case ct of
-      ExtType (FunET _ _        ) -> do
-                                       align <- alignment CFunPtrPT
-                                       return (bitSize CFunPtrPT, align)
-      ExtType (VarFunET _       ) -> do
-                                       align <- alignment CFunPtrPT
-                                       return (bitSize CFunPtrPT, align)
-      ExtType (IOET  _          ) -> interr "GenBind.sizeof: Illegal IO type!"
-      ExtType (PtrET t          )
-        | isFunExtType t          -> do
-                                       align <- alignment CFunPtrPT
-                                       return (bitSize CFunPtrPT, align)
-        | otherwise               -> do
-                                       align <- alignment CPtrPT
-                                       return (bitSize CPtrPT, align)
-      ExtType (DefinedET _ _    ) ->
-        interr "GenBind.sizeAlignOf: Should never get a defined type"
-{- OLD:
-                                     do
-                                       align <- alignment CPtrPT
-                                       return (bitSize CPtrPT, align)
-        -- FIXME: The defined type could be a function pointer!!!
- -}
-      ExtType (PrimET pt        ) -> do
-                                       align <- alignment pt
-                                       return (bitSize pt, align)
-      ExtType UnitET              -> voidFieldErr (posOf cdecl)
-      SUType su                   ->
-        do
-          let (fields, tag) = structMembers su
-          fields' <- let ide = structName su
-                     in
-                     if (not . null $ fields) || isNothing ide
-                     then return fields
-                     else do                              -- get the real...
-                       tag' <- findTag (fromJust ide)      -- ...definition
-                       case tag' of
-                         Just (StructUnionCT su') -> return
-                                                     (fst . structMembers $ su')
-                         _                       -> return fields
-          sizeAlignOfStructPad fields' tag
+sizeAlignOfSingle cdecl = do
+  ct <- extractCompType False False cdecl
+  case ct of
+    FunET _ _ -> do
+      align <- alignment CFunPtrPT
+      return (bitSize CFunPtrPT, align)
+    VarFunET _ -> do
+      align <- alignment CFunPtrPT
+      return (bitSize CFunPtrPT, align)
+    IOET  _ -> interr "GenBind.sizeof: Illegal IO type!"
+    PtrET t
+      | isFunExtType t -> do
+        align <- alignment CFunPtrPT
+        return (bitSize CFunPtrPT, align)
+      | otherwise -> do
+        align <- alignment CPtrPT
+        return (bitSize CPtrPT, align)
+    DefinedET _ _ ->
+      interr "GenBind.sizeAlignOf: Should never get a defined type"
+    PrimET pt -> do
+      align <- alignment pt
+      return (bitSize pt, align)
+    UnitET -> voidFieldErr (posOf cdecl)
+    SUET su -> do
+      let (fields, tag) = structMembers su
+      fields' <- let ide = structName su
+                 in if (not . null $ fields) || isNothing ide
+                    then return fields
+                    else do                              -- get the real...
+                      tag' <- findTag (fromJust ide)      -- ...definition
+                      case tag' of
+                        Just (StructUnionCT su') -> return
+                                                    (fst . structMembers $ su')
+                        _                       -> return fields
+      sizeAlignOfStructPad fields' tag
   where
     bitSize et | sz < 0    = BitSize 0  (-sz)   -- size is in bits
                | otherwise = BitSize sz 0
@@ -2431,12 +2415,14 @@ evalCCast (CCast decl expr _) = do
     evalCCast' compType (getConstInt expr)
   where
     getConstInt (CConst (CIntConst (CInteger i _ _) _)) = i
-    getConstInt _ = todo "GenBind.evalCCast: Casts are implemented only for integral constants"
+    getConstInt _ = todo $ "GenBind.evalCCast: Casts are implemented " ++
+                           "only for integral constants"
 
-evalCCast' :: CompType -> Integer -> GB ConstResult
-evalCCast' (ExtType (PrimET primType)) i
+evalCCast' :: ExtType -> Integer -> GB ConstResult
+evalCCast' (PrimET primType) i
   | isIntegralCPrimType primType = return $ IntResult i
-evalCCast' _ _ = todo "GenBind.evalCCast': Only integral trivial casts are implemented"
+evalCCast' _ _ = todo $ "GenBind.evalCCast': Only integral trivial " ++
+                        "casts are implemented"
 
 evalCConst :: CConst -> GB ConstResult
 evalCConst (CIntConst   i _ ) = return $ IntResult (getCInteger i)

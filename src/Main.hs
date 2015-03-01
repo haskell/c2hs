@@ -136,9 +136,10 @@ import C2HS.State  (CST, runC2HS, fatal, fatalsHandledBy,
                    SwitchBoard(..), Traces(..), setTraces,
                    traceSet, setSwitch, getSwitch, putTraceStr)
 import qualified System.CIO as CIO
-import C2HS.C     (hsuffix, isuffix, loadAttrC)
+import C2HS.C     (csuffix, hsuffix, isuffix, loadAttrC)
 import C2HS.CHS   (loadCHS, dumpCHS, hssuffix, chssuffix, dumpCHI, hasNonGNU)
 import C2HS.Gen.Header  (genHeader)
+import C2HS.Gen.Wrapper  (genWrapper)
 import C2HS.Gen.Bind      (expandHooks)
 import C2HS.Version    (versnum, version, copyright, disclaimer)
 import C2HS.Config (cppopts, libfname, PlatformSpec(..),
@@ -546,6 +547,12 @@ process headerFiles bndFile  =
     (header', strippedCHSMod, headerwarnmsgs) <- genHeader chsMod
     CIO.putStr headerwarnmsgs
     --
+    -- extract CPP and inline-C embedded in the .chs file (all CPP and
+    -- inline-C fragments are removed from the .chs tree and conditionals are
+    -- replaced by structured conditionals)
+    --
+    wrapper' <- genWrapper strippedCHSMod
+    --
     -- create new header file, make it #include `headerFile', and emit
     -- CPP and inline-C of .chs file into the new header
     --
@@ -561,6 +568,13 @@ process headerFiles bndFile  =
       | headerFile <- headerFiles ]
       ++ header'
     setHeader newHeader
+    --
+    -- create new wrapper file if necessary
+    --
+    when (not $ null wrapper') $ do
+      let newWrapperFile = outDir </> outFName <.> chssuffix <.> csuffix
+      CIO.writeFile newWrapperFile $ concat $
+        [ "#include \"" ++ newHeader ++ "\"\n" ] ++ wrapper'
     --
     -- run C preprocessor over the header
     --

@@ -119,6 +119,7 @@ Executable c2hs
       C2HS.Gen.Monad
       C2HS.Gen.Bind
       C2HS.Gen.Header
+      C2HS.Gen.Wrapper
       C2HS.State
       C2HS.Switches
       C2HS.Config
