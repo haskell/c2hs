@@ -17,6 +17,10 @@
   name: hsndfile
   apt-packages: [libsndfile1-dev]
 
+-
+  name: ncurses
+  apt-packages: [ncurses-dev]
+
 # -
 #   name: hsqml
 #   apt-packages: [libqtscript4-core, libqt4-declarative]

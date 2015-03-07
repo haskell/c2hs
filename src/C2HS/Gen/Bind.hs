@@ -51,6 +51,7 @@
 --    float                     -> CFloat
 --    double                    -> CDouble
 --    long double               -> CLDouble
+--    bool                      -> CBool
 --    enum ...                  -> CInt
 --    struct ...                -> ** error **
 --    union ...                 -> ** error **
@@ -359,7 +360,7 @@ isVariadic _            = False
 isIntegralCPrimType :: CPrimType -> Bool
 isIntegralCPrimType  = (`elem` [CCharPT, CSCharPT, CIntPT, CShortPT, CLongPT,
                                 CLLongPT, CUIntPT, CUCharPT, CUShortPT,
-                                CULongPT, CULLongPT])
+                                CULongPT, CULLongPT, CBoolPT])
 
 -- | check for floating C types
 --
@@ -1772,6 +1773,7 @@ showExtType (PrimET CULLongPT)      = "CULLong"
 showExtType (PrimET CFloatPT)       = "CFloat"
 showExtType (PrimET CDoublePT)      = "CDouble"
 showExtType (PrimET CLDoublePT)     = "CLDouble"
+showExtType (PrimET CBoolPT)        = "CBool"
 showExtType (PrimET (CSFieldPT bs)) = "CInt{-:" ++ show bs ++ "-}"
 showExtType (PrimET (CUFieldPT bs)) = "CUInt{-:" ++ show bs ++ "-}"
 showExtType (PrimET (CAliasedPT _ hs _)) = hs
@@ -1993,6 +1995,7 @@ typeMap  = [([void]                      , UnitET           ),
             ([float]                     , PrimET CFloatPT  ),
             ([double]                    , PrimET CDoublePT ),
             ([long, double]              , PrimET CLDoublePT),
+            ([bool]                      , PrimET CBoolPT   ),
             ([enum]                      , PrimET CIntPT    )]
            where
              void     = CVoidType   undefined
@@ -2002,6 +2005,7 @@ typeMap  = [([void]                      , UnitET           ),
              long     = CLongType   undefined
              float    = CFloatType  undefined
              double   = CDoubleType undefined
+             bool     = CBoolType   undefined
              signed   = CSignedType undefined
              unsigned = CUnsigType  undefined
              enum     = CEnumType   undefined undefined
@@ -2059,6 +2063,7 @@ specType cpos specs'' osize =
     eqSpec (CCharType   _) (CCharType   _) = True
     eqSpec (CShortType  _) (CShortType  _) = True
     eqSpec (CIntType    _) (CIntType    _) = True
+    eqSpec (CBoolType   _) (CBoolType   _) = True
     eqSpec (CLongType   _) (CLongType   _) = True
     eqSpec (CFloatType  _) (CFloatType  _) = True
     eqSpec (CDoubleType _) (CDoubleType _) = True
@@ -2726,6 +2731,7 @@ alignment CUIntPT         = return $ Storable.alignment (undefined :: CUInt)
 alignment CUShortPT       = return $ Storable.alignment (undefined :: CUShort)
 alignment CULongPT        = return $ Storable.alignment (undefined :: CULong)
 alignment CULLongPT       = return $ Storable.alignment (undefined :: CULLong)
+alignment CBoolPT         = return $ Storable.alignment (undefined :: CInt)
 alignment CFloatPT =
   return $ Storable.alignment (undefined :: Foreign.C.CFloat)
 alignment CDoublePT       = return $ Storable.alignment (undefined :: CDouble)

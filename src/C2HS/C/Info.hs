@@ -86,6 +86,7 @@ data CPrimType = CPtrPT         -- void *
                | CFloatPT       -- float
                | CDoublePT      -- double
                | CLDoublePT     -- long double
+               | CBoolPT        -- bool
                | CSFieldPT  Int -- signed bit field
                | CUFieldPT  Int -- unsigned bit field
                | CAliasedPT String String CPrimType
@@ -116,6 +117,7 @@ size CLDoublePT      = 0  --marks it as an unsupported type, see 'specType'
 #else
 size CLDoublePT      = Storable.sizeOf (undefined :: CLDouble)
 #endif
+size CBoolPT         = Storable.sizeOf (undefined :: CInt)
 size (CSFieldPT bs)  = -bs
 size (CUFieldPT bs)  = -bs
 size (CAliasedPT _ _ pt) = size pt
