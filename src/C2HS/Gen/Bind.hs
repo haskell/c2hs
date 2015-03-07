@@ -1037,7 +1037,7 @@ callImport hook isPure isUns varTypes ideLexeme hsLexeme cdecl owrapped pos =
                      else (False, [], ideLexeme)
     delayCode hook (foreignImport (extractCallingConvention cdecl)
                     header ide hsLexeme isUns extType varTypes)
-    when needwrapper $ addWrapper ide ideLexeme cdecl wraps
+    when needwrapper $ addWrapper ide ideLexeme cdecl wraps pos
     traceFunType extType
   where
     traceFunType et = traceGenBind $

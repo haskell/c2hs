@@ -236,7 +236,8 @@ type DefaultMarshMap = Map (Direction, String, Bool) CHSDefaultMarsh
 data Wrapper = Wrapper { wrapFn :: String
                        , wrapOrigFn ::String
                        , wrapDecl :: CDecl
-                       , wrapArgs :: [Bool] }
+                       , wrapArgs :: [Bool]
+                       , wrapPos :: Position }
              deriving Show
 
 {- FIXME: What a mess...
@@ -540,9 +541,9 @@ isDefaultMarsh k dm =
   transCT (\state -> (state { dmmap = Map.insert k dm (dmmap state) }, ()))
 
 -- | add a wrapper definition
-addWrapper :: String -> String -> CDecl -> [Bool] -> GB ()
-addWrapper wfn ofn cdecl args =
-  let w = Wrapper wfn ofn cdecl args
+addWrapper :: String -> String -> CDecl -> [Bool] -> Position -> GB ()
+addWrapper wfn ofn cdecl args pos =
+  let w = Wrapper wfn ofn cdecl args pos
   in transCT (\st -> (st { wrappers = w : (wrappers st) }, ()))
 
 getWrappers :: GB [Wrapper]
