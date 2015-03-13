@@ -41,12 +41,10 @@ import qualified Data.DList as DL
 import C2HS.State  (CST, raiseError, throwExc, catchExc,
                     errorsPresent, showErrors, fatal)
 import C2HS.C.Trav (isPtrDeclr)
-import Control.State (raiseError)
 
 -- friends
 import C2HS.Gen.Monad (Wrapper(..))
 
-import Debug.Trace
 
 -- | Generate a custom C wrapper from a CHS binding module for
 -- functions that require marshalling of bare C structs.
@@ -60,7 +58,6 @@ genWrappers ws = do
     errmsgs <- showErrors
     fatal ("Errors during generation of C wrappers:\n\n" ++ errmsgs)
     else do
-    warnmsgs <- showErrors
     return $ DL.toList . DL.concat $ wraps
 
 
@@ -74,7 +71,7 @@ genWrapper (Wrapper wfn ofn (CDecl specs [(Just decl, _, _)] _) args pos) = do
       body = CCompound [] [CBlockStmt (CReturn expr undefNode)] undefNode
       expr = Just $ callBody ofn args decl
   return $ DL.fromList [render (pretty wrapfn) ++ "\n"]
-genWrapper (Wrapper _ ofn cdecl _ pos) =
+genWrapper (Wrapper _ ofn _ _ pos) =
   internalWrapperErr pos ["genWrapper:" ++ ofn]
 
 rename :: Ident -> CDeclr -> CDeclr
@@ -88,9 +85,6 @@ fixArgs ofn pos args (CDeclr ide fd str attrs n) = do
       f' <- fixFunArgs ofn pos args f
       return $ f' : fs
   return $ CDeclr ide fd' str attrs n
-fixArgs ofn pos args cdecl =
-  internalWrapperErr pos ["fixArgs:" ++ ofn,
-                          "args=" ++ show args, "cdecl=" ++ show cdecl]
 
 fixFunArgs :: String -> Position -> [Bool] -> CDerivedDeclr
            -> CST s CDerivedDeclr
@@ -108,7 +102,7 @@ fixDecl _ pos True (CDecl specs [(Just decl, Nothing, Nothing)] n) = do
   decl' <- addPtr pos decl
   return $ CDecl specs [(Just decl', Nothing, Nothing)] n
 fixDecl ofn pos arg cdecl =
-  internalWrapperErr pos ["fixDecl:ofn",
+  internalWrapperErr pos ["fixDecl:ofn=" ++ ofn,
                           "arg=" ++ show arg,
                           "cdecl=" ++ show cdecl]
 

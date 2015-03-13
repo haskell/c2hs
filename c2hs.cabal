@@ -1,5 +1,5 @@
 Name:           c2hs
-Version:        0.23.1
+Version:        0.24.1
 License:        GPL-2
 License-File:   COPYING
 Copyright:      Copyright (c) 1999-2007 Manuel M T Chakravarty
@@ -55,7 +55,6 @@ Extra-Source-Files:
   tests/bugs/issue-31/*.chs tests/bugs/issue-31/*.h tests/bugs/issue-31/*.c
   tests/bugs/issue-32/*.chs tests/bugs/issue-32/*.h tests/bugs/issue-32/*.c
   tests/bugs/issue-36/*.chs tests/bugs/issue-36/*.h
-  tests/bugs/issue-37/*.chs tests/bugs/issue-37/*.h tests/bugs/issue-37/*.c
   tests/bugs/issue-38/*.chs tests/bugs/issue-38/*.h tests/bugs/issue-38/*.c
   tests/bugs/issue-43/*.chs tests/bugs/issue-43/*.h tests/bugs/issue-43/*.c
   tests/bugs/issue-44/*.chs tests/bugs/issue-44/*.h tests/bugs/issue-44/*.c
