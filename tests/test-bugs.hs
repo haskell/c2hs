@@ -101,11 +101,20 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
   liftIO $ assertBool "" (T.lines res == expected)
 
 issue128 :: Assertion
-issue128 = expect_issue 128  ["5", "3",
-                              "True", "False"]
-                              -- "10", "False",
-                              -- "12", "True",
-                              -- "7", "False"]
+issue128 = c2hsShelly $ chdir "tests/bugs/issue-128" $ do
+  mapM_ rm_f ["Issue128.hs", "Issue128.chs.h", "Issue128.chs.c", "Issue128.chi",
+              "issue128_c.o", "Issue128.chs.o", "Issue128"]
+  cmd "c2hs" "Issue128.chs"
+  cmd cc "-c" "-o" "issue128_c.o" "issue128.c"
+  cmd cc "-c" "Issue128.chs.c"
+  cmd "ghc" "--make" "issue128_c.o" "Issue128.chs.o" "Issue128.hs"
+  res <- absPath "./Issue128" >>= cmd
+  let expected = ["5", "3",
+                  "True", "False"]
+                  -- "10", "False",
+                  -- "12", "True",
+                  -- "7", "False"]
+  liftIO $ assertBool "" (T.lines res == expected)
 
 issue127 :: Assertion
 issue127 = expect_issue 127  ["True", "False"]
