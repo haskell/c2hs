@@ -51,6 +51,7 @@
 --    float                     -> CFloat
 --    double                    -> CDouble
 --    long double               -> CLDouble
+--    bool                      -> CBool
 --    enum ...                  -> CInt
 --    struct ...                -> ** error **
 --    union ...                 -> ** error **
@@ -360,7 +361,7 @@ isVariadic _            = False
 isIntegralCPrimType :: CPrimType -> Bool
 isIntegralCPrimType  = (`elem` [CCharPT, CSCharPT, CIntPT, CShortPT, CLongPT,
                                 CLLongPT, CUIntPT, CUCharPT, CUShortPT,
-                                CULongPT, CULLongPT])
+                                CULongPT, CULLongPT, CBoolPT])
 
 -- | check for floating C types
 --
@@ -1030,14 +1031,20 @@ callImport hook isPure isUns varTypes ideLexeme hsLexeme cdecl owrapped pos =
     --
     extType <- extractFunType pos cdecl isPure owrapped
     header  <- getSwitch headerSB
-    let (needwrapper, wraps, ide) = case owrapped of
-          Nothing -> (False, [], ideLexeme)
+    let bools@(boolres, boolargs) = boolArgs extType
+        needwrapper1 = boolres || or boolargs
+        (needwrapper2, wraps) = case owrapped of
+          Nothing -> (False, replicate (numArgs extType) False)
           Just ws -> if or ws
-                     then (True, ws, "__c2hs_wrapped__" ++ ideLexeme)
-                     else (False, [], ideLexeme)
+                     then (True, ws)
+                     else (False, replicate (numArgs extType) False)
+        ide = if needwrapper1 || needwrapper2
+              then "__c2hs_wrapped__" ++ ideLexeme
+              else ideLexeme
     delayCode hook (foreignImport (extractCallingConvention cdecl)
                     header ide hsLexeme isUns extType varTypes)
-    when needwrapper $ addWrapper ide ideLexeme cdecl wraps pos
+    when (needwrapper1 || needwrapper2) $
+      addWrapper ide ideLexeme cdecl wraps bools pos
     traceFunType extType
   where
     traceFunType et = traceGenBind $
@@ -1739,6 +1746,19 @@ numArgs                  :: ExtType -> Int
 numArgs (FunET _ f) = 1 + numArgs f
 numArgs _           = 0
 
+boolArgs :: ExtType -> (Bool, [Bool])
+boolArgs (FunET a rest@(FunET _ _)) =
+  let (res, as) = boolArgs rest in (res, boolArg a : as)
+boolArgs (FunET a (IOET res)      ) = boolArgs (FunET a res)
+boolArgs (FunET a (PrimET CBoolPT)) = (True, [boolArg a])
+boolArgs (FunET a _               ) = (False, [boolArg a])
+boolArgs _                          = (False, [])
+
+boolArg :: ExtType -> Bool
+boolArg (PrimET CBoolPT) = True
+boolArg _                = False
+
+
 -- | pretty print an external type
 --
 -- * a previous version of this function attempted to not print unnecessary
@@ -1773,6 +1793,7 @@ showExtType (PrimET CULLongPT)      = "CULLong"
 showExtType (PrimET CFloatPT)       = "CFloat"
 showExtType (PrimET CDoublePT)      = "CDouble"
 showExtType (PrimET CLDoublePT)     = "CLDouble"
+showExtType (PrimET CBoolPT)        = "CInt{-bool-}"
 showExtType (PrimET (CSFieldPT bs)) = "CInt{-:" ++ show bs ++ "-}"
 showExtType (PrimET (CUFieldPT bs)) = "CUInt{-:" ++ show bs ++ "-}"
 showExtType (PrimET (CAliasedPT _ hs _)) = hs
@@ -1993,6 +2014,7 @@ typeMap  = [([void]                      , UnitET           ),
             ([unsigned, long, long, int] , PrimET CULLongPT ),
             ([float]                     , PrimET CFloatPT  ),
             ([double]                    , PrimET CDoublePT ),
+            ([bool]                      , PrimET CBoolPT   ),
             ([long, double]              , PrimET CLDoublePT),
             ([enum]                      , PrimET CIntPT    )]
            where
@@ -2003,6 +2025,7 @@ typeMap  = [([void]                      , UnitET           ),
              long     = CLongType   undefined
              float    = CFloatType  undefined
              double   = CDoubleType undefined
+             bool     = CBoolType   undefined
              signed   = CSignedType undefined
              unsigned = CUnsigType  undefined
              enum     = CEnumType   undefined undefined
@@ -2042,7 +2065,7 @@ specType cpos specs'' osize =
     lookupTSpec = lookupBy matches
     --
     -- can't be a bitfield (yet)
-    isUnsupportedType (PrimET et) = CInfo.size et == 0
+    isUnsupportedType (PrimET et) = et /= CBoolPT && CInfo.size et == 0
     isUnsupportedType _           = False
     --
     -- check whether two type specifier lists denote the same type; handles
@@ -2063,6 +2086,7 @@ specType cpos specs'' osize =
     eqSpec (CLongType   _) (CLongType   _) = True
     eqSpec (CFloatType  _) (CFloatType  _) = True
     eqSpec (CDoubleType _) (CDoubleType _) = True
+    eqSpec (CBoolType   _) (CBoolType   _) = True
     eqSpec (CSignedType _) (CSignedType _) = True
     eqSpec (CUnsigType  _) (CUnsigType  _) = True
     eqSpec (CSUType   _ _) (CSUType   _ _) = True
@@ -2735,6 +2759,7 @@ alignment CLDoublePT      = interr "Info.alignment: CLDouble not supported"
 #else
 alignment CLDoublePT      = return $ Storable.alignment (undefined :: CLDouble)
 #endif
+alignment CBoolPT         = interr "Info.alignment: C99 bool not supported"
 alignment (CSFieldPT bs)  = fieldAlignment bs
 alignment (CUFieldPT bs)  = fieldAlignment bs
 alignment (CAliasedPT _ _ pt) = alignment pt

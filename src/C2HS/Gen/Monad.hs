@@ -237,8 +237,17 @@ data Wrapper = Wrapper { wrapFn :: String
                        , wrapOrigFn ::String
                        , wrapDecl :: CDecl
                        , wrapArgs :: [Bool]
+                       , wrapBools :: (Bool, [Bool])
                        , wrapPos :: Position }
              deriving Show
+
+instance Eq Wrapper where
+  w1 == w2 = wrapFn w1 == wrapFn w2
+
+instance Ord Wrapper where
+  compare w1 w2 = compare (wrapFn w1) (wrapFn w2)
+
+type WrapperSet = Set Wrapper
 
 {- FIXME: What a mess...
 instance Show HsObject where
@@ -301,7 +310,7 @@ data GBState  = GBState {
   enums     :: EnumSet,              -- enumeration hooks
   tdmap     :: TypedefMap,           -- typedefs
   dmmap     :: DefaultMarshMap,      -- user-defined default marshallers
-  wrappers  :: [Wrapper]
+  wrappers  :: WrapperSet
   }
 
 type GB a = CT GBState a
@@ -318,7 +327,7 @@ initialGBState  = GBState {
                     enums = Set.empty,
                     tdmap = Map.empty,
                     dmmap = Map.empty,
-                    wrappers = []
+                    wrappers = Set.empty
                   }
 
 -- | set the dynamic library and library prefix
@@ -541,13 +550,14 @@ isDefaultMarsh k dm =
   transCT (\state -> (state { dmmap = Map.insert k dm (dmmap state) }, ()))
 
 -- | add a wrapper definition
-addWrapper :: String -> String -> CDecl -> [Bool] -> Position -> GB ()
-addWrapper wfn ofn cdecl args pos =
-  let w = Wrapper wfn ofn cdecl args pos
-  in transCT (\st -> (st { wrappers = w : (wrappers st) }, ()))
+addWrapper :: String -> String -> CDecl ->
+              [Bool] -> (Bool, [Bool]) -> Position -> GB ()
+addWrapper wfn ofn cdecl args bools pos =
+  let w = Wrapper wfn ofn cdecl args bools pos
+  in transCT (\st -> (st { wrappers = Set.insert w (wrappers st) }, ()))
 
 getWrappers :: GB [Wrapper]
-getWrappers = readCT wrappers
+getWrappers = Set.toList `fmap` readCT wrappers
 
 
 -- error messages

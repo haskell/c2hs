@@ -61,6 +61,8 @@ import Foreign    (Ptr, FunPtr)
 import qualified Foreign.Storable as Storable (Storable(sizeOf))
 import Foreign.C
 
+import Data.Errors
+
 
 -- calibration of C's primitive types
 -- ----------------------------------
@@ -86,6 +88,7 @@ data CPrimType = CPtrPT         -- void *
                | CFloatPT       -- float
                | CDoublePT      -- double
                | CLDoublePT     -- long double
+               | CBoolPT        -- bool (C99 _Bool)
                | CSFieldPT  Int -- signed bit field
                | CUFieldPT  Int -- unsigned bit field
                | CAliasedPT String String CPrimType
@@ -116,6 +119,7 @@ size CLDoublePT      = 0  --marks it as an unsupported type, see 'specType'
 #else
 size CLDoublePT      = Storable.sizeOf (undefined :: CLDouble)
 #endif
+size CBoolPT         = interr "Info.size: C99 bool not supported"
 size (CSFieldPT bs)  = -bs
 size (CUFieldPT bs)  = -bs
 size (CAliasedPT _ _ pt) = size pt

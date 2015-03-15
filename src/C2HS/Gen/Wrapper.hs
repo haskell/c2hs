@@ -64,46 +64,62 @@ genWrappers ws = do
 -- | Process a single fragment.
 --
 genWrapper :: Wrapper -> CST s (DList String)
-genWrapper (Wrapper wfn ofn (CDecl specs [(Just decl, _, _)] _) args pos) = do
+genWrapper (Wrapper wfn ofn (CDecl specs [(Just decl, _, _)] _)
+            args (boolres, boolargs) pos) = do
   let renamed = rename (internalIdent wfn) decl
-  wrapdecl <- fixArgs ofn pos args renamed
-  let wrapfn = CFunDef specs wrapdecl [] body undefNode
+  wrapdecl <- fixArgs ofn pos args boolargs renamed
+  let fspecs = if boolres
+               then map replaceBoolSpec specs
+               else specs
+      wrapfn = CFunDef fspecs wrapdecl [] body undefNode
       body = CCompound [] [CBlockStmt (CReturn expr undefNode)] undefNode
       expr = Just $ callBody ofn args decl
   return $ DL.fromList [render (pretty wrapfn) ++ "\n"]
-genWrapper (Wrapper _ ofn _ _ pos) =
+genWrapper (Wrapper _ ofn _ _ _ pos) =
   internalWrapperErr pos ["genWrapper:" ++ ofn]
 
 rename :: Ident -> CDeclr -> CDeclr
 rename ide (CDeclr _ dds str attrs n) = CDeclr (Just ide) dds str attrs n
 
-fixArgs :: String -> Position -> [Bool] -> CDeclr -> CST s CDeclr
-fixArgs ofn pos args (CDeclr ide fd str attrs n) = do
+fixArgs :: String -> Position -> [Bool] -> [Bool] -> CDeclr
+        -> CST s CDeclr
+fixArgs ofn pos args bools (CDeclr ide fd str attrs n) = do
   fd' <- case fd of
     [] -> return []
     f:fs -> do
-      f' <- fixFunArgs ofn pos args f
+      f' <- fixFunArgs ofn pos args bools f
       return $ f' : fs
   return $ CDeclr ide fd' str attrs n
 
-fixFunArgs :: String -> Position -> [Bool] -> CDerivedDeclr
+fixFunArgs :: String -> Position -> [Bool] -> [Bool] -> CDerivedDeclr
            -> CST s CDerivedDeclr
-fixFunArgs ofn pos args (CFunDeclr (Right (adecls, flg)) attrs n) = do
-  adecls' <- zipWithM (fixDecl ofn pos) args adecls
+fixFunArgs ofn pos args bools
+  (CFunDeclr (Right (adecls, flg)) attrs n) = do
+  adecls' <- zipWithM (fixDecl ofn pos) (zip args bools) adecls
   return $ CFunDeclr (Right (adecls', flg)) attrs n
-fixFunArgs ofn pos args cdecl =
+fixFunArgs ofn pos args bools cdecl =
   internalWrapperErr pos ["fixFunArgs:" ++ ofn,
                           "args=" ++ show args,
+                          "bools=" ++ show bools,
                           "cdecl=" ++ show cdecl]
 
-fixDecl :: String -> Position -> Bool -> CDecl -> CST s CDecl
-fixDecl _ _ False d = return d
-fixDecl _ pos True (CDecl specs [(Just decl, Nothing, Nothing)] n) = do
+replaceBool :: CDecl -> CDecl
+replaceBool (CDecl spec ds n) = CDecl (map replaceBoolSpec spec) ds n
+
+replaceBoolSpec :: CDeclSpec -> CDeclSpec
+replaceBoolSpec (CTypeSpec (CBoolType tn)) = CTypeSpec (CIntType tn)
+replaceBoolSpec t = t
+
+fixDecl :: String -> Position -> (Bool, Bool) -> CDecl -> CST s CDecl
+fixDecl _ _ (False, True)  d = return $ replaceBool d
+fixDecl _ _ (False, False) d = return d
+fixDecl _ pos (True, _) (CDecl specs [(Just decl, Nothing, Nothing)] n) = do
   decl' <- addPtr pos decl
   return $ CDecl specs [(Just decl', Nothing, Nothing)] n
-fixDecl ofn pos arg cdecl =
+fixDecl ofn pos (arg, bool) cdecl =
   internalWrapperErr pos ["fixDecl:ofn=" ++ ofn,
                           "arg=" ++ show arg,
+                          "bool=" ++ show bool,
                           "cdecl=" ++ show cdecl]
 
 addPtr :: Position -> CDeclr -> CST s CDeclr

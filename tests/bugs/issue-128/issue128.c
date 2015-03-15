@@ -15,23 +15,23 @@ bool f2(int n)
 }
 
 
-tststruct *make_tststruct(int ain)
-{
-  tststruct *p = (tststruct *)malloc(sizeof(tststruct));
-  p->a = ain;
-  p->b = false;
-}
+/* tststruct *make_tststruct(int ain) */
+/* { */
+/*   tststruct *p = (tststruct *)malloc(sizeof(tststruct)); */
+/*   p->a = ain; */
+/*   p->b = false; */
+/* } */
 
-void free_tststruct(tststruct *s)
-{
-  free(s);
-}
+/* void free_tststruct(tststruct *s) */
+/* { */
+/*   free(s); */
+/* } */
 
-void mod_tststruct(tststruct *s, int da, bool incr)
-{
-  if (incr)
-    s->a += da;
-  else
-    s->a -= da;
-  s->b = incr;
-}
+/* void mod_tststruct(tststruct *s, int da, bool incr) */
+/* { */
+/*   if (incr) */
+/*     s->a += da; */
+/*   else */
+/*     s->a -= da; */
+/*   s->b = incr; */
+/* } */
