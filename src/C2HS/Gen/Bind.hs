@@ -112,6 +112,12 @@ import Prelude hiding (exp, lookup)
 -- standard libraries
 import Data.Char     (toLower)
 import Data.Function (on)
+import Data.IORef    (IORef, newIORef, readIORef, writeIORef)
+import System.IO.Unsafe (unsafePerformIO)
+import System.IO     (withFile, hPutStrLn, IOMode(..))
+import System.Exit   (ExitCode(..))
+import System.Directory (removeFile)
+import System.Process (readProcessWithExitCode, system)
 import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, nubBy,
                       intercalate, isPrefixOf, foldl')
 import Data.Map      (lookup)
@@ -120,7 +126,8 @@ import Data.Bits     ((.|.), (.&.))
 import Control.Arrow (second)
 import Control.Monad (when, unless, liftM, mapAndUnzipM, zipWithM, forM)
 import Data.Ord      (comparing)
-import qualified Foreign.Storable as Storable (Storable(alignment))
+import qualified Foreign.Storable as Storable (Storable(alignment),
+                                               Storable(sizeOf))
 import Foreign    (Ptr, FunPtr)
 import Foreign.C
 
@@ -146,7 +153,6 @@ import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..), CHSParm(..),
                    CHSTypedefInfo, Direction(..),
                    CHSPtrType(..), showCHSParm, apathToIdent, apathRootIdent)
 import C2HS.C.Info      (CPrimType(..))
-import qualified C2HS.C.Info as CInfo
 import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
                           GBState(..), Wrapper(..),
                    initialGBState, setContext, getPrefix, getReplacementPrefix,
@@ -533,14 +539,14 @@ expandHook (CHSSizeof ide _) _ =
   do
     traceInfoSizeof
     decl <- findAndChaseDeclOrTag ide False True  -- no indirection, but shadows
-    (size, _) <- sizeAlignOf decl
-    traceInfoDump (render $ pretty decl) size
-    return $ show (padBits size)
+    (sz, _) <- sizeAlignOf decl
+    traceInfoDump (render $ pretty decl) sz
+    return $ show (padBits sz)
   where
     traceInfoSizeof         = traceGenBind "** Sizeof hook:\n"
-    traceInfoDump decl size = traceGenBind $
+    traceInfoDump decl sz = traceGenBind $
       "Size of declaration\n" ++ show decl ++ "\nis "
-      ++ show (padBits size) ++ "\n"
+      ++ show (padBits sz) ++ "\n"
 expandHook (CHSEnumDefine _ _ _ _) _ =
   interr $ "Binding generation error : enum define hooks " ++
            "should be eliminated via preprocessing "
@@ -733,8 +739,8 @@ expandHook hook@(CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
 
     hsIde `objIs` Pointer ptrKind isNewtype     -- register Haskell object
     decl <- findAndChaseDeclOrTag cName False True
-    (size, _) <- sizeAlignOf decl
-    hsIde `sizeIs` (padBits size)
+    (sz, _) <- sizeAlignOf decl
+    hsIde `sizeIs` (padBits sz)
     --
     -- we check for a typedef declaration or tag (struct, union, or enum)
     --
@@ -1261,11 +1267,11 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
       msize <- querySize $ internalIdent hsParmTy
       case msize of
         Nothing -> interr "Missing size for \"+\" parameter allocation!"
-        Just size -> do
+        Just sz -> do
           let a = "a" ++ show (i :: Int)
               bdr1 = a ++ "'"
               bdr2 = a ++ "''"
-              marshIn = "mallocForeignPtrBytes " ++ show size ++
+              marshIn = "mallocForeignPtrBytes " ++ show sz ++
                         " >>= \\" ++ bdr2 ++
                         " -> withForeignPtr " ++ bdr2 ++ " $ \\" ++
                         bdr1 ++ " -> "
@@ -1432,13 +1438,13 @@ accessPath (CHSDeref path _pos) =                        -- *a
 -- * declaration must have exactly one declarator
 --
 replaceByAlias                                :: CDecl -> GB CDecl
-replaceByAlias cdecl@(CDecl _ [(_, _, size)] _at)  =
+replaceByAlias cdecl@(CDecl _ [(_, _, sz)] _at)  =
   do
     ocdecl <- checkForAlias cdecl
     case ocdecl of
       Nothing                                  -> return cdecl
       Just (CDecl specs [(declr, init', _)] at) ->   -- form of an alias
-        return $ CDecl specs [(declr, init', size)] at
+        return $ CDecl specs [(declr, init', sz)] at
 
 -- | given a structure declaration and member name, compute the offset of the
 -- member in the structure and the declaration of the referenced member
@@ -1515,7 +1521,7 @@ setGet pos access offsets arrSize ty onewtype =
                                 ++ show (bs + bitOffset) ++ ")) `shiftR` ("
                                 ++ bitsPerField ++ " - " ++ show bs
                                 ++ ")"
-              bitsPerField    = show $ CInfo.size CIntPT * 8
+              bitsPerField    = show $ size CIntPT * 8
               --
               insertBitfield  = "; let {val' = (org .&. " ++ middleMask
                                 ++ ") .|. (val `shiftL` "
@@ -1900,10 +1906,10 @@ extractCompType isResult usePtrAliases isPtr cdecl@(CDecl specs' declrs ats) =
   if length declrs > 1
   then interr "GenBind.extractCompType: Too many declarators!"
   else case declrs of
-    [(Just declr, _, size)] | isPtr || isPtrDeclr declr -> ptrType declr
-                            | isFunDeclr declr -> funType
-                            | otherwise        -> aliasOrSpecType size
-    _                                          -> aliasOrSpecType Nothing
+    [(Just declr, _, sz)] | isPtr || isPtrDeclr declr -> ptrType declr
+                          | isFunDeclr declr -> funType
+                          | otherwise        -> aliasOrSpecType sz
+    _                                        -> aliasOrSpecType Nothing
   where
     -- handle explicit pointer types
     --
@@ -1946,10 +1952,10 @@ extractCompType isResult usePtrAliases isPtr cdecl@(CDecl specs' declrs ats) =
     -- handle all types, which are not obviously pointers or functions
     --
     aliasOrSpecType :: Maybe CExpr -> GB ExtType
-    aliasOrSpecType size = do
-      traceAliasOrSpecType size
+    aliasOrSpecType sz = do
+      traceAliasOrSpecType sz
       case checkForOneAliasName cdecl of
-        Nothing   -> specType (posOf cdecl) specs' size
+        Nothing   -> specType (posOf cdecl) specs' sz
         Just ide  -> do                    -- this is a typedef alias
           oDefault <- queryTypedef ide
           case oDefault of
@@ -1964,8 +1970,8 @@ extractCompType isResult usePtrAliases isPtr cdecl@(CDecl specs' declrs ats) =
                         cdecl' <- getDeclOf ide
                         let CDecl specs [(declr, init', _)] at =
                               ide `simplifyDecl` cdecl'
-                            sdecl = CDecl specs [(declr, init', size)] at
-                            -- propagate `size' down (slightly kludgy)
+                            sdecl = CDecl specs [(declr, init', sz)] at
+                            -- propagate `sz' down (slightly kludgy)
                         extractCompType isResult usePtrAliases False sdecl
     --
     -- compute the result for a pointer alias
@@ -2065,7 +2071,7 @@ specType cpos specs'' osize =
     lookupTSpec = lookupBy matches
     --
     -- can't be a bitfield (yet)
-    isUnsupportedType (PrimET et) = et /= CBoolPT && CInfo.size et == 0
+    isUnsupportedType (PrimET et) = et /= CBoolPT && size et == 0
     isUnsupportedType _           = False
     --
     -- check whether two type specifier lists denote the same type; handles
@@ -2103,15 +2109,15 @@ specType cpos specs'' osize =
         case sizeResult of
           FloatResult _     -> illegalConstExprErr pos "a float result"
           IntResult   size' -> do
-            let size = fromInteger size'
+            let sz = fromInteger size'
             case et of
-              PrimET CUIntPT                      -> returnCT $ CUFieldPT size
+              PrimET CUIntPT                      -> returnCT $ CUFieldPT sz
               PrimET CIntPT
                 |  [signed]      `matches` tspecs
-                || [signed, int] `matches` tspecs -> returnCT $ CSFieldPT size
+                || [signed, int] `matches` tspecs -> returnCT $ CSFieldPT sz
                 |  [int]         `matches` tspecs ->
-                  returnCT $ if bitfieldIntSigned then CSFieldPT size
-                                                  else CUFieldPT size
+                  returnCT $ if bitfieldIntSigned then CSFieldPT sz
+                                                  else CUFieldPT sz
               _                                   -> illegalFieldSizeErr pos
             where
               returnCT = return . PrimET
@@ -2189,9 +2195,9 @@ instance Ord BitSize where
 --
 addBitSize :: BitSize -> BitSize -> BitSize
 addBitSize (BitSize o1 b1) (BitSize o2 b2) =
-  BitSize (o1 + o2 + overflow * CInfo.size CIntPT) rest
+  BitSize (o1 + o2 + overflow * size CIntPT) rest
   where
-    bitsPerBitfield  = CInfo.size CIntPT * 8
+    bitsPerBitfield  = size CIntPT * 8
     (overflow, rest) = (b1 + b2) `divMod` bitsPerBitfield
 
 -- | multiply a bit size by a constant (gives size of an array)
@@ -2201,14 +2207,14 @@ addBitSize (BitSize o1 b1) (BitSize o2 b2) =
 scaleBitSize                  :: Int -> BitSize -> BitSize
 scaleBitSize n (BitSize o1 b1) = BitSize (n * o1 + overflow) rest
   where
-    bitsPerBitfield  = CInfo.size CIntPT * 8
+    bitsPerBitfield  = size CIntPT * 8
     (overflow, rest) = (n * b1) `divMod` bitsPerBitfield
 
 -- | pad any storage unit that is partially used by a bitfield
 --
 padBits               :: BitSize -> Int
 padBits (BitSize o 0)  = o
-padBits (BitSize o _)  = o + CInfo.size CIntPT
+padBits (BitSize o _)  = o + size CIntPT
 
 -- | compute the offset of the declarator in the second argument when it is
 -- preceded by the declarators in the first argument
@@ -2231,9 +2237,9 @@ sizeAlignOfStruct decls CStructTag  =
   do
     PlatformSpec {bitfieldAlignmentPS = bitfieldAlignment} <- getPlatform
     (offset, preAlign) <- sizeAlignOfStruct (init decls) CStructTag
-    (size, align)      <- sizeAlignOf       (last decls)
+    (sz, align)        <- sizeAlignOf       (last decls)
     let sizeOfStruct  = alignOffset offset align bitfieldAlignment
-                        `addBitSize` size
+                        `addBitSize` sz
         align'        = if align > 0 then align else bitfieldAlignment
         alignOfStruct = preAlign `max` align'
     return (sizeOfStruct, alignOfStruct)
@@ -2253,9 +2259,9 @@ sizeAlignOfStruct decls CUnionTag   =
 sizeAlignOfStructPad :: [CDecl] -> CStructTag -> GB (BitSize, Int)
 sizeAlignOfStructPad decls tag =
   do
-    (size, align) <- sizeAlignOfStruct decls tag
-    let b = CInfo.size CIntPT
-    return (alignOffset size b b, align)
+    (sz, align) <- sizeAlignOfStruct decls tag
+    let b = size CIntPT
+    return (alignOffset sz b b, align)
 
 -- | compute the size and alignment constraint of a given C declaration
 --
@@ -2339,7 +2345,7 @@ sizeAlignOfSingle cdecl = do
     bitSize et | sz < 0    = BitSize 0  (-sz)   -- size is in bits
                | otherwise = BitSize sz 0
                where
-                 sz = CInfo.size et
+                 sz = size et
 
 -- | apply the given alignment constraint at the given offset
 --
@@ -2361,7 +2367,7 @@ alignOffset offset@(BitSize octetOffset bitOffset) align bitfieldAlignment
   | otherwise                   =               -- stays in current bitfield
     offset
   where
-    bitsPerBitfield     = CInfo.size CIntPT * 8
+    bitsPerBitfield     = size CIntPT * 8
     overflowingBitfield = bitOffset - align > bitsPerBitfield
                                     -- note, `align' is negative
 
@@ -2402,8 +2408,8 @@ evalConstCExpr (CSizeofExpr _ _) =
   todo "GenBind.evalConstCExpr: sizeof not implemented yet."
 evalConstCExpr (CSizeofType decl _) =
   do
-    (size, _) <- sizeAlignOf decl
-    return $ IntResult (fromIntegral . padBits $ size)
+    (sz, _) <- sizeAlignOf decl
+    return $ IntResult (fromIntegral . padBits $ sz)
 evalConstCExpr (CAlignofExpr _ _) =
   todo "GenBind.evalConstCExpr: alignof (GNU C extension) not implemented yet."
 evalConstCExpr (CAlignofType decl _) =
@@ -2732,6 +2738,37 @@ undefEnumErr :: Position -> GB a
 undefEnumErr pos = raiseErrorCTExc pos ["Incomplete enum type!"]
 
 
+-- | size of primitive type of C
+--
+-- * negative size implies that it is a bit, not an octet size
+--
+size                :: CPrimType -> Int
+size CPtrPT          = Storable.sizeOf (undefined :: Ptr ())
+size CFunPtrPT       = Storable.sizeOf (undefined :: FunPtr ())
+size CCharPT         = 1
+size CUCharPT        = 1
+size CSCharPT        = 1
+size CIntPT          = Storable.sizeOf (undefined :: CInt)
+size CShortPT        = Storable.sizeOf (undefined :: CShort)
+size CLongPT         = Storable.sizeOf (undefined :: CLong)
+size CLLongPT        = Storable.sizeOf (undefined :: CLLong)
+size CUIntPT         = Storable.sizeOf (undefined :: CUInt)
+size CUShortPT       = Storable.sizeOf (undefined :: CUShort)
+size CULongPT        = Storable.sizeOf (undefined :: CULong)
+size CULLongPT       = Storable.sizeOf (undefined :: CLLong)
+size CFloatPT        = Storable.sizeOf (undefined :: Foreign.C.CFloat)
+size CDoublePT       = Storable.sizeOf (undefined :: CDouble)
+#if MIN_VERSION_base(4,2,0)
+size CLDoublePT      = 0  --marks it as an unsupported type, see 'specType'
+#else
+size CLDoublePT      = Storable.sizeOf (undefined :: CLDouble)
+#endif
+size CBoolPT         = cBoolSize
+size (CSFieldPT bs)  = -bs
+size (CUFieldPT bs)  = -bs
+size (CAliasedPT _ _ pt) = size pt
+
+
 -- | alignment of C's primitive types
 --
 -- * more precisely, the padding put before the type's member starts when the
@@ -2759,7 +2796,7 @@ alignment CLDoublePT      = interr "Info.alignment: CLDouble not supported"
 #else
 alignment CLDoublePT      = return $ Storable.alignment (undefined :: CLDouble)
 #endif
-alignment CBoolPT         = interr "Info.alignment: C99 bool not supported"
+alignment CBoolPT         = return cBoolSize
 alignment (CSFieldPT bs)  = fieldAlignment bs
 alignment (CUFieldPT bs)  = fieldAlignment bs
 alignment (CAliasedPT _ _ pt) = alignment pt
@@ -2785,7 +2822,7 @@ alignment (CAliasedPT _ _ pt) = alignment pt
 --   triggered
 --
 fieldAlignment :: Int -> GB Int
-fieldAlignment 0  = return $ - (CInfo.size CIntPT - 1)
+fieldAlignment 0  = return $ - (size CIntPT - 1)
 fieldAlignment bs =
   do
     PlatformSpec {bitfieldPaddingPS = bitfieldPadding} <- getPlatform
@@ -2795,3 +2832,36 @@ fieldAlignment bs =
 --
 getPlatform :: GB PlatformSpec
 getPlatform = getSwitch platformSB
+
+
+{-# NOINLINE cBoolSizeRef #-}
+cBoolSizeRef :: IORef (Maybe Int)
+cBoolSizeRef = unsafePerformIO $ newIORef Nothing
+
+findBoolSize :: IO Int
+findBoolSize = do
+  withFile "c2hs__bool_size.c" WriteMode $ \h -> do
+    hPutStrLn h "#include <stdio.h>"
+    hPutStrLn h $ "int main(int argc, char *argv[]) " ++
+      "{ printf(\"%u\\n\", sizeof(_Bool)); return 0; }"
+  gcccode <- system "gcc -o c2hs__bool_size c2hs__bool_size.c"
+  when (gcccode /= ExitSuccess) $
+    error "Failed to compile 'bool' size test program!"
+  (code, stdout, _) <- readProcessWithExitCode "./c2hs__bool_size" [] ""
+  when (code /= ExitSuccess) $
+    error "Failed to run 'bool' size test program!"
+  let sz = read stdout :: Int
+  removeFile "c2hs__bool_size.c"
+  removeFile "c2hs__bool_size"
+  putStrLn $ "DETERMINED BOOL SIZE: " ++ show sz
+  return sz
+
+cBoolSize :: Int
+cBoolSize = unsafePerformIO $ do
+  msz <- readIORef cBoolSizeRef
+  case msz of
+    Nothing -> do
+      sz <- findBoolSize
+      writeIORef cBoolSizeRef $ Just sz
+      return sz
+    Just sz -> return sz

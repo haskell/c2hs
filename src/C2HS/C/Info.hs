@@ -54,14 +54,8 @@
 --
 
 module C2HS.C.Info (
-  CPrimType(..), size
+  CPrimType(..)
 ) where
-
-import Foreign    (Ptr, FunPtr)
-import qualified Foreign.Storable as Storable (Storable(sizeOf))
-import Foreign.C
-
-import Data.Errors
 
 
 -- calibration of C's primitive types
@@ -93,33 +87,3 @@ data CPrimType = CPtrPT         -- void *
                | CUFieldPT  Int -- unsigned bit field
                | CAliasedPT String String CPrimType
                deriving (Eq, Show)
-
--- | size of primitive type of C
---
--- * negative size implies that it is a bit, not an octet size
---
-size                :: CPrimType -> Int
-size CPtrPT          = Storable.sizeOf (undefined :: Ptr ())
-size CFunPtrPT       = Storable.sizeOf (undefined :: FunPtr ())
-size CCharPT         = 1
-size CUCharPT        = 1
-size CSCharPT        = 1
-size CIntPT          = Storable.sizeOf (undefined :: CInt)
-size CShortPT        = Storable.sizeOf (undefined :: CShort)
-size CLongPT         = Storable.sizeOf (undefined :: CLong)
-size CLLongPT        = Storable.sizeOf (undefined :: CLLong)
-size CUIntPT         = Storable.sizeOf (undefined :: CUInt)
-size CUShortPT       = Storable.sizeOf (undefined :: CUShort)
-size CULongPT        = Storable.sizeOf (undefined :: CULong)
-size CULLongPT       = Storable.sizeOf (undefined :: CLLong)
-size CFloatPT        = Storable.sizeOf (undefined :: CFloat)
-size CDoublePT       = Storable.sizeOf (undefined :: CDouble)
-#if MIN_VERSION_base(4,2,0)
-size CLDoublePT      = 0  --marks it as an unsupported type, see 'specType'
-#else
-size CLDoublePT      = Storable.sizeOf (undefined :: CLDouble)
-#endif
-size CBoolPT         = interr "Info.size: C99 bool not supported"
-size (CSFieldPT bs)  = -bs
-size (CUFieldPT bs)  = -bs
-size (CAliasedPT _ _ pt) = size pt
