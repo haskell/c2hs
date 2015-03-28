@@ -108,6 +108,7 @@ module C2HS.Gen.Bind (expandHooks)
 where
 
 import Prelude hiding (exp, lookup)
+import qualified Prelude
 
 -- standard libraries
 import Data.Char     (toLower)
@@ -2838,6 +2839,14 @@ getPlatform :: GB PlatformSpec
 getPlatform = getSwitch platformSB
 
 
+-- All this is slightly horrible, but it's the only way to find the
+-- size of the C99 _Bool type which is needed for marshalling
+-- structures containing C 'bool' values.  (Marshalling of 'bool'
+-- function arguments and return values can be done by passing them
+-- through the FFI as C 'int', but calculating offsets into structures
+-- requires knowledge of the size of the type, which isn't provided by
+-- the Haskell FFI.)
+
 {-# NOINLINE cBoolSizeRef #-}
 cBoolSizeRef :: IORef (Maybe Int)
 cBoolSizeRef = unsafePerformIO $ newIORef Nothing
@@ -2848,7 +2857,7 @@ findBoolSize = do
     hPutStrLn h "#include <stdio.h>"
     hPutStrLn h $ "int main(int argc, char *argv[]) " ++
       "{ printf(\"%u\\n\", sizeof(_Bool)); return 0; }"
-  gcccode <- system "gcc -o c2hs__bool_size c2hs__bool_size.c"
+  gcccode <- system $ cCompiler ++ " -o c2hs__bool_size c2hs__bool_size.c"
   when (gcccode /= ExitSuccess) $
     error "Failed to compile 'bool' size test program!"
   (code, stdout, _) <- readProcessWithExitCode "./c2hs__bool_size" [] ""
@@ -2863,8 +2872,28 @@ cBoolSize :: Int
 cBoolSize = unsafePerformIO $ do
   msz <- readIORef cBoolSizeRef
   case msz of
+    Just sz -> return sz
     Nothing -> do
       sz <- findBoolSize
       writeIORef cBoolSizeRef $ Just sz
       return sz
-    Just sz -> return sz
+
+{-# NOINLINE cCompilerRef #-}
+cCompilerRef :: IORef (Maybe String)
+cCompilerRef = unsafePerformIO $ newIORef Nothing
+
+cCompiler :: String
+cCompiler = unsafePerformIO $ do
+  mcc <- readIORef cCompilerRef
+  case mcc of
+    Just cc -> return cc
+    Nothing -> do
+      (code, stdout, _) <- readProcessWithExitCode "ghc" ["--info"] ""
+      when (code /= ExitSuccess) $
+        error "Failed to determine C compiler from 'ghc --info'!"
+      let vals = read stdout :: [(String, String)]
+      case Prelude.lookup "C compiler command" vals of
+        Nothing -> error "Failed to determine C compiler from 'ghc --info'!"
+        Just cc -> do
+          writeIORef cCompilerRef $ Just cc
+          return cc
