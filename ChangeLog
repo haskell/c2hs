@@ -1,3 +1,6 @@
+0.25.1
+ - Marshalling for C bool values [#128]
+
 0.24.1
  - Revert bad fix for bool handling [#127]
  - Wrapper generation for bare structure arguments [#117] plus custom
