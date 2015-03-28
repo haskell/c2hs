@@ -110,10 +110,11 @@ issue128 = c2hsShelly $ chdir "tests/bugs/issue-128" $ do
   cmd "ghc" "--make" "issue128_c.o" "Issue128.chs.o" "Issue128.hs"
   res <- absPath "./Issue128" >>= cmd
   let expected = ["5", "3",
-                  "True", "False"]
-                  -- "10", "False",
-                  -- "12", "True",
-                  -- "7", "False"]
+                  "True", "False",
+                  "10", "False",
+                  "12", "True",
+                  "7", "False",
+                  "8", "True"]
   liftIO $ assertBool "" (T.lines res == expected)
 
 issue127 :: Assertion

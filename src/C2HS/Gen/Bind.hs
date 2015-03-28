@@ -1497,19 +1497,18 @@ setGet pos access offsets arrSize ty onewtype =
   where
     setGetBody [BitSize offset bitOffset] =
       do
-        let tyTag = showExtType ty
         bf <- checkType ty
         case bf of
           Nothing      -> return $ case access of       -- not a bitfield
-                            CHSGet -> peekOp offset tyTag arrSize
-                            CHSSet -> pokeOp offset tyTag "val" arrSize
+                            CHSGet -> peekOp offset ty arrSize
+                            CHSSet -> pokeOp offset ty "val" arrSize
 --FIXME: must take `bitfieldDirection' into account
           Just (_, bs) -> return $ case access of       -- a bitfield
-                            CHSGet -> "val <- " ++ peekOp offset tyTag arrSize
+                            CHSGet -> "val <- " ++ peekOp offset ty arrSize
                                       ++ extractBitfield
-                            CHSSet -> "org <- " ++ peekOp offset tyTag arrSize
+                            CHSSet -> "org <- " ++ peekOp offset ty arrSize
                                       ++ insertBitfield
-                                      ++ pokeOp offset tyTag "val'" arrSize
+                                      ++ pokeOp offset ty "val'" arrSize
             where
               -- we have to be careful here to ensure proper sign extension;
               -- in particular, shifting right followed by anding a mask is
@@ -1548,15 +1547,20 @@ setGet pos access offsets arrSize ty onewtype =
     checkType (PrimET    (CSFieldPT bs)) = return $ Just (True , bs)
     checkType _                          = return Nothing
     --
-    peekOp off tyTag Nothing =
-      "peekByteOff ptr " ++ show off ++ " ::IO " ++ tyTag
-    peekOp off tyTag (Just _) =
-      "return $ ptr `plusPtr` " ++ show off ++ " ::IO " ++ tyTag
-    pokeOp off tyTag var Nothing =
-      "pokeByteOff ptr " ++ show off ++ " (" ++ var ++ "::" ++ tyTag ++ ")"
-    pokeOp off tyTag var (Just sz) =
+    peekOp off (PrimET CBoolPT) Nothing =
+      "toBool `fmap` (peekByteOff ptr " ++ show off ++ " :: IO CInt)"
+    peekOp off t Nothing =
+      "peekByteOff ptr " ++ show off ++ " :: IO " ++ showExtType t
+    peekOp off t (Just _) =
+      "return $ ptr `plusPtr` " ++ show off ++ " :: IO " ++ showExtType t
+    pokeOp off (PrimET CBoolPT) var Nothing =
+      "pokeByteOff ptr " ++ show off ++ " (fromBool " ++ var ++ " :: CInt)"
+    pokeOp off t var Nothing =
+      "pokeByteOff ptr " ++ show off ++ " (" ++ var ++ " :: " ++
+                                           showExtType t ++ ")"
+    pokeOp off t var (Just sz) =
       "copyArray (ptr `plusPtr` " ++ show off ++ ") (" ++
-          var ++ "::" ++ tyTag ++ ") " ++ show sz
+          var ++ " :: " ++ showExtType t ++ ") " ++ show sz
 
 -- | generate the type definition for a pointer hook and enter the required type
 -- mapping into the 'ptrmap'
@@ -2853,7 +2857,6 @@ findBoolSize = do
   let sz = read stdout :: Int
   removeFile "c2hs__bool_size.c"
   removeFile "c2hs__bool_size"
-  putStrLn $ "DETERMINED BOOL SIZE: " ++ show sz
   return sz
 
 cBoolSize :: Int

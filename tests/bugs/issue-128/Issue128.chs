@@ -23,11 +23,20 @@ main = do
   f2 4 >>= print
   f2 0 >>= print
   s <- makeTstStruct 10
-  {#get tststruct->a#} s >>= print
-  {#get tststruct->b#} s >>= print
+  withTstStruct s $ \sp -> do
+    {#get tststruct->a#} sp >>= print
+    {#get tststruct->b#} sp >>= print
   modTstStruct s 2 True
-  {#get tststruct->a#} s >>= print
-  {#get tststruct->b#} s >>= print
+  withTstStruct s $ \sp -> do
+    {#get tststruct->a#} sp >>= print
+    {#get tststruct->b#} sp >>= print
   modTstStruct s 5 False
-  {#get tststruct->a#} s >>= print
-  {#get tststruct->b#} s >>= print
+  withTstStruct s $ \sp -> do
+    {#get tststruct->a#} sp >>= print
+    {#get tststruct->b#} sp >>= print
+  withTstStruct s $ \sp -> do
+    {#set tststruct->a#} sp 8
+    {#set tststruct->b#} sp True
+  withTstStruct s $ \sp -> do
+    {#get tststruct->a#} sp >>= print
+    {#get tststruct->b#} sp >>= print
