@@ -1,3 +1,6 @@
+0.25.2
+ - Test fixes to work with GHC 7.10.1
+
 0.25.1
  - Marshalling for C bool values [#128]
 
