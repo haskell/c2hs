@@ -13,5 +13,5 @@ import Foreign.C
 
 main :: IO ()
 main = do
-  wcscmp "abc" "def" >>= print
+  wcscmp "abc" "def" >>= print . signum
   wcscat "abc" "def" >>= putStrLn
