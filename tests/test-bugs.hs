@@ -192,7 +192,7 @@ issue95 :: Assertion
 issue95 = build_issue 95
 
 issue93 :: Assertion
-issue93 = build_issue 93
+issue93 = build_issue_tolerant 93
 
 issue82 :: Assertion
 issue82 = hs_only_build_issue 82
@@ -356,8 +356,8 @@ issue07 = c2hsShelly $ do
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
-do_issue_build :: Bool -> Int -> String -> [Text] -> Sh ()
-do_issue_build cbuild n ext c2hsargs =
+do_issue_build :: Bool -> Bool -> Int -> String -> [Text] -> Sh ()
+do_issue_build strict cbuild n ext c2hsargs =
   let wdir = "tests/bugs" </> ("issue-" <> show n)
       lc = "issue" <> show n
       lcc = lc <> "_c"
@@ -368,9 +368,15 @@ do_issue_build cbuild n ext c2hsargs =
     mapM_ rm_f [uc <.> "hs", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
     run "c2hs" $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
     when cbuild $ cmd cc "-c" "-o" (lcc <.> "o") (lc <.> "c")
-    if cbuild
-      then cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
-      else cmd "ghc" "-Wall" "-Werror" "--make" (uc <.> "hs")
+    case (strict, cbuild) of
+      (True, True) ->
+        cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
+      (False, True) ->
+        cmd "ghc" "--make" (lcc <.> "o") (uc <.> "hs")
+      (True, False) ->
+        cmd "ghc" "-Wall" "-Werror" "--make" (uc <.> "hs")
+      (False, False) ->
+        cmd "ghc" "--make" (uc <.> "hs")
 
 expect_issue :: Int -> [Text] -> Assertion
 expect_issue n expected = expect_issue_with True True n "" [] expected
@@ -386,21 +392,24 @@ hs_only_expect_issue n ordered expected =
 expect_issue_with :: Bool -> Bool -> Int -> String -> [Text] -> [Text]
                   -> Assertion
 expect_issue_with ordered cbuild n ext c2hsargs expected = c2hsShelly $ do
-  do_issue_build cbuild n ext c2hsargs
+  do_issue_build True cbuild n ext c2hsargs
   res <- absPath ("." </> (fromText $ T.pack $ "Issue" <> show n <>
                            (if ext == "" then "" else "_" <> ext))) >>= cmd
   liftIO $ assertBool "" $ case ordered of
     True -> T.lines res == expected
     False -> sort (T.lines res) == sort expected
 
-build_issue_with :: Bool -> Int -> [Text] -> Assertion
-build_issue_with cbuild n c2hsargs = c2hsShelly $ do
-  errExit False $ do_issue_build cbuild n "" c2hsargs
+build_issue_with :: Bool -> Bool -> Int -> [Text] -> Assertion
+build_issue_with strict cbuild n c2hsargs = c2hsShelly $ do
+  errExit False $ do_issue_build strict cbuild n "" c2hsargs
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
 build_issue :: Int -> Assertion
-build_issue n = build_issue_with True n []
+build_issue n = build_issue_with True True n []
+
+build_issue_tolerant :: Int -> Assertion
+build_issue_tolerant n = build_issue_with False True n []
 
 hs_only_build_issue :: Int -> Assertion
-hs_only_build_issue n = build_issue_with False n []
+hs_only_build_issue n = build_issue_with True False n []
