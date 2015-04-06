@@ -155,6 +155,7 @@ main = shelly $ do
     let failed = filter (\(c, _) -> c /= TestOK) $ zip codes (filter cabal tests)
     forM_ failed $ \(c, t) -> echo $ "FAILED: " <> name t <>
                                      " (" <> T.pack (show c) <> ")"
+    exit 1
 
 escapedWords :: Text -> [Text]
 escapedWords = map (T.pack . reverse) . escWords False "" . T.unpack
