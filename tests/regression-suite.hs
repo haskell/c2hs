@@ -40,6 +40,27 @@ instance FromJSON RegressionTest where
                                         <*> v .:? "run-tests" .!= False
   parseJSON _ = mzero
 
+data Code = TestOK
+          | DepsFailed
+          | ConfFailed
+          | BuildFailed
+          | TestsFailed
+          deriving Eq
+
+instance Show Code where
+  show TestOK = "OK"
+  show DepsFailed = "dependencies"
+  show ConfFailed = "configuration"
+  show BuildFailed = "build"
+  show TestsFailed = "tests"
+
+makeCode :: (Int, Int, Int, Int) -> Code
+makeCode (0, 0, 0, 0) = TestOK
+makeCode (0, 0, 0, _) = TestsFailed
+makeCode (0, 0, _, _) = BuildFailed
+makeCode (0, _, _, _) = ConfFailed
+makeCode (_, _, _, _) = DepsFailed
+
 readTests :: FilePath -> IO [RegressionTest]
 readTests fp = maybe [] id <$> decodeFile fp
 
@@ -103,9 +124,10 @@ main = shelly $ do
 
   codes <- forM (filter cabal tests) $ \t -> do
     let n = name t
+        tst = runTests t
         infs = concatMap (\f -> ["-f", f]) $ flags t
     mefs <- get_env $ "C2HS_REGRESSION_FLAGS_" <> n
-    let fs = case mefs of
+    let fs = if tst then ["--enable-tests"] else [] ++ case mefs of
           Nothing -> infs
           Just efs -> infs ++ concatMap (\f -> ["-f", f]) (T.splitOn "," efs)
     echo $ "\nREGRESSION TEST: " <> n <> "\n"
@@ -113,16 +135,26 @@ main = shelly $ do
       unpack <- run "cabal" ["unpack", n]
       let d = T.drop (T.length "Unpacking to ") $ T.init $ last $ T.lines unpack
       chdir (fromText d) $ do
-        run_ "cabal" $ ["install", "--jobs=1", "-v"] ++ fs
-        when (runTests t) $ run_ "cabal" ["test"]
-        lastExitCode
+        run_ "cabal" $ ["install", "--only-dep", "-v"] ++ fs
+        dep <- lastExitCode
+        run_ "cabal" $ ["configure"] ++ fs
+        conf <- lastExitCode
+        run_ "cabal" $ ["build"]
+        build <- lastExitCode
+        test <-
+          if tst then do
+            run_ "cabal" ["test"]
+            lastExitCode
+          else return 0
+        return $ makeCode (dep, conf, build, test)
 
-  if all (== 0) codes
+  if all (== TestOK) codes
     then exit 0
     else do
-    let failed = filter (\(c, _) -> c /= 0) $ zip codes (filter cabal tests)
-    forM_ failed $ \(c, t) -> echo $ "FAILED: " <> name t
-    echo "SOME TESTS FAILED"
+    echo "\n\nSOME TESTS FAILED\n"
+    let failed = filter (\(c, _) -> c /= TestOK) $ zip codes (filter cabal tests)
+    forM_ failed $ \(c, t) -> echo $ "FAILED: " <> name t <>
+                                     " (" <> T.pack (show c) <> ")"
 
 escapedWords :: Text -> [Text]
 escapedWords = map (T.pack . reverse) . escWords False "" . T.unpack
