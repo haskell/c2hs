@@ -1,5 +1,6 @@
 -
     name: abcBridge
+    run-tests: true
 
 # COMMENTED FOR THE MOMENT BECAUSE OF BOUNDS ON C2HS DEPENDENCY
 # -

@@ -2,6 +2,7 @@ module Main where
 
 import Control.Monad
 import Foreign.C.Types
+import Foreign.Marshal.Utils
 
 #include "issue131.h"
 
