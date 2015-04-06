@@ -1,9 +1,10 @@
 -
     name: abcBridge
 
--
-    name: al
-    apt-packages: [libopenal-dev]
+# COMMENTED FOR THE MOMENT BECAUSE OF BOUNDS ON C2HS DEPENDENCY
+# -
+#     name: al
+#     apt-packages: [libopenal-dev]
 
 # -
 #   name: CV
