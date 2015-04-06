@@ -135,6 +135,7 @@ main = shelly $ do
       unpack <- run "cabal" ["unpack", n]
       let d = T.drop (T.length "Unpacking to ") $ T.init $ last $ T.lines unpack
       chdir (fromText d) $ do
+        run_ "cabal" $ ["sandbox", "init"]
         run_ "cabal" $ ["install", "--only-dep", "-v"] ++ fs
         dep <- lastExitCode
         run_ "cabal" $ ["configure"] ++ fs
