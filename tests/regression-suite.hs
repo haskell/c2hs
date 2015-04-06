@@ -24,6 +24,7 @@ data RegressionTest = RegressionTest
                       , specialSetup :: [Text]
                       , extraPath :: [Text]
                       , onTravis :: Bool
+                      , runTests :: Bool
                       } deriving (Eq, Show)
 
 instance FromJSON RegressionTest where
@@ -36,6 +37,7 @@ instance FromJSON RegressionTest where
                                         <*> v .:? "special-setup" .!= []
                                         <*> v .:? "extra-path" .!= []
                                         <*> v .:? "on-travis" .!= True
+                                        <*> v .:? "run-tests" .!= False
   parseJSON _ = mzero
 
 readTests :: FilePath -> IO [RegressionTest]
@@ -108,8 +110,12 @@ main = shelly $ do
           Just efs -> infs ++ concatMap (\f -> ["-f", f]) (T.splitOn "," efs)
     echo $ "\nREGRESSION TEST: " <> n <> "\n"
     errExit False $ do
-      run_ "cabal" $ ["install", "--jobs=1", "-v"] ++ fs ++ [n]
-      lastExitCode
+      unpack <- run "cabal" ["unpack", n]
+      let d = T.drop (T.length "Unpacking to ") $ T.init $ last $ T.lines unpack
+      chdir (fromText d) $ do
+        run_ "cabal" $ ["install", "--jobs=1", "-v"] ++ fs
+        when (runTests t) $ run_ "cabal" ["test"]
+        lastExitCode
 
   if all (== 0) codes
     then exit 0

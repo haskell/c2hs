@@ -9,6 +9,7 @@
 -
   name: hnetcdf
   apt-packages: [libnetcdf-dev, libgsl0-dev, liblapack-dev]
+  run-tests: true
 
 -
   name: hpuz
