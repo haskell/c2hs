@@ -1,11 +1,14 @@
 -
     name: abcBridge
-    run-tests: true
 
 # COMMENTED FOR THE MOMENT BECAUSE OF BOUNDS ON C2HS DEPENDENCY
 # -
 #     name: al
 #     apt-packages: [libopenal-dev]
+
+-
+  name: alsa-mixer
+  apt-packages: [libasound2-dev]
 
 # -
 #   name: CV
