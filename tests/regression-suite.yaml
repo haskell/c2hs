@@ -10,39 +10,10 @@
   name: alsa-mixer
   apt-packages: [libasound2-dev]
 
-# -
-#   name: CV
-#   apt-packages: [libopencv-dev, libcv-dev, libhighgui-dev]
-
--
-  name: gnome-keyring
-  apt-packages: [libgnome-keyring-dev]
-
--
-  name: hnetcdf
-  apt-packages: [libnetcdf-dev, libgsl0-dev, liblapack-dev]
-  run-tests: true
-
--
-  name: hpuz
-
--
-  name: hsndfile
-  apt-packages: [libsndfile1-dev]
-
+# DEPENDENCY ONLY AVAILABLE IN UBUNTU 14.04+: TRAVIS IS AT 12.04
 #-
-#  name: ncurses
-#  apt-packages: [ncurses-dev]
-
-# -
-#   name: hsqml
-#   apt-packages: [libqtscript4-core, libqt4-declarative]
-#   on-travis: false
-
--
-  name: igraph
-  apt-ppa: [igraph/ppa]
-  apt-packages: [libigraph0-dev]
+#  name: bullet
+#  apt-packages: [libbullet-dev]
 
 -
   name: cuda-shared-setup
@@ -73,24 +44,49 @@
   name: cufft
   on-travis: false
 
+# NEED TO RETEST
+# -
+#   name: CV
+#   apt-packages: [libopencv-dev, libcv-dev, libhighgui-dev]
+
+-
+  name: gnome-keyring
+  apt-packages: [libgnome-keyring-dev]
+
+-
+  name: hnetcdf
+  apt-packages: [libnetcdf-dev, libgsl0-dev, liblapack-dev]
+  run-tests: true
+
+-
+  name: hpuz
+
+-
+  name: hsndfile
+  apt-packages: [libsndfile1-dev]
+
+# BUILD PROBLEMS WITH CURRENT C2HS
+#-
+#  name: ncurses
+#  apt-packages: [ncurses-dev]
+
+# DEPENDENCY PROBLEMS
+# -
+#   name: hsqml
+#   apt-packages: [libqtscript4-core, libqt4-declarative]
+#   on-travis: false
+
+-
+  name: igraph
+  apt-ppa: [igraph/ppa]
+  apt-packages: [libigraph0-dev]
+
+# NEED TO RETEST
 # -
 #   name: OpenCL
 #   on-travis: false
-
-
 
 # DEPENDENCY BUILD ISSUES
 #-
 #  name: ipopt-hs
 #  apt-packages: [coinor-libipopt-dev]
-
-# DEPENDENCY BUILD ISSUES
-#-
-#  name: bullet
-#  apt-packages: [cmake, subversion]
-#  special-setup:
-#   - svn checkout http://bullet.googlecode.com/svn/trunk/@2440 bullet-read-only-2.79
-#   - cd bullet-read-only-2.79
-#   - cmake . -DBUILD_DEMOS=NO
-#   - make
-#   - sudo make install
