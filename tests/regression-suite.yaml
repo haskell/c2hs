@@ -35,6 +35,7 @@
                  libxmu-headers, policykit-1, policykit-1-gnome,
                  python-xkit, screen-resolution-extra]
   extra-path: [/usr/local/cuda-6.5/bin]
+  extra-so-path: [/usr/local/cuda-6.5/lib]
 
 -
   name: cuda

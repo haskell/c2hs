@@ -23,6 +23,7 @@ data RegressionTest = RegressionTest
                       , cabalBuildTools :: [Text]
                       , specialSetup :: [Text]
                       , extraPath :: [Text]
+                      , extraSOPath :: [Text]
                       , onTravis :: Bool
                       , runTests :: Bool
                       } deriving (Eq, Show)
@@ -36,6 +37,7 @@ instance FromJSON RegressionTest where
                                         <*> v .:? "cabal-build-tools" .!= []
                                         <*> v .:? "special-setup" .!= []
                                         <*> v .:? "extra-path" .!= []
+                                        <*> v .:? "extra-so-path" .!= []
                                         <*> v .:? "on-travis" .!= True
                                         <*> v .:? "run-tests" .!= False
   parseJSON _ = mzero
@@ -90,6 +92,7 @@ main = shelly $ do
       buildTools = nub $ concatMap cabalBuildTools tests
       specials = concatMap specialSetup tests
       extraPaths = concatMap extraPath tests
+      extraSOPaths = concatMap extraSOPath tests
 
   when (not travis) $
     echo "ASSUMING THAT ALL NECESSARY LIBRARIES ALREADY INSTALLED!\n"
@@ -120,6 +123,13 @@ main = shelly $ do
       forM_ extraPaths $ \p -> do
         echo p
         appendToPath $ fromText p
+      echo "\n"
+
+    when (not (null extraSOPaths)) $ do
+      echo "ADDING SHARED LIBRARY PATHS\n"
+      forM_ extraSOPaths $ \p -> do
+        echo p
+        appendToSOPath $ fromText p
       echo "\n"
 
   codes <- forM (filter cabal tests) $ \t -> do
@@ -176,3 +186,9 @@ escapedWords = map (T.pack . reverse) . escWords False "" . T.unpack
         escWords True acc (c:cs)
           | c == '\'' = acc : escWords False "" cs
           | otherwise = escWords True (c:acc) cs
+
+appendToSOPath :: FilePath -> Sh ()
+appendToSOPath = traceAbsPath ("appendToSOPath: " <>) >=> \filepath -> do
+  tp <- toTextWarn filepath
+  pe <- get_env_text "LD_LIBRARY_PATH"
+  setenv "LD_LIBRARY_PATH" $ pe <> T.singleton searchPathSeparator <> tp
