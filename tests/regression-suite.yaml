@@ -44,6 +44,10 @@
   name: cufft
   on-travis: false
 
+-
+  name: cublas
+  on-travis: false
+
 # NEED TO RETEST
 # -
 #   name: CV
