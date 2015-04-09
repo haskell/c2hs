@@ -129,7 +129,7 @@ main = shelly $ do
       echo "ADDING SHARED LIBRARY PATHS\n"
       forM_ extraSOPaths $ \p -> do
         echo p
-        appendToSOPath $ fromText p
+        appendToSOPath p
       echo "\n"
 
   codes <- forM (filter cabal tests) $ \t -> do
@@ -187,8 +187,7 @@ escapedWords = map (T.pack . reverse) . escWords False "" . T.unpack
           | c == '\'' = acc : escWords False "" cs
           | otherwise = escWords True (c:acc) cs
 
-appendToSOPath :: FilePath -> Sh ()
-appendToSOPath = traceAbsPath ("appendToSOPath: " <>) >=> \filepath -> do
-  tp <- toTextWarn filepath
+appendToSOPath :: Text -> Sh ()
+appendToSOPath tp = do
   pe <- get_env_text "LD_LIBRARY_PATH"
-  setenv "LD_LIBRARY_PATH" $ pe <> T.singleton searchPathSeparator <> tp
+  setenv "LD_LIBRARY_PATH" $ pe <> ":" <> tp
