@@ -49,10 +49,9 @@
   name: cublas
   on-travis: false
 
-# NEED TO RETEST
-# -
-#   name: CV
-#   apt-packages: [libopencv-dev, libcv-dev, libhighgui-dev]
+-
+  name: CV
+  apt-packages: [libopencv-dev, libcv-dev, libhighgui-dev]
 
 -
   name: gnome-keyring
