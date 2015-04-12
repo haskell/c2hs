@@ -59,6 +59,9 @@
   apt-packages: [libgnome-keyring-dev]
 
 -
+  name: gnuidn
+  apt-packages: [libidn11-dev]
+-
   name: hnetcdf
   apt-packages: [libnetcdf-dev, libgsl0-dev, liblapack-dev]
   run-tests: true
