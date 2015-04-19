@@ -80,6 +80,7 @@ tests =
     , testCase "Issue #123" issue123
     , testCase "Issue #127" issue127
     , testCase "Issue #128" issue128
+    , testCase "Issue #130" issue130
     , testCase "Issue #131" issue131
     ] ++
     -- Some tests that won't work on Windows.
@@ -113,6 +114,9 @@ issue131 = c2hsShelly $ chdir "tests/bugs/issue-131" $ do
   let expected = ["5", "3",
                   "True", "False"]
   liftIO $ assertBool "" (T.lines res == expected)
+
+issue130 :: Assertion
+issue130 = expect_issue 130  ["3", "3"]
 
 issue128 :: Assertion
 issue128 = c2hsShelly $ chdir "tests/bugs/issue-128" $ do
