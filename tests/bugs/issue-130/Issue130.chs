@@ -10,6 +10,7 @@ import System.IO.Unsafe(unsafePerformIO)
 
 #include "issue130.h"
 
+main :: IO ()
 main = do
   print (myAdd 1 2)
   print =<< myAddIO 1 2

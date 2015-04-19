@@ -1137,7 +1137,8 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
       funHead   = hsLexeme ++ join funArgs ++ " =\n" ++
                   if isPure && isImpure then "  unsafePerformIO $\n" else ""
       call      = if isPure
-                  then "  let {res = " ++ fiLexeme ++ joinCallArgs ++ "} in\n"
+                  then "  let {res = " ++ fiLexeme ++ joinCallArgs ++
+                       "} in" ++ (if isPure then " res `seq`" else "") ++ "\n"
                   else "  " ++ fiLexeme ++ joinCallArgs ++ case parm of
                     CHSParm _ "()" _ Nothing _ _ _ -> " >>\n"
                     _                        ->
@@ -1160,7 +1161,8 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
                     CHSParm _ _ _twoCVal (Just (omBody, CHSIOArg)) _ _ _ ->
                       "  " ++ marshBody omBody ++ " res >>= \\res' ->\n"
                     CHSParm _ _ _twoCVal (Just (omBody, CHSValArg)) _ _ _ ->
-                      "  let {res' = " ++ marshBody omBody ++ " res} in\n"
+                      "  let {res' = " ++ marshBody omBody ++ " res} in" ++
+                      (if isPure then " res `seq`" else "") ++ "\n"
                     CHSParm _ _ _ Nothing _ _ _ ->
                       interr "GenBind.funDef: marshRes: no default?"
 
