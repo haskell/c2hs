@@ -740,7 +740,7 @@ expandHook hook@(CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
 
     hsIde `objIs` Pointer ptrKind isNewtype     -- register Haskell object
     decl <- findAndChaseDeclOrTag cName False True
-    (sz, _) <- sizeAlignOf decl
+    (sz, _) <- sizeAlignOfPtr decl
     hsIde `sizeIs` (padBits sz)
     --
     -- we check for a typedef declaration or tag (struct, union, or enum)
@@ -2273,7 +2273,9 @@ sizeAlignOfStructPad decls tag =
 -- | compute the size and alignment constraint of a given C declaration
 --
 sizeAlignOf       :: CDecl -> GB (BitSize, Int)
-sizeAlignOfSingle :: CDecl -> GB (BitSize, Int)
+sizeAlignOfPtr    :: CDecl -> GB (BitSize, Int)
+sizeAlignOfBase   :: Bool -> CDecl -> GB (BitSize, Int)
+sizeAlignOfSingle :: Bool -> CDecl -> GB (BitSize, Int)
 --
 -- * we make use of the assertion that 'extractCompType' can only return a
 --   'DefinedET' when the declaration is a pointer declaration
@@ -2283,10 +2285,12 @@ sizeAlignOfSingle :: CDecl -> GB (BitSize, Int)
 --   and I have no idea what happens when an array-of-bitfield is
 --   declared.  At this time I don't care.  -- U.S. 05/2006
 --
-sizeAlignOf (CDecl dclspec
-                   [(Just (CDeclr oide (CArrDeclr _ (CArrSize _ lexpr) _ :
-                                        derived') _asm _ats n), init', expr)]
-                   attr) =
+sizeAlignOf = sizeAlignOfBase False
+sizeAlignOfPtr = sizeAlignOfBase True
+sizeAlignOfBase _ (CDecl dclspec
+                         [(Just (CDeclr oide (CArrDeclr _ (CArrSize _ lexpr) _ :
+                                              derived') _asm _ats n), init', expr)]
+                         attr) =
   do
     (bitsize, align) <-
       sizeAlignOf (CDecl dclspec
@@ -2294,13 +2298,13 @@ sizeAlignOf (CDecl dclspec
                    attr)
     IntResult len <- evalConstCExpr lexpr
     return (fromIntegral len `scaleBitSize` bitsize, align)
-sizeAlignOf (CDecl _ [(Just (CDeclr _ (CArrDeclr _ (CNoArrSize _) _ :
-                                       _) _ _ _), _init, _expr)] _) =
+sizeAlignOfBase _ (CDecl _ [(Just (CDeclr _ (CArrDeclr _ (CNoArrSize _) _ :
+                                             _) _ _ _), _init, _expr)] _) =
     interr "GenBind.sizeAlignOf: array of undeclared size."
-sizeAlignOf cdecl = do
+sizeAlignOfBase ptr cdecl = do
   traceAliasCheck
   case checkForOneAliasName cdecl of
-    Nothing   -> sizeAlignOfSingle cdecl
+    Nothing   -> sizeAlignOfSingle ptr cdecl
     Just ide  -> do                    -- this is a typedef alias
       traceAlias ide
       cdecl' <- getDeclOf ide
@@ -2313,7 +2317,7 @@ sizeAlignOf cdecl = do
       "extractCompType: found an alias called `" ++ identToString ide ++ "'\n"
 
 
-sizeAlignOfSingle cdecl = do
+sizeAlignOfSingle ptr cdecl = do
   ct <- extractCompType False False False cdecl
   case ct of
     FunET _ _ -> do
@@ -2335,7 +2339,11 @@ sizeAlignOfSingle cdecl = do
     PrimET pt -> do
       align <- alignment pt
       return (bitSize pt, align)
-    UnitET -> voidFieldErr (posOf cdecl)
+    UnitET -> if ptr
+              then do
+                align <- alignment CPtrPT
+                return (bitSize CPtrPT, align)
+              else voidFieldErr (posOf cdecl)
     SUET su -> do
       let (fields, tag) = structMembers su
       fields' <- let ide = structName su
@@ -2648,7 +2656,7 @@ illegalConstExprErr cpos hint  =
                         "which ANSI C89 does not permit."]
 
 voidFieldErr      :: Position -> GB a
-voidFieldErr cpos  =
+voidFieldErr cpos =
   raiseErrorCTExc cpos ["Void field in struct!",
                         "Attempt to access a structure field of type void."]
 
