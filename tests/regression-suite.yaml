@@ -61,6 +61,12 @@
 -
   name: gnuidn
   apt-packages: [libidn11-dev]
+
+-
+  name: haskell-mpi
+  apt-packages: [libopenmpi-dev]
+  extra-include-dirs: [/usr/include/openmpi]
+
 -
   name: hnetcdf
   apt-packages: [libnetcdf-dev, libgsl0-dev, liblapack-dev]

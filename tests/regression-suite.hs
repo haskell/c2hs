@@ -24,6 +24,8 @@ data RegressionTest = RegressionTest
                       , specialSetup :: [Text]
                       , extraPath :: [Text]
                       , extraSOPath :: [Text]
+                      , extraIncludeDirs :: [Text]
+                      , extraLibDirs :: [Text]
                       , onTravis :: Bool
                       , runTests :: Bool
                       } deriving (Eq, Show)
@@ -38,6 +40,8 @@ instance FromJSON RegressionTest where
                                         <*> v .:? "special-setup" .!= []
                                         <*> v .:? "extra-path" .!= []
                                         <*> v .:? "extra-so-path" .!= []
+                                        <*> v .:? "extra-include-dirs" .!= []
+                                        <*> v .:? "extra-lib-dirs" .!= []
                                         <*> v .:? "on-travis" .!= True
                                         <*> v .:? "run-tests" .!= False
   parseJSON _ = mzero
@@ -136,6 +140,10 @@ main = shelly $ do
     let n = name t
         tst = runTests t
         infs = concatMap (\f -> ["-f", f]) $ flags t
+        extralibs = map (\f -> "--extra-lib-dirs=" <> f) $
+                    extraLibDirs t
+        extraincs = map (\f -> "--extra-include-dirs=" <> f) $
+                    extraIncludeDirs t
     mefs <- get_env $ "C2HS_REGRESSION_FLAGS_" <> n
     let fs = if tst then ["--enable-tests"] else [] ++ case mefs of
           Nothing -> infs
@@ -148,7 +156,7 @@ main = shelly $ do
         run_ "cabal" $ ["sandbox", "init"]
         run_ "cabal" $ ["install", "--only-dep", "-v"] ++ fs
         dep <- lastExitCode
-        run_ "cabal" $ ["configure"] ++ fs
+        run_ "cabal" $ ["configure"] ++ extraincs ++ extralibs ++ fs
         conf <- lastExitCode
         run_ "cabal" $ ["build"]
         build <- lastExitCode
