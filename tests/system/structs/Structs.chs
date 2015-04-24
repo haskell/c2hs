@@ -7,6 +7,7 @@
 import Control.Monad (liftM, when)
 import Foreign
 import Foreign.C
+import System.IO.Unsafe (unsafePerformIO)
 
 cIntConv :: (Integral a, Integral b) => a -> b
 cIntConv  = fromIntegral
@@ -24,7 +25,7 @@ pointSize  = {#sizeof point#}
 
 bar = {#sizeof SDL_Event#}  -- regression test
 
-main :: IO () 
+main :: IO ()
 main  = do
           val   <- liftM cIntConv $ {#get _point.y#} $! unPoint pnt
           val'  <- liftM cIntConv $ {#get point->y#} $! unPoint pnt
@@ -34,7 +35,7 @@ main  = do
           val2  <- liftM cIntConv $ {#get weird->x#} weird
           val3  <- liftM cIntConv $ {#get weird->nested.z#} weird
           val4  <- liftM cIntConv $ {#get weird->nested.pnt->y#} weird
-          const nop $ {#set cpoint->col#} nullPtr 5 
+          const nop $ {#set cpoint->col#} nullPtr 5
                       -- only for seeing what is generated
           spacePtr <- {#call getSpacePtr#}
           space <- liftM castCCharToChar $ {#get *mychar#} spacePtr;

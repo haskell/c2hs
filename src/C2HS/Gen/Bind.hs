@@ -251,6 +251,7 @@ lookupDftMarshIn hsty _ = do
 lookupDftMarshOut :: String -> [ExtType] -> GB CHSMarsh
 lookupDftMarshOut "()"     _                                    =
   return $ Just (Left voidIde, CHSVoidArg)
+lookupDftMarshOut hsTy [IOET cTy] = lookupDftMarshOut hsTy [cTy]
 lookupDftMarshOut "Bool"   [PrimET pt] | isIntegralCPrimType pt =
   return $ Just (Left cToBoolIde, CHSValArg)
 lookupDftMarshOut hsTy     [PrimET pt] | isIntegralHsType hsTy
@@ -582,8 +583,14 @@ expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) _ =
     let ideLexeme = identToString ide'  -- orignl name might have been a shadow
         hsLexeme  = ideLexeme `maybe` identToString $ oalias
         cdecl'    = ide' `simplifyDecl` cdecl
-    callImport hook isPure isUns [] ideLexeme hsLexeme cdecl' Nothing pos
-    return hsLexeme
+    ty <- extractFunType pos cdecl' Nothing
+    let args      = concat [ " x" ++ show n | n <- [1..numArgs ty] ]
+    callImport hook isUns [] ideLexeme hsLexeme cdecl' Nothing pos
+    case (isPure, length args) of
+      (False, _) -> return hsLexeme
+      (True,  0) -> return $ "(unsafePerformIO " ++ hsLexeme ++ ")"
+      (True,  _) -> return $ "(\\" ++ args ++ " -> unsafePerformIO (" ++
+                    hsLexeme ++ args ++ "))"
   where
     traceEnter = traceGenBind $
       "** Call hook for `" ++ identToString ide ++ "':\n"
@@ -610,9 +617,12 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) _ =
         -- cdecl'    = ide `simplifyDecl` cdecl
         args      = concat [ " x" ++ show n | n <- [1..numArgs ty] ]
 
-    callImportDyn hook isPure isUns ideLexeme hsLexeme decl ty pos
-    return $ "(\\o" ++ args ++ " -> " ++ set_get ++ " o >>= \\f -> "
-             ++ hsLexeme ++ " f" ++ args ++ ")"
+    callImportDyn hook isUns ideLexeme hsLexeme decl ty pos
+    let res = "(\\o" ++ args ++ " -> " ++ set_get ++ " o >>= \\f -> "
+              ++ hsLexeme ++ " f" ++ args ++ ")"
+    if isPure
+      then return $ "(unsafePerformIO " ++ res ++ ")"
+      else return res
   where
     traceEnter = traceGenBind $
       "** Indirect call hook for `" ++
@@ -643,10 +653,10 @@ expandHook (CHSFun isPure isUns _ inVarTypes (CHSRoot _ ide)
         wrapped   = Just $ concatMap isWrapped parms
 
     varTypes <- convertVarTypes hsLexeme pos inVarTypes
-    callImport callHook isPure isUns varTypes (identToString cide)
+    callImport callHook isUns varTypes (identToString cide)
       fiLexeme cdecl' wrapped pos
 
-    extTy <- extractFunType pos cdecl' True wrapped
+    extTy <- extractFunType pos cdecl' wrapped
     funDef isPure hsLexeme fiLexeme extTy varTypes
       ctxt parms parm Nothing pos hkpos
   where
@@ -676,7 +686,7 @@ expandHook (CHSFun isPure isUns _ _ apath oalias ctxt parms parm pos) hkpos =
         -- cdecl'    = cide `simplifyDecl` cdecl
         -- args      = concat [ " x" ++ show n | n <- [1..numArgs ty] ]
         callHook  = CHSCall isPure isUns apath (Just fiIde) pos
-    callImportDyn callHook isPure isUns ideLexeme fiLexeme decl ty pos
+    callImportDyn callHook isUns ideLexeme fiLexeme decl ty pos
 
     set_get <- setGet pos CHSGet offsets Nothing ptrTy Nothing
     funDef isPure hsLexeme fiLexeme (FunET ptrTy $ purify ty) []
@@ -1029,14 +1039,14 @@ enumInst ident list' = intercalate "\n"
 -- * the C declaration is a simplified declaration of the function that we
 --   want to import into Haskell land
 --
-callImport :: CHSHook -> Bool -> Bool -> [ExtType] -> String ->
+callImport :: CHSHook -> Bool -> [ExtType] -> String ->
               String -> CDecl -> Maybe [Bool] -> Position -> GB ()
-callImport hook isPure isUns varTypes ideLexeme hsLexeme cdecl owrapped pos =
+callImport hook isUns varTypes ideLexeme hsLexeme cdecl owrapped pos =
   do
     -- compute the external type from the declaration, and delay the foreign
     -- export declaration
     --
-    extType <- extractFunType pos cdecl isPure owrapped
+    extType <- extractFunType pos cdecl owrapped
     header  <- getSwitch headerSB
     let bools@(boolres, boolargs) = boolArgs extType
         needwrapper1 = boolres || or boolargs
@@ -1057,9 +1067,9 @@ callImport hook isPure isUns varTypes ideLexeme hsLexeme cdecl owrapped pos =
     traceFunType et = traceGenBind $
       "Imported function type: " ++ showExtType et ++ "\n"
 
-callImportDyn :: CHSHook -> Bool -> Bool -> String -> String -> CDecl -> ExtType
+callImportDyn :: CHSHook -> Bool -> String -> String -> CDecl -> ExtType
               -> Position -> GB ()
-callImportDyn hook _isPure isUns ideLexeme hsLexeme cdecl ty pos =
+callImportDyn hook isUns ideLexeme hsLexeme cdecl ty pos =
   do
     -- compute the external type from the declaration, and delay the foreign
     -- export declaration
@@ -1123,9 +1133,9 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
        parm@(CHSParm _ hsParmTy _ _ _ _ _) marsh2 pos hkpos =
   do
     when (countPlus parms > 1 || isPlus parm) $ illegalPlusErr pos
-    (parms', parm', isImpure) <- addDftMarshaller pos parms parm extTy varExtTys
+    (parms', parm') <- addDftMarshaller pos parms parm extTy varExtTys
 
-    traceMarsh parms' parm' isImpure
+    traceMarsh parms' parm'
     marshs <- zipWithM marshArg [1..] parms'
     let
       sig       = hsLexeme ++ " :: " ++ funTy parms' parm' ++ "\n"
@@ -1135,11 +1145,8 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
       marshOuts = [marshOut | (_, _, _, marshOut, _) <- marshs, marshOut /= ""]
       retArgs   = [retArg   | (_, _, _, _, retArg)   <- marshs, retArg   /= ""]
       funHead   = hsLexeme ++ join funArgs ++ " =\n" ++
-                  if isPure && isImpure then "  unsafePerformIO $\n" else ""
-      call      = if isPure
-                  then "  let {res = " ++ fiLexeme ++ joinCallArgs ++
-                       "} in" ++ (if isPure then " res `seq`" else "") ++ "\n"
-                  else "  " ++ fiLexeme ++ joinCallArgs ++ case parm of
+                  if isPure then "  unsafePerformIO $\n" else ""
+      call      = "  " ++ fiLexeme ++ joinCallArgs ++ case parm of
                     CHSParm _ "()" _ Nothing _ _ _ -> " >>\n"
                     _                        ->
                       if countPlus parms == 1
@@ -1161,8 +1168,7 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
                     CHSParm _ _ _twoCVal (Just (omBody, CHSIOArg)) _ _ _ ->
                       "  " ++ marshBody omBody ++ " res >>= \\res' ->\n"
                     CHSParm _ _ _twoCVal (Just (omBody, CHSValArg)) _ _ _ ->
-                      "  let {res' = " ++ marshBody omBody ++ " res} in" ++
-                      (if isPure then " res `seq`" else "") ++ "\n"
+                      "  let {res' = " ++ marshBody omBody ++ " res} in\n"
                     CHSParm _ _ _ Nothing _ _ _ ->
                       interr "GenBind.funDef: marshRes: no default?"
 
@@ -1180,8 +1186,7 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
                   call                ++
                   marshRes            ++
                   joinLines marshOuts ++
-                  "  " ++
-                  (if isImpure || not isPure then "return " else "") ++ ret
+                  "  return " ++ ret
 
       pad code = let padding = replicate (posColumn hkpos - 1) ' '
                      (l:ls) = lines code
@@ -1281,10 +1286,9 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
           return ("", marshIn, [bdr1], "", hsParmTy ++ " " ++ bdr2)
     marshArg _ _ = interr "GenBind.funDef: Missing default?"
     --
-    traceMarsh parms' parm' isImpure = traceGenBind $
+    traceMarsh parms' parm' = traceGenBind $
       "Marshalling specification including defaults: \n" ++
-      showParms (parms' ++ [parm']) "" ++
-      "  The marshalling is " ++ if isImpure then "impure.\n" else "pure.\n"
+      showParms (parms' ++ [parm']) "\n"
       where
         showParms []               = id
         showParms (parm'':parms'') = showString "  "
@@ -1295,12 +1299,12 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
 -- | add default marshallers for "in" and "out" marshalling
 --
 addDftMarshaller :: Position -> [CHSParm] -> CHSParm -> ExtType -> [ExtType]
-                 -> GB ([CHSParm], CHSParm, Bool)
+                 -> GB ([CHSParm], CHSParm)
 addDftMarshaller pos parms parm extTy varExTys = do
   let (resTy, argTys)  = splitFunTy extTy varExTys
-  (parm' , isImpure1) <- checkResMarsh parm resTy
-  (parms', isImpure2) <- addDft parms argTys
-  return (parms', parm', isImpure1 || isImpure2)
+  parm' <- checkResMarsh parm resTy
+  parms' <- addDft parms argTys
+  return (parms', parm')
   where
     -- the result marshalling may not use an "in" marshaller and can only have
     -- one C value
@@ -1312,9 +1316,9 @@ addDftMarshaller pos parms parm extTy varExTys = do
     checkResMarsh (CHSParm _        _  True _       _ pos' _) _   =
       resMarshIllegalTwoCValErr pos'
     checkResMarsh (CHSParm _        ty _    omMarsh _ pos' c) cTy = do
-      (imMarsh', _       ) <- addDftVoid Nothing
-      (omMarsh', isImpure) <- addDftOut pos' omMarsh ty [cTy]
-      return (CHSParm imMarsh' ty False omMarsh' False pos' c, isImpure)
+      imMarsh' <- addDftVoid Nothing
+      omMarsh' <- addDftOut pos' omMarsh ty [cTy]
+      return (CHSParm imMarsh' ty False omMarsh' False pos' c)
     --
     splitFunTy (FunET UnitET ty) vts = splitFunTy ty vts
     splitFunTy (FunET ty1 ty2) vts = let (resTy, argTys) = splitFunTy ty2 vts
@@ -1326,47 +1330,41 @@ addDftMarshaller pos parms parm extTy varExTys = do
     -- match Haskell with C arguments (and results)
     --
     addDft ((CHSPlusParm):parms'') (_:cTys) = do
-      (parms', _) <- addDft parms'' cTys
-      return (CHSPlusParm : parms', True)
+      parms' <- addDft parms'' cTys
+      return (CHSPlusParm : parms')
     addDft ((CHSParm imMarsh hsTy False omMarsh _ p c):parms'') (cTy:cTys) = do
-      (imMarsh', isImpureIn ) <- addDftIn p imMarsh hsTy [cTy]
-      (omMarsh', isImpureOut) <- addDftVoid omMarsh
-      (parms'  , isImpure   ) <- addDft parms'' cTys
-      return (CHSParm imMarsh' hsTy False omMarsh' False p c : parms',
-              isImpure || isImpureIn || isImpureOut)
+      imMarsh' <- addDftIn p imMarsh hsTy [cTy]
+      omMarsh' <- addDftVoid omMarsh
+      parms'   <- addDft parms'' cTys
+      return (CHSParm imMarsh' hsTy False omMarsh' False p c : parms')
     addDft ((CHSParm imMarsh hsTy True  omMarsh _ p c):parms'') (ct1:ct2:cts) =
       do
-      (imMarsh', isImpureIn ) <- addDftIn p imMarsh hsTy [ct1, ct2]
-      (omMarsh', isImpureOut) <- addDftVoid omMarsh
-      (parms'  , isImpure   ) <- addDft parms'' cts
-      return (CHSParm imMarsh' hsTy True omMarsh' False p c : parms',
-              isImpure || isImpureIn || isImpureOut)
-    addDft [] [] = return ([], False)
+      imMarsh' <- addDftIn p imMarsh hsTy [ct1, ct2]
+      omMarsh' <- addDftVoid omMarsh
+      parms'   <- addDft parms'' cts
+      return (CHSParm imMarsh' hsTy True omMarsh' False p c : parms')
+    addDft [] [] = return []
     addDft ((CHSParm _ _ _ _ _ pos' _):_) [] =
       marshArgMismatchErr pos' "This parameter is in excess of the C arguments."
     addDft [] (_:_) =
       marshArgMismatchErr pos "Parameter marshallers are missing."
     --
-    addDftIn _ imMarsh@(Just (_, kind)) _ _ = return (imMarsh, kind == CHSIOArg)
+    addDftIn _ imMarsh@(Just (_, _)) _ _ = return imMarsh
     addDftIn pos' _imMarsh@Nothing hsTy cts = do
       marsh <- lookupDftMarshIn hsTy cts
-      when (isNothing marsh) $
-        noDftMarshErr pos' "\"in\"" hsTy cts
-      return (marsh, case marsh of {Just (_, kind) -> kind == CHSIOArg})
+      when (isNothing marsh) $ noDftMarshErr pos' "\"in\"" hsTy cts
+      return marsh
     --
-    addDftOut _ omMarsh@(Just (_, kind)) _ _ =
-      return (omMarsh, kind == CHSIOArg)
+    addDftOut _ omMarsh@(Just (_, _)) _ _ = return omMarsh
     addDftOut pos' _omMarsh@Nothing hsTy cts = do
       marsh <- lookupDftMarshOut hsTy cts
-      when (isNothing marsh) $
-        noDftMarshErr pos' "\"out\"" hsTy cts
-      return (marsh, case marsh of {Just (_, kind) -> kind == CHSIOArg})
+      when (isNothing marsh) $ noDftMarshErr pos' "\"out\"" hsTy cts
+      return marsh
     --
     -- add void marshaller if no explict one is given
     --
-    addDftVoid marsh@(Just (_, kind)) = return (marsh, kind == CHSIOArg)
-    addDftVoid Nothing = do
-      return (Just (Left (internalIdent "void"), CHSVoidArg), False)
+    addDftVoid marsh@(Just (_, _)) = return marsh
+    addDftVoid Nothing = return $ Just (Left (internalIdent "void"), CHSVoidArg)
 
 -- | compute from an access path, the declarator finally accessed and the index
 -- path required for the access
@@ -1756,6 +1754,7 @@ isFunExtType (IOET     _  ) = True
 isFunExtType _              = False
 
 numArgs                  :: ExtType -> Int
+numArgs (FunET UnitET f) = numArgs f
 numArgs (FunET _ f) = 1 + numArgs f
 numArgs _           = 0
 
@@ -1827,14 +1826,13 @@ showExtFunType t _ = showExtType t
 --
 -- * the identifier specifies in which of the declarators we are interested
 --
--- * if the third argument is 'True', the function result should not be
---   wrapped into an 'IO' type
+-- * the function result is wrapped into an 'IO' type
 --
 -- * the caller has to guarantee that the object does indeed refer to a
 --   function
 --
-extractFunType :: Position -> CDecl -> Bool -> Maybe [Bool] -> GB ExtType
-extractFunType pos cdecl isPure wrapped =
+extractFunType :: Position -> CDecl -> Maybe [Bool] -> GB ExtType
+extractFunType pos cdecl wrapped =
   do
     -- remove all declarators except that of the function we are processing;
     -- then, extract the functions arguments and result type (also check that
@@ -1846,9 +1844,7 @@ extractFunType pos cdecl isPure wrapped =
     --
     -- we can now add the 'IO' monad if this is no pure function
     --
-    let protoResultType = if isPure
-                          then      preResultType
-                          else IOET preResultType
+    let protoResultType = IOET preResultType
     let resultType = if variadic
                      then VarFunET protoResultType
                      else          protoResultType
@@ -1948,7 +1944,7 @@ extractCompType isResult usePtrAliases isPtr cdecl@(CDecl specs' declrs ats) =
     funType = do
       traceFunType
       -- ??? IS Nothing OK HERE?
-      extractFunType (posOf cdecl) cdecl False Nothing
+      extractFunType (posOf cdecl) cdecl Nothing
 
     makeAliasedCompType :: Ident -> CHSTypedefInfo -> GB ExtType
     makeAliasedCompType cIde (hsIde, et) = do

@@ -2,6 +2,7 @@ module Main where
 
 import Foreign.C.Types
 import Foreign.C.String
+import System.IO.Unsafe (unsafePerformIO)
 
 #include "issue98.h"
 
