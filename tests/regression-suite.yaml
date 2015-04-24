@@ -79,6 +79,9 @@
   name: hsndfile
   apt-packages: [libsndfile1-dev]
 
+-
+  name: hsshellscript
+
 # BUILD PROBLEMS WITH CURRENT C2HS
 #-
 #  name: ncurses
