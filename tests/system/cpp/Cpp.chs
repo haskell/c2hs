@@ -4,6 +4,7 @@ module Cpp where
 
 import Foreign
 import Foreign.C
+import System.IO.Unsafe (unsafePerformIO)
 
 -- CPP directive
 -- -

@@ -2,6 +2,7 @@
 import Control.Monad
 import Foreign
 import Foreign.C
+import System.IO.Unsafe (unsafePerformIO)
 
 cToEnum :: (Integral i, Enum e) => i -> e
 cToEnum  = toEnum . fromIntegral
@@ -24,7 +25,7 @@ cFromEnum  = fromIntegral . fromEnum
 {#enum enums_enums as Enums {underscoreToCase, ENUMS_TWO as Two}#}
 
 colourOfSide :: Side -> Colour
-colourOfSide  = 
+colourOfSide  =
   cToEnum . {#call fun colourOfSide as colourOfSidePrim#} . cFromEnum
 
 #c
@@ -42,7 +43,7 @@ enum ThisThatCast {
 {#enum ThisThatCast {}#}
 
 
-main :: IO () 
+main :: IO ()
 main  = do
 	  const (return ()) discard
 	  unless (1 == fromEnum One) $

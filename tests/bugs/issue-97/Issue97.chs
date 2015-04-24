@@ -5,6 +5,7 @@ module Main where
 {#import Issue97A#}
 import Foreign
 import Foreign.C.Types
+import System.IO.Unsafe (unsafePerformIO)
 
 #include "issue97.h"
 
