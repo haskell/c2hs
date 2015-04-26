@@ -340,27 +340,30 @@ getDeclOf ide  =
       DontCareCD -> interr "CTrav.getDeclOf: Don't care!"
       TagCD _    -> interr "CTrav.getDeclOf: Illegal tag!"
       ObjCD obj  -> case obj of
-                      TypeCO    decl -> traceTypeCO decl >>
-                                        return decl
-                      ObjCO     decl -> traceObjCO decl >>
-                                        return decl
-                      EnumCO    _ _  -> illegalEnum
-                      BuiltinCO      -> illegalBuiltin
+                      TypeCO    decl        -> traceTypeCO decl >>
+                                               return decl
+                      ObjCO     decl        -> traceObjCO decl >>
+                                               return decl
+                      EnumCO    _ _         -> illegalEnum
+                      BuiltinCO Nothing     -> illegalBuiltin
+                      BuiltinCO (Just decl) -> traceBuiltinCO >>
+                                               return decl
   where
-    illegalEnum    = interr "CTrav.getDeclOf: Illegal enum!"
-    illegalBuiltin = interr "CTrav.getDeclOf: Attempted to get declarator of \
-                            \builtin entity!"
+    illegalEnum      = interr "CTrav.getDeclOf: Illegal enum!"
+    illegalBuiltin   = interr "CTrav.getDeclOf: Attempted to get declarator of \
+                              \builtin entity!"
                      -- if the latter ever becomes necessary, we have to
                      -- change the representation of builtins and give them
                      -- some dummy declarator
-    traceEnter  = traceCTrav $
-                    "Entering `getDeclOf' for `" ++ identToString ide
+    traceEnter       = traceCTrav
+                     $ "Entering `getDeclOf' for `" ++ identToString ide
                     ++ "'...\n"
-    traceTypeCO decl = traceCTrav $
-                    "...found a type object.\n" ++ show decl ++ "\n"
-    traceObjCO decl = traceCTrav $
-                    "...found a vanilla object.\n" ++ show decl ++ "\n"
-
+    traceTypeCO decl = traceCTrav
+                     $ "...found a type object:\n" ++ show decl ++ "\n"
+    traceObjCO decl  = traceCTrav
+                     $ "...found a vanilla object:\n" ++ show decl ++ "\n"
+    traceBuiltinCO   = traceCTrav
+                     $ "...found a builtin object with a proxy decl.\n"
 
 -- convenience functions
 --
@@ -377,10 +380,10 @@ findTypeObjMaybe ide useShadows  =
             then findObjShadow ide
             else liftM (fmap (\obj -> (obj, ide))) $ findObj ide
     case oobj of
-      Just obj@(TypeCO _ , _) -> return $ Just obj
-      Just obj@(BuiltinCO, _) -> return $ Just obj
-      Just _                  -> typedefExpectedErr ide
-      Nothing                 -> return $ Nothing
+      Just obj@(TypeCO _ ,   _) -> return $ Just obj
+      Just obj@(BuiltinCO _, _) -> return $ Just obj
+      Just _                    -> typedefExpectedErr ide
+      Nothing                   -> return $ Nothing
 
 -- | find a type object in the object name space; raises an error and exception
 -- if the identifier is not defined
@@ -774,9 +777,9 @@ lookupStructUnion ide preferTag useShadows = do
           then findObjShadow ide
           else liftM (fmap (\obj -> (obj, ide))) $ findObj ide
   let oobj = case mobj of
-        Just obj@(TypeCO _ , _) -> Just obj
-        Just obj@(BuiltinCO, _) -> Just obj
-        _                       -> Nothing
+        Just obj@(TypeCO{}, _)    -> Just obj
+        Just obj@(BuiltinCO{}, _) -> Just obj
+        _                         -> Nothing
   case preferTag of
     True -> case otag of
       Just tag -> extractStruct (posOf ide) tag
