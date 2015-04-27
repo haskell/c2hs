@@ -33,12 +33,38 @@ module C2HS.C.Builtin (
   builtinTypeNames
 ) where
 
-import Language.C.Data.Ident (Ident, builtinIdent)
+-- Language.C / compiler toolkit
+import Language.C.Data.Position
+import Language.C.Data.Ident
+import Language.C.Syntax
+import Language.C.Data
 
 import C2HS.C.Attrs (CObj(BuiltinCO))
-
 
 -- | predefined type names
 --
 builtinTypeNames :: [(Ident, CObj)]
-builtinTypeNames  = [(builtinIdent "__builtin_va_list", BuiltinCO)]
+builtinTypeNames  =
+    [(va_list_ide, BuiltinCO $ Just ptrVoidDecl)]
+    where
+        va_list_ide :: Ident
+        va_list_ide = builtinIdent "__builtin_va_list"
+
+        ptrVoidDecl :: CDecl
+        ptrVoidDecl =
+            CDecl [ CStorageSpec (CTypedef builtin)
+                  , CTypeSpec (CVoidType builtin)
+                  ]
+                  [( Just $ CDeclr (Just va_list_ide)
+                                   [CPtrDeclr [] builtin]
+                                   Nothing
+                                   []
+                                   builtin
+                   , Nothing
+                   , Nothing
+                   )]
+                  builtin
+
+        builtin :: NodeInfo
+        builtin = mkNodeInfoOnlyPos builtinPos
+

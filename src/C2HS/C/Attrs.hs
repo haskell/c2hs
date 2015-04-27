@@ -269,12 +269,13 @@ pshow = renderStyle (Style OneLineMode 80 1.5) . pretty
 data CObj = TypeCO    CDecl             -- typedef declaration
           | ObjCO     CDecl             -- object or function declaration
           | EnumCO    Ident CEnum       -- enumerator
-          | BuiltinCO                   -- builtin object
+          | BuiltinCO (Maybe CDecl)     -- builtin object, with equivalent
+                                        -- C decl if one exists
 instance Show CObj where
   show (TypeCO decl) = "TypeCO { " ++ pshow decl ++ " }"
   show (ObjCO decl) = "ObjCO  { "++ pshow decl ++ " }"
   show (EnumCO ide enum) = "EnumCO "++ show ide ++ " { " ++ pshow enum  ++ " }"
-  show BuiltinCO = "BuiltinCO"
+  show (BuiltinCO _) = "BuiltinCO"
 
 -- two C objects are equal iff they are defined by the same structure
 -- tree node (i.e., the two nodes referenced have the same attribute
@@ -290,7 +291,7 @@ instance Pos CObj where
   posOf (TypeCO    def  ) = posOf def
   posOf (ObjCO     def  ) = posOf def
   posOf (EnumCO    ide _) = posOf ide
-  posOf (BuiltinCO      ) = builtinPos
+  posOf (BuiltinCO _    ) = builtinPos
 
 
 -- C tagged objects including operations

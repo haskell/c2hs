@@ -1366,7 +1366,7 @@ addDftMarshaller pos parms parm extTy varExTys = do
     --
     addDftVoid marsh@(Just (_, kind)) = return (marsh, kind == CHSIOArg)
     addDftVoid Nothing = do
-      return (Just (Left (internalIdent "void"), CHSVoidArg), False)
+      return (Just (Left voidIde, CHSVoidArg), False)
 
 -- | compute from an access path, the declarator finally accessed and the index
 -- path required for the access
