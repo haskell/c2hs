@@ -82,15 +82,10 @@
 -
   name: hsshellscript
 
-# BUILD PROBLEMS WITH CURRENT C2HS
-#-
-#  name: ncurses
-#  apt-packages: [ncurses-dev]
-
-# DEPENDENCY PROBLEMS
+# DEPENDENCIES ONLY AVAILABLE IN UBUNTU 14.04+: TRAVIS IS AT 12.04
 # -
 #   name: hsqml
-#   apt-packages: [libqtscript4-core, libqt4-declarative]
+#   apt-packages: [???]
 #   on-travis: false
 
 -
@@ -98,12 +93,12 @@
   apt-ppa: [igraph/ppa]
   apt-packages: [libigraph0-dev]
 
+# BUILD PROBLEMS WITH CURRENT C2HS
+#-
+#  name: ncurses
+#  apt-packages: [ncurses-dev]
+
 # NEED TO RETEST
 # -
 #   name: OpenCL
 #   on-travis: false
-
-# DEPENDENCY BUILD ISSUES
-#-
-#  name: ipopt-hs
-#  apt-packages: [coinor-libipopt-dev]
