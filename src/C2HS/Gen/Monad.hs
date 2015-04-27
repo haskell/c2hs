@@ -77,7 +77,8 @@ module C2HS.Gen.Monad (
   objIs, queryObj, sizeIs, querySize, queryClass, queryPointer,
   mergeMaps, dumpMaps, queryEnum, isEnum,
   queryTypedef, isC2HSTypedef, queryDefaultMarsh, isDefaultMarsh,
-  addWrapper, getWrappers
+  addWrapper, getWrappers,
+  addHsTypeDependency, addHsFunDependency, getHsDependencies
 ) where
 
 -- standard libraries
@@ -249,6 +250,12 @@ instance Ord Wrapper where
 
 type WrapperSet = Set Wrapper
 
+data Dependency = Type String String Bool
+                | Function String String
+                deriving (Eq, Ord, Show)
+
+type Dependencies = Set Dependency
+
 {- FIXME: What a mess...
 instance Show HsObject where
   show (Pointer ptrType isNewtype) =
@@ -310,7 +317,8 @@ data GBState  = GBState {
   enums     :: EnumSet,              -- enumeration hooks
   tdmap     :: TypedefMap,           -- typedefs
   dmmap     :: DefaultMarshMap,      -- user-defined default marshallers
-  wrappers  :: WrapperSet
+  wrappers  :: WrapperSet,           -- C wrapper functions
+  deps      :: Dependencies          -- Haskell dependencies (for imports)
   }
 
 type GB a = CT GBState a
@@ -327,7 +335,8 @@ initialGBState  = GBState {
                     enums = Set.empty,
                     tdmap = Map.empty,
                     dmmap = Map.empty,
-                    wrappers = Set.empty
+                    wrappers = Set.empty,
+                    deps = Set.empty
                   }
 
 -- | set the dynamic library and library prefix
@@ -558,6 +567,22 @@ addWrapper wfn ofn cdecl args bools pos =
 
 getWrappers :: GB [Wrapper]
 getWrappers = Set.toList `fmap` readCT wrappers
+
+
+-- | add Haskell type dependencies for import generation
+addHsTypeDependency :: String -> String -> Bool -> GB ()
+addHsTypeDependency m t cons =
+  let dep = Type m t cons
+  in transCT (\st -> (st { deps = Set.insert dep (deps st) }, ()))
+
+-- | add Haskell function dependencies for import generation
+addHsFunDependency :: String -> String -> GB ()
+addHsFunDependency m f =
+  let dep = Function m f
+  in transCT (\st -> (st { deps = Set.insert dep (deps st) }, ()))
+
+getHsDependencies :: GB [Dependency]
+getHsDependencies = Set.toList `fmap` readCT deps
 
 
 -- error messages
