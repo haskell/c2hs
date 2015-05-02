@@ -93,6 +93,10 @@
   apt-ppa: [igraph/ppa]
   apt-packages: [libigraph0-dev]
 
+-
+  name: libssh2
+  apt-packages: [libssh2-1-dev]
+
 # BUILD PROBLEMS WITH CURRENT C2HS
 #-
 #  name: ncurses
