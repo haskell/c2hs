@@ -1477,10 +1477,10 @@ refStruct su ide =
 declNamed :: CDecl -> Ident -> Bool
 (CDecl _ [(Nothing   , _, _)] _) `declNamed` _   = False
 (CDecl _ [(Just declr, _, _)] _) `declNamed` ide = declr `declrNamed` ide
-(CDecl _ []                   _) `declNamed` _   =
-  interr "GenBind.declNamed: Abstract declarator in structure!"
-_                                `declNamed` _   =
-  interr "GenBind.declNamed: More than one declarator!"
+cdecl@(CDecl _ []             _) `declNamed` _   =
+  errorAtPos (posOf cdecl) ["GenBind.declNamed: Abstract declarator in structure!"]
+cdecl                            `declNamed` _   =
+  errorAtPos (posOf cdecl) ["GenBind.declNamed: More than one declarator!"]
 
 -- | Haskell code for writing to or reading from a struct
 --
@@ -1542,8 +1542,8 @@ setGet pos access offsets arrSize ty onewtype =
     -- bitfields
     --
     checkType (VarFunET  _    )          = variadicErr pos pos
-    checkType (IOET      _    )          = interr "GenBind.setGet: Illegal \
-                                                  \type!"
+    checkType (IOET      _    )          = errorAtPos pos ["GenBind.setGet: Illegal \
+                                                            \type!"]
     checkType (UnitET         )          = voidFieldErr pos
     checkType (DefinedET _ _  )          = return Nothing-- can't check further
     checkType (PrimET    (CUFieldPT bs)) = return $ Just (False, bs)
@@ -1661,7 +1661,7 @@ classDef pos className typeName ptrType isNewtype superClasses =
   do
     let
       toMethodName = case typeName of
-        ""   -> interr "GenBind.classDef: Illegal identifier!"
+        ""   -> errorAtPos pos ["GenBind.classDef: Illegal identifier!"]
         c:cs -> toLower c : cs
       fromMethodName  = "from" ++ typeName
       classDefContext = case superClasses of
@@ -1684,7 +1684,7 @@ classDef pos className typeName ptrType isNewtype superClasses =
         unless (ptrType == ptrType') $
           pointerTypeMismatchErr pos className superName
         let toMethodName    = case ptrName of
-              ""   -> interr "GenBind.classDef: Illegal identifier - 2!"
+              ""   -> errorAtPos pos ["GenBind.classDef: Illegal identifier - 2!"]
               c:cs -> toLower c : cs
             fromMethodName  = "from" ++ ptrName
             castFun         = "cast" ++ show ptrType
@@ -1911,7 +1911,7 @@ extractPtrType cdecl = do
 extractCompType :: Bool -> Bool -> Bool -> CDecl -> GB ExtType
 extractCompType isResult usePtrAliases isPtr cdecl@(CDecl specs' declrs ats) =
   if length declrs > 1
-  then interr "GenBind.extractCompType: Too many declarators!"
+  then errorAtPos (posOf cdecl) ["GenBind.extractCompType: Too many declarators!"]
   else case declrs of
     [(Just declr, _, sz)] | isPtr || isPtrDeclr declr -> ptrType declr
                           | isFunDeclr declr -> funType
@@ -2072,7 +2072,7 @@ specType cpos specs'' osize =
       case tspecs of
         [CSUType   cu _] -> return $ SUET cu                 -- struct or union
         [CEnumType _  _] -> return $ PrimET CIntPT           -- enum
-        [CTypeDef  _  _] -> interr "GenBind.specType: Illegal typedef alias!"
+        [CTypeDef  _  _] -> errorAtPos cpos ["GenBind.specType: Illegal typedef alias!"]
         _                -> trace ("\nERROR:\nspecs''=" ++ show specs'' ++ "\nosize=" ++ show osize ++ "\ntspecs=" ++ show tspecs ++ "\nlookup=" ++ show (lookupTSpec tspecs typeMap) ++ "\n\n") $ illegalTypeSpecErr cpos
   where
     lookupTSpec = lookupBy matches
@@ -2298,9 +2298,9 @@ sizeAlignOfBase _ (CDecl dclspec
                    attr)
     IntResult len <- evalConstCExpr lexpr
     return (fromIntegral len `scaleBitSize` bitsize, align)
-sizeAlignOfBase _ (CDecl _ [(Just (CDeclr _ (CArrDeclr _ (CNoArrSize _) _ :
+sizeAlignOfBase _ cdecl@(CDecl _ [(Just (CDeclr _ (CArrDeclr _ (CNoArrSize _) _ :
                                              _) _ _ _), _init, _expr)] _) =
-    interr "GenBind.sizeAlignOf: array of undeclared size."
+    errorAtPos (posOf cdecl) ["GenBind.sizeAlignOf: array of undeclared size."]
 sizeAlignOfBase ptr cdecl = do
   traceAliasCheck
   case checkForOneAliasName cdecl of
@@ -2326,7 +2326,7 @@ sizeAlignOfSingle ptr cdecl = do
     VarFunET _ -> do
       align <- alignment CFunPtrPT
       return (bitSize CFunPtrPT, align)
-    IOET  _ -> interr "GenBind.sizeof: Illegal IO type!"
+    IOET  _ -> errorAtPos (posOf cdecl) ["GenBind.sizeof: Illegal IO type!"]
     PtrET t
       | isFunExtType t -> do
         align <- alignment CFunPtrPT
@@ -2335,7 +2335,7 @@ sizeAlignOfSingle ptr cdecl = do
         align <- alignment CPtrPT
         return (bitSize CPtrPT, align)
     DefinedET _ _ ->
-      interr "GenBind.sizeAlignOf: Should never get a defined type"
+      errorAtPos (posOf cdecl) ["GenBind.sizeAlignOf: Should never get a defined type"]
     PrimET pt -> do
       align <- alignment pt
       return (bitSize pt, align)
@@ -2437,7 +2437,7 @@ evalConstCExpr (CCall _ _ at) =
   illegalConstExprErr (posOf at) "function call"
 evalConstCExpr (CMember _ _ _ at) =
   illegalConstExprErr (posOf at) "a . or -> operator"
-evalConstCExpr (CVar ide''' at) =
+evalConstCExpr cdecl@(CVar ide''' at) =
   do
     (cobj, _) <- findValueObj ide''' False
     case cobj of
@@ -2454,7 +2454,7 @@ evalConstCExpr (CVar ide''' at) =
     -- Compute the tag value for `ide' defined in the given enumerator list
     --
     enumTagValue _   []                     _   =
-      interr "GenBind.enumTagValue: enumerator not in declaration"
+      errorAtPos (posOf cdecl) ["GenBind.enumTagValue: enumerator not in declaration"]
     enumTagValue ide ((ide', oexpr):enumrs) val =
       do
         val' <- case oexpr of
@@ -2554,8 +2554,8 @@ applyBin _    _      (IntResult   _)
 applyBin _    _      (FloatResult _)
                      (FloatResult _) =
   todo "GenBind.applyBin: Not yet implemented operator in constant expression."
-applyBin _    _      _ _             =
-  interr "GenBind.applyBinOp: Illegal combination!"
+applyBin pos    _      _ _             =
+  errorAtPos pos ["GenBind.applyBinOp: Illegal combination!"]
 
 applyUnary :: Position -> CUnaryOp -> ConstResult -> GB ConstResult
 applyUnary cpos CPreIncOp  _               =
