@@ -2548,12 +2548,12 @@ applyBin _    COrOp  (IntResult   x)
                      (IntResult   y) = return $ IntResult (x .|. y)
 applyBin _    CAndOp (IntResult   x)
                      (IntResult   y) = return $ IntResult (x .&. y)
-applyBin _    _      (IntResult   _)
+applyBin pos  _      (IntResult   _)
                      (IntResult   _) =
-  todo "GenBind.applyBin: Not yet implemented operator in constant expression."
-applyBin _    _      (FloatResult _)
+  todo $ "GenBind.applyBin: Not yet implemented operator in constant expression. " ++ show pos
+applyBin pos  _      (FloatResult _)
                      (FloatResult _) =
-  todo "GenBind.applyBin: Not yet implemented operator in constant expression."
+  todo $ "GenBind.applyBin: Not yet implemented operator in constant expression. " ++ show pos
 applyBin pos    _      _ _             =
   errorAtPos pos ["GenBind.applyBinOp: Illegal combination!"]
 
@@ -2573,8 +2573,8 @@ applyUnary cpos CIndOp     _               =
 applyUnary _    CPlusOp    arg             = return arg
 applyUnary _    CMinOp     (IntResult   x) = return (IntResult (-x))
 applyUnary _    CMinOp     (FloatResult x) = return (FloatResult (-x))
-applyUnary _    CCompOp    _               =
-  todo "GenBind.applyUnary: ~ not yet implemented."
+applyUnary pos  CCompOp    _               =
+  todo $ "GenBind.applyUnary: ~ not yet implemented. " ++ show pos
 applyUnary _    CNegOp     (IntResult   x) =
   let r = toInteger . fromEnum $ (x == 0)
   in return (IntResult r)
