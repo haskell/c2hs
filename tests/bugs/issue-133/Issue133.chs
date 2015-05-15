@@ -1,7 +1,5 @@
 module Main where
 
-import Foreign.Ptr
-
 #include "issue133.h"
 
 {#pointer tdptst as VoidTest1#}

@@ -1,10 +1,5 @@
 module Main where
 
-import Data.Bits
-import Foreign.C
-import Foreign.Ptr
-import Foreign.Storable
-
 #include "issue32.h"
 
 {#pointer *testStruct as TestStructPtr #}

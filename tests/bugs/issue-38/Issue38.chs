@@ -1,7 +1,5 @@
 module Main where
 
-import Foreign.C
-
 #include "issue38.h"
 
 {#enum test_enum as TestEnum {underscoreToCase} deriving (Eq, Show)#}

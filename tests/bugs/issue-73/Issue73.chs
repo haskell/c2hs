@@ -1,9 +1,5 @@
 module Main where
 
-import Control.Monad
-import Foreign
-import Foreign.C
-
 #include "issue73.h"
 
 -- * withForeignPtr and newForeignPtr_ for foreign pointer hooks

@@ -1,7 +1,5 @@
 module Main where
 
-import Foreign.C
-
 #include "issue47.h"
 
 {#fun foo {`Int'} -> `()'#}

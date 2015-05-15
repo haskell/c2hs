@@ -1,12 +1,8 @@
 module Main where
 
 import Foreign.C.Types
-import Foreign.Ptr
-import Foreign.Storable
 import Foreign.Marshal.Alloc
-import Foreign.Marshal.Utils
-
-import System.IO.Unsafe(unsafePerformIO)
+import Foreign.Storable
 
 #include "issue130.h"
 

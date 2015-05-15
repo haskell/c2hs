@@ -1,10 +1,5 @@
 module Main where
 
-import Control.Monad
-import Foreign
-import Foreign.C.String
-import Foreign.C.Types
-
 #include <stdio.h>
 #include <fcntl.h>
 

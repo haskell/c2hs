@@ -1,8 +1,5 @@
 module Main where
 
-import Foreign
-import Foreign.C
-
 #include "issue54.h"
 
 {#pointer *bar as Bar#}

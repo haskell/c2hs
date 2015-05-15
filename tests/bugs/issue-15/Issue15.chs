@@ -1,6 +1,5 @@
 module Main where
 
-import Foreign.C.Types
 import Numeric
 import Data.Char
 

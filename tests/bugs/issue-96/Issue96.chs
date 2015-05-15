@@ -1,8 +1,6 @@
 module Main where
 
 import Foreign.C.Types
-import Foreign.Ptr
-import Foreign.Storable
 
 #include "issue96.h"
 

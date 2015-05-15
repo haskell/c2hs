@@ -111,7 +111,7 @@ import Prelude hiding (exp, lookup)
 import qualified Prelude
 
 -- standard libraries
-import Data.Char     (toLower)
+import Data.Char     (toLower, isSpace)
 import Data.Function (on)
 import Data.IORef    (IORef, newIORef, readIORef, writeIORef)
 import System.IO.Unsafe (unsafePerformIO)
@@ -162,9 +162,8 @@ import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
                    mergeMaps, dumpMaps, queryEnum, isEnum,
                    queryTypedef, isC2HSTypedef,
                    queryDefaultMarsh, isDefaultMarsh, addWrapper, getWrappers,
-                   addHsDependency)
+                   addHsDependency, getHsDependencies)
 
-import Debug.Trace
 
 -- Module import alias.
 imp :: String
@@ -261,9 +260,8 @@ lookupDftMarshIn hsty _ = do
       addHsDependency "Foreign.ForeignPtr"
       return $ Just (Left withForeignPtrIde, CHSIOArg)
     --  4. foreign newtype pointer hooks
-    (False, Just (Pointer (CHSForeignPtr _) True)) -> do
-      addHsDependency "Foreign.Marshal.Utils"
-      return $ Just (Right $ impm ("with" ++ hsty), CHSIOArg)
+    (False, Just (Pointer (CHSForeignPtr _) True)) ->
+      return $ Just (Right $ "with" ++ hsty, CHSIOArg)
     _ -> return Nothing
 -- FIXME: handle array-list conversion
 
@@ -336,13 +334,12 @@ lookupDftMarshOut hsty _ = do
     --  4. foreign newtype pointer hooks
     (False, Just (Pointer (CHSForeignPtr Nothing) True)) -> do
       addHsDependency "Foreign.ForeignPtr"
-      addHsDependency "Control.Monad"
-      return $ Just (Right $ impm "newForeignPtr_" ++ " " ++ impm ">=>" ++
+      return $ Just (Right $ "\\x -> " ++ impm "newForeignPtr_ x >>= " ++
                              " (return . " ++ hsty ++ ")",
                      CHSIOArg)
     (False, Just (Pointer (CHSForeignPtr (Just fin)) True)) -> do
       code <- newForeignPtrCode fin
-      return $ Just (Right $ code ++ " " ++ impm ">=>" ++ " (return . " ++
+      return $ Just (Right $ "\\x -> " ++ code ++ " x >>= (return . " ++
                      hsty ++ ")", CHSIOArg)
     _ -> return Nothing
   return res
@@ -453,6 +450,30 @@ expandHooks ac mod' = do
   (_, res) <- runCT (expandModule mod') ac initialGBState
   return res
 
+addImports :: [CHSFrag] -> [String] -> [CHSFrag]
+addImports fs imps = before ++ impfrags ++ after
+  where impfrags = concatMap impfrag imps
+        impfrag i =
+          [CHSVerb ("import qualified " ++ i ++ " as " ++ imp) imppos,
+           CHSVerb "\n" imppos]
+        (before, after) = span canGoBefore fs
+        imppos = posOf $ last before
+        canGoBefore (CHSLine _)    = True
+        canGoBefore (CHSCPP _ _ _) = True
+        canGoBefore (CHSC _ _)     = True
+        canGoBefore (CHSHook _ _)  = False
+        canGoBefore (CHSVerb hs _) =
+          let hs' = dropWhile isSpace hs
+          in hs' == "" ||
+             "--" `isPrefixOf` hs' ||
+             "{-" `isPrefixOf` hs' ||
+             "#" `isPrefixOf` hs' ||
+             "-}" `isPrefixOf` hs' ||
+             "import " `isPrefixOf` hs' ||
+             "module " `isPrefixOf` hs' ||
+             isSpace (head hs)
+        canGoBefore _              = False
+
 expandModule :: CHSModule -> GB (CHSModule, String, [Wrapper], String)
 expandModule (CHSModule mfrags)  =
   do
@@ -460,6 +481,8 @@ expandModule (CHSModule mfrags)  =
     --
     traceInfoExpand
     frags'       <- expandFrags mfrags
+    hsdeps       <- getHsDependencies
+    let frags'' = addImports frags' hsdeps
     delayedFrags <- getDelayedCode
 
     -- get .chi dump
@@ -479,7 +502,7 @@ expandModule (CHSModule mfrags)  =
         traceInfoOK
         warnmsgs <- showErrors
         wraps <- getWrappers
-        return (CHSModule (frags' ++ delayedFrags), chi, wraps, warnmsgs)
+        return (CHSModule (frags'' ++ delayedFrags), chi, wraps, warnmsgs)
   where
     traceInfoExpand = putTraceStr tracePhasesSW
                         ("...expanding binding hooks...\n")
@@ -1551,6 +1574,7 @@ setGet pos access offsets arrSize ty onewtype =
                             CHSGet -> do
                               op <- peekOp offset ty arrSize
                               addHsDependency "Data.Bits"
+                              addHsDependency "Foreign.C.Types"
                               return $ "val <- " ++ op ++ extractBitfield
                             CHSSet -> do
                               op <- peekOp offset ty arrSize
@@ -1610,10 +1634,12 @@ setGet pos access offsets arrSize ty onewtype =
                ++ " ptr " ++ show off ++ " :: IO " ++ impm "CInt" ++ ")"
     peekOp off t Nothing = do
       addHsDependency "Foreign.Storable"
+      addExtTypeDependency t
       return $ impm "peekByteOff" ++ " ptr " ++ show off
                ++ " :: IO " ++ showExtType t
     peekOp off t (Just _) = do
       addHsDependency "Foreign.Ptr"
+      addExtTypeDependency t
       return $ "return $ ptr `" ++ impm "plusPtr" ++ "` " ++ show off ++
                " :: IO " ++ showExtType t
     pokeOp off (PrimET CBoolPT) var Nothing = do
@@ -1625,11 +1651,13 @@ setGet pos access offsets arrSize ty onewtype =
                var ++ " :: " ++ impm "CInt" ++ ")"
     pokeOp off t var Nothing = do
       addHsDependency "Foreign.Storable"
+      addExtTypeDependency t
       return $ impm "pokeByteOff" ++ " ptr " ++ show off ++ " (" ++ var ++ " :: " ++
                                                   showExtType t ++ ")"
     pokeOp off t var (Just sz) = do
       addHsDependency "Foreign.Ptr"
       addHsDependency "Foreign.Marshal.Array"
+      addExtTypeDependency t
       return $ impm "copyArray" ++ " (ptr `" ++ impm "plusPtr" ++ "` "
                ++ show off ++ ") (" ++
                var ++ " :: " ++ showExtType t ++ ") " ++ show sz
@@ -1653,13 +1681,20 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
                   then hsName           -- abstract type
                   else hsType           -- concrete type
         ptrCon  = case ptrKind of
-                    CHSPtr | isFun -> "FunPtr"
-                    _              -> show ptrKind
+                    CHSPtr | isFun -> impm "FunPtr"
+                    _              -> impm $ show ptrKind
         ptrType = ptrCon ++ " (" ++ ptrArg ++ ")"
         thePtr  = (isStar, cNameFull)
     case ptrKind of
-      CHSForeignPtr _ -> thePtr `ptrMapsTo` ("Ptr (" ++ ptrArg ++ ")",
-                                             "Ptr (" ++ ptrArg ++ ")")
+      CHSPtr          -> addHsDependency "Foreign.Ptr"
+      CHSForeignPtr _ -> do
+        addHsDependency "Foreign.ForeignPtr"
+        addHsDependency "Foreign.Ptr"
+      CHSStablePtr    -> addHsDependency "Foreign.StablePtr"
+    case ptrKind of
+      CHSForeignPtr _ -> do
+        thePtr `ptrMapsTo` (impm "Ptr (" ++ ptrArg ++ ")",
+                            impm "Ptr (" ++ ptrArg ++ ")")
       _               -> thePtr `ptrMapsTo` (hsName, hsName)
     return $
       case (emit, isNewtype) of
@@ -1678,7 +1713,7 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
           "\nwith" ++ hsName ++ " :: " ++
           hsName ++ " -> (" ++ impm "Ptr" ++ " " ++ hsName
           ++ " -> IO b) -> IO b" ++
-          "\n" ++ impm ("with" ++ hsName) ++ " (" ++ hsName ++
+          "\n" ++ "with" ++ hsName ++ " (" ++ hsName ++
           " fptr) = " ++ impm "withForeignPtr" ++ " fptr"
         | otherwise                = ""
       isForeign (CHSForeignPtr _) = True

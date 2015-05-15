@@ -1,7 +1,6 @@
 module Main where
 
 import Control.Monad
-import Foreign.C
 
 #include "issue10.h"
 

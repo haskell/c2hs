@@ -1,6 +1,5 @@
 module Main where
 
-import Foreign
 import Foreign.C
 
 #include <wchar.h>

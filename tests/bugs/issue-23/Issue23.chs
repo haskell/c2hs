@@ -1,7 +1,5 @@
 module Main where
 
-import Foreign.C
-
 #include "issue23.h"
 #include "issue23x.h"
 
