@@ -78,7 +78,7 @@ module C2HS.Gen.Monad (
   mergeMaps, dumpMaps, queryEnum, isEnum,
   queryTypedef, isC2HSTypedef, queryDefaultMarsh, isDefaultMarsh,
   addWrapper, getWrappers,
-  addHsTypeDependency, addHsFunDependency, getHsDependencies
+  addHsDependency, getHsDependencies
 ) where
 
 -- standard libraries
@@ -250,11 +250,7 @@ instance Ord Wrapper where
 
 type WrapperSet = Set Wrapper
 
-data Dependency = Type String String Bool
-                | Function String String
-                deriving (Eq, Ord, Show)
-
-type Dependencies = Set Dependency
+type Dependencies = Set String
 
 {- FIXME: What a mess...
 instance Show HsObject where
@@ -569,19 +565,11 @@ getWrappers :: GB [Wrapper]
 getWrappers = Set.toList `fmap` readCT wrappers
 
 
--- | add Haskell type dependencies for import generation
-addHsTypeDependency :: String -> String -> Bool -> GB ()
-addHsTypeDependency m t cons =
-  let dep = Type m t cons
-  in transCT (\st -> (st { deps = Set.insert dep (deps st) }, ()))
+-- | add Haskell module dependency for import generation
+addHsDependency :: String -> GB ()
+addHsDependency m = transCT (\st -> (st { deps = Set.insert m (deps st) }, ()))
 
--- | add Haskell function dependencies for import generation
-addHsFunDependency :: String -> String -> GB ()
-addHsFunDependency m f =
-  let dep = Function m f
-  in transCT (\st -> (st { deps = Set.insert dep (deps st) }, ()))
-
-getHsDependencies :: GB [Dependency]
+getHsDependencies :: GB [String]
 getHsDependencies = Set.toList `fmap` readCT deps
 
 
