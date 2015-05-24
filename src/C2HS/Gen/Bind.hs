@@ -462,17 +462,18 @@ addImports fs imps = before ++ impfrags ++ after
         canGoBefore (CHSCPP _ _ _) = True
         canGoBefore (CHSC _ _)     = True
         canGoBefore (CHSHook _ _)  = False
-        canGoBefore (CHSVerb hs _) =
-          let hs' = dropWhile isSpace hs
-          in hs' == "" ||
-             "--" `isPrefixOf` hs' ||
-             "{-" `isPrefixOf` hs' ||
-             "#" `isPrefixOf` hs' ||
-             "-}" `isPrefixOf` hs' ||
-             "import " `isPrefixOf` hs' ||
-             "module " `isPrefixOf` hs' ||
-             isSpace (head hs)
+        canGoBefore (CHSVerb hs pos)
+          | okColumn pos = True
+          | otherwise =
+              let hs' = dropWhile isSpace hs
+              in hs' == "" ||
+                 "--" `isPrefixOf` hs' || "{-" `isPrefixOf` hs' ||
+                 "#" `isPrefixOf` hs' || "-}" `isPrefixOf` hs' ||
+                 "module " `isPrefixOf` hs' ||
+                 ")" `isPrefixOf` hs' || "where" `isPrefixOf` hs' ||
+                 isSpace (head hs)
         canGoBefore _              = False
+        okColumn pos = isSourcePos pos && posColumn pos /= 1
 
 expandModule :: CHSModule -> GB (CHSModule, String, [Wrapper], String)
 expandModule (CHSModule mfrags)  =
