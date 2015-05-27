@@ -1935,6 +1935,7 @@ addExtTypeDependency (PtrET t) = do
   addExtTypeDependency t
 addExtTypeDependency (PrimET CPtrPT) =    addHsDependency "Foreign.Ptr"
 addExtTypeDependency (PrimET CFunPtrPT) = addHsDependency "Foreign.Ptr"
+addExtTypeDependency (PrimET (CAliasedPT _ _ _)) = return ()
 addExtTypeDependency (PrimET _) =         addHsDependency "Foreign.C.Types"
 addExtTypeDependency (SUET _) =           addHsDependency "Foreign.Ptr"
 addExtTypeDependency _ = return ()

@@ -904,7 +904,26 @@ parseCHSModule        :: Position -> String -> CST s CHSModule
 parseCHSModule pos cs  = do
                            toks <- lexCHS cs pos
                            frags <- parseFrags toks
-                           return (CHSModule frags)
+                           return (CHSModule $ mergeFrags frags)
+
+-- | merge fragments
+--
+mergeFrags :: [CHSFrag] -> [CHSFrag]
+mergeFrags (f1:f2:fs) = case fragMerge f1 f2 of
+  Nothing -> f1 : mergeFrags (f2:fs)
+  Just f  -> mergeFrags (f:fs)
+mergeFrags [f] = [f]
+mergeFrags [] = []
+
+-- | merge adjacent fragments
+--
+fragMerge :: CHSFrag -> CHSFrag -> Maybe CHSFrag
+fragMerge (CHSVerb s1 p1) (CHSVerb s2 p2)
+  | isSourcePos p1 && isSourcePos p2 && posRow p1 == posRow p2 =
+    Just $ CHSVerb (s1 ++ s2) p1
+  | otherwise = Nothing
+fragMerge _ _ = Nothing
+
 
 -- | parsing of code fragments
 --
