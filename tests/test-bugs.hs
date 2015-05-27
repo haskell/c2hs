@@ -105,7 +105,7 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
   liftIO $ assertBool "" (T.lines res == expected)
 
 issue136 :: Assertion
-issue136 = build_issue 136
+issue136 = build_issue_tolerant 136
 
 issue133 :: Assertion
 issue133 = hs_only_build_issue 133
