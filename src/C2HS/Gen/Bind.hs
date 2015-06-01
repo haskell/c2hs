@@ -111,7 +111,7 @@ import Prelude hiding (exp, lookup)
 import qualified Prelude
 
 -- standard libraries
-import Data.Char     (toLower, isSpace)
+import Data.Char     (toLower)
 import Data.Function (on)
 import Data.IORef    (IORef, newIORef, readIORef, writeIORef)
 import System.IO.Unsafe (unsafePerformIO)
@@ -445,37 +445,38 @@ castCSCharToCharIde = internalIdent $ impm "castCSCharToChar"
 -- * also returns all warning messages encountered (last component of result)
 --
 expandHooks :: AttrC -> CHSModule ->
-               CST s (CHSModule, String, [Wrapper], String)
+               CST s (CHSModule, String, [Wrapper], String, [String])
 expandHooks ac mod' = do
   (_, res) <- runCT (expandModule mod') ac initialGBState
   return res
 
-addImports :: [CHSFrag] -> [String] -> [CHSFrag]
-addImports fs imps = before ++ impfrags ++ after
-  where impfrags = concatMap impfrag imps
-        impfrag i =
-          [CHSVerb ("import qualified " ++ i ++ " as " ++ imp) imppos,
-           CHSVerb "\n" imppos]
-        (before, after) = span canGoBefore fs
-        imppos = posOf $ last before
-        canGoBefore (CHSLine _)    = True
-        canGoBefore (CHSCPP _ _ _) = True
-        canGoBefore (CHSC _ _)     = True
-        canGoBefore (CHSHook _ _)  = False
-        canGoBefore (CHSVerb hs pos)
-          | okColumn pos = True
-          | otherwise =
-              let hs' = dropWhile isSpace hs
-              in hs' == "" ||
-                 "--" `isPrefixOf` hs' || "{-" `isPrefixOf` hs' ||
-                 "#" `isPrefixOf` hs' || "-}" `isPrefixOf` hs' ||
-                 "module " `isPrefixOf` hs' ||
-                 ")" `isPrefixOf` hs' || "where" `isPrefixOf` hs' ||
-                 isSpace (head hs)
-        canGoBefore _              = False
-        okColumn pos = isSourcePos pos && posColumn pos /= 1
+-- addImports :: [CHSFrag] -> [String] -> [CHSFrag]
+-- addImports fs imps = before ++ impfrags ++ after
+--   where impfrags = concatMap impfrag imps
+--         impfrag i =
+--           [CHSVerb ("import qualified " ++ i ++ " as " ++ imp) imppos,
+--            CHSVerb "\n" imppos]
+--         (before, after) = splitForImports fs []
+--         imppos = posOf $ last before
+--         splitForImports [] acc = (reverse acc, [])
+--         splitForImports (f@(CHSLine _):fs) acc = splitForImports fs (f:acc)
+--         splitForImports (f@(CHSCPP _ _ _):fs) acc = splitForImports fs (f:acc)
+--         splitForImports (f@(CHSC _ _):fs) acc = splitForImports fs (f:acc)
+--         splitForImports (f@(CHSHook _ _):fs) acc = (reverse acc, f:fs)
+--         splitForImports (f@(CHSVerb hs pos):fs) acc
+--           | okColumn pos = True
+--           | otherwise =
+--               let hs' = dropWhile isSpace hs
+--               in hs' == "" ||
+--                  "--" `isPrefixOf` hs' || "{-" `isPrefixOf` hs' ||
+--                  "#" `isPrefixOf` hs' || "-}" `isPrefixOf` hs' ||
+--                  "module " `isPrefixOf` hs' ||
+--                  ")" `isPrefixOf` hs' || "where" `isPrefixOf` hs' ||
+--                  isSpace (head hs)
+--         canGoBefore _              = False
+--         okColumn pos = isSourcePos pos && posColumn pos /= 1
 
-expandModule :: CHSModule -> GB (CHSModule, String, [Wrapper], String)
+expandModule :: CHSModule -> GB (CHSModule, String, [Wrapper], String, [String])
 expandModule (CHSModule mfrags)  =
   do
     -- expand hooks
@@ -483,7 +484,7 @@ expandModule (CHSModule mfrags)  =
     traceInfoExpand
     frags'       <- expandFrags mfrags
     hsdeps       <- getHsDependencies
-    let frags'' = addImports frags' hsdeps
+    -- let frags'' = addImports frags' hsdeps
     delayedFrags <- getDelayedCode
 
     -- get .chi dump
@@ -503,7 +504,8 @@ expandModule (CHSModule mfrags)  =
         traceInfoOK
         warnmsgs <- showErrors
         wraps <- getWrappers
-        return (CHSModule (frags'' ++ delayedFrags), chi, wraps, warnmsgs)
+        return (CHSModule (frags' ++ delayedFrags), chi, wraps,
+                warnmsgs, hsdeps)
   where
     traceInfoExpand = putTraceStr tracePhasesSW
                         ("...expanding binding hooks...\n")

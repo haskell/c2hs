@@ -538,7 +538,7 @@ process headerFiles bndFile  =
     when flag $ do
       let chsName = outFPath <.> "dump"
       CIO.putStrLn $ "...dumping CHS to `" ++ chsName ++ "'..."
-      dumpCHS chsName chsMod False
+      dumpCHS chsName chsMod False []
     --
     -- extract CPP and inline-C embedded in the .chs file (all CPP and
     -- inline-C fragments are removed from the .chs tree and conditionals are
@@ -607,12 +607,13 @@ process headerFiles bndFile  =
     --
     -- expand binding hooks into plain Haskell
     --
-    (hsMod, chi, wrappers, hooksMsgs) <- expandHooks cheader strippedCHSMod
+    (hsMod, chi, wrappers, hooksMsgs, extraDeps) <-
+      expandHooks cheader strippedCHSMod
     CIO.putStr hooksMsgs
     --
     -- output the result
     --
-    dumpCHS outFPath hsMod True
+    dumpCHS outFPath hsMod True extraDeps
     dumpCHI outFPath chi           -- different suffix will be appended
     --
     -- create new wrapper file if necessary
