@@ -126,7 +126,8 @@ import Language.Haskell.Exts.Comments (Comment(..))
 import Language.Haskell.Exts.SrcLoc
   (SrcSpan(..), SrcSpanInfo(..), noInfoSpan)
 import Language.Haskell.Exts.Parser
-  (defaultParseMode, parseWithComments, ParseResult(..))
+  (ParseMode(..), defaultParseMode, parseWithComments, ParseResult(..))
+import Language.Haskell.Exts.Extension (ghcDefault)
 import Language.Haskell.Exts.Annotated.ExactPrint (exactPrint)
 
 -- C->Haskell
@@ -511,11 +512,14 @@ dumpCHS fname mod' pureHaskell extraHsDeps =
 --       2. shift lines of all declarations down past imports
 --       3. better error message on Haskell parse failure
 
+ghcLikeParseMode :: ParseMode
+ghcLikeParseMode = defaultParseMode { extensions = ghcDefault }
+
 addImports :: String -> String -> [String] -> String
 addImports fname basehs deps =
-  case parseWithComments defaultParseMode basehs of
+  case parseWithComments ghcLikeParseMode basehs of
     ParseFailed loc msg ->
-      error "Haskell parse failed!\n" ++ show loc ++ ": " ++ msg
+      error $ "Haskell parse failed!\n" ++ show loc ++ ": " ++ msg
     ParseOk (pm, cs) ->
       let nimps = length extraimps
           (startln, offset) = calcAdjustment pm nimps
@@ -554,10 +558,6 @@ adjustSrcSpanInfo off (SrcSpanInfo sp pts) =
 adjustSrcSpan :: Int -> SrcSpan -> SrcSpan
 adjustSrcSpan off (SrcSpan spf ls cs le ce) =
   SrcSpan spf (ls+off) cs (le+off) ce
-
-
-moduleImports :: Module SrcSpanInfo -> [ImportDecl SrcSpanInfo]
-moduleImports (Module _ _ _ imps _) = imps
 
 doAdd :: Int -> Int -> [ImportDecl SrcSpanInfo] -> Module SrcSpanInfo
       -> Module SrcSpanInfo
