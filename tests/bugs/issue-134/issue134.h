@@ -1,0 +1,1 @@
+struct tsttag { int a; };
