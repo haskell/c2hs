@@ -121,7 +121,8 @@ import Data.Errors       (interr)
 
 -- Haskell parsing
 import Language.Haskell.Exts.Annotated.Syntax
-  (Module(..), ImportDecl(..), ModuleName(..))
+  (Module(..), ImportDecl(..), ModuleName(..), Decl(..), Annotated(..))
+import Language.Haskell.Exts.Comments (Comment(..))
 import Language.Haskell.Exts.SrcLoc
   (SrcSpan(..), SrcSpanInfo(..), noInfoSpan)
 import Language.Haskell.Exts.Parser
@@ -138,7 +139,6 @@ import C2HS.Version    (version)
 -- friends
 import C2HS.CHS.Lexer  (CHSToken(..), lexCHS, keywordToIdent)
 
-import Debug.Trace
 
 -- CHS abstract syntax
 -- -------------------
@@ -516,17 +516,58 @@ addImports fname basehs deps =
   case parseWithComments defaultParseMode basehs of
     ParseFailed loc msg ->
       error "Haskell parse failed!\n" ++ show loc ++ ": " ++ msg
-    ParseOk (pmod, cs) ->
-      traceShow (moduleImports pmod, cs) (exactPrint (doAdd extraimps pmod) cs)
-  where extraimps = zipWith (makeImportDecl fname) [10..] deps
+    ParseOk (pm, cs) ->
+      let nimps = length extraimps
+          (startln, offset) = calcAdjustment pm nimps
+          extraimps = zipWith (makeImportDecl fname) [startln..] deps
+          adjcs = map (adjustComment startln offset) cs
+      in exactPrint (doAdd startln offset extraimps pm) adjcs
+
+calcAdjustment :: Module SrcSpanInfo -> Int -> (Int, Int)
+calcAdjustment (Module _ _ _ [] decls) nimps =
+  (firstdeclln, nimps + 1)
+  where firstdeclln = spanStartLn $ ann $ head decls
+calcAdjustment (Module _ _ _ imps _) nimps =
+  (lastimpln + 1, nimps + 1)
+  where lastimpln = spanEndLn $ ann $ last imps
+
+spanStartLn :: SrcSpanInfo -> Int
+spanStartLn (SrcSpanInfo s _) = srcSpanStartLine s
+
+spanEndLn :: SrcSpanInfo -> Int
+spanEndLn (SrcSpanInfo s _) = srcSpanEndLine s
+
+adjustComment :: Int -> Int -> Comment -> Comment
+adjustComment startln offset comment@(Comment f sp c)
+  | srcSpanStartLine sp < startln = comment
+  | otherwise = Comment f (adjustSrcSpan offset sp) c
+
+adjustDecl :: Int -> Int -> Decl SrcSpanInfo -> Decl SrcSpanInfo
+adjustDecl startln off decl
+  | spanStartLn (ann decl) < startln = decl
+  | otherwise = fmap (adjustSrcSpanInfo off) decl
+
+adjustSrcSpanInfo :: Int -> SrcSpanInfo -> SrcSpanInfo
+adjustSrcSpanInfo off (SrcSpanInfo sp pts) =
+  SrcSpanInfo (adjustSrcSpan off sp) (map (adjustSrcSpan off) pts)
+
+adjustSrcSpan :: Int -> SrcSpan -> SrcSpan
+adjustSrcSpan off (SrcSpan spf ls cs le ce) =
+  SrcSpan spf (ls+off) cs (le+off) ce
+
 
 moduleImports :: Module SrcSpanInfo -> [ImportDecl SrcSpanInfo]
 moduleImports (Module _ _ _ imps _) = imps
 
-doAdd :: [ImportDecl SrcSpanInfo] -> Module SrcSpanInfo -> Module SrcSpanInfo
-doAdd newimps (Module loc hd pragmas imps decls) =
-  Module loc hd pragmas (imps ++ newimps) decls
+doAdd :: Int -> Int -> [ImportDecl SrcSpanInfo] -> Module SrcSpanInfo
+      -> Module SrcSpanInfo
+doAdd startln offset newimps (Module loc hd pragmas imps decls) =
+  Module loc hd pragmas (imps ++ newimps) adjdecls
+  where adjdecls = map (adjustDecl startln offset) decls
 
+-- | Formatting of new import declarations.
+--
+-- 000000000111111111122222222223333333333
 -- 123456789012345678901234567890123456789
 -- import qualified Bork.Pickle as C2HSImp
 --
@@ -536,7 +577,7 @@ doAdd newimps (Module loc hd pragmas imps decls) =
 -- module name: 18 - 18+mlen (29)
 -- "as":        18+mlen+1 (30) - 18+mlen+1+2 (33)
 -- "C2HSImp":   18+mlen+1+3 (33) - 18+mlen+1+3+7 (40)
-
+--
 makeImportDecl :: String -> Int -> String -> ImportDecl SrcSpanInfo
 makeImportDecl f ln m =
   ImportDecl { importAnn = SrcSpanInfo sp_all [sp_import, sp_qualified, sp_as]
