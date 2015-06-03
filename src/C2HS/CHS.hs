@@ -120,13 +120,14 @@ import Language.C.Data.Position
 import Data.Errors       (interr)
 
 -- Haskell parsing
+import Language.Haskell.Exts.Annotated (parseFileContentsWithComments)
 import Language.Haskell.Exts.Annotated.Syntax
   (Module(..), ImportDecl(..), ModuleName(..), Decl(..), Annotated(..))
 import Language.Haskell.Exts.Comments (Comment(..))
 import Language.Haskell.Exts.SrcLoc
   (SrcSpan(..), SrcSpanInfo(..), noInfoSpan)
 import Language.Haskell.Exts.Parser
-  (ParseMode(..), defaultParseMode, parseWithComments, ParseResult(..))
+  (ParseMode(..), defaultParseMode, ParseResult(..))
 import Language.Haskell.Exts.Extension (ghcDefault)
 import Language.Haskell.Exts.Annotated.ExactPrint (exactPrint)
 
@@ -517,7 +518,7 @@ ghcLikeParseMode = defaultParseMode { extensions = ghcDefault }
 
 addImports :: String -> String -> [String] -> String
 addImports fname basehs deps =
-  case parseWithComments ghcLikeParseMode basehs of
+  case parseFileContentsWithComments ghcLikeParseMode basehs of
     ParseFailed loc msg ->
       error $ "Haskell parse failed!\n" ++ show loc ++ ": " ++ msg
     ParseOk (pm, cs) ->
