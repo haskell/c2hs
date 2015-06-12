@@ -101,7 +101,6 @@ flag base3
 Executable c2hs
     Build-Depends:  base >= 2 && < 5,
                     language-c >= 0.4.7 && < 0.5,
-                    haskell-src-exts >= 1.16.0.1 && < 1.17,
                     filepath,
                     dlist
 
