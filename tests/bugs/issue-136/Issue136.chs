@@ -3,7 +3,8 @@
 module Main where
 
 import Control.Applicative ( (<$>)
-                           , (<*>))
+                           , (<*>)
+                           , (*>))
 import Foreign.Marshal.Utils
 import Foreign.Storable
 
