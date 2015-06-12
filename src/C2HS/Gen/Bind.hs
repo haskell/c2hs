@@ -120,7 +120,7 @@ import System.Exit   (ExitCode(..))
 import System.Directory (removeFile)
 import System.Process (readProcessWithExitCode, system)
 import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, nubBy,
-                      intercalate, isPrefixOf, foldl')
+                      intercalate, isPrefixOf, isInfixOf, foldl')
 import Data.Map      (lookup)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
@@ -452,54 +452,34 @@ expandHooks ac mod' = do
 
 addImports :: [CHSFrag] -> [String] -> [CHSFrag]
 addImports fs imps = before ++ impfrags ++ after
-  where impfrags = concatMap impfrag imps
+  where impfrags = sp ++ concatMap impfrag imps ++ sp
+        sp = [CHSVerb "\n" imppos]
         impfrag i =
           [CHSVerb ("import qualified " ++ i ++ " as " ++ imp) imppos,
            CHSVerb "\n" imppos]
-        (before, after) = span canGoBefore fs
+        (before, after) = doSplit 0 Nothing False [] fs
         imppos = posOf $ last before
-        canGoBefore (CHSLine _)    = True
-        canGoBefore (CHSCPP _ _ _) = True
-        canGoBefore (CHSC _ _)     = True
-        canGoBefore (CHSHook _ _)  = False
-        canGoBefore (CHSVerb hs pos)
-          | okColumn pos = True
-          | otherwise =
-              let hs' = dropWhile isSpace hs
-              in hs' == "" ||
-                 "--" `isPrefixOf` hs' || "{-" `isPrefixOf` hs' ||
-                 "#" `isPrefixOf` hs' || "-}" `isPrefixOf` hs' ||
-                 "module " `isPrefixOf` hs' ||
-                 ")" `isPrefixOf` hs' || "where" `isPrefixOf` hs' ||
-                 isSpace (head hs)
-        canGoBefore _              = False
-        okColumn pos = isSourcePos pos && posColumn pos /= 1
+        doSplit :: Int -> Maybe Int -> Bool ->
+                   [CHSFrag] -> [CHSFrag] -> ([CHSFrag], [CHSFrag])
+        doSplit _ Nothing   _ _ [] = (fs, [])
+        doSplit _ (Just ln) _ _ [] = splitAt (ln-1) fs
+        doSplit 0 mln wh acc (f@(CHSVerb s pos) : fs')
+          | "--" `isPrefixOf` s = doSplit 0 mln wh (f:acc) fs'
+          | s == "{-"           = doSplit 1 mln wh (f:acc) fs'
+          | wh && "where" `isInfixOf` s = (reverse (f:acc), fs')
+          | "module" `isPrefixOf` (dropWhile isSpace s) =
+              if (" where" `isInfixOf` s || ")where" `isInfixOf` s)
+              then (reverse (f:acc), fs')
+              else doSplit 0 mln True (f:acc) fs'
+          | otherwise = if null (dropWhile isSpace s) || isJust mln
+                        then doSplit 0 mln wh (f:acc) fs'
+                        else doSplit 0 (Just $ posRow pos) wh (f:acc) fs'
+        doSplit cdep mln wh acc (f@(CHSVerb s _) : fs')
+          | s == "-}" = doSplit (cdep-1) mln wh (f:acc) fs'
+          | s == "{-" = doSplit (cdep+1) mln wh (f:acc) fs'
+          | otherwise = doSplit cdep     mln wh (f:acc) fs'
+        doSplit cdep mln wh acc (f:fs') = doSplit cdep mln wh (f:acc) fs'
 
--- addImports :: [CHSFrag] -> [String] -> [CHSFrag]
--- addImports fs imps = before ++ impfrags ++ after
---   where impfrags = concatMap impfrag imps
---         impfrag i =
---           [CHSVerb ("import qualified " ++ i ++ " as " ++ imp) imppos,
---            CHSVerb "\n" imppos]
---         (before, after) = splitForImports fs []
---         imppos = posOf $ last before
---         splitForImports [] acc = (reverse acc, [])
---         splitForImports (f@(CHSLine _):fs) acc = splitForImports fs (f:acc)
---         splitForImports (f@(CHSCPP _ _ _):fs) acc = splitForImports fs (f:acc)
---         splitForImports (f@(CHSC _ _):fs) acc = splitForImports fs (f:acc)
---         splitForImports (f@(CHSHook _ _):fs) acc = (reverse acc, f:fs)
---         splitForImports (f@(CHSVerb hs pos):fs) acc
---           | okColumn pos = True
---           | otherwise =
---               let hs' = dropWhile isSpace hs
---               in hs' == "" ||
---                  "--" `isPrefixOf` hs' || "{-" `isPrefixOf` hs' ||
---                  "#" `isPrefixOf` hs' || "-}" `isPrefixOf` hs' ||
---                  "module " `isPrefixOf` hs' ||
---                  ")" `isPrefixOf` hs' || "where" `isPrefixOf` hs' ||
---                  isSpace (head hs)
---         canGoBefore _              = False
---         okColumn pos = isSourcePos pos && posColumn pos /= 1
 
 expandModule :: CHSModule -> GB (CHSModule, String, [Wrapper], String)
 expandModule (CHSModule mfrags)  =

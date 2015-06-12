@@ -1,5 +1,13 @@
 {-# LANGUAGE EmptyDataDecls,
     ForeignFunctionInterface #-}
+
+{- |
+This will break things if you're not careful about comment parsing...
+-- Hmmm...
+-}
+
+-- And so will this -}
+
 module Main where
 
 import Control.Applicative ( (<$>)
