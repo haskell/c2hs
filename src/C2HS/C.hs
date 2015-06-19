@@ -65,6 +65,7 @@ import Language.C.Syntax
 import Language.C.Parser
 
 import Data.Attributes (Attr(..))
+import qualified Data.ByteString.Char8 as BS
 
 import C2HS.State  (CST,
                    fatal, errorsPresent, showErrors, raiseError,
@@ -95,6 +96,18 @@ parseHeader is pos =
       Left (ParseError (msgs,pos')) -> raiseError pos' msgs >>
                                        return (CTranslUnit [] undefNode)
       Right (ct,ns') -> setNameSupply ns' >> return ct
+
+-- | @bsReplace old new haystack@ replaces occurences of @old@ with
+-- @new@ in the @haystack@.
+bsReplace :: BS.ByteString -> BS.ByteString -> BS.ByteString -> BS.ByteString
+bsReplace old new = go id
+  where go acc hay
+          | BS.null hay = BS.concat (acc [])
+          | otherwise = case BS.breakSubstring old hay of
+                          (h,t) | BS.null t -> BS.concat (acc [h])
+                                | otherwise -> go (acc . (h:) . (new:))
+                                                  (BS.drop n t)
+        n = BS.length old
       
 -- | given a file name (with suffix), parse that file as a C header and do the
 -- static analysis (collect defined names)
@@ -108,7 +121,15 @@ loadAttrC fname  = do
                      -- read file
                      --
                      traceInfoRead fname
-                     contents <- liftIO (readInputStream fname)
+
+                     -- very hacky dodge of Apple's block syntax in
+                     -- type definitions. This simply replaces a block
+                     -- type with a function pointer type. The issue
+                     -- is that language-c does not support this
+                     -- syntax, but frameworks such as OpenCL now use
+                     -- it in their headers.
+                     contents <- fmap (bsReplace (BS.pack "(^") (BS.pack "(*"))
+                                      (liftIO $ readInputStream fname)
 
                      -- parse
                      --
