@@ -1,5 +1,6 @@
 -
     name: abcBridge
+    on-travis: false
 
 # COMMENTED FOR THE MOMENT BECAUSE OF BOUNDS ON C2HS DEPENDENCY
 # -
@@ -40,14 +41,14 @@
 -
   name: cuda
   on-travis: false
+  extra-include-dirs: [/usr/local/cuda-6.5/include]
+  extra-lib-dirs: [/usr/local/cuda-6.5/lib64]
 
 -
   name: cufft
   on-travis: false
-
--
-  name: cublas
-  on-travis: false
+  extra-include-dirs: [/usr/local/cuda-6.5/include]
+  extra-lib-dirs: [/usr/local/cuda-6.5/lib64]
 
 # BROKEN
 #-
