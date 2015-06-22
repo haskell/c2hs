@@ -39,7 +39,7 @@ As well as being annoying, the lack of import declaration generation
 meant that it was sometimes impossible to make internal changes to the
 way that C2HS binds to C functions without breaking existing user
 code.  The example that finally drove me to try to fix this was issue
-#130 (https://github.com/haskell/c2hs/issues/130) that required a
+130 (https://github.com/haskell/c2hs/issues/130) that required a
 change that would lead to most C2HS code now needing to import
 `unsafePerformIO`.  It didn't seem like a good idea to push a change
 like that (that would break more or less all C2HS code out there!)
