@@ -1,7 +1,5 @@
 module Main where
 
-import Foreign
-
 #include "issue36.h"
 
 data Hit1 a = Hit1 a

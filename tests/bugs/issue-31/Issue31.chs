@@ -1,9 +1,5 @@
 module Main where
 
-import Control.Monad
-import Foreign
-import Foreign.C
-
 #include "issue31.h"
 
 -- CASE 1:

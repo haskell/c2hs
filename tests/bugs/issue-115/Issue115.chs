@@ -1,7 +1,6 @@
 module Main where
 
-import Foreign
-import Foreign.C
+import Foreign.Marshal.Array
 
 #include "issue115.h"
 

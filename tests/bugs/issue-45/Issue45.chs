@@ -1,7 +1,5 @@
 module Main where
 
-import Foreign.C
-
 #include "issue45.h"
 
 main :: IO ()

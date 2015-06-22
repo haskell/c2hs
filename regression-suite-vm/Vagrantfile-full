@@ -1,0 +1,84 @@
+$script = <<SCRIPT
+
+set -e
+
+# Initial APT package installation
+
+sed -i -e 's/us.archive.ubuntu.com/gb.archive.ubuntu.com/g' /etc/apt/sources.list
+sed -i -e '/trusty multiverse/s/^# //' -e '/trusty-updates multiverse/s/^# //' /etc/apt/sources.list
+
+apt-get update
+apt-get install -y python-pip
+pip install awscli
+
+mkdir cuda-packages
+aws s3 sync s3://cuda-packages ./cuda-packages
+dpkg -i ./cuda-packages/cuda-repo-ubuntu1204_6.5-14_amd64.deb
+/bin/rm ./cuda-packages/cuda-repo-ubuntu1204_6.5-14_amd64.deb
+mv ./cuda-packages/*.deb /var/cache/apt/archives
+/bin/rm -fr ./cuda-packages
+
+apt-add-repository -y ppa:igraph/ppa
+apt-get update
+
+PACKAGES="alex build-essential git happy libatlas-base-dev libgmp-dev
+          liblapack-dev libnetcdf-dev unzip zlib1g-dev libopencv-dev
+          libcv-dev libhighgui-dev libgnome-keyring-dev libgsl0-dev
+          libsndfile1-dev libqtscript4-core libqt4-declarative
+          libigraph0-dev acpid consolekit dkms lib32gcc1 libc-bin
+          libc-dev-bin libc6 libc6-dev libc6-i386 libck-connector0
+          libpam-ck-connector libpolkit-agent-1-0
+          libpolkit-backend-1-0 libpolkit-gobject-1-0 libvdpau1
+          libxmu-dev libxmu-headers policykit-1 policykit-1-gnome
+          python-xkit screen-resolution-extra cuda libasound2-dev
+          libidn11-dev libopenmpi-dev libssh2-1-dev"
+
+apt-get install -y $PACKAGES
+
+cd /usr/lib/x86_64-linux-gnu
+ln -s libgmp.so.10 libgmp.so.3
+cd /root
+
+
+# GHC and Cabal installation
+wget https://www.haskell.org/ghc/dist/7.8.3/ghc-7.8.3-x86_64-unknown-linux-deb7.tar.xz
+tar xJf ghc-7.8.3-x86_64-unknown-linux-deb7.tar.xz
+cd ghc-7.8.3
+./configure
+make install
+cd ..
+/bin/rm -fr ghc-7.8.3*
+
+wget https://www.haskell.org/cabal/release/cabal-install-1.20.0.3/cabal-install-1.20.0.3.tar.gz
+tar xzf cabal-install-1.20.0.3.tar.gz
+cd cabal-install-1.20.0.3
+./bootstrap.sh
+cd ..
+/bin/rm -fr cabal-install-1.20.0.3*
+
+if [ ! -f /usr/bin/cabal-1.20 ]; then
+   cp /root/.cabal/bin/cabal /usr/bin/cabal-1.20
+   (cd /usr/bin/ && rm -rf cabal && ln -s cabal-1.20 cabal)
+fi
+
+echo "export PATH=\$HOME/.cabal/bin:\$PATH" >> /etc/bash.bashrc
+echo "export PATH=/usr/local/cuda-6.5/bin:\$PATH" >> /etc/bash.bashrc
+
+su vagrant -c 'cabal update'
+
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "trusty-server-cloudimg-amd64-vagrant-disk1.box"
+  config.vm.box_url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box"
+
+  config.vm.synced_folder "..", "/home/vagrant/c2hs"
+
+  config.vm.provider :virtualbox do |vb|
+    vb.gui = false
+    vb.customize ["modifyvm", :id, "--memory", "2048"]
+    vb.customize ["modifyvm", :id, "--cpus", "2"]
+  end
+
+  config.vm.provision "shell", inline: $script
+end

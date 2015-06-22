@@ -1,0 +1,9 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "c2hs-regression-suite.box"
+
+  config.vm.provider :virtualbox do |vb|
+    vb.gui = false
+    vb.customize ["modifyvm", :id, "--memory", "2048"]
+    vb.customize ["modifyvm", :id, "--cpus", "2"]
+  end
+end

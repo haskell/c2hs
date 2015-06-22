@@ -904,7 +904,7 @@ parseCHSModule        :: Position -> String -> CST s CHSModule
 parseCHSModule pos cs  = do
                            toks <- lexCHS cs pos
                            frags <- parseFrags toks
-                           return (CHSModule frags)
+                           return $ CHSModule frags
 
 -- | parsing of code fragments
 --

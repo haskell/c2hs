@@ -1,8 +1,5 @@
 module Main where
 
-import Foreign
-import Foreign.C.Types
-
 #include "issue127.h"
 
 {#fun tst as ^ {`Int'} -> `Bool'#}

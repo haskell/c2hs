@@ -111,7 +111,7 @@ import Prelude hiding (exp, lookup)
 import qualified Prelude
 
 -- standard libraries
-import Data.Char     (toLower)
+import Data.Char     (toLower, isSpace)
 import Data.Function (on)
 import Data.IORef    (IORef, newIORef, readIORef, writeIORef)
 import System.IO.Unsafe (unsafePerformIO)
@@ -120,7 +120,7 @@ import System.Exit   (ExitCode(..))
 import System.Directory (removeFile)
 import System.Process (readProcessWithExitCode, system)
 import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, nubBy,
-                      intercalate, isPrefixOf, foldl')
+                      intercalate, isPrefixOf, isInfixOf, foldl')
 import Data.Map      (lookup)
 import Data.Maybe    (isNothing, isJust, fromJust, fromMaybe)
 import Data.Bits     ((.|.), (.&.))
@@ -161,9 +161,17 @@ import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
                    sizeIs, querySize, queryClass, queryPointer,
                    mergeMaps, dumpMaps, queryEnum, isEnum,
                    queryTypedef, isC2HSTypedef,
-                   queryDefaultMarsh, isDefaultMarsh, addWrapper, getWrappers)
+                   queryDefaultMarsh, isDefaultMarsh, addWrapper, getWrappers,
+                   addHsDependency, getHsDependencies)
 
-import Debug.Trace
+
+-- Module import alias.
+imp :: String
+imp = "C2HSImp"
+
+impm :: String -> String
+impm s = imp ++ "." ++ s
+
 
 -- default marshallers
 -- -------------------
@@ -175,13 +183,14 @@ import Debug.Trace
 -- - the checks for the Haskell types are quite kludgy
 
 stringIn :: String
-stringIn = "\\s f -> withCStringLen s " ++
+stringIn = "\\s f -> " ++ impm "withCStringLen" ++ " s " ++
            "(\\(p, n) -> f (p, fromIntegral n))"
 
 -- | determine the default "in" marshaller for the given Haskell and C types
 --
 lookupDftMarshIn :: String -> [ExtType] -> GB CHSMarsh
-lookupDftMarshIn "Bool"   [PrimET pt] | isIntegralCPrimType pt =
+lookupDftMarshIn "Bool"   [PrimET pt] | isIntegralCPrimType pt = do
+  addHsDependency "Foreign.Marshal.Utils"
   return $ Just (Left cFromBoolIde, CHSValArg)
 lookupDftMarshIn hsTy     [PrimET pt] | isIntegralHsType hsTy
                                       &&isIntegralCPrimType pt =
@@ -189,28 +198,36 @@ lookupDftMarshIn hsTy     [PrimET pt] | isIntegralHsType hsTy
 lookupDftMarshIn hsTy     [PrimET pt] | isFloatHsType hsTy
                                       &&isFloatCPrimType pt    =
   return $ Just (Left cFloatConvIde, CHSValArg)
-lookupDftMarshIn "Char" [PrimET CCharPT] =
+lookupDftMarshIn "Char" [PrimET CCharPT] = do
+  addHsDependency "Foreign.C.String"
   return $ Just (Left castCharToCCharIde, CHSValArg)
-lookupDftMarshIn "Char" [PrimET CUCharPT] =
+lookupDftMarshIn "Char" [PrimET CUCharPT] = do
+  addHsDependency "Foreign.C.String"
   return $ Just (Left castCharToCUCharIde, CHSValArg)
-lookupDftMarshIn "Char" [PrimET CSCharPT] =
+lookupDftMarshIn "Char" [PrimET CSCharPT] = do
+  addHsDependency "Foreign.C.String"
   return $ Just (Left castCharToCSCharIde, CHSValArg)
-lookupDftMarshIn "String" [PtrET (PrimET CCharPT)]             =
+lookupDftMarshIn "String" [PtrET (PrimET CCharPT)] = do
+  addHsDependency "Foreign.C.String"
   return $ Just (Left withCStringIde, CHSIOArg)
 lookupDftMarshIn "CString" [PtrET (PrimET CCharPT)]             =
   return $ Just (Right "flip ($)", CHSIOArg)
 lookupDftMarshIn "String" [PtrET (PrimET CCharPT), PrimET pt]
-  | isIntegralCPrimType pt                                     =
+  | isIntegralCPrimType pt = do
+  addHsDependency "Foreign.C.String"
   return $ Just (Right stringIn , CHSIOArg)
 lookupDftMarshIn hsTy     [PtrET (PrimET pt)]
-  | isIntegralHsType hsTy && isIntegralCPrimType pt            =
-  return $ Just (Right "with . fromIntegral", CHSIOArg)
+  | isIntegralHsType hsTy && isIntegralCPrimType pt = do
+  addHsDependency "Foreign.Marshal.Utils"
+  return $ Just (Right $ impm "with" ++ " . fromIntegral", CHSIOArg)
 lookupDftMarshIn hsTy     [PtrET (PrimET pt)]
-  | isFloatHsType hsTy && isFloatCPrimType pt                  =
-  return $ Just (Right "with . realToFrac", CHSIOArg)
+  | isFloatHsType hsTy && isFloatCPrimType pt = do
+  addHsDependency "Foreign.Marshal.Utils"
+  return $ Just (Right $ impm "with" ++ " . realToFrac", CHSIOArg)
 lookupDftMarshIn "Bool"   [PtrET (PrimET pt)]
-  | isIntegralCPrimType pt                                     =
-  return $ Just (Right "with . fromBool", CHSIOArg)
+  | isIntegralCPrimType pt = do
+  addHsDependency "Foreign.Marshal.Utils"
+  return $ Just (Right $ impm "with" ++ " . fromBool", CHSIOArg)
 lookupDftMarshIn hsTy [PtrET UnitET] | "Ptr " `isPrefixOf` hsTy =
   return $ Just (Left idIde, CHSValArg)
 lookupDftMarshIn hsTy [PrimET (CAliasedPT tds hsAlias _)] = do
@@ -231,18 +248,21 @@ lookupDftMarshIn hsTy [PtrET (PrimET (CAliasedPT tds hsAlias _pt))] = do
 lookupDftMarshIn hsty _ = do
   om <- readCT objmap
   isenum <- queryEnum hsty
-  return $ case (isenum, (internalIdent hsty) `lookup` om) of
+  case (isenum, (internalIdent hsty) `lookup` om) of
     --  1. enumeration hooks
-    (True, Nothing) -> Just (Right "fromIntegral . fromEnum", CHSValArg)
+    (True, Nothing) ->
+      return $ Just (Right "fromIntegral . fromEnum", CHSValArg)
     --  2. naked and newtype pointer hooks
-    (False, Just (Pointer CHSPtr _)) -> Just (Left idIde, CHSValArg)
+    (False, Just (Pointer CHSPtr _)) ->
+      return $ Just (Left idIde, CHSValArg)
     --  3. foreign pointer hooks
-    (False, Just (Pointer (CHSForeignPtr _) False)) ->
-      Just (Left withForeignPtrIde, CHSIOArg)
+    (False, Just (Pointer (CHSForeignPtr _) False)) -> do
+      addHsDependency "Foreign.ForeignPtr"
+      return $ Just (Left withForeignPtrIde, CHSIOArg)
     --  4. foreign newtype pointer hooks
     (False, Just (Pointer (CHSForeignPtr _) True)) ->
-      Just (Right $ "with" ++ hsty, CHSIOArg)
-    _ -> Nothing
+      return $ Just (Right $ "with" ++ hsty, CHSIOArg)
+    _ -> return Nothing
 -- FIXME: handle array-list conversion
 
 
@@ -251,7 +271,8 @@ lookupDftMarshIn hsty _ = do
 lookupDftMarshOut :: String -> [ExtType] -> GB CHSMarsh
 lookupDftMarshOut "()"     _                                    =
   return $ Just (Left voidIde, CHSVoidArg)
-lookupDftMarshOut "Bool"   [PrimET pt] | isIntegralCPrimType pt =
+lookupDftMarshOut "Bool"   [PrimET pt] | isIntegralCPrimType pt = do
+  addHsDependency "Foreign.Marshal.Utils"
   return $ Just (Left cToBoolIde, CHSValArg)
 lookupDftMarshOut hsTy     [PrimET pt] | isIntegralHsType hsTy
                                       && isIntegralCPrimType pt =
@@ -259,19 +280,25 @@ lookupDftMarshOut hsTy     [PrimET pt] | isIntegralHsType hsTy
 lookupDftMarshOut hsTy     [PrimET pt] | isFloatHsType hsTy
                                       && isFloatCPrimType pt    =
   return $ Just (Left cFloatConvIde, CHSValArg)
-lookupDftMarshOut "Char" [PrimET CCharPT] =
+lookupDftMarshOut "Char" [PrimET CCharPT] = do
+  addHsDependency "Foreign.C.String"
   return $ Just (Left castCCharToCharIde, CHSValArg)
-lookupDftMarshOut "Char" [PrimET CUCharPT] =
+lookupDftMarshOut "Char" [PrimET CUCharPT] = do
+  addHsDependency "Foreign.C.String"
   return $ Just (Left castCUCharToCharIde, CHSValArg)
-lookupDftMarshOut "Char" [PrimET CSCharPT] =
+lookupDftMarshOut "Char" [PrimET CSCharPT] = do
+  addHsDependency "Foreign.C.String"
   return $ Just (Left castCSCharToCharIde, CHSValArg)
-lookupDftMarshOut "String" [PtrET (PrimET CCharPT)]             =
+lookupDftMarshOut "String" [PtrET (PrimET CCharPT)] = do
+  addHsDependency "Foreign.C.String"
   return $ Just (Left peekCStringIde, CHSIOArg)
-lookupDftMarshOut "CString" [PtrET (PrimET CCharPT)]             =
+lookupDftMarshOut "CString" [PtrET (PrimET CCharPT)] =
   return $ Just (Left returnIde, CHSIOArg)
 lookupDftMarshOut "String" [PtrET (PrimET CCharPT), PrimET pt]
-  | isIntegralCPrimType pt                                      =
-  return $ Just (Right "\\(s, n) -> peekCStringLen (s, fromIntegral n)",
+  | isIntegralCPrimType pt = do
+  addHsDependency "Foreign.C.String"
+  return $ Just (Right $ "\\(s, n) -> " ++ impm "peekCStringLen" ++
+                         " (s, fromIntegral n)",
                  CHSIOArg)
 lookupDftMarshOut hsTy [PtrET UnitET] | "Ptr " `isPrefixOf` hsTy =
   return $ Just (Left idIde, CHSValArg)
@@ -298,18 +325,21 @@ lookupDftMarshOut hsty _ = do
     --  2. naked and newtype pointer hooks
     (False, Just (Pointer CHSPtr _)) -> return $ Just (Left idIde, CHSValArg)
     --  3. foreign pointer hooks
-    (False, Just (Pointer (CHSForeignPtr Nothing) False)) ->
+    (False, Just (Pointer (CHSForeignPtr Nothing) False)) -> do
+      addHsDependency "Foreign.ForeignPtr"
       return $ Just (Left newForeignPtr_Ide, CHSIOArg)
     (False, Just (Pointer (CHSForeignPtr (Just fin)) False)) -> do
       code <- newForeignPtrCode fin
       return $ Just (Right $ code, CHSIOArg)
     --  4. foreign newtype pointer hooks
-    (False, Just (Pointer (CHSForeignPtr Nothing) True)) ->
-      return $ Just (Right $ "newForeignPtr_ >=> (return . " ++
-                     hsty ++ ")", CHSIOArg)
+    (False, Just (Pointer (CHSForeignPtr Nothing) True)) -> do
+      addHsDependency "Foreign.ForeignPtr"
+      return $ Just (Right $ "\\x -> " ++ impm "newForeignPtr_ x >>= " ++
+                             " (return . " ++ hsty ++ ")",
+                     CHSIOArg)
     (False, Just (Pointer (CHSForeignPtr (Just fin)) True)) -> do
       code <- newForeignPtrCode fin
-      return $ Just (Right $ code ++ " >=> (return . " ++
+      return $ Just (Right $ "\\x -> " ++ code ++ " x >>= (return . " ++
                      hsty ++ ")", CHSIOArg)
     _ -> return Nothing
   return res
@@ -320,7 +350,8 @@ newForeignPtrCode :: (Ident, Maybe Ident) -> GB String
 newForeignPtrCode (cide, ohside) = do
   (_, cide') <- findFunObj cide True
   let fin = (identToString cide') `maybe` identToString $ ohside
-  return $ "newForeignPtr " ++ fin
+  addHsDependency "Foreign.ForeignPtr"
+  return $ impm "newForeignPtr" ++ " " ++ fin
 
 
 -- | check for integral Haskell types
@@ -382,23 +413,23 @@ voidIde, cFromBoolIde, cToBoolIde, cIntConvIde, cFloatConvIde,
   newForeignPtr_Ide, withForeignPtrIde, returnIde,
   castCharToCCharIde, castCharToCUCharIde, castCharToCSCharIde,
   castCCharToCharIde, castCUCharToCharIde, castCSCharToCharIde :: Ident
-voidIde             = internalIdent "void"       -- never appears in the output
-cFromBoolIde        = internalIdent "fromBool"
-cToBoolIde          = internalIdent "toBool"
+voidIde             = internalIdent $ impm "void"       -- never appears in the output
+cFromBoolIde        = internalIdent $ impm "fromBool"
+cToBoolIde          = internalIdent $ impm "toBool"
 cIntConvIde         = internalIdent "fromIntegral"
 cFloatConvIde       = internalIdent "realToFrac"
-withCStringIde      = internalIdent "withCString"
-peekCStringIde      = internalIdent "peekCString"
+withCStringIde      = internalIdent $ impm "withCString"
+peekCStringIde      = internalIdent $ impm "peekCString"
 idIde               = internalIdent "id"
-newForeignPtr_Ide   = internalIdent "newForeignPtr_"
-withForeignPtrIde   = internalIdent "withForeignPtr"
+newForeignPtr_Ide   = internalIdent $ impm "newForeignPtr_"
+withForeignPtrIde   = internalIdent $ impm "withForeignPtr"
 returnIde           = internalIdent "return"
-castCharToCCharIde  = internalIdent "castCharToCChar"
-castCharToCUCharIde = internalIdent "castCharToCUChar"
-castCharToCSCharIde = internalIdent "castCharToCSChar"
-castCCharToCharIde  = internalIdent "castCCharToChar"
-castCUCharToCharIde = internalIdent "castCUCharToChar"
-castCSCharToCharIde = internalIdent "castCSCharToChar"
+castCharToCCharIde  = internalIdent $ impm "castCharToCChar"
+castCharToCUCharIde = internalIdent $ impm "castCharToCUChar"
+castCharToCSCharIde = internalIdent $ impm "castCharToCSChar"
+castCCharToCharIde  = internalIdent $ impm "castCCharToChar"
+castCUCharToCharIde = internalIdent $ impm "castCUCharToChar"
+castCSCharToCharIde = internalIdent $ impm "castCSCharToChar"
 
 
 -- expansion of binding hooks
@@ -426,6 +457,8 @@ expandModule (CHSModule mfrags)  =
     --
     traceInfoExpand
     frags'       <- expandFrags mfrags
+    hsdeps       <- getHsDependencies
+    let frags'' = addImports frags' hsdeps
     delayedFrags <- getDelayedCode
 
     -- get .chi dump
@@ -445,7 +478,7 @@ expandModule (CHSModule mfrags)  =
         traceInfoOK
         warnmsgs <- showErrors
         wraps <- getWrappers
-        return (CHSModule (frags' ++ delayedFrags), chi, wraps, warnmsgs)
+        return (CHSModule (frags'' ++ delayedFrags), chi, wraps, warnmsgs)
   where
     traceInfoExpand = putTraceStr tracePhasesSW
                         ("...expanding binding hooks...\n")
@@ -453,6 +486,48 @@ expandModule (CHSModule mfrags)  =
                         ("...error(s) detected.\n")
     traceInfoOK     = putTraceStr tracePhasesSW
                         ("...successfully completed.\n")
+
+-- | add import declarations for modules required internally by C2HS
+--
+addImports :: [CHSFrag] -> [String] -> [CHSFrag]
+addImports fs imps = before ++ impfrags ++ after
+  where impfrags = sp ++ concatMap impfrag imps ++ sp
+        sp = [CHSVerb "\n" imppos]
+        impfrag i =
+          [CHSVerb ("import qualified " ++ i ++ " as " ++ imp) imppos,
+           CHSVerb "\n" imppos]
+        (before, after) = doSplit 0 Nothing False [] fs
+        imppos = posOf $ last before
+
+        -- Find the appropriate location to put the import
+        -- declarations.  This relies heavily on the details of the
+        -- CHS parser to deal with Haskell comments, but a simple
+        -- approach like this seems to be a better idea than using
+        -- haskell-src-exts or something like that, mostly because
+        -- none of the Haskell parsing packages deal with *all* GHC
+        -- extensions.  The approach taken here isn't pretty, but it
+        -- seems to work.
+        doSplit :: Int -> Maybe Int -> Bool ->
+                   [CHSFrag] -> [CHSFrag] -> ([CHSFrag], [CHSFrag])
+        doSplit _ Nothing   _ _ [] = (fs, [])
+        doSplit _ (Just ln) _ _ [] = splitAt (ln-1) fs
+        doSplit 0 mln wh acc (f@(CHSVerb s pos) : fs')
+          | "--" `isPrefixOf` s = doSplit 0 mln wh (f:acc) fs'
+          | s == "{-"           = doSplit 1 mln wh (f:acc) fs'
+          | wh && "where" `isInfixOf` s = (reverse (f:acc), fs')
+          | "module" `isPrefixOf` (dropWhile isSpace s) =
+              if (" where" `isInfixOf` s || ")where" `isInfixOf` s)
+              then (reverse (f:acc), fs')
+              else doSplit 0 mln True (f:acc) fs'
+          | otherwise = if null (dropWhile isSpace s) || isJust mln
+                        then doSplit 0 mln wh (f:acc) fs'
+                        else doSplit 0 (Just $ posRow pos) wh (f:acc) fs'
+        doSplit cdep mln wh acc (f@(CHSVerb s _) : fs')
+          | s == "-}" = doSplit (cdep-1) mln wh (f:acc) fs'
+          | s == "{-" = doSplit (cdep+1) mln wh (f:acc) fs'
+          | otherwise = doSplit cdep     mln wh (f:acc) fs'
+        doSplit cdep mln wh acc (f:fs') = doSplit cdep mln wh (f:acc) fs'
+
 
 expandFrags :: [CHSFrag] -> GB [CHSFrag]
 expandFrags = liftM concat . mapM expandFrag
@@ -517,6 +592,7 @@ expandHook (CHSType ide pos) _ =
     ty <- extractSimpleType False pos decl
     traceInfoDump (render $ pretty decl) ty
     when (isVariadic ty) (variadicErr pos (posOf decl))
+    addExtTypeDependency ty
     return $ "(" ++ showExtType ty ++ ")"
   where
     traceInfoType         = traceGenBind "** Type hook:\n"
@@ -1048,6 +1124,7 @@ callImport hook isPure isUns varTypes ideLexeme hsLexeme cdecl owrapped pos =
         ide = if needwrapper1 || needwrapper2
               then "__c2hs_wrapped__" ++ ideLexeme
               else ideLexeme
+    addExtTypeDependency extType
     delayCode hook (foreignImport (extractCallingConvention cdecl)
                     header ide hsLexeme isUns extType varTypes)
     when (needwrapper1 || needwrapper2) $
@@ -1065,6 +1142,7 @@ callImportDyn hook _isPure isUns ideLexeme hsLexeme cdecl ty pos =
     -- export declaration
     --
     when (isVariadic ty) (variadicErr pos (posOf cdecl))
+    addExtTypeDependency ty
     delayCode hook (foreignImportDyn (extractCallingConvention cdecl)
                     ideLexeme hsLexeme isUns ty)
     traceFunType ty
@@ -1093,8 +1171,8 @@ foreignImportDyn :: CallingConvention -> String -> String -> Bool ->
 foreignImportDyn cconv _ident hsIdent isUnsafe ty  =
   "foreign import " ++ showCallingConvention cconv ++ " " ++ safety
     ++ " \"dynamic\"\n  " ++
-    hsIdent ++ " :: FunPtr( " ++ showExtType ty ++ " ) -> " ++
-    showExtType ty ++ "\n"
+    hsIdent ++ " :: " ++ impm "FunPtr" ++ "( " ++
+    showExtType ty ++ " ) -> " ++ showExtType ty ++ "\n"
   where
     safety = if isUnsafe then "unsafe" else "safe"
 
@@ -1135,7 +1213,9 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
       marshOuts = [marshOut | (_, _, _, marshOut, _) <- marshs, marshOut /= ""]
       retArgs   = [retArg   | (_, _, _, _, retArg)   <- marshs, retArg   /= ""]
       funHead   = hsLexeme ++ join funArgs ++ " =\n" ++
-                  if isPure && isImpure then "  unsafePerformIO $\n" else ""
+                  if isPure && isImpure
+                  then "  " ++ impm "unsafePerformIO" ++ " $\n"
+                  else ""
       call      = if isPure
                   then "  let {res = " ++ fiLexeme ++ joinCallArgs ++
                        "} in" ++ (if isPure then " res `seq`" else "") ++ "\n"
@@ -1187,6 +1267,7 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
                      (l:ls) = lines code
                  in unlines $ l : map (padding ++) ls
 
+    when (isPure && isImpure) $ addHsDependency "System.IO.Unsafe"
     return $ pad $ sig ++ funHead ++ funBody
   where
     countPlus :: [CHSParm] -> Int
@@ -1274,10 +1355,11 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
           let a = "a" ++ show (i :: Int)
               bdr1 = a ++ "'"
               bdr2 = a ++ "''"
-              marshIn = "mallocForeignPtrBytes " ++ show sz ++
+              marshIn = impm "mallocForeignPtrBytes" ++ " " ++ show sz ++
                         " >>= \\" ++ bdr2 ++
-                        " -> withForeignPtr " ++ bdr2 ++ " $ \\" ++
-                        bdr1 ++ " -> "
+                        " -> " ++ impm "withForeignPtr" ++ " " ++ bdr2 ++
+                        " $ \\" ++ bdr1 ++ " -> "
+          addHsDependency "Foreign.ForeignPtr"
           return ("", marshIn, [bdr1], "", hsParmTy ++ " " ++ bdr2)
     marshArg _ _ = interr "GenBind.funDef: Missing default?"
     --
@@ -1502,39 +1584,51 @@ setGet pos access offsets arrSize ty onewtype =
       do
         bf <- checkType ty
         case bf of
-          Nothing      -> return $ case access of       -- not a bitfield
+          Nothing      -> case access of       -- not a bitfield
                             CHSGet -> peekOp offset ty arrSize
                             CHSSet -> pokeOp offset ty "val" arrSize
 --FIXME: must take `bitfieldDirection' into account
-          Just (_, bs) -> return $ case access of       -- a bitfield
-                            CHSGet -> "val <- " ++ peekOp offset ty arrSize
-                                      ++ extractBitfield
-                            CHSSet -> "org <- " ++ peekOp offset ty arrSize
-                                      ++ insertBitfield
-                                      ++ pokeOp offset ty "val'" arrSize
+          Just (_, bs) -> case access of       -- a bitfield
+                            CHSGet -> do
+                              op <- peekOp offset ty arrSize
+                              addHsDependency "Data.Bits"
+                              addHsDependency "Foreign.C.Types"
+                              return $ "val <- " ++ op ++ extractBitfield
+                            CHSSet -> do
+                              op <- peekOp offset ty arrSize
+                              op2 <- pokeOp offset ty "val'" arrSize
+                              addHsDependency "Data.Bits"
+                              addHsDependency "Foreign.C.Types"
+                              return $ "org <- " ++ op ++ insertBitfield
+                                      ++ op2
             where
               -- we have to be careful here to ensure proper sign extension;
               -- in particular, shifting right followed by anding a mask is
               -- *not* sufficient; instead, we exploit in the following that
               -- `shiftR' performs sign extension
               --
-              extractBitfield = "; return $ (val `shiftL` ("
+              extractBitfield = "; return $ (val `" ++ impm "shiftL" ++ "` ("
                                 ++ bitsPerField ++ " - "
-                                ++ show (bs + bitOffset) ++ ")) `shiftR` ("
+                                ++ show (bs + bitOffset) ++ ")) `"
+                                ++ impm "shiftR" ++ "` ("
                                 ++ bitsPerField ++ " - " ++ show bs
                                 ++ ")"
               bitsPerField    = show $ size CIntPT * 8
               --
-              insertBitfield  = "; let {val' = (org .&. " ++ middleMask
-                                ++ ") .|. (val `shiftL` "
+              insertBitfield  = "; let {val' = (org " ++ impm ".&." ++ " "
+                                ++ middleMask ++ ") " ++ impm ".|."
+                                ++ " (val `" ++ impm "shiftL" ++ "` "
                                 ++ show bitOffset ++ ")}; "
-              middleMask      = "fromIntegral (((maxBound::CUInt) `shiftL` "
-                                ++ show bs ++ ") `rotateL` "
+              middleMask      = "fromIntegral (((maxBound::" ++ impm "CUInt"
+                                ++ ") `" ++ impm "shiftL" ++ "` "
+                                ++ show bs ++ ") `" ++ impm "rotateL" ++ "` "
                                 ++ show bitOffset ++ ")"
     setGetBody (BitSize offset 0 : offsetsrem) =
       do
         code <- setGetBody offsetsrem
-        return $ "ptr <- peekByteOff ptr " ++ show offset ++ "; " ++ code
+        addHsDependency "Foreign.Storable"
+        return $ "ptr <- " ++ impm "peekByteOff" ++ " ptr "
+                 ++ show offset ++ "; " ++ code
     setGetBody (BitSize _      _ : _      ) =
       derefBitfieldErr pos
     --
@@ -1550,20 +1644,41 @@ setGet pos access offsets arrSize ty onewtype =
     checkType (PrimET    (CSFieldPT bs)) = return $ Just (True , bs)
     checkType _                          = return Nothing
     --
-    peekOp off (PrimET CBoolPT) Nothing =
-      "toBool `fmap` (peekByteOff ptr " ++ show off ++ " :: IO CInt)"
-    peekOp off t Nothing =
-      "peekByteOff ptr " ++ show off ++ " :: IO " ++ showExtType t
-    peekOp off t (Just _) =
-      "return $ ptr `plusPtr` " ++ show off ++ " :: IO " ++ showExtType t
-    pokeOp off (PrimET CBoolPT) var Nothing =
-      "pokeByteOff ptr " ++ show off ++ " (fromBool " ++ var ++ " :: CInt)"
-    pokeOp off t var Nothing =
-      "pokeByteOff ptr " ++ show off ++ " (" ++ var ++ " :: " ++
-                                           showExtType t ++ ")"
-    pokeOp off t var (Just sz) =
-      "copyArray (ptr `plusPtr` " ++ show off ++ ") (" ++
-          var ++ " :: " ++ showExtType t ++ ") " ++ show sz
+    peekOp off (PrimET CBoolPT) Nothing = do
+      addHsDependency "Foreign.Marshal.Utils"
+      addHsDependency "Foreign.C.Types"
+      addHsDependency "Foreign.Storable"
+      return $ impm "toBool" ++ " `fmap` (" ++ impm "peekByteOff"
+               ++ " ptr " ++ show off ++ " :: IO " ++ impm "CInt" ++ ")"
+    peekOp off t Nothing = do
+      addHsDependency "Foreign.Storable"
+      addExtTypeDependency t
+      return $ impm "peekByteOff" ++ " ptr " ++ show off
+               ++ " :: IO " ++ showExtType t
+    peekOp off t (Just _) = do
+      addHsDependency "Foreign.Ptr"
+      addExtTypeDependency t
+      return $ "return $ ptr `" ++ impm "plusPtr" ++ "` " ++ show off ++
+               " :: IO " ++ showExtType t
+    pokeOp off (PrimET CBoolPT) var Nothing = do
+      addHsDependency "Foreign.Marshal.Utils"
+      addHsDependency "Foreign.C.Types"
+      addHsDependency "Foreign.Storable"
+      return $ impm "pokeByteOff" ++ " ptr " ++ show off
+               ++ " (" ++ impm "fromBool" ++ " " ++
+               var ++ " :: " ++ impm "CInt" ++ ")"
+    pokeOp off t var Nothing = do
+      addHsDependency "Foreign.Storable"
+      addExtTypeDependency t
+      return $ impm "pokeByteOff" ++ " ptr " ++ show off ++ " (" ++ var ++ " :: " ++
+                                                  showExtType t ++ ")"
+    pokeOp off t var (Just sz) = do
+      addHsDependency "Foreign.Ptr"
+      addHsDependency "Foreign.Marshal.Array"
+      addExtTypeDependency t
+      return $ impm "copyArray" ++ " (ptr `" ++ impm "plusPtr" ++ "` "
+               ++ show off ++ ") (" ++
+               var ++ " :: " ++ showExtType t ++ ") " ++ show sz
 
 -- | generate the type definition for a pointer hook and enter the required type
 -- mapping into the 'ptrmap'
@@ -1578,18 +1693,26 @@ pointerDef :: Bool              -- explicit `*' in pointer hook
            -> Bool              -- shall we emit code?
            -> GB String
 pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
+  -- ====> NEED TO DO DEPENDENCIES HERE!
   do
     let ptrArg  = if isNewtype
                   then hsName           -- abstract type
                   else hsType           -- concrete type
         ptrCon  = case ptrKind of
-                    CHSPtr | isFun -> "FunPtr"
-                    _              -> show ptrKind
+                    CHSPtr | isFun -> impm "FunPtr"
+                    _              -> impm $ show ptrKind
         ptrType = ptrCon ++ " (" ++ ptrArg ++ ")"
         thePtr  = (isStar, cNameFull)
     case ptrKind of
-      CHSForeignPtr _ -> thePtr `ptrMapsTo` ("Ptr (" ++ ptrArg ++ ")",
-                                             "Ptr (" ++ ptrArg ++ ")")
+      CHSPtr          -> addHsDependency "Foreign.Ptr"
+      CHSForeignPtr _ -> do
+        addHsDependency "Foreign.ForeignPtr"
+        addHsDependency "Foreign.Ptr"
+      CHSStablePtr    -> addHsDependency "Foreign.StablePtr"
+    case ptrKind of
+      CHSForeignPtr _ -> do
+        thePtr `ptrMapsTo` (impm "Ptr (" ++ ptrArg ++ ")",
+                            impm "Ptr (" ++ ptrArg ++ ")")
       _               -> thePtr `ptrMapsTo` (hsName, hsName)
     return $
       case (emit, isNewtype) of
@@ -1606,8 +1729,10 @@ pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
       withForeignFun
         | isForeign ptrKind =
           "\nwith" ++ hsName ++ " :: " ++
-          hsName ++ " -> (Ptr " ++ hsName ++ " -> IO b) -> IO b" ++
-          "\nwith" ++ hsName ++ " (" ++ hsName ++ " fptr) = withForeignPtr fptr"
+          hsName ++ " -> (" ++ impm "Ptr" ++ " " ++ hsName
+          ++ " -> IO b) -> IO b" ++
+          "\n" ++ "with" ++ hsName ++ " (" ++ hsName ++
+          " fptr) = " ++ impm "withForeignPtr" ++ " fptr"
         | otherwise                = ""
       isForeign (CHSForeignPtr _) = True
       isForeign _                 = False
@@ -1622,6 +1747,7 @@ doFinalizer hook (CHSForeignPtr (Just (cide, ohside))) ptrHsIde = do
       finHsIde = finCIde `maybe` identToString $ ohside
       cdecl'   = cide' `simplifyDecl` cdecl
   header <- getSwitch headerSB
+  addHsDependency "Foreign.ForeignPtr"
   delayCode hook (finalizerImport (extractCallingConvention cdecl')
                   header finCIde finHsIde ptrHsIde)
   traceFunType ptrHsIde
@@ -1637,7 +1763,7 @@ finalizerImport :: CallingConvention -> String -> String -> String ->
                    String -> String
 finalizerImport cconv header ident hsIdent hsPtrName  =
   "foreign import " ++ showCallingConvention cconv ++ " " ++ show entity ++
-  "\n  " ++ hsIdent ++ " :: FinalizerPtr " ++ hsPtrName ++ "\n"
+  "\n  " ++ hsIdent ++ " :: " ++ impm "FinalizerPtr" ++ " " ++ hsPtrName ++ "\n"
   where
     entity | null header = "&" ++ ident
            | otherwise   = header ++ " &" ++ ident
@@ -1785,33 +1911,51 @@ showExtType (FunET arg res)         = "(" ++ showExtType arg ++ " -> "
 showExtType (VarFunET res)          = "( ... -> " ++ showExtType res ++ ")"
 showExtType (IOET t)                = "(IO " ++ showExtType t ++ ")"
 showExtType (PtrET t)               = let ptrCon = if isFunExtType t
-                                                   then "FunPtr" else "Ptr"
+                                                   then impm "FunPtr"
+                                                   else impm "Ptr"
                                       in
                                       "(" ++ ptrCon ++ " " ++ showExtType t
                                       ++ ")"
 showExtType (DefinedET _ str)       = "(" ++ str ++ ")"
-showExtType (PrimET CPtrPT)         = "(Ptr ())"
-showExtType (PrimET CFunPtrPT)      = "(FunPtr ())"
-showExtType (PrimET CCharPT)        = "CChar"
-showExtType (PrimET CUCharPT)       = "CUChar"
-showExtType (PrimET CSCharPT)       = "CSChar"
-showExtType (PrimET CIntPT)         = "CInt"
-showExtType (PrimET CShortPT)       = "CShort"
-showExtType (PrimET CLongPT)        = "CLong"
-showExtType (PrimET CLLongPT)       = "CLLong"
-showExtType (PrimET CUIntPT)        = "CUInt"
-showExtType (PrimET CUShortPT)      = "CUShort"
-showExtType (PrimET CULongPT)       = "CULong"
-showExtType (PrimET CULLongPT)      = "CULLong"
-showExtType (PrimET CFloatPT)       = "CFloat"
-showExtType (PrimET CDoublePT)      = "CDouble"
-showExtType (PrimET CLDoublePT)     = "CLDouble"
-showExtType (PrimET CBoolPT)        = "CInt{-bool-}"
-showExtType (PrimET (CSFieldPT bs)) = "CInt{-:" ++ show bs ++ "-}"
-showExtType (PrimET (CUFieldPT bs)) = "CUInt{-:" ++ show bs ++ "-}"
+showExtType (PrimET CPtrPT)         = "(" ++ impm "Ptr" ++ " ())"
+showExtType (PrimET CFunPtrPT)      = "(" ++ impm "FunPtr" ++ " ())"
+showExtType (PrimET CCharPT)        = impm "CChar"
+showExtType (PrimET CUCharPT)       = impm "CUChar"
+showExtType (PrimET CSCharPT)       = impm "CSChar"
+showExtType (PrimET CIntPT)         = impm "CInt"
+showExtType (PrimET CShortPT)       = impm "CShort"
+showExtType (PrimET CLongPT)        = impm "CLong"
+showExtType (PrimET CLLongPT)       = impm "CLLong"
+showExtType (PrimET CUIntPT)        = impm "CUInt"
+showExtType (PrimET CUShortPT)      = impm "CUShort"
+showExtType (PrimET CULongPT)       = impm "CULong"
+showExtType (PrimET CULLongPT)      = impm "CULLong"
+showExtType (PrimET CFloatPT)       = impm "CFloat"
+showExtType (PrimET CDoublePT)      = impm "CDouble"
+showExtType (PrimET CLDoublePT)     = impm "CLDouble"
+showExtType (PrimET CBoolPT)        = impm "CInt{-bool-}"
+showExtType (PrimET (CSFieldPT bs)) = impm "CInt{-:" ++ show bs ++ "-}"
+showExtType (PrimET (CUFieldPT bs)) = impm "CUInt{-:" ++ show bs ++ "-}"
 showExtType (PrimET (CAliasedPT _ hs _)) = hs
 showExtType UnitET                  = "()"
-showExtType (SUET _)                = "(Ptr ())"
+showExtType (SUET _)                = "(" ++ impm "Ptr" ++ " ())"
+
+addExtTypeDependency :: ExtType -> GB ()
+addExtTypeDependency (FunET UnitET res) = addExtTypeDependency res
+addExtTypeDependency (FunET arg res) = do
+  addExtTypeDependency arg
+  addExtTypeDependency res
+addExtTypeDependency (VarFunET res) = addExtTypeDependency res
+addExtTypeDependency (IOET t) = addExtTypeDependency t
+addExtTypeDependency (PtrET t) = do
+  addHsDependency "Foreign.Ptr"
+  addExtTypeDependency t
+addExtTypeDependency (PrimET CPtrPT) =    addHsDependency "Foreign.Ptr"
+addExtTypeDependency (PrimET CFunPtrPT) = addHsDependency "Foreign.Ptr"
+addExtTypeDependency (PrimET (CAliasedPT _ _ _)) = return ()
+addExtTypeDependency (PrimET _) =         addHsDependency "Foreign.C.Types"
+addExtTypeDependency (SUET _) =           addHsDependency "Foreign.Ptr"
+addExtTypeDependency _ = return ()
 
 showExtFunType :: ExtType -> [ExtType] -> String
 showExtFunType (FunET UnitET res) _ = showExtType res
@@ -2073,7 +2217,7 @@ specType cpos specs'' osize =
         [CSUType   cu _] -> return $ SUET cu                 -- struct or union
         [CEnumType _  _] -> return $ PrimET CIntPT           -- enum
         [CTypeDef  _  _] -> errorAtPos cpos ["GenBind.specType: Illegal typedef alias!"]
-        _                -> trace ("\nERROR:\nspecs''=" ++ show specs'' ++ "\nosize=" ++ show osize ++ "\ntspecs=" ++ show tspecs ++ "\nlookup=" ++ show (lookupTSpec tspecs typeMap) ++ "\n\n") $ illegalTypeSpecErr cpos
+        _                -> illegalTypeSpecErr cpos
   where
     lookupTSpec = lookupBy matches
     --

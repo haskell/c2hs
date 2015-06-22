@@ -1,6 +1,5 @@
 module Main where
 
-import Foreign.C
 import Foreign.C.Types
 
 #include "issue48.h"

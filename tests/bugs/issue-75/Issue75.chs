@@ -1,8 +1,5 @@
 module Main where
 
-import Foreign
-import Foreign.C
-
 {#context prefix="chk"#}
 
 #include "issue75.h"
@@ -16,4 +13,3 @@ main = do
   s <- makeTst
   aval <- {#get CHK_TST.a#} s
   putStrLn $ show aval
-
