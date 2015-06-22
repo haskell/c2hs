@@ -1,0 +1,20 @@
+#!/bin/bash
+
+branch=${1:-master}
+
+vagrant up
+vagrant ssh <<EOF
+/bin/rm -fr c2hs
+export LD_LIBRARY_PATH=/usr/local/cuda-6.5/lib64:$LD_LIBRARY_PATH
+git clone https://github.com/haskell/c2hs.git
+cd c2hs
+git checkout $branch
+cabal update
+cabal install --only-dep --enable-tests -fregression
+cabal install
+cabal configure --enable-tests -fregression
+cabal build && cabal test
+export C2HS_REGRESSION_SUITE=1
+./dist/build/regression-suite/regression-suite
+EOF
+vagrant destroy -f

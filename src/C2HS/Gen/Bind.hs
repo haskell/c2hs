@@ -450,37 +450,6 @@ expandHooks ac mod' = do
   (_, res) <- runCT (expandModule mod') ac initialGBState
   return res
 
-addImports :: [CHSFrag] -> [String] -> [CHSFrag]
-addImports fs imps = before ++ impfrags ++ after
-  where impfrags = sp ++ concatMap impfrag imps ++ sp
-        sp = [CHSVerb "\n" imppos]
-        impfrag i =
-          [CHSVerb ("import qualified " ++ i ++ " as " ++ imp) imppos,
-           CHSVerb "\n" imppos]
-        (before, after) = doSplit 0 Nothing False [] fs
-        imppos = posOf $ last before
-        doSplit :: Int -> Maybe Int -> Bool ->
-                   [CHSFrag] -> [CHSFrag] -> ([CHSFrag], [CHSFrag])
-        doSplit _ Nothing   _ _ [] = (fs, [])
-        doSplit _ (Just ln) _ _ [] = splitAt (ln-1) fs
-        doSplit 0 mln wh acc (f@(CHSVerb s pos) : fs')
-          | "--" `isPrefixOf` s = doSplit 0 mln wh (f:acc) fs'
-          | s == "{-"           = doSplit 1 mln wh (f:acc) fs'
-          | wh && "where" `isInfixOf` s = (reverse (f:acc), fs')
-          | "module" `isPrefixOf` (dropWhile isSpace s) =
-              if (" where" `isInfixOf` s || ")where" `isInfixOf` s)
-              then (reverse (f:acc), fs')
-              else doSplit 0 mln True (f:acc) fs'
-          | otherwise = if null (dropWhile isSpace s) || isJust mln
-                        then doSplit 0 mln wh (f:acc) fs'
-                        else doSplit 0 (Just $ posRow pos) wh (f:acc) fs'
-        doSplit cdep mln wh acc (f@(CHSVerb s _) : fs')
-          | s == "-}" = doSplit (cdep-1) mln wh (f:acc) fs'
-          | s == "{-" = doSplit (cdep+1) mln wh (f:acc) fs'
-          | otherwise = doSplit cdep     mln wh (f:acc) fs'
-        doSplit cdep mln wh acc (f:fs') = doSplit cdep mln wh (f:acc) fs'
-
-
 expandModule :: CHSModule -> GB (CHSModule, String, [Wrapper], String)
 expandModule (CHSModule mfrags)  =
   do
@@ -517,6 +486,48 @@ expandModule (CHSModule mfrags)  =
                         ("...error(s) detected.\n")
     traceInfoOK     = putTraceStr tracePhasesSW
                         ("...successfully completed.\n")
+
+-- | add import declarations for modules required internally by C2HS
+--
+addImports :: [CHSFrag] -> [String] -> [CHSFrag]
+addImports fs imps = before ++ impfrags ++ after
+  where impfrags = sp ++ concatMap impfrag imps ++ sp
+        sp = [CHSVerb "\n" imppos]
+        impfrag i =
+          [CHSVerb ("import qualified " ++ i ++ " as " ++ imp) imppos,
+           CHSVerb "\n" imppos]
+        (before, after) = doSplit 0 Nothing False [] fs
+        imppos = posOf $ last before
+
+        -- Find the appropriate location to put the import
+        -- declarations.  This relies heavily on the details of the
+        -- CHS parser to deal with Haskell comments, but a simple
+        -- approach like this seems to be a better idea than using
+        -- haskell-src-exts or something like that, mostly because
+        -- none of the Haskell parsing packages deal with *all* GHC
+        -- extensions.  The approach taken here isn't pretty, but it
+        -- seems to work.
+        doSplit :: Int -> Maybe Int -> Bool ->
+                   [CHSFrag] -> [CHSFrag] -> ([CHSFrag], [CHSFrag])
+        doSplit _ Nothing   _ _ [] = (fs, [])
+        doSplit _ (Just ln) _ _ [] = splitAt (ln-1) fs
+        doSplit 0 mln wh acc (f@(CHSVerb s pos) : fs')
+          | "--" `isPrefixOf` s = doSplit 0 mln wh (f:acc) fs'
+          | s == "{-"           = doSplit 1 mln wh (f:acc) fs'
+          | wh && "where" `isInfixOf` s = (reverse (f:acc), fs')
+          | "module" `isPrefixOf` (dropWhile isSpace s) =
+              if (" where" `isInfixOf` s || ")where" `isInfixOf` s)
+              then (reverse (f:acc), fs')
+              else doSplit 0 mln True (f:acc) fs'
+          | otherwise = if null (dropWhile isSpace s) || isJust mln
+                        then doSplit 0 mln wh (f:acc) fs'
+                        else doSplit 0 (Just $ posRow pos) wh (f:acc) fs'
+        doSplit cdep mln wh acc (f@(CHSVerb s _) : fs')
+          | s == "-}" = doSplit (cdep-1) mln wh (f:acc) fs'
+          | s == "{-" = doSplit (cdep+1) mln wh (f:acc) fs'
+          | otherwise = doSplit cdep     mln wh (f:acc) fs'
+        doSplit cdep mln wh acc (f:fs') = doSplit cdep mln wh (f:acc) fs'
+
 
 expandFrags :: [CHSFrag] -> GB [CHSFrag]
 expandFrags = liftM concat . mapM expandFrag
