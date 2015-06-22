@@ -1,7 +1,6 @@
 module Main where
 
 import Foreign.C
-import System.IO.Unsafe (unsafePerformIO)
 
 #include "issue51.h"
 

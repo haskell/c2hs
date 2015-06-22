@@ -272,7 +272,8 @@ lookupDftMarshOut :: String -> [ExtType] -> GB CHSMarsh
 lookupDftMarshOut "()"     _                                    =
   return $ Just (Left voidIde, CHSVoidArg)
 lookupDftMarshOut hsTy [IOET cTy] = lookupDftMarshOut hsTy [cTy]
-lookupDftMarshOut "Bool"   [PrimET pt] | isIntegralCPrimType pt =
+lookupDftMarshOut "Bool"   [PrimET pt] | isIntegralCPrimType pt = do
+  addHsDependency "Foreign.Marshal.Utils"
   return $ Just (Left cToBoolIde, CHSValArg)
 lookupDftMarshOut hsTy     [PrimET pt] | isIntegralHsType hsTy
                                       && isIntegralCPrimType pt =
@@ -661,11 +662,14 @@ expandHook hook@(CHSCall isPure isUns (CHSRoot _ ide) oalias pos) _ =
     ty <- extractFunType pos cdecl' Nothing
     let args      = concat [ " x" ++ show n | n <- [1..numArgs ty] ]
     callImport hook isUns [] ideLexeme hsLexeme cdecl' Nothing pos
+    when isPure $ addHsDependency "System.IO.Unsafe"
     case (isPure, length args) of
       (False, _) -> return hsLexeme
-      (True,  0) -> return $ "(unsafePerformIO " ++ hsLexeme ++ ")"
-      (True,  _) -> return $ "(\\" ++ args ++ " -> unsafePerformIO (" ++
-                    hsLexeme ++ args ++ "))"
+      (True,  0) -> return $ "(" ++ impm "unsafePerformIO" ++
+                             " " ++ hsLexeme ++ ")"
+      (True,  _) -> return $ "(\\" ++ args ++ " -> " ++
+                             impm "unsafePerformIO" ++ " (" ++
+                             hsLexeme ++ args ++ "))"
   where
     traceEnter = traceGenBind $
       "** Call hook for `" ++ identToString ide ++ "':\n"
@@ -696,7 +700,9 @@ expandHook hook@(CHSCall isPure isUns apath oalias pos) _ =
     let res = "(\\o" ++ args ++ " -> " ++ set_get ++ " o >>= \\f -> "
               ++ hsLexeme ++ " f" ++ args ++ ")"
     if isPure
-      then return $ "(unsafePerformIO " ++ res ++ ")"
+      then do
+        addHsDependency "System.IO.Unsafe"
+        return $ "(" ++ impm "unsafePerformIO" ++ " " ++ res ++ ")"
       else return res
   where
     traceEnter = traceGenBind $
@@ -1222,7 +1228,9 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
       marshOuts = [marshOut | (_, _, _, marshOut, _) <- marshs, marshOut /= ""]
       retArgs   = [retArg   | (_, _, _, _, retArg)   <- marshs, retArg   /= ""]
       funHead   = hsLexeme ++ join funArgs ++ " =\n" ++
-                  if isPure then "  unsafePerformIO $\n" else ""
+                  if isPure
+                  then "  " ++ impm "unsafePerformIO" ++ " $\n"
+                  else ""
       call      = "  " ++ fiLexeme ++ joinCallArgs ++ case parm of
                     CHSParm _ "()" _ Nothing _ _ _ -> " >>\n"
                     _                        ->
@@ -1269,7 +1277,7 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
                      (l:ls) = lines code
                  in unlines $ l : map (padding ++) ls
 
-    when (isPure && isImpure) $ addHsDependency "System.IO.Unsafe"
+    when isPure $ addHsDependency "System.IO.Unsafe"
     return $ pad $ sig ++ funHead ++ funBody
   where
     countPlus :: [CHSParm] -> Int
