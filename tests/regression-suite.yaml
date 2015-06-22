@@ -62,11 +62,13 @@
 -
   name: gnuidn
   apt-packages: [libidn11-dev]
+  on-travis: false
 
 -
   name: haskell-mpi
   apt-packages: [libopenmpi-dev]
   extra-include-dirs: [/usr/include/openmpi]
+  on-travis: false
 
 -
   name: hnetcdf
@@ -93,6 +95,7 @@
   name: igraph
   apt-ppa: [igraph/ppa]
   apt-packages: [libigraph0-dev]
+  on-travis: false
 
 -
   name: libssh2
