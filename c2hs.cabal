@@ -93,6 +93,7 @@ Extra-Source-Files:
   tests/bugs/issue-130/*.chs tests/bugs/issue-130/*.h tests/bugs/issue-130/*.c
   tests/bugs/issue-131/*.chs tests/bugs/issue-131/*.h tests/bugs/issue-131/*.c
   tests/bugs/issue-133/*.chs tests/bugs/issue-133/*.h
+  tests/bugs/issue-134/*.chs tests/bugs/issue-134/*.h
   tests/bugs/issue-136/*.chs tests/bugs/issue-136/*.h tests/bugs/issue-136/*.c
 
 source-repository head
