@@ -83,6 +83,7 @@ tests =
     , testCase "Issue #130" issue130
     , testCase "Issue #131" issue131
     , testCase "Issue #133" issue133
+    , testCase "Issue #134" issue134
     , testCase "Issue #136" issue136
     ] ++
     -- Some tests that won't work on Windows.
@@ -106,6 +107,9 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
 
 issue136 :: Assertion
 issue136 = build_issue_tolerant 136
+
+issue134 :: Assertion
+issue134 = hs_only_build_issue 134
 
 issue133 :: Assertion
 issue133 = hs_only_build_issue 133

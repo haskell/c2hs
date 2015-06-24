@@ -1,8 +1,8 @@
 module Main where
 
-#include "issue134.h"
+#include <fcntl.h>
 
-{#pointer *tsttag as ^ foreign newtype#}
+{# pointer *flock as ^ foreign newtype #}
 
 main :: IO ()
 main = putStrLn "OK"
