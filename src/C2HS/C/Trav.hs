@@ -368,13 +368,8 @@ getDeclOf ide  =
 -- convenience functions
 --
 
--- | find a type object in the object name space; returns 'Nothing' if the
--- identifier is not defined
---
--- * if the second argument is 'True', use 'findObjShadow'
---
-findTypeObjMaybe                :: Ident -> Bool -> CT s (Maybe (CObj, Ident))
-findTypeObjMaybe ide useShadows  =
+findTypeObjMaybeWith :: Bool -> Ident -> Bool -> CT s (Maybe (CObj, Ident))
+findTypeObjMaybeWith soft ide useShadows  =
   do
     oobj <- if useShadows
             then findObjShadow ide
@@ -382,8 +377,18 @@ findTypeObjMaybe ide useShadows  =
     case oobj of
       Just obj@(TypeCO _ ,   _) -> return $ Just obj
       Just obj@(BuiltinCO _, _) -> return $ Just obj
-      Just _                    -> typedefExpectedErr ide
+      Just _                    -> if soft
+                                   then return Nothing
+                                   else typedefExpectedErr ide
       Nothing                   -> return $ Nothing
+
+-- | find a type object in the object name space; returns 'Nothing' if the
+-- identifier is not defined
+--
+-- * if the second argument is 'True', use 'findObjShadow'
+--
+findTypeObjMaybe :: Ident -> Bool -> CT s (Maybe (CObj, Ident))
+findTypeObjMaybe = findTypeObjMaybeWith False
 
 -- | find a type object in the object name space; raises an error and exception
 -- if the identifier is not defined
@@ -682,7 +687,7 @@ findAndChaseDeclOrTag ide ind useShadows  =
   do
     traceCTrav $ "findAndChaseDeclOrTag: " ++ show ide ++ " (" ++
       show useShadows ++ ")\n"
-    mobjide <- findTypeObjMaybe ide useShadows   -- is there an object def?
+    mobjide <- findTypeObjMaybeWith True ide useShadows -- is there an object def?
     case mobjide of
       Just (obj, ide') -> do
         ide  `refersToNewDef` ObjCD obj
@@ -810,7 +815,7 @@ lookupStructUnion ide preferTag useShadows = do
 --
 lookupDeclOrTag                :: Ident -> Bool -> CT s (Either CDecl CTag)
 lookupDeclOrTag ide useShadows  = do
-  oobj <- findTypeObjMaybe ide useShadows
+  oobj <- findTypeObjMaybeWith True ide useShadows
   case oobj of
     Just (_, ide') -> liftM Left $ findAndChaseDecl ide' False False
                                                    -- already did check shadows
