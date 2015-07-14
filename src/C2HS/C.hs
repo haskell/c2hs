@@ -128,8 +128,12 @@ loadAttrC fname  = do
                      -- is that language-c does not support this
                      -- syntax, but frameworks such as OpenCL now use
                      -- it in their headers.
-                     contents <- fmap (bsReplace (BS.pack "(^") (BS.pack "(*"))
-                                      (liftIO $ readInputStream fname)
+                     let fixBlockTypeDef x
+                           | BS.isPrefixOf (BS.pack "typedef ") x =
+                             bsReplace (BS.pack "(^") (BS.pack "(*") x
+                           | otherwise = x
+                         fixLines = BS.unlines . map fixBlockTypeDef . BS.lines
+                     contents <- fmap fixLines (liftIO $ readInputStream fname)
 
                      -- parse
                      --
