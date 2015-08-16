@@ -1,3 +1,16 @@
+0.26.1
+ - Better error messages [PR #139] (Noam Lewis)
+ - Fix for OS X block syntax [#138] (Anthony Cowley)
+ - Minimal support for va_list [PR #137] (Andy Adams-Moran)
+ - Reorganise treatment of standard library imports used by C2HS
+   [#136] (https://github.com/haskell/c2hs/blob/master/import-handling.md)
+ - C structure tag/typedef confusion bug (caused problems for flock on
+   OS X) [#134]
+ - C typedefs to void pointers [#133]
+ - Bool wrappers for unnamed parameters in C function definitions
+   [#131]
+ - Incorrect wrapping of some pure C functions [#130]
+
 0.25.2
  - Test fixes to work with GHC 7.10.1
 
