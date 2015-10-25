@@ -857,6 +857,7 @@ expandHook hook@(CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
                              let et' = adjustPtr isStar et
                              when (isVariadic et')
                                   (variadicErr pos (posOf cDecl))
+                             addExtTypeDependency et'
                              return (showExtType et', isFunExtType et')
             hsType -> return (identsToString hsType, False)
             -- FIXME: it is not possible to determine whether `hsType'
@@ -1696,7 +1697,6 @@ pointerDef :: Bool              -- explicit `*' in pointer hook
            -> Bool              -- shall we emit code?
            -> GB String
 pointerDef isStar cNameFull hsName ptrKind isNewtype hsType isFun emit =
-  -- ====> NEED TO DO DEPENDENCIES HERE!
   do
     let ptrArg  = if isNewtype
                   then hsName           -- abstract type
