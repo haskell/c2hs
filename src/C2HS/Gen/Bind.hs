@@ -164,7 +164,6 @@ import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
                    queryDefaultMarsh, isDefaultMarsh, addWrapper, getWrappers,
                    addHsDependency, getHsDependencies)
 
-
 -- Module import alias.
 imp :: String
 imp = "C2HSImp"
@@ -604,6 +603,7 @@ expandHook (CHSAlignof ide _) _ =
   do
     traceInfoAlignof
     decl <- findAndChaseDeclOrTag ide False True  -- no indirection, but shadows
+    checkForIncomplete decl
     (_, align) <- sizeAlignOf decl
     traceInfoDump (render $ pretty decl) align
     return $ show align
@@ -617,6 +617,7 @@ expandHook (CHSSizeof ide _) _ =
   do
     traceInfoSizeof
     decl <- findAndChaseDeclOrTag ide False True  -- no indirection, but shadows
+    checkForIncomplete decl
     (sz, _) <- sizeAlignOf decl
     traceInfoDump (render $ pretty decl) sz
     return $ show (padBits sz)
@@ -2462,6 +2463,14 @@ sizeAlignOfBase ptr cdecl = do
       "extractCompType: found an alias called `" ++ identToString ide ++ "'\n"
 
 
+checkForIncomplete :: CDecl -> GB ()
+checkForIncomplete cdecl = do
+  ct <- extractCompType False False False cdecl
+  case ct of
+    SUET (CStruct _ _ Nothing _ _) -> incompleteTypeErr $ posOf cdecl
+    _                              -> return ()
+
+
 sizeAlignOfSingle ptr cdecl = do
   ct <- extractCompType False False False cdecl
   case ct of
@@ -2896,6 +2905,12 @@ noDftMarshErr pos inOut hsTy cTys  =
 
 undefEnumErr :: Position -> GB a
 undefEnumErr pos = raiseErrorCTExc pos ["Incomplete enum type!"]
+
+incompleteTypeErr     :: Position -> GB a
+incompleteTypeErr pos  =
+  raiseErrorCTExc pos
+    ["Illegal use of incomplete type!",
+     "Expected a fully defined structure or union tag; instead found incomplete type."]
 
 
 -- | size of primitive type of C
