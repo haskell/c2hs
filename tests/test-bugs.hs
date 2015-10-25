@@ -7,6 +7,7 @@ import Test.HUnit hiding (Test, assert)
 import System.FilePath (searchPathSeparator)
 import System.Info (os)
 import Prelude hiding (FilePath)
+import Control.Monad (forM)
 import Control.Monad.IO.Class
 import Shelly
 import Data.List (sort)
@@ -85,6 +86,7 @@ tests =
     , testCase "Issue #133" issue133
     , testCase "Issue #134" issue134
     , testCase "Issue #136" issue136
+    , testCase "Issue #141" issue141
     , testCase "Issue #149" issue149
     , testCase "Issue #151" issue151
     ] ++
@@ -112,6 +114,16 @@ issue151 = hs_only_build_issue 151
 
 issue149 :: Assertion
 issue149 = build_issue_fails 149
+
+issue141 :: Assertion
+issue141 = c2hsShelly $ chdir "tests/bugs/issue-141" $ do
+  mapM_ rm_f ["Issue141A.hs", "Issue141A.chs.h", "Issue141A.chi",
+              "Issue141B.hs", "Issue141B.chs.h", "Issue141B.chi",
+              "Issue141C.hs", "Issue141C.chs.h", "Issue141C.chi"]
+  codes <- forM ["A", "B", "C"] $ \suff -> do
+    errExit False $ cmd "c2hs" $ "Issue141" <> suff <> ".chs"
+    lastExitCode
+  liftIO $ assertBool "" (all (/= 0) codes)
 
 issue136 :: Assertion
 issue136 = build_issue_tolerant 136
@@ -394,12 +406,12 @@ issue07 = c2hsShelly $ do
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
-do_issue_build :: Bool -> Bool -> Int -> String -> [Text] -> Sh ()
-do_issue_build strict cbuild n ext c2hsargs =
+do_issue_build :: Bool -> Bool -> Int -> String -> String -> [Text] -> Sh ()
+do_issue_build strict cbuild n suff ext c2hsargs =
   let wdir = "tests/bugs" </> ("issue-" <> show n)
       lc = "issue" <> show n
       lcc = lc <> "_c"
-      uc = fromText $ T.pack $ "Issue" <> show n <>
+      uc = fromText $ T.pack $ "Issue" <> show n <> suff <>
            (if ext == "" then "" else "_" <> ext)
   in do
     cd wdir
@@ -433,7 +445,7 @@ hs_only_expect_issue n ordered expected =
 expect_issue_with :: Bool -> Bool -> Int -> String -> [Text] -> [Text]
                   -> Assertion
 expect_issue_with ordered cbuild n ext c2hsargs expected = c2hsShelly $ do
-  do_issue_build True cbuild n ext c2hsargs
+  do_issue_build True cbuild n "" ext c2hsargs
   res <- absPath ("." </> (fromText $ T.pack $ "Issue" <> show n <>
                            (if ext == "" then "" else "_" <> ext))) >>= cmd
   liftIO $ assertBool "" $ case ordered of
@@ -442,7 +454,7 @@ expect_issue_with ordered cbuild n ext c2hsargs expected = c2hsShelly $ do
 
 build_issue_with :: Bool -> Bool -> Int -> [Text] -> Assertion
 build_issue_with strict cbuild n c2hsargs = c2hsShelly $ do
-  errExit False $ do_issue_build strict cbuild n "" c2hsargs
+  errExit False $ do_issue_build strict cbuild n "" "" c2hsargs
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
@@ -458,7 +470,7 @@ hs_only_build_issue n = build_issue_with True False n []
 
 build_issue_fails_with :: Bool -> Bool -> Int -> [Text] -> Assertion
 build_issue_fails_with strict cbuild n c2hsargs = c2hsShelly $ do
-  errExit False $ do_issue_build strict cbuild n "" c2hsargs
+  errExit False $ do_issue_build strict cbuild n "" "" c2hsargs
   code <- lastExitCode
   liftIO $ assertBool "" (code /= 0)
 

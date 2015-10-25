@@ -158,3 +158,5 @@
 /tests/bugs/issue-151/Issue151.hs
 /tests/bugs/issue-149/Issue149
 /tests/bugs/issue-149/Issue149.hs
+/tests/bugs/issue-141/Issue141A.hs
+/tests/bugs/issue-141/Issue141B.hs
