@@ -2003,7 +2003,7 @@ extractFunType pos cdecl wrapped =
     -- function)
     --
     let wrap = case wrapped of
-          Just w  -> w
+          Just w  -> w ++ repeat False
           Nothing -> repeat False
     argTypes <- zipWithM (extractCompType False True) wrap args
     return $ foldr FunET resultType argTypes
