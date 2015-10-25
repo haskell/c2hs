@@ -880,7 +880,8 @@ extractStruct pos (StructUnionCT su)  = do
                                     traceCTrav $ "def=" ++ show def ++ "\n"
                                     case def of
                                       TagCD tag -> extractStruct pos tag
-                                      bad_obj       -> err ide' bad_obj
+                                      UndefCD   -> incompleteTypeErr pos
+                                      bad_obj   -> err ide' bad_obj
     _                          -> return su
   where
     err ide bad_obj =
@@ -970,3 +971,9 @@ structExpectedErr pos  =
   raiseErrorCTExc pos
     ["Expected a struct!",
      "Expected a structure or union; instead found an enum or basic type."]
+
+incompleteTypeErr     :: Position -> CT s a
+incompleteTypeErr pos  =
+  raiseErrorCTExc pos
+    ["Illegal use of incomplete type!",
+     "Expected a fully defined structure or union tag; instead found incomplete type."]
