@@ -85,6 +85,7 @@ tests =
     , testCase "Issue #133" issue133
     , testCase "Issue #134" issue134
     , testCase "Issue #136" issue136
+    , testCase "Issue #149" issue149
     , testCase "Issue #151" issue151
     ] ++
     -- Some tests that won't work on Windows.
@@ -108,6 +109,9 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
 
 issue151 :: Assertion
 issue151 = hs_only_build_issue 151
+
+issue149 :: Assertion
+issue149 = build_issue_fails 149
 
 issue136 :: Assertion
 issue136 = build_issue_tolerant 136
@@ -401,16 +405,19 @@ do_issue_build strict cbuild n ext c2hsargs =
     cd wdir
     mapM_ rm_f [uc <.> "hs", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
     run "c2hs" $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
-    when cbuild $ cmd cc "-c" "-o" (lcc <.> "o") (lc <.> "c")
-    case (strict, cbuild) of
-      (True, True) ->
-        cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
-      (False, True) ->
-        cmd "ghc" "--make" (lcc <.> "o") (uc <.> "hs")
-      (True, False) ->
-        cmd "ghc" "-Wall" "-Werror" "--make" (uc <.> "hs")
-      (False, False) ->
-        cmd "ghc" "--make" (uc <.> "hs")
+    code <- lastExitCode
+    when (code == 0) $ do
+      when cbuild $ cmd cc "-c" "-o" (lcc <.> "o") (lc <.> "c")
+      code <- lastExitCode
+      when (code == 0) $ case (strict, cbuild) of
+        (True, True) ->
+          cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
+        (False, True) ->
+          cmd "ghc" "--make" (lcc <.> "o") (uc <.> "hs")
+        (True, False) ->
+          cmd "ghc" "-Wall" "-Werror" "--make" (uc <.> "hs")
+        (False, False) ->
+          cmd "ghc" "--make" (uc <.> "hs")
 
 expect_issue :: Int -> [Text] -> Assertion
 expect_issue n expected = expect_issue_with True True n "" [] expected
@@ -447,3 +454,16 @@ build_issue_tolerant n = build_issue_with False True n []
 
 hs_only_build_issue :: Int -> Assertion
 hs_only_build_issue n = build_issue_with True False n []
+
+
+build_issue_fails_with :: Bool -> Bool -> Int -> [Text] -> Assertion
+build_issue_fails_with strict cbuild n c2hsargs = c2hsShelly $ do
+  errExit False $ do_issue_build strict cbuild n "" c2hsargs
+  code <- lastExitCode
+  liftIO $ assertBool "" (code /= 0)
+
+build_issue_fails :: Int -> Assertion
+build_issue_fails n = build_issue_fails_with True True n []
+
+hs_only_build_issue_fails :: Int -> Assertion
+hs_only_build_issue_fails n = build_issue_fails_with True False n []
