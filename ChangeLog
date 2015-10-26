@@ -1,3 +1,8 @@
+0.26.2
+ - Missing import bug [#151]
+ - Parameter count checking for {#fun ...#} [#149]
+ - Error message for "incomplete types" [#141]
+
 0.26.1
  - Better error messages [PR #139] (Noam Lewis)
  - Fix for OS X block syntax [#138] (Anthony Cowley)
