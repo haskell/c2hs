@@ -332,6 +332,7 @@ instance Pos CHSToken where
   posOf (CHSTokComment pos _) = pos
   posOf (CHSTokCIdentTail pos _) = pos
   posOf (CHSTokCArg    pos _) = pos
+  posOf (CHSTokPercent pos) = pos
 
 instance Eq CHSToken where
   (CHSTokArrow    _  ) == (CHSTokArrow    _  ) = True
