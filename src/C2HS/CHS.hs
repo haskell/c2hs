@@ -101,7 +101,7 @@
 module C2HS.CHS (CHSModule(..), CHSFrag(..), CHSHook(..), CHSTrans(..),
             CHSChangeCase(..), CHSParm(..), CHSMarsh, CHSArg(..), CHSAccess(..),
             CHSAPath(..), CHSPtrType(..), CHSTypedefInfo, CHSDefaultMarsh,
-            Direction(..),
+            Direction(..), CHSPlusParmType(..),
             loadCHS, dumpCHS, hssuffix, chssuffix, loadCHI, dumpCHI, chisuffix,
             showCHSParm, apathToIdent, apathRootIdent, hasNonGNU,
             isParmWrapped)
@@ -141,6 +141,7 @@ deriving instance Show CHSModule
 deriving instance Show CHSFrag
 deriving instance Show CHSHook
 deriving instance Show CHSAccess
+deriving instance Show CHSPlusParmType
 deriving instance Show CHSParm
 deriving instance Show CHSTrans
 deriving instance Show CHSArg
@@ -346,9 +347,12 @@ type CHSTypedefInfo = (Ident, CPrimType)
 -- | Type default information
 type CHSDefaultMarsh = (Either Ident String, CHSArg)
 
+-- | Special "+" parameter types.
+data CHSPlusParmType = CHSPlusBare | CHSPlusS | CHSPlusNum Int
+
 -- | marshalling descriptor for function hooks
 --
-data CHSParm = CHSPlusParm       -- special "+" parameter
+data CHSParm = CHSPlusParm CHSPlusParmType -- special "+" parameter
              | CHSParm CHSMarsh  -- "in" marshaller
                        String    -- Haskell type
                        Bool      -- C repr: two values?
@@ -708,7 +712,9 @@ showFunAlias apath vas oalias  =
        Just ide -> showString " as " . showCHSIdent ide)
 
 showCHSParm                                                :: CHSParm -> ShowS
-showCHSParm CHSPlusParm = showChar '+'
+showCHSParm (CHSPlusParm CHSPlusBare) = showChar '+'
+showCHSParm (CHSPlusParm CHSPlusS) = showString "+S"
+showCHSParm (CHSPlusParm (CHSPlusNum sz)) = showChar '+' . showString (show sz)
 showCHSParm (CHSParm oimMarsh hsTyStr twoCVals oomMarsh wrapped _ comment)  =
     showOMarsh oimMarsh
   . showChar ' '
@@ -1246,7 +1252,9 @@ apathRootIdent (CHSDeref apath _) = apathRootIdent apath
 apathRootIdent (CHSRef apath _) = apathRootIdent apath
 
 parseParm :: [CHSToken] -> CST s (CHSParm, [CHSToken])
-parseParm (CHSTokPlus _:toks') = return (CHSPlusParm, toks')
+parseParm (CHSTokPlus _:toks') = return (CHSPlusParm CHSPlusBare, toks')
+parseParm (CHSTokPlusS _:toks') = return (CHSPlusParm CHSPlusS, toks')
+parseParm (CHSTokPlusNum _ sz:toks') = return (CHSPlusParm (CHSPlusNum sz), toks')
 parseParm toks =
   do
     (oimMarsh, toks' ) <- parseOptMarsh toks

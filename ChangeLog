@@ -1,3 +1,8 @@
+0.27.1
+ - Alternate specification for sizes in "+" parameters [#140]
+ - Fix regression to do with incomplete structure types [#152]
+ - Fix pattern match error [PR #153] (deech)
+
 0.26.2
  - Missing import bug [#151]
  - Parameter count checking for {#fun ...#} [#149]

@@ -86,6 +86,7 @@ tests =
     , testCase "Issue #133" issue133
     , testCase "Issue #134" issue134
     , testCase "Issue #136" issue136
+    , testCase "Issue #140" issue140
     , testCase "Issue #141" issue141
     , testCase "Issue #149" issue149
     , testCase "Issue #151" issue151
@@ -128,6 +129,9 @@ issue141 = c2hsShelly $ chdir "tests/bugs/issue-141" $ do
     errExit False $ cmd "c2hs" $ "Issue141" <> suff <> ".chs"
     lastExitCode
   liftIO $ assertBool "" (all (/= 0) codes)
+
+issue140 :: Assertion
+issue140 = expect_issue 140 ["123", "456", "789"]
 
 issue136 :: Assertion
 issue136 = build_issue_tolerant 136

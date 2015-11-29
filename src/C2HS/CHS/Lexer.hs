@@ -203,6 +203,8 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokHat     Position          -- `^'
               | CHSTokPercent Position          -- `%'
               | CHSTokPlus    Position          -- `+'
+              | CHSTokPlusS   Position          -- `+S'
+              | CHSTokPlusNum Position Int      -- `+<num>'
               | CHSTokLBrace  Position          -- `{'
               | CHSTokRBrace  Position          -- `}'
               | CHSTokLParen  Position          -- `('
@@ -417,6 +419,8 @@ instance Show CHSToken where
   showsPrec _ (CHSTokHat     _  ) = showString "^"
   showsPrec _ (CHSTokPercent _  ) = showString "%"
   showsPrec _ (CHSTokPlus    _  ) = showString "+"
+  showsPrec _ (CHSTokPlusS   _  ) = showString "+S"
+  showsPrec _ (CHSTokPlusNum _  sz) = showString ("+" ++ show sz)
   showsPrec _ (CHSTokLBrace  _  ) = showString "{"
   showsPrec _ (CHSTokRBrace  _  ) = showString "}"
   showsPrec _ (CHSTokLParen  _  ) = showString "("
@@ -903,12 +907,17 @@ symbol  =      sym "->" CHSTokArrow
           >||< sym "^"  CHSTokHat
           >||< sym "%"  CHSTokPercent
           >||< sym "+"  CHSTokPlus
+          >||< sym "+S" CHSTokPlusS
+          >||< sym_with_num "+" CHSTokPlusNum
           >||< sym "{"  CHSTokLBrace
           >||< sym "}"  CHSTokRBrace
           >||< sym "("  CHSTokLParen
           >||< sym ")"  CHSTokRParen
           where
             sym cs con = string cs `lexaction` \_ pos -> Just (con pos)
+            sym_with_num cs con =
+              string cs +> digit +> digit`star` epsilon
+              `lexaction` \(_:ds) pos -> Just (con pos (read ds))
 
 -- | string
 --

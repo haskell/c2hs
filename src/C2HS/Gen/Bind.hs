@@ -151,7 +151,7 @@ import C2HS.C
 -- friends
 import C2HS.CHS   (CHSModule(..), CHSFrag(..), CHSHook(..), CHSParm(..),
                    CHSMarsh, CHSArg(..), CHSAccess(..), CHSAPath(..),
-                   CHSTypedefInfo, Direction(..),
+                   CHSTypedefInfo, Direction(..), CHSPlusParmType(..),
                    CHSPtrType(..), showCHSParm, apathToIdent, apathRootIdent)
 import C2HS.C.Info      (CPrimType(..))
 import C2HS.Gen.Monad    (TransFun, transTabToTransFun, HsObject(..), GB,
@@ -1284,8 +1284,8 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
   where
     countPlus :: [CHSParm] -> Int
     countPlus = sum . map (\p -> if isPlus p then 1 else 0)
-    isPlus CHSPlusParm = True
-    isPlus _           = False
+    isPlus (CHSPlusParm _) = True
+    isPlus _               = False
     join      = concatMap (' ':)
     joinLines = concatMap (\s -> "  " ++ s ++ "\n")
     --
@@ -1359,20 +1359,24 @@ funDef isPure hsLexeme fiLexeme extTy varExtTys octxt parms
         marshBody (Left ide) = identToString ide
         marshBody (Right str) = "(" ++ str ++ ")"
       return (funArg, marshIn, callArgs, marshOut, retArg)
-    marshArg i CHSPlusParm = do
-      msize <- querySize $ internalIdent hsParmTy
-      case msize of
-        Nothing -> interr "Missing size for \"+\" parameter allocation!"
-        Just sz -> do
-          let a = "a" ++ show (i :: Int)
-              bdr1 = a ++ "'"
-              bdr2 = a ++ "''"
-              marshIn = impm "mallocForeignPtrBytes" ++ " " ++ show sz ++
-                        " >>= \\" ++ bdr2 ++
-                        " -> " ++ impm "withForeignPtr" ++ " " ++ bdr2 ++
-                        " $ \\" ++ bdr1 ++ " -> "
-          addHsDependency "Foreign.ForeignPtr"
-          return ("", marshIn, [bdr1], "", hsParmTy ++ " " ++ bdr2)
+    marshArg i (CHSPlusParm ptype) = do
+      szstr <- case ptype of
+        CHSPlusBare -> do
+          msize <- querySize $ internalIdent hsParmTy
+          case msize of
+            Nothing -> interr "Missing size for \"+\" parameter allocation!"
+            Just sz -> return $ show sz
+        CHSPlusS -> return $ "(sizeOf (undefined :: " ++ hsParmTy ++ "))"
+        CHSPlusNum sz -> return $ show sz
+      let a = "a" ++ show (i :: Int)
+          bdr1 = a ++ "'"
+          bdr2 = a ++ "''"
+          marshIn = impm "mallocForeignPtrBytes" ++ " " ++ szstr ++
+                    " >>= \\" ++ bdr2 ++
+                    " -> " ++ impm "withForeignPtr" ++ " " ++ bdr2 ++
+                    " $ \\" ++ bdr1 ++ " -> "
+      addHsDependency "Foreign.ForeignPtr"
+      return ("", marshIn, [bdr1], "", hsParmTy ++ " " ++ bdr2)
     marshArg _ _ = interr "GenBind.funDef: Missing default?"
     --
     traceMarsh parms' parm' = traceGenBind $
@@ -1418,9 +1422,9 @@ addDftMarshaller pos parms parm extTy varExTys = do
     --
     -- match Haskell with C arguments (and results)
     --
-    addDft ((CHSPlusParm):parms'') (_:cTys) = do
+    addDft (p@(CHSPlusParm _):parms'') (_:cTys) = do
       parms' <- addDft parms'' cTys
-      return (CHSPlusParm : parms')
+      return (p : parms')
     addDft ((CHSParm imMarsh hsTy False omMarsh _ p c):parms'') (cTy:cTys) = do
       imMarsh' <- addDftIn p imMarsh hsTy [cTy]
       omMarsh' <- addDftVoid omMarsh
