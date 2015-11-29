@@ -9,8 +9,8 @@ versnum :: Version
 
 name       = "C->Haskell Compiler"
 versnum    = Paths_c2hs.version
-versnick   = "Budburst"
-date       = "26 October 2015"
+versnick   = "Eternal Sunshine"
+date       = "29 November 2015"
 version    = name ++ ", version " ++ showVersion versnum ++ " " ++ versnick ++ ", " ++ date
 copyright  = "Copyright (c) 1999-2007 Manuel M T Chakravarty\n"
           ++ "              2005-2008 Duncan Coutts\n"
