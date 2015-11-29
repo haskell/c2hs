@@ -2467,8 +2467,18 @@ checkForIncomplete :: CDecl -> GB ()
 checkForIncomplete cdecl = do
   ct <- extractCompType False False False cdecl
   case ct of
-    SUET (CStruct _ _ Nothing _ _) -> incompleteTypeErr $ posOf cdecl
-    _                              -> return ()
+    SUET su -> do
+      let (fields, _) = structMembers su
+          ide = structName su
+      if (not . null $ fields) || isNothing ide
+        then return ()
+        else do                              -- get the real...
+        tag' <- findTag (fromJust ide)      -- ...definition
+        case tag' of
+          Just (StructUnionCT (CStruct _ _ Nothing _ _)) ->
+            incompleteTypeErr $ posOf cdecl
+          _ -> return ()
+    _ -> return ()
 
 
 sizeAlignOfSingle ptr cdecl = do
