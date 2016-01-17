@@ -903,7 +903,8 @@ expandHook hook@(CHSPointer isStar cName oalias ptrKind isNewtype oRefType emit
 expandHook (CHSClass oclassIde classIde typeIde pos) _ =
   do
     traceInfoClass
-    classIde `objIs` Class oclassIde typeIde    -- register Haskell object
+    classIde `objIs` Class (fmap identToString oclassIde)
+      (identToString typeIde)    -- register Haskell object
     superClasses <- collectClasses oclassIde
     Pointer ptrType isNewtype <- queryPointer typeIde
     when (ptrType == CHSStablePtr) $
@@ -918,9 +919,9 @@ expandHook (CHSClass oclassIde classIde typeIde pos) _ =
     collectClasses (Just ide)  =
       do
         Class oclassIde' typeIde' <- queryClass ide
-        ptr                       <- queryPointer typeIde'
-        classes                   <- collectClasses oclassIde'
-        return $ (identToString ide, identToString typeIde', ptr) : classes
+        ptr                       <- queryPointer (internalIdent typeIde')
+        classes                   <- collectClasses (fmap internalIdent oclassIde')
+        return $ (identToString ide, typeIde', ptr) : classes
     --
     traceInfoClass = traceGenBind $ "** Class hook:\n"
 expandHook (CHSConst cIde _) _ =
@@ -1821,7 +1822,7 @@ classDef pos className typeName ptrType isNewtype superClasses =
               ""   -> errorAtPos pos ["GenBind.classDef: Illegal identifier - 2!"]
               c:cs -> toLower c : cs
             fromMethodName  = "from" ++ ptrName
-            castFun         = "cast" ++ show ptrType
+            castFun         = impm $ "cast" ++ show ptrType
             typeConstr      = if isNewtype  then typeName ++ " " else ""
             superConstr     = if isNewtype' then ptrName  ++ " " else ""
             instDef         =
@@ -1830,6 +1831,7 @@ classDef pos className typeName ptrType isNewtype superClasses =
                 ++ superConstr ++ "(" ++ castFun ++ " p)\n"
               ++ "  " ++ fromMethodName   ++ " (" ++ superConstr ++ "p) = "
                 ++ typeConstr  ++ "(" ++ castFun ++ " p)\n"
+        addHsDependency "Foreign.Ptr"
         instDefs <- castInstDefs classes
         return $ instDef ++ instDefs
 

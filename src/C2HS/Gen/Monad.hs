@@ -216,8 +216,8 @@ data HsObject    = Pointer {
                      isNewtypeHO  :: Bool          -- newtype?
                    }
                  | Class {
-                     superclassHO :: (Maybe Ident),-- superclass
-                     ptrHO        :: Ident         -- pointer
+                     superclassHO :: (Maybe String),-- superclass
+                     ptrHO        :: String         -- pointer
                    }
                  deriving (Show, Read)
 type HsObjectMap = Map Ident HsObject

@@ -91,6 +91,7 @@ tests =
     , testCase "Issue #149" issue149
     , testCase "Issue #151" issue151
     , testCase "Issue #152" issue152
+    , testCase "Issue #155" issue155
     ] ++
     -- Some tests that won't work on Windows.
     if os /= "cygwin32" && os /= "mingw32"
@@ -109,6 +110,17 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
   cmd "ghc" "--make" "-cpp" "Capital_c.o" "Capital.hs"
   res <- absPath "./Capital" >>= cmd
   let expected = ["upper C();", "lower c();", "upper C();"]
+  liftIO $ assertBool "" (T.lines res == expected)
+
+issue155 :: Assertion
+issue155 = c2hsShelly $ chdir "tests/bugs/issue-155" $ do
+  mapM_ rm_f ["Issue155.hs", "Issue155.chs.h", "Issue155.chs.c", "Issue155.chi",
+              "Issue155.chs.o", "Issue155", "Types.chi", "Types.chs.h", "Types.hs"]
+  cmd "c2hs" "Types.chs"
+  cmd "c2hs" "Issue155.chs"
+  cmd "ghc" "--make" "Issue155.hs"
+  res <- absPath "./Issue155" >>= cmd
+  let expected = ["OK"]
   liftIO $ assertBool "" (T.lines res == expected)
 
 issue152 :: Assertion
