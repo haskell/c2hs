@@ -2420,7 +2420,7 @@ sizeAlignOfStructPad decls tag =
   do
     (sz, align) <- sizeAlignOfStruct decls tag
     let b = size CIntPT
-    return (alignOffset sz b b, align)
+    return (alignOffset sz (align `max` b) b, align)
 
 -- | compute the size and alignment constraint of a given C declaration
 --

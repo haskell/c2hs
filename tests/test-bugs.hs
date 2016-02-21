@@ -408,7 +408,7 @@ issue15 :: Assertion
 issue15 = expect_issue 15 ["True"]
 
 issue10 :: Assertion
-issue10 = expect_issue 10 ["SAME", "SAME", "SAME", "SAME"]
+issue10 = expect_issue 10 ["SAME", "SAME", "SAME", "SAME", "SAME"]
 
 issue09 :: Assertion
 issue09 = expect_issue 9 $ archdep ++ ["(32,64)", "64", "OK"]

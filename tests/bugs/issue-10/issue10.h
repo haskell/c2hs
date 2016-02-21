@@ -4,6 +4,7 @@ size_t size_of_s1(void);
 size_t size_of_s2(void);
 size_t size_of_s3(void);
 size_t size_of_s4(void);
+size_t size_of_s5(void);
 
 typedef struct {
   int f1:1;
@@ -29,3 +30,8 @@ typedef struct {
   unsigned int b0: 31;
   unsigned int b30: 1;
 } S4;
+
+typedef struct {
+  double d;
+  char c;
+} S5;
