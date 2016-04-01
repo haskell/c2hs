@@ -1,3 +1,7 @@
+0.28.1
+ - Switch to language-c 0.5 [#157]
+ - Fix class hook problem with imports [#155]
+
 0.27.1
  - Alternate specification for sizes in "+" parameters [#140]
  - Fix regression to do with incomplete structure types [#152]
