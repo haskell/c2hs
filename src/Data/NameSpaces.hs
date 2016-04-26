@@ -77,7 +77,7 @@ nameSpace  = NameSpace Map.empty []
 --
 -- * if the identfier is already declared, the resulting name space contains
 --   the new binding and the second component of the result contains the
---   definition declared previosuly (which is henceforth not contained in the
+--   definition declared previously (which is henceforth not contained in the
 --   name space anymore)
 --
 defGlobal :: NameSpace a -> Ident -> a -> (NameSpace a, Maybe a)
@@ -105,7 +105,7 @@ leaveRange (NameSpace gs (ls:lss))  = (NameSpace gs lss, ls)
 --
 -- * if the identfier is already declared, the resulting name space contains
 --   the new binding and the second component of the result contains the
---   definition declared previosuly (which is henceforth not contained in the
+--   definition declared previously (which is henceforth not contained in the
 --   name space anymore)
 --
 defLocal :: NameSpace a -> Ident -> a -> (NameSpace a, Maybe a)
