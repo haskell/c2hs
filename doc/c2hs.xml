@@ -447,17 +447,18 @@ Create a haskell datatype <replaceable>hsid</replaceable>, with nullary construc
     <title>Call Hooks</title>
     <para>
 <programlisting>
-{#call [pure] [unsafe] <replaceable>cid</replaceable> [as (<replaceable>hsid</replaceable> | ^)]#}
+{#call [pure] [unsafe] [interruptible] <replaceable>cid</replaceable> [as (<replaceable>hsid</replaceable> | ^)]#}
 </programlisting>
 
     A call hook rewrites to a call to the C function
     <replaceable>cid</replaceable> and also ensures that the appropriate foreign
     import declaration is generated.  The tags <literal>pure</literal> and
     <literal>unsafe</literal> specify that the external function is purely
-    functional and cannot re-enter the Haskell runtime, respectively.  If
-    <replaceable>hsid</replaceable> is present, it is used as the identifier for
-    the foreign declaration, which otherwise defaults to the
-    <replaceable>cid</replaceable>.  When instead of
+    functional and cannot re-enter the Haskell runtime, respectively.  The
+    <literal>interruptible</literal> flag is intended to be used in conjunction
+    with the InterruptibleFFI extension. If <replaceable>hsid</replaceable> is
+    present, it is used as the identifier for the foreign declaration, which
+    otherwise defaults to the <replaceable>cid</replaceable>.  When instead of
     <replaceable>hsid</replaceable>, the symbol <literal>^</literal> is given,
     the <replaceable>cid</replaceable> after conversion from C's underscore
     notation to a capitalised identifier is used.
@@ -477,7 +478,7 @@ sin  = {#call pure sin as "_sin"#}
     <title>Function Hooks</title>
     <para>
 <programlisting>
-{#fun  [pure] [unsafe] <replaceable>cid</replaceable> [as (<replaceable>hsid</replaceable> | ^)]
+{#fun  [pure] [unsafe] [interruptible] <replaceable>cid</replaceable> [as (<replaceable>hsid</replaceable> | ^)]
 [<replaceable>ctxt</replaceable> =>] { <replaceable>parm1</replaceable> , ... , <replaceable>parmn</replaceable> } -> <replaceable>parm</replaceable>
 </programlisting>
 
@@ -1004,8 +1005,8 @@ inner    -> `import' ['qualified'] ident
           | `type' ident
           | `sizeof' ident
           | `enum' idalias trans [`with' prefix] [deriving]
-          | `call' [`pure'] [`unsafe'] idalias
-          | `fun' [`pure'] [`unsafe'] idalias parms
+          | `call' [`pure'] [`unsafe'] [`interruptible'] idalias
+          | `fun' [`pure'] [`unsafe'] [`interruptible'] idalias parms
           | `get' apath
           | `set' apath
           | `pointer' ['*'] idalias ptrkind
