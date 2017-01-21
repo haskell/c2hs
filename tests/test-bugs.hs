@@ -92,6 +92,7 @@ tests =
     , testCase "Issue #151" issue151
     , testCase "Issue #152" issue152
     , testCase "Issue #155" issue155
+    , testCase "Issue #180" issue180
     ] ++
     -- Some tests that won't work on Windows.
     if os /= "cygwin32" && os /= "mingw32"
@@ -111,6 +112,17 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
   res <- absPath "./Capital" >>= cmd
   let expected = ["upper C();", "lower c();", "upper C();"]
   liftIO $ assertBool "" (T.lines res == expected)
+
+issue180 :: Assertion
+issue180 = c2hsShelly $ chdir "tests/bugs/issue-180" $ do
+  mapM_ rm_f ["Issue180.chs.h"]
+  errExit False $ do
+    run "c2hs" [toTextIgnore "Issue180.chs"]
+  code <- lastExitCode
+  liftIO $ assertEqual "error code" 1 code
+  stderr <- lastStderr
+  let excessMsgCount = T.count "excess of the C arguments" stderr
+  liftIO $ assertBool "correct error message" (excessMsgCount == 1)
 
 issue155 :: Assertion
 issue155 = c2hsShelly $ chdir "tests/bugs/issue-155" $ do
