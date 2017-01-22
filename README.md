@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/haskell/c2hs.svg?branch=master)](https://travis-ci.org/haskell/c2hs)
+
 `c2hs` is a interfacing tool that eases Haskell access to C libraries.
 The tool gets information about the C data type definitions and
 function signatures by analysing the C header files of the library.
