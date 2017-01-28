@@ -521,7 +521,9 @@ addImports fs imps = before ++ impfrags ++ after
               else doSplit 0 mln True (f:acc) fs'
           | otherwise = if null (dropWhile isSpace s) || isJust mln
                         then doSplit 0 mln wh (f:acc) fs'
-                        else doSplit 0 (Just $ posRow pos) wh (f:acc) fs'
+                        else doSplit 0 mln' wh (f:acc) fs'
+                          where mln' | isSourcePos pos = Just $ posRow pos
+                                     | otherwise = Nothing
         doSplit cdep mln wh acc (f@(CHSVerb s _) : fs')
           | s == "-}" = doSplit (cdep-1) mln wh (f:acc) fs'
           | s == "{-" = doSplit (cdep+1) mln wh (f:acc) fs'
