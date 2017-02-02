@@ -1438,7 +1438,11 @@ addDftMarshaller pos parms parm extTy varExTys = do
       parms'   <- addDft parms'' cts
       return (CHSParm imMarsh' hsTy True omMarsh' False p c : parms')
     addDft [] [] = return []
-    addDft ((CHSParm _ _ _ _ _ pos' _):_) [] =
+    addDft (CHSPlusParm _:_) [] =
+      marshArgMismatchErr pos "This parameter is in excess of the C arguments."
+    addDft (CHSParm _ _ _ _ _ pos' _:_) [] =
+      marshArgMismatchErr pos' "This parameter is in excess of the C arguments."
+    addDft (CHSParm _ _ True _ _ pos' _:_) [_] =
       marshArgMismatchErr pos' "This parameter is in excess of the C arguments."
     addDft [] (_:_) =
       marshArgMismatchErr pos "Parameter marshallers are missing."
