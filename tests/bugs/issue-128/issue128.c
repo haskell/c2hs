@@ -20,6 +20,7 @@ tststruct *make_tststruct(int ain)
   tststruct *p = (tststruct *)malloc(sizeof(tststruct));
   p->a = ain;
   p->b = false;
+  return p;
 }
 
 void free_tststruct(tststruct *s)
