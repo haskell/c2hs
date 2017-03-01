@@ -112,7 +112,7 @@ flag base3
 Executable c2hs
     Build-Depends:  base >= 2 && < 5,
                     bytestring,
-                    language-c >= 0.5 && < 0.6,
+                    language-c >= 0.6 && < 0.7,
                     filepath,
                     dlist
 
