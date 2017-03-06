@@ -2309,7 +2309,7 @@ extractCallingConvention cdecl
     hasStdCallAttr = any isStdCallAttr . funAttrs
 
     funAttrs (CDecl specs declrs _) =
-      let (_,attrs',_,_,_) = partitionDeclSpecs specs
+      let (_,attrs',_,_,_,_) = partitionDeclSpecs specs
        in attrs' ++ funEndAttrs declrs ++ funPtrAttrs declrs
 
     -- attrs after the function name, e.g. void foo() __attribute__((...));
