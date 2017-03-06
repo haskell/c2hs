@@ -6,7 +6,7 @@ Copyright:      Copyright (c) 1999-2007 Manuel M T Chakravarty
                               2005-2013 Duncan Coutts
                               2008      Benedikt Huber
 Author:         Manuel M T Chakravarty
-Maintainer:     chak@cse.unsw.edu.au, duncan@community.haskell.org, ian@skybluetrades.net
+Maintainer:     chak@cse.unsw.edu.au, duncan@community.haskell.org, ian@skybluetrades.net, aditya.siram@gmail.com
 Stability:      Stable
 Homepage:       https://github.com/haskell/c2hs
 Bug-Reports:    https://github.com/haskell/c2hs/issues
