@@ -712,7 +712,10 @@ cpp = directive
                     s, Nothing)
 
 adjustPosByCLinePragma :: String -> Position -> Position
-adjustPosByCLinePragma str pos = adjustPos fname' row' pos
+adjustPosByCLinePragma str pos =
+  if isSourcePos pos
+  then position (posOffset pos) fname' row' 1 (posParent pos)
+  else pos
   where
     fname           = posFile pos
     str'            = dropWhite str
