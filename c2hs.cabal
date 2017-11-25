@@ -1,5 +1,5 @@
 Name:           c2hs
-Version:        0.28.2
+Version:        0.28.3
 License:        GPL-2
 License-File:   COPYING
 Copyright:      Copyright (c) 1999-2007 Manuel M T Chakravarty
@@ -112,7 +112,7 @@ flag base3
 Executable c2hs
     Build-Depends:  base >= 2 && < 5,
                     bytestring,
-                    language-c >= 0.7 && < 0.8,
+                    language-c >= 0.7.1 && < 0.8,
                     filepath,
                     dlist
 
