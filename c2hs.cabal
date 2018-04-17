@@ -1,5 +1,5 @@
 Name:           c2hs
-Version:        0.28.3
+Version:        0.28.4
 License:        GPL-2
 License-File:   COPYING
 Copyright:      Copyright (c) 1999-2007 Manuel M T Chakravarty
@@ -19,7 +19,7 @@ Description:    C->Haskell assists in the development of Haskell bindings to C
                 correct Haskell types.
 Category:       Development
 Tested-With:    GHC==6.12.3, GHC==7.0.4, GHC==7.6.1, GHC==7.6.3, GHC==7.8.3, GHC==7.10.1
-Cabal-Version:  >= 1.8
+Cabal-Version:  >= 1.10
 Build-Type:     Simple
 
 --TODO: Cabal should allow 'Data-Files' in the executable stanza
@@ -154,6 +154,7 @@ Executable c2hs
     c-sources:      src/C2HS/config.c
     --TODO: eliminate the need to suppress these warnings:
     ghc-options:    -Wall -fno-warn-incomplete-patterns -fwarn-tabs
+    default-language: Haskell2010
 
 Test-Suite test-bugs
   type:                exitcode-stdio-1.0

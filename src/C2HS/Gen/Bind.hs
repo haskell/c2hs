@@ -112,13 +112,15 @@ import qualified Prelude
 
 -- standard libraries
 import Data.Char     (toLower, isSpace)
+import Data.List     (stripPrefix)
 import Data.Function (on)
 import Data.IORef    (IORef, newIORef, readIORef, writeIORef)
 import System.IO.Unsafe (unsafePerformIO)
 import System.IO     (withFile, hPutStrLn, IOMode(..))
 import System.Exit   (ExitCode(..))
 import System.Directory (removeFile)
-import System.Process (readProcessWithExitCode, system)
+import System.FilePath (isPathSeparator)
+import System.Process (readProcessWithExitCode, rawSystem)
 import Data.List     (deleteBy, groupBy, sortBy, intersperse, find, nubBy,
                       intercalate, isPrefixOf, isInfixOf, foldl')
 import Data.Map      (lookup)
@@ -3049,7 +3051,8 @@ findBoolSize = do
     hPutStrLn h "#include <stdio.h>"
     hPutStrLn h $ "int main(int argc, char *argv[]) " ++
       "{ printf(\"%u\\n\", sizeof(_Bool)); return 0; }"
-  gcccode <- system $ cCompiler ++ " -o c2hs__bool_size c2hs__bool_size.c"
+
+  gcccode <- rawSystem cCompiler ["-o", "c2hs__bool_size", "c2hs__bool_size.c"]
   when (gcccode /= ExitSuccess) $
     error "Failed to compile 'bool' size test program!"
   (code, stdout, _) <- readProcessWithExitCode "./c2hs__bool_size" [] ""
@@ -3057,7 +3060,11 @@ findBoolSize = do
     error "Failed to run 'bool' size test program!"
   let sz = read stdout :: Int
   removeFile "c2hs__bool_size.c"
+#if defined(mingw32_HOST_OS)
+  removeFile "c2hs__bool_size.exe"
+#else
   removeFile "c2hs__bool_size"
+#endif
   return sz
 
 cBoolSize :: Int
@@ -3084,8 +3091,21 @@ cCompiler = unsafePerformIO $ do
       when (code /= ExitSuccess) $
         error "Failed to determine C compiler from 'ghc --info'!"
       let vals = read stdout :: [(String, String)]
-      case Prelude.lookup "C compiler command" vals of
-        Nothing -> error "Failed to determine C compiler from 'ghc --info'!"
-        Just cc -> do
-          writeIORef cCompilerRef $ Just cc
-          return cc
+      case (Prelude.lookup "C compiler command" vals, Prelude.lookup "LibDir" vals) of
+        (Just cc, Just topDir) -> do
+          -- ensure that $topdir is expanded
+          let mungedCc = mungePath topDir cc
+          writeIORef cCompilerRef $ Just mungedCc
+          return mungedCc
+        _ -> error "Failed to determine C compiler from 'ghc --info'!" 
+
+  where
+    -- adapted from ghc/compiler/main/Packages.hs
+    mungePath topDir p
+      | Just p' <- stripVarPrefix "$topdir" p = topDir ++ p'
+      | otherwise                             = p
+
+    stripVarPrefix var path = case stripPrefix var path of
+      Just [] -> Just []
+      Just cs@(c : _) | isPathSeparator c -> Just cs
+      _ -> Nothing
