@@ -150,7 +150,7 @@ Executable c2hs
       System.CIO
       Text.Lexers
 
-    extensions:     ForeignFunctionInterface
+    default-extensions:     ForeignFunctionInterface
     c-sources:      src/C2HS/config.c
     --TODO: eliminate the need to suppress these warnings:
     ghc-options:    -Wall -fno-warn-incomplete-patterns -fwarn-tabs
@@ -169,6 +169,7 @@ Test-Suite test-bugs
                        shelly >= 1.0,
                        text,
                        transformers
+  default-language: Haskell2010
 
 Test-Suite test-system
   type:                exitcode-stdio-1.0
@@ -182,6 +183,7 @@ Test-Suite test-system
                        shelly >= 1.0,
                        text,
                        transformers
+  default-language: Haskell2010
 
 Flag regression
   description: Enable regression suite build.
@@ -198,3 +200,4 @@ Executable regression-suite
                          yaml >= 0.8
   else
     buildable: False
+  default-language: Haskell2010
