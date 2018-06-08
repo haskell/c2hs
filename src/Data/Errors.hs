@@ -17,7 +17,7 @@
 --
 --- DESCRIPTION ---------------------------------------------------------------
 --
---  This modules exports some auxilliary routines for error handling.
+--  This modules exports some auxiliary routines for error handling.
 --
 --- DOCU ----------------------------------------------------------------------
 --
@@ -71,7 +71,7 @@ makeError lvl pos msgs = CError $ ErrorInfo lvl pos msgs
 errorAtPos         :: Position -> [String] -> a
 errorAtPos pos      = error
                       --FIXME: should be using show here, but Show instance
-                      --       for CError from language-c is wierd
+                      --       for CError from language-c is weird
                     . showErrorInfo "" . errorInfo
                     . makeError LevelError pos
 
