@@ -531,7 +531,7 @@ sin  = {#call pure sin as "_sin"#}
     functions.  By default they are assumed to be pure functions; if they have
     to be executed in the <literal>IO</literal> monad, the function name needs
     to be followed by a star symbol <literal>*</literal>.  Alternatively, the
-    identifier may be followed by a minux sign <literal>-</literal>, in which
+    identifier may be followed by a minus sign <literal>-</literal>, in which
     case the Haskell type does <emphasis>not</emphasis> appear as an argument
     (in marshaller) or result (out marshaller) of the generated Haskell
     function.  In other words, the argument types of the Haskell function is
