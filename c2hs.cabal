@@ -103,6 +103,7 @@ Extra-Source-Files:
   tests/bugs/issue-155/*.chs tests/bugs/issue-155/*.h
   tests/bugs/issue-180/*.chs tests/bugs/issue-180/*.h
   tests/bugs/issue-192/*.chs tests/bugs/issue-192/*.h
+  tests/bugs/issue-230/*.chs tests/bugs/issue-230/*.h tests/bugs/issue-230/*.c
 
 source-repository head
   type:         git
@@ -151,6 +152,7 @@ Executable c2hs
       Data.Attributes
       Data.Errors
       Data.NameSpaces
+      Paths_c2hs
       System.CIO
       Text.Lexers
 

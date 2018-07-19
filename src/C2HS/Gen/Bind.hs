@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE BangPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 --  C->Haskell Compiler: binding generator
 --
@@ -1554,33 +1555,67 @@ replaceByAlias cdecl@(CDecl _ [(_, _, sz)] _at)  =
 --
 refStruct :: CStructUnion -> Ident -> GB (BitSize, CDecl)
 refStruct su ide =
-  do
+  case refStruct' su ide of
+    Nothing -> unknownFieldErr (posOf su) ide
+    Just ref -> ref
+
+refStruct' :: CStructUnion -> Ident -> Maybe (GB (BitSize, CDecl))
+refStruct' su ide =
     -- get the list of fields and check for our selector
-    --
     let (fields, tag) = structMembers su
-        (pre, post)   = span (not . flip declNamed ide) fields
-    when (null post) $
-      unknownFieldErr (posOf su) ide
-    --
-    -- get sizes of preceding fields and the result type (`pre' are all
-    -- declarators preceding `ide' and the first declarator in `post' defines
-    -- `ide')
-    --
-    let decl = head post
+        (pre, post)   = break (fieldDeclNamed ide) fields
+    in case post of
+      decl : _ -> Just (offsetInStructUnion tag pre decl)
+      -- if not declared on this level, search fields that are
+      -- anonymous struct/unions
+      [] -> case refStructDeep (probeStruct ide) fields of
+        (preNest, Just (container, containedRef))->
+          Just $ combineOffsets tag preNest container containedRef
+        (_, Nothing )-> Nothing
+
+-- determine if field is a struct/union that exposes matched identifier anonymously,
+-- by calling refStruct' recursively. If not, return Nothing, If so, return result of refstruct'
+probeStruct :: Ident -> CDecl -> Maybe (GB (BitSize, CDecl))
+probeStruct ide (CDecl specs []  _) =
+      case [ts | CTypeSpec ts <- specs] of
+        -- extract structure or union to search here
+        CSUType su _ : _-> refStruct' su ide -- not handling forward refs here yet
+        --  other prim types
+        _ -> Nothing -- anonymous field not a struct or union
+probeStruct _ _ = Nothing -- all cases but unnamed field
+
+refStructDeep :: (a -> Maybe b) -> [a] -> ([a], Maybe (a, b))
+refStructDeep f = go id where
+    go !acc []     = (acc [], Nothing)
+    go !acc (x:xs) = case f x of
+        Nothing -> go (acc . (x:)) xs
+        Just b  -> (acc [], Just (x, b))
+
+offsetInStructUnion :: CStructTag -> [CDecl] -> CDecl -> GB (BitSize, CDecl)
+offsetInStructUnion tag pre decl =
+      do
+        offset <- case tag of
+              CStructTag -> offsetInStruct pre decl tag
+              CUnionTag  -> return $ BitSize 0 0
+        return (offset, decl)
+
+combineOffsets :: CStructTag -> [CDecl] -> CDecl -> GB (BitSize, CDecl) -> GB (BitSize, CDecl)
+combineOffsets tag pre decl containedRef =
+  do
+    (containedOffset, containedDecl) <- containedRef
     offset <- case tag of
                 CStructTag -> offsetInStruct pre decl tag
-                CUnionTag  -> return $ BitSize 0 0
-    return (offset, decl)
+                CUnionTag -> return $ BitSize 0 0
+    return (offset `addBitSize` containedOffset, containedDecl)
 
--- | does the given declarator define the given name?
+-- | does the given declarator define the given name at top level?
 --
-declNamed :: CDecl -> Ident -> Bool
-(CDecl _ [(Nothing   , _, _)] _) `declNamed` _   = False
-(CDecl _ [(Just declr, _, _)] _) `declNamed` ide = declr `declrNamed` ide
-cdecl@(CDecl _ []             _) `declNamed` _   =
-  errorAtPos (posOf cdecl) ["GenBind.declNamed: Abstract declarator in structure!"]
-cdecl                            `declNamed` _   =
-  errorAtPos (posOf cdecl) ["GenBind.declNamed: More than one declarator!"]
+fieldDeclNamed :: Ident -> CDecl -> Bool
+ide `fieldDeclNamed` (CDecl _ [(Just declr, _, _)] _) = declr `declrNamed` ide
+_   `fieldDeclNamed` (CDecl _ [(Nothing   , _, _)] _) = False
+_   `fieldDeclNamed` (CDecl _ []             _)       = False
+_   `fieldDeclNamed` cdecl                            =
+  errorAtPos (posOf cdecl) ["GenBind.fieldDeclNamed: More than one declarator!"]
 
 -- | Haskell code for writing to or reading from a struct
 --
