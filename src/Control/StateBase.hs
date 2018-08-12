@@ -58,6 +58,7 @@ import Language.C.Data.Name
 
 import Control.Applicative (Applicative(..))
 import Control.Monad (liftM, ap)
+import Control.Monad.Fail (MonadFail (..))
 
 -- state used in the whole compiler
 -- --------------------------------
@@ -82,6 +83,9 @@ data BaseState e = BaseState {
 --
 
 newtype PreCST e s a = CST (STB (BaseState e) s a)
+
+instance MonadFail (PreCST a b) where
+    fail = error
 
 instance Functor (PreCST e s) where
   fmap = liftM
