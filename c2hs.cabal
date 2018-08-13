@@ -122,6 +122,9 @@ Executable c2hs
     else
         Build-Depends: base < 3
 
+    if !impl(ghc >= 8.0)
+        Build-Depends: fail
+
     hs-source-dirs: src
     main-is:        Main.hs
     other-modules:
