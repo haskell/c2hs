@@ -577,8 +577,13 @@ process headerFiles bndFile  =
         versionOpt = [ "-DC2HS_VERSION_MAJOR=" ++ versMajor
                      , "-DC2HS_VERSION_MINOR=" ++ versMinor
                      , "-DC2HS_VERSION_REV=" ++ versRev ]
-        args = cppOpts ++ nonGNUOpts ++ ["-U__BLOCKS__"] ++
-               versionOpt ++ [newHeaderFile]
+        args = filter (not . null) $
+            concat [ cppOpts
+                   , nonGNUOpts
+                   , ["-U__BLOCKS__"]
+                   , versionOpt
+                   , [newHeaderFile]
+                   ]
     tracePreproc (unwords (cpp:args))
     exitCode <- CIO.liftIO $ do
       preprocHnd <- openFile preprocFile WriteMode
