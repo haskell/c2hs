@@ -509,8 +509,11 @@ structMembers (CStruct tag _ members _ _) = (concat . map expandDecl $ maybe [] 
 
 -- | expand declarators declaring more than one identifier into multiple
 -- declarators, eg, `int x, y;' becomes `int x; int y;'
+-- For case of a declarator that declares no identifier, preserve the no-identifier decl.
 --
 expandDecl                        :: CDecl -> [CDecl]
+expandDecl decl@(CDecl _ [] _)     =
+  [decl] -- no name member stays as member without a name.
 expandDecl (CDecl specs decls at)  =
   map (\decl -> CDecl specs [decl] at) decls
 
