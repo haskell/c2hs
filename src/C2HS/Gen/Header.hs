@@ -219,7 +219,7 @@ ghFrag (_frag@(CHSHook (CHSConst cident pos) hkpos) : frags) =
             Nothing)]
           undefNode
 
-ghFrag (frag@(CHSHook (CHSFun _ _ True varTypes
+ghFrag (frag@(CHSHook (CHSFun _ _ _ True varTypes
                        (CHSRoot _ ide) oalias _ _ _ _) _) : frags) = do
   let ideLexeme = identToString ide
       hsLexeme  = ideLexeme `maybe` identToString $ oalias

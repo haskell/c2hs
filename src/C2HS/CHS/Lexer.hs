@@ -90,7 +90,7 @@
 --      cidenttail  -> digit (letter | digit)*
 --      reservedid  -> `add' | `as' | `call' | `class' | `context' | `deriving'
 --                   | `enum' | `foreign' | `fun' | `get' | `lib'
---                   | `downcaseFirstLetter' | `finalizer'
+--                   | `downcaseFirstLetter' | `finalizer' | `interruptible'
 --                   | `newtype' | `nocode' | `pointer' | `prefix' | `pure'
 --                   | `set' | `sizeof' | `stable' | `struct' | `type'
 --                   | `underscoreToCase' | `upcaseFirstLetter' | `unsafe' |
@@ -230,6 +230,7 @@ data CHSToken = CHSTokArrow   Position          -- `->'
               | CHSTokFun     Position          -- `fun'
               | CHSTokGet     Position          -- `get'
               | CHSTokImport  Position          -- `import'
+              | CHSTokIntr    Position          -- `interruptible'
               | CHSTokLib     Position          -- `lib'
               | CHSTokNewtype Position          -- `newtype'
               | CHSTokNocode  Position          -- `nocode'
@@ -446,6 +447,7 @@ instance Show CHSToken where
   showsPrec _ (CHSTokFun     _  ) = showString "fun"
   showsPrec _ (CHSTokGet     _  ) = showString "get"
   showsPrec _ (CHSTokImport  _  ) = showString "import"
+  showsPrec _ (CHSTokIntr    _  ) = showString "interruptible"
   showsPrec _ (CHSTokLib     _  ) = showString "lib"
   showsPrec _ (CHSTokNewtype _  ) = showString "newtype"
   showsPrec _ (CHSTokNocode  _  ) = showString "nocode"
@@ -824,6 +826,7 @@ identOrKW  =
     idkwtok pos "fun"              _    = CHSTokFun     pos
     idkwtok pos "get"              _    = CHSTokGet     pos
     idkwtok pos "import"           _    = CHSTokImport  pos
+    idkwtok pos "interruptible"    _    = CHSTokIntr    pos
     idkwtok pos "lib"              _    = CHSTokLib     pos
     idkwtok pos "newtype"          _    = CHSTokNewtype pos
     idkwtok pos "nocode"           _    = CHSTokNocode  pos
@@ -871,6 +874,7 @@ keywordToIdent tok =
     CHSTokFun     pos -> mkid pos "fun"
     CHSTokGet     pos -> mkid pos "get"
     CHSTokImport  pos -> mkid pos "import"
+    CHSTokIntr    pos -> mkid pos "interruptible"
     CHSTokLib     pos -> mkid pos "lib"
     CHSTokNewtype pos -> mkid pos "newtype"
     CHSTokNocode  pos -> mkid pos "nocode"
