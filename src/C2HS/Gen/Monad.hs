@@ -376,12 +376,13 @@ delayCode hook str  =
     where
       newEntry = (hook, (CHSVerb ("\n" ++ str) (posOf hook)))
       --
-      delay hook'@(CHSCall isFun isUns ide _oalias _) frags' =
+      delay hook'@(CHSCall isFun isIntr isUns ide _oalias _) frags' =
         case find (\(hook'', _) -> hook'' == hook') frags' of
-          Just (CHSCall isFun' isUns' ide' _ _, _)
-            |    isFun == isFun'
-              && isUns == isUns'
-              && ide   == ide'   -> return frags'
+          Just (CHSCall isFun' isIntr' isUns' ide' _ _, _)
+            |    isFun  == isFun'
+              && isIntr == isIntr'
+              && isUns  == isUns'
+              && ide    == ide'   -> return frags'
             | otherwise          -> err (posOf ide) (posOf ide')
           Nothing                -> return $ frags' ++ [newEntry]
       delay hook'@(CHSPointer _ _ _ _ _ _ _ _) frags' =

@@ -56,7 +56,7 @@
 --            | `enum' idalias trans [`nocode'] [`with' prefix] [`add' prefix] [deriving]
 --            | `enum` `define` idalias [deriving]
 --            | `call' [`pure'] [`unsafe'] idalias
---            | `fun' [`pure'] [`unsafe'] idalias parms
+--            | `fun' [`interruptible'] [`pure'] [`unsafe'] idalias parms
 --            | `get' [`struct'] apath
 --            | `set' [`struct'] apath
 --            | `offsetof` apath
@@ -222,11 +222,13 @@ data CHSHook = CHSImport  Bool                  -- qualified?
                           [Ident]               -- instance requests from user
                           Position
              | CHSCall    Bool                  -- is a pure function?
+                          Bool                  -- is interruptible?
                           Bool                  -- is unsafe?
                           CHSAPath              -- C function
                           (Maybe Ident)         -- Haskell name
                           Position
              | CHSFun     Bool                  -- is a pure function?
+                          Bool                  -- is interruptible?
                           Bool                  -- is unsafe?
                           Bool                  -- is variadic?
                           [String]              -- variadic C parameter types
@@ -268,22 +270,22 @@ data CHSHook = CHSImport  Bool                  -- qualified?
 data Direction = In | Out deriving (Eq, Ord, Show)
 
 instance Pos CHSHook where
-  posOf (CHSImport  _ _ _             pos) = pos
-  posOf (CHSContext _ _ _             pos) = pos
-  posOf (CHSType    _                 pos) = pos
-  posOf (CHSSizeof  _                 pos) = pos
-  posOf (CHSAlignof _                 pos) = pos
-  posOf (CHSEnum    _ _ _ _ _ _ _     pos) = pos
-  posOf (CHSEnumDefine _ _ _          pos) = pos
-  posOf (CHSCall    _ _ _ _           pos) = pos
-  posOf (CHSFun     _ _ _ _ _ _ _ _ _ pos) = pos
-  posOf (CHSField   _ _               pos) = pos
-  posOf (CHSOffsetof _                pos) = pos
-  posOf (CHSPointer _ _ _ _ _ _ _     pos) = pos
-  posOf (CHSClass   _ _ _             pos) = pos
-  posOf (CHSConst   _                 pos) = pos
-  posOf (CHSTypedef _ _               pos) = pos
-  posOf (CHSDefault _ _ _ _ _         pos) = pos
+  posOf (CHSImport  _ _ _               pos) = pos
+  posOf (CHSContext _ _ _               pos) = pos
+  posOf (CHSType    _                   pos) = pos
+  posOf (CHSSizeof  _                   pos) = pos
+  posOf (CHSAlignof _                   pos) = pos
+  posOf (CHSEnum    _ _ _ _ _ _ _       pos) = pos
+  posOf (CHSEnumDefine _ _ _            pos) = pos
+  posOf (CHSCall    _ _ _ _ _           pos) = pos
+  posOf (CHSFun     _ _ _ _ _ _ _ _ _ _ pos) = pos
+  posOf (CHSField   _ _                 pos) = pos
+  posOf (CHSOffsetof _                  pos) = pos
+  posOf (CHSPointer _ _ _ _ _ _ _       pos) = pos
+  posOf (CHSClass   _ _ _               pos) = pos
+  posOf (CHSConst   _                   pos) = pos
+  posOf (CHSTypedef _ _                 pos) = pos
+  posOf (CHSDefault _ _ _ _ _           pos) = pos
 
 -- | two hooks are equal if they have the same Haskell name and reference the
 -- same C object
@@ -303,10 +305,10 @@ instance Eq CHSHook where
     oalias1 == oalias2 && ide1 == ide2
   (CHSEnumDefine ide1 _ _           _) == (CHSEnumDefine ide2 _ _           _) =
     ide1 == ide2
-  (CHSCall _ _ ide1 oalias1         _) == (CHSCall _ _ ide2 oalias2         _) =
+  (CHSCall _ _ _ ide1 oalias1       _) == (CHSCall _ _ _ ide2 oalias2       _) =
     oalias1 == oalias2 && ide1 == ide2
-  (CHSFun _ _ _ _ ide1 oalias1 _ _ _ _) ==
-    (CHSFun _ _ _ _ ide2 oalias2 _ _ _ _) = oalias1 == oalias2 && ide1 == ide2
+  (CHSFun _ _ _ _ _ ide1 oalias1 _ _ _ _) ==
+    (CHSFun _ _ _ _ _ ide2 oalias2 _ _ _ _) = oalias1 == oalias2 && ide1 == ide2
   (CHSField acc1 path1              _) == (CHSField acc2 path2              _) =
     acc1 == acc2 && path1 == path2
   (CHSOffsetof path1                _) == (CHSOffsetof path2                _) =
@@ -598,14 +600,17 @@ showCHSHook (CHSEnumDefine ide trans derive _) =
       " deriving ("
       ++ concat (intersperse ", " (map identToString derive))
       ++ ") "
-showCHSHook (CHSCall isPure isUns ide oalias _) =
+showCHSHook (CHSCall isPure isIntr isUns ide oalias _) =
     showString "call "
   . (if isPure then showString "pure " else id)
+  . (if isIntr then showString "interruptible " else id)
   . (if isUns then showString "unsafe " else id)
   . showApAlias ide oalias
-showCHSHook (CHSFun isPure isUns isVar varTypes ide oalias octxt parms parm _) =
+showCHSHook (CHSFun isPure isIntr isUns isVar varTypes ide oalias octxt
+                    parms parm _) =
     showString "fun "
   . (if isPure then showString "pure " else id)
+  . (if isIntr then showString "interruptible " else id)
   . (if isUns then showString "unsafe " else id)
   . (if isVar then showString "variadic " else id)
   . showFunAlias ide varTypes oalias
@@ -1136,33 +1141,35 @@ parseOptNoCode toks                   = return (True, toks)
 parseCall          :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
 parseCall hkpos pos toks  =
   do
-    (isPure  , toks'   ) <- parseIsPure          toks
-    (isUnsafe, toks''  ) <- parseIsUnsafe        toks'
-    (apath   , toks''' ) <- parsePath            toks''
-    (oalias  , toks'''') <- parseOptAs (apathToIdent apath) False toks'''
-    toks'''''            <- parseEndHook         toks''''
-    frags                <- parseFrags           toks'''''
+    (isPure  , toks'   )  <- parseIsPure          toks
+    (isIntr  , toks''  )  <- parseIsIntr          toks'
+    (isUnsafe, toks''' )  <- parseIsUnsafe        toks''
+    (apath   , toks'''')  <- parsePath            toks'''
+    (oalias  , toks''''') <- parseOptAs (apathToIdent apath) False toks''''
+    toks''''''            <- parseEndHook         toks'''''
+    frags                 <- parseFrags           toks''''''
     return $
-      CHSHook (CHSCall isPure isUnsafe apath oalias pos) hkpos : frags
+      CHSHook (CHSCall isPure isIntr isUnsafe apath oalias pos) hkpos : frags
 
 parseFun          :: Position -> Position -> [CHSToken] -> CST s [CHSFrag]
 parseFun hkpos pos inputToks  =
   do
-    (isPure  , toks' ) <- parseIsPure          toks
-    (isUnsafe, toks'2) <- parseIsUnsafe        toks'
-    (isVar,    toks'3) <- parseIsVariadic      toks'2
-    (apath   , toks'4) <- parsePath            toks'3
-    (varTypes, toks'5) <- parseVarTypes        toks'4
-    (oalias  , toks'6) <- parseOptAs (apathToIdent apath) False toks'5
-    (octxt   , toks'7) <- parseOptContext      toks'6
-    (parms   , toks'8) <- parseParms           toks'7
-    (parm    , toks'9) <- parseParm            toks'8
-    when (isParmWrapped parm) $ errorOutWrap $ head toks'8
-    toks'10            <- parseEndHook         toks'9
-    frags              <- parseFrags           toks'10
+    (isPure  , toks' )  <- parseIsPure          toks
+    (isIntr  , toks'2)  <- parseIsIntr          toks'
+    (isUnsafe, toks'3)  <- parseIsUnsafe        toks'2
+    (isVar,    toks'4)  <- parseIsVariadic      toks'3
+    (apath   , toks'5)  <- parsePath            toks'4
+    (varTypes, toks'6)  <- parseVarTypes        toks'5
+    (oalias  , toks'7)  <- parseOptAs (apathToIdent apath) False toks'6
+    (octxt   , toks'8)  <- parseOptContext      toks'7
+    (parms   , toks'9)  <- parseParms           toks'8
+    (parm    , toks'10) <- parseParm            toks'9
+    when (isParmWrapped parm) $ errorOutWrap $ head toks'9
+    toks'11             <- parseEndHook         toks'10
+    frags               <- parseFrags           toks'11
     return $
       CHSHook
-        (CHSFun isPure isUnsafe isVar varTypes
+        (CHSFun isPure isIntr isUnsafe isVar varTypes
          apath oalias octxt parms parm pos) hkpos :
       frags
   where
@@ -1224,6 +1231,10 @@ parseIsPure (CHSTokPure _:toks) = return (True , toks)
 parseIsPure (CHSTokFun  _:toks) = return (True , toks)  -- backwards compat.
 parseIsPure toks                = return (False, toks)
 -- FIXME: eventually, remove `fun'; it's currently deprecated
+
+parseIsIntr :: [CHSToken] -> CST s (Bool, [CHSToken])
+parseIsIntr (CHSTokIntr _:toks) = return (True , toks)
+parseIsIntr toks                = return (False, toks)
 
 parseIsUnsafe :: [CHSToken] -> CST s (Bool, [CHSToken])
 parseIsUnsafe (CHSTokUnsafe _:toks) = return (True , toks)
