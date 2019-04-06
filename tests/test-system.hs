@@ -40,6 +40,7 @@ tests =
     , testCase "Simple"  test_simple
 --    , testCase "Sizeof"  test_sizeof    -- KNOWN FAILURE: ISSUE #10
     , testCase "Structs" test_structs
+    , testCase "Interruptible" test_interruptible
     ]
   ]
 
@@ -118,3 +119,11 @@ test_structs = run_test_expect "tests/system/structs"
                 ("ghc", ["-o", "structs", "structs_c.o", "Structs.o"])]
                "./structs"
                ["42 & -1 & 2 & 200 & ' '"]
+
+test_interruptible :: Assertion
+test_interruptible = run_test_expect "tests/system/interruptible"
+              [("c2hs", ["interruptible.h", "Interruptible.chs"]),
+               (cc, ["-o", "interruptible_c.o", "-c", "interruptible.c"]),
+               ("ghc", ["-o", "interruptible", "interruptible_c.o", "Interruptible.hs"])]
+              "./interruptible"
+              ["interrupted!"]
