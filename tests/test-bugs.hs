@@ -106,9 +106,9 @@ call_capital :: Assertion
 call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
   mapM_ rm_f ["Capital.hs", "Capital.chs.h", "Capital.chi",
               "Capital_c.o", "Capital"]
-  cmd "c2hs" "-d" "genbind" "Capital.chs"
-  cmd cc "-c" "-o" "Capital_c.o" "Capital.c"
-  cmd "ghc" "--make" "-cpp" "Capital_c.o" "Capital.hs"
+  _ <- cmd "c2hs" "-d" "genbind" "Capital.chs"
+  _ <- cmd cc "-c" "-o" "Capital_c.o" "Capital.c"
+  _ <- cmd "ghc" "--make" "-cpp" "Capital_c.o" "Capital.hs"
   res <- absPath "./Capital" >>= cmd
   let expected = ["upper C();", "lower c();", "upper C();"]
   liftIO $ assertBool "" (T.lines res == expected)
@@ -122,7 +122,7 @@ issue192 = hs_only_build_issue 192
 issue180 :: Assertion
 issue180 = c2hsShelly $ chdir "tests/bugs/issue-180" $ do
   mapM_ rm_f ["Issue180.chs.h"]
-  errExit False $ do
+  _ <- errExit False $ do
     run "c2hs" [toTextIgnore "Issue180.chs"]
   code <- lastExitCode
   liftIO $ assertEqual "error code" 1 code
@@ -134,9 +134,9 @@ issue155 :: Assertion
 issue155 = c2hsShelly $ chdir "tests/bugs/issue-155" $ do
   mapM_ rm_f ["Issue155.hs", "Issue155.chs.h", "Issue155.chs.c", "Issue155.chi",
               "Issue155.chs.o", "Issue155", "Types.chi", "Types.chs.h", "Types.hs"]
-  cmd "c2hs" "Types.chs"
-  cmd "c2hs" "Issue155.chs"
-  cmd "ghc" "--make" "Issue155.hs"
+  _ <- cmd "c2hs" "Types.chs"
+  _ <- cmd "c2hs" "Issue155.chs"
+  _ <- cmd "ghc" "--make" "Issue155.hs"
   res <- absPath "./Issue155" >>= cmd
   let expected = ["OK"]
   liftIO $ assertBool "" (T.lines res == expected)
@@ -156,7 +156,7 @@ issue141 = c2hsShelly $ chdir "tests/bugs/issue-141" $ do
               "Issue141B.hs", "Issue141B.chs.h", "Issue141B.chi",
               "Issue141C.hs", "Issue141C.chs.h", "Issue141C.chi"]
   codes <- forM ["A", "B", "C"] $ \suff -> do
-    errExit False $ cmd "c2hs" $ "Issue141" <> suff <> ".chs"
+    _ <- errExit False $ cmd "c2hs" $ "Issue141" <> suff <> ".chs"
     lastExitCode
   liftIO $ assertBool "" (all (/= 0) codes)
 
@@ -176,10 +176,10 @@ issue131 :: Assertion
 issue131 = c2hsShelly $ chdir "tests/bugs/issue-131" $ do
   mapM_ rm_f ["Issue131.hs", "Issue131.chs.h", "Issue131.chs.c", "Issue131.chi",
               "issue131_c.o", "Issue131.chs.o", "Issue131"]
-  cmd "c2hs" "Issue131.chs"
-  cmd cc "-c" "-o" "issue131_c.o" "issue131.c"
-  cmd cc "-c" "Issue131.chs.c"
-  cmd "ghc" "--make" "issue131_c.o" "Issue131.chs.o" "Issue131.hs"
+  _ <- cmd "c2hs" "Issue131.chs"
+  _ <- cmd cc "-c" "-o" "issue131_c.o" "issue131.c"
+  _ <- cmd cc "-c" "Issue131.chs.c"
+  _ <- cmd "ghc" "--make" "issue131_c.o" "Issue131.chs.o" "Issue131.hs"
   res <- absPath "./Issue131" >>= cmd
   let expected = ["5", "3",
                   "True", "False"]
@@ -192,10 +192,10 @@ issue128 :: Assertion
 issue128 = c2hsShelly $ chdir "tests/bugs/issue-128" $ do
   mapM_ rm_f ["Issue128.hs", "Issue128.chs.h", "Issue128.chs.c", "Issue128.chi",
               "issue128_c.o", "Issue128.chs.o", "Issue128"]
-  cmd "c2hs" "Issue128.chs"
-  cmd cc "-c" "-o" "issue128_c.o" "issue128.c"
-  cmd cc "-c" "Issue128.chs.c"
-  cmd "ghc" "--make" "issue128_c.o" "Issue128.chs.o" "Issue128.hs"
+  _ <- cmd "c2hs" "Issue128.chs"
+  _ <- cmd cc "-c" "-o" "issue128_c.o" "issue128.c"
+  _ <- cmd cc "-c" "Issue128.chs.c"
+  _ <- cmd "ghc" "--make" "issue128_c.o" "Issue128.chs.o" "Issue128.hs"
   res <- absPath "./Issue128" >>= cmd
   let expected = ["5", "3",
                   "True", "False",
@@ -218,10 +218,10 @@ issue117 :: Assertion
 issue117 = c2hsShelly $ chdir "tests/bugs/issue-117" $ do
   mapM_ rm_f ["Issue117.hs", "Issue117.chs.h", "Issue117.chs.c", "Issue117.chi",
               "issue117_c.o", "Issue117.chs.o", "Issue117"]
-  cmd "c2hs" "Issue117.chs"
-  cmd cc "-c" "-o" "issue117_c.o" "issue117.c"
-  cmd cc "-c" "Issue117.chs.c"
-  cmd "ghc" "--make" "issue117_c.o" "Issue117.chs.o" "Issue117.hs"
+  _ <- cmd "c2hs" "Issue117.chs"
+  _ <- cmd cc "-c" "-o" "issue117_c.o" "issue117.c"
+  _ <- cmd cc "-c" "Issue117.chs.c"
+  _ <- cmd "ghc" "--make" "issue117_c.o" "Issue117.chs.o" "Issue117.hs"
   res <- absPath "./Issue117" >>= cmd
   let expected = ["5"]
   liftIO $ assertBool "" (T.lines res == expected)
@@ -243,10 +243,10 @@ issue103 = c2hsShelly $ chdir "tests/bugs/issue-103" $ do
   mapM_ rm_f ["Issue103.hs", "Issue103.chs.h", "Issue103.chi",
               "Issue103A.hs", "Issue103A.chs.h", "Issue103A.chi",
               "issue103_c.o", "Issue103"]
-  cmd "c2hs" "Issue103A.chs"
-  cmd "c2hs" "Issue103.chs"
-  cmd cc "-c" "-o" "issue103_c.o" "issue103.c"
-  cmd "ghc" "--make" "issue103_c.o" "Issue103A.hs" "Issue103.hs"
+  _ <- cmd "c2hs" "Issue103A.chs"
+  _ <- cmd "c2hs" "Issue103.chs"
+  _ <- cmd cc "-c" "-o" "issue103_c.o" "issue103.c"
+  _ <- cmd "ghc" "--make" "issue103_c.o" "Issue103A.hs" "Issue103.hs"
   res <- absPath "./Issue103" >>= cmd
   let expected = ["1", "2", "3"]
   liftIO $ assertBool "" (T.lines res == expected)
@@ -265,10 +265,10 @@ issue97 = c2hsShelly $ chdir "tests/bugs/issue-97" $ do
   mapM_ rm_f ["Issue97.hs", "Issue97.chs.h", "Issue97.chi",
               "Issue97A.hs", "Issue97A.chs.h", "Issue97A.chi",
               "issue97_c.o", "Issue97"]
-  cmd "c2hs" "Issue97A.chs"
-  cmd "c2hs" "Issue97.chs"
-  cmd cc "-c" "-o" "issue97_c.o" "issue97.c"
-  cmd "ghc" "--make" "issue97_c.o" "Issue97A.hs" "Issue97.hs"
+  _ <- cmd "c2hs" "Issue97A.chs"
+  _ <- cmd "c2hs" "Issue97.chs"
+  _ <- cmd cc "-c" "-o" "issue97_c.o" "issue97.c"
+  _ <- cmd "ghc" "--make" "issue97_c.o" "Issue97A.hs" "Issue97.hs"
   res <- absPath "./Issue97" >>= cmd
   let expected = ["42"]
   liftIO $ assertBool "" (T.lines res == expected)
@@ -380,16 +380,16 @@ issue30 = c2hsShelly $ chdir "tests/bugs/issue-30" $ do
               "Issue30Aux1.hs", "Issue30Aux1.chs.h", "test 1/Issue30Aux1.chi",
               "Issue30Aux2.hs", "Issue30Aux2.chs.h", "test 2/Issue30Aux2.chi",
               "issue30_c.o", "issue30aux1_c.o", "issue30aux2_c.o", "Issue30"]
-  cmd "c2hs" "Issue30Aux1.chs"
+  _ <- cmd "c2hs" "Issue30Aux1.chs"
   mv "Issue30Aux1.chi" "test 1"
-  cmd "c2hs" "Issue30Aux2.chs"
+  _ <- cmd "c2hs" "Issue30Aux2.chs"
   mv "Issue30Aux2.chi" "test 2"
   let sp = T.pack $ "test 1" ++ [searchPathSeparator] ++ "test 2"
-  cmd "c2hs" "--include" sp "Issue30.chs"
-  cmd cc "-c" "-o" "issue30_c.o" "issue30.c"
-  cmd cc "-c" "-o" "issue30aux1_c.o" "issue30aux1.c"
-  cmd cc "-c" "-o" "issue30aux2_c.o" "issue30aux2.c"
-  cmd "ghc" "--make" "issue30_c.o" "issue30aux1_c.o" "issue30aux2_c.o"
+  _ <- cmd "c2hs" "--include" sp "Issue30.chs"
+  _ <- cmd cc "-c" "-o" "issue30_c.o" "issue30.c"
+  _ <- cmd cc "-c" "-o" "issue30aux1_c.o" "issue30aux1.c"
+  _ <- cmd cc "-c" "-o" "issue30aux2_c.o" "issue30aux2.c"
+  _ <- cmd "ghc" "--make" "issue30_c.o" "issue30aux1_c.o" "issue30aux2_c.o"
     "Issue30Aux1.hs" "Issue30Aux2.hs" "Issue30.hs"
   res <- absPath "./Issue30" >>= cmd
   let expected = ["3", "2", "4"]
@@ -397,7 +397,7 @@ issue30 = c2hsShelly $ chdir "tests/bugs/issue-30" $ do
 
 issue29 :: Assertion
 issue29 = c2hsShelly $ do
-  errExit False $ do
+  _ <- errExit False $ do
       cd "tests/bugs/issue-29"
       mapM_ rm_f ["Issue29.hs", "Issue29.chs.h", "Issue29.chi"]
       run "c2hs" [toTextIgnore "Issue29.chs"]
@@ -436,7 +436,7 @@ issue09 = expect_issue 9 $ archdep ++ ["(32,64)", "64", "OK"]
 
 issue07 :: Assertion
 issue07 = c2hsShelly $ do
-  errExit False $ do
+  _ <- errExit False $ do
       cd "tests/bugs/issue-7"
       mapM_ rm_f ["Issue7.hs", "Issue7.chs.h", "Issue7.chi"]
       setenv "LANG" "zh_CN.utf8"
@@ -454,7 +454,7 @@ do_issue_build strict cbuild n suff ext c2hsargs =
   in do
     cd wdir
     mapM_ rm_f [uc <.> "hs", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
-    run "c2hs" $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
+    _ <- run "c2hs" $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
     code <- lastExitCode
     when (code == 0) $ do
       when cbuild $ cmd cc "-c" "-o" (lcc <.> "o") (lc <.> "c")

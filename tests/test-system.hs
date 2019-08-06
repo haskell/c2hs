@@ -45,7 +45,7 @@ tests =
 run_test_exit_code :: Sh.FilePath -> [(Sh.FilePath, [Text])] -> Assertion
 run_test_exit_code dir cmds = c2hsShelly $ chdir dir $ do
   forM_ (init cmds) $ \(c, as) -> run c as
-  errExit False $ run (fst $ last cmds) (snd $ last cmds)
+  _ <- errExit False $ run (fst $ last cmds) (snd $ last cmds)
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
