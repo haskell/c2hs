@@ -9,7 +9,6 @@ import Shelly hiding (FilePath)
 import Data.Char
 import Data.List (nub)
 import Data.Text (Text)
-import Data.Monoid
 import qualified Data.Text as T
 import Data.Yaml
 default (T.Text)
