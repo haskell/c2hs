@@ -158,7 +158,7 @@ Executable c2hs
 
     default-extensions:  ForeignFunctionInterface
     c-sources:           src/C2HS/config.c
-    ghc-options:         -Wall -Wno-incomplete-patterns
+    ghc-options:         -Wall -fno-warn-incomplete-patterns
     default-language:    Haskell2010
 
 Test-Suite test-bugs
