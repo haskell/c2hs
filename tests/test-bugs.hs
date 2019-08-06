@@ -12,9 +12,7 @@ import Control.Monad.IO.Class
 import Shelly
 import Data.List (sort)
 import Data.Text (Text)
-import Data.Monoid
 import qualified Data.Text as T
-import Paths_c2hs
 default (T.Text)
 
 main :: IO ()

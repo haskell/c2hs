@@ -10,10 +10,8 @@ import qualified Shelly as Sh
 import Prelude hiding (FilePath)
 import Control.Monad (forM_)
 import Data.Text (Text)
-import Data.Monoid
 import System.Info (os)
 import qualified Data.Text as T
-import Paths_c2hs
 default (T.Text)
 
 main :: IO ()
