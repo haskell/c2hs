@@ -1,5 +1,4 @@
 sudo: false
-language: haskell
 cabal: "2.4"
 ghc:
   - "7.0"
