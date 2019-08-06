@@ -1,7 +1,9 @@
+.ghc.environment.*
 /.cabal-sandbox/*
 /cabal.sandbox.config
 *.chi
 *.chs.h
+/dist-newstyle
 /dist/*
 *.hi
 /issues/*
