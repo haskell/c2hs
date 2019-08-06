@@ -158,7 +158,7 @@ Executable c2hs
 
     default-extensions:     ForeignFunctionInterface
     c-sources:         src/C2HS/config.c
-    ghc-options:       -Wall
+    ghc-options:       -Wall -Wno-incomplete-patterns
     default-language:  Haskell2010
 
 Test-Suite test-bugs
@@ -175,7 +175,7 @@ Test-Suite test-bugs
                        text,
                        transformers
   other-modules:       Paths_c2hs
-  ghc-options:         -Wall
+  ghc-options:         -Wall -Wno-incomplete-patterns -Wno-unused-top-binds -Wno-unused-do-bind -Wno-name-shadowing -Wno-unused-imports
   default-language:    Haskell2010
 
 Test-Suite test-system
@@ -191,7 +191,7 @@ Test-Suite test-system
                        text,
                        transformers
   other-modules:       Paths_c2hs
-  ghc-options:         -Wall
+  ghc-options:         -Wall -Wno-incomplete-patterns -Wno-unused-top-binds -Wno-unused-do-bind -Wno-name-shadowing -Wno-unused-imports
   default-language:    Haskell2010
 
 Flag regression
@@ -209,5 +209,5 @@ Executable regression-suite
                          yaml >= 0.8
   else
     buildable: False
-  ghc-options:         -Wall
+  ghc-options:         -Wall -Wno-deprecations
   default-language: Haskell2010
