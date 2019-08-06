@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
@@ -12,6 +13,9 @@ import Control.Monad.IO.Class
 import Shelly
 import Data.List (sort)
 import Data.Text (Text)
+#if __GLASGOW_HASKELL__ < 800
+import Data.Monoid ((<>))
+#endif
 import qualified Data.Text as T
 default (T.Text)
 

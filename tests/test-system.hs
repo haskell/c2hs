@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
@@ -11,6 +12,9 @@ import Prelude hiding (FilePath)
 import Control.Monad (forM_)
 import Data.Text (Text)
 import System.Info (os)
+#if __GLASGOW_HASKELL__ < 800
+import Data.Monoid ((<>))
+#endif
 import qualified Data.Text as T
 default (T.Text)
 

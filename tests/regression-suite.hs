@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
@@ -9,6 +10,9 @@ import Shelly hiding (FilePath)
 import Data.Char
 import Data.List (nub)
 import Data.Text (Text)
+#if __GLASGOW_HASKELL__ < 800
+import Data.Monoid ((<>))
+#endif
 import qualified Data.Text as T
 import Data.Yaml
 default (T.Text)
