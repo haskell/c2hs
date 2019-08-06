@@ -13,3 +13,16 @@ cabal.project.local~
 /.shelly/*.txt
 /tests/bugs
 /tests/system
+abcBridge*
+alsa-mixer*
+cuda*
+cufft*
+gnome-keyring*
+gnuidn*
+haskell-mpi*
+hnetcdf*
+hpuz*
+hsndfile*
+hsshellscript*
+igraph*
+libssh2*
