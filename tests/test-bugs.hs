@@ -455,11 +455,11 @@ do_issue_build strict cbuild n suff ext c2hsargs =
     cd wdir
     mapM_ rm_f [uc <.> "hs", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
     _ <- run "c2hs" $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
-    code <- lastExitCode
-    when (code == 0) $ do
+    code1 <- lastExitCode
+    when (code1 == 0) $ do
       when cbuild $ cmd cc "-c" "-o" (lcc <.> "o") (lc <.> "c")
-      code <- lastExitCode
-      when (code == 0) $ case (strict, cbuild) of
+      code2 <- lastExitCode
+      when (code2 == 0) $ case (strict, cbuild) of
         (True, True) ->
           cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
         (False, True) ->
