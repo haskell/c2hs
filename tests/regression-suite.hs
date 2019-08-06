@@ -92,7 +92,7 @@ main = shelly $ do
            readTests "tests/regression-suite.yaml"
   let ppas = nub $ concatMap aptPPA tests
       pkgs = nub $ concatMap aptPackages tests
-      buildTools = nub $ concatMap cabalBuildTools tests
+      _ {- buildTools-} = nub $ concatMap cabalBuildTools tests
       specials = concatMap specialSetup tests
       extraPaths = concatMap extraPath tests
       extraSOPaths = concatMap extraSOPath tests
