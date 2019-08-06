@@ -18,8 +18,8 @@ Description:    C->Haskell assists in the development of Haskell bindings to C
                 hsc2hs), this ensures that C functions are imported with the
                 correct Haskell types.
 Category:       Development
-Tested-With:    GHC==6.12.3, GHC==7.0.4, GHC==7.6.1, GHC==7.6.3, GHC==7.8.3, GHC==7.10.1
-Cabal-Version:  >= 1.10
+Tested-With:    GHC==7.0.4, GHC==7.4.2, GHC==7.6.3, GHC==7.8.4, GHC==7.10.3, GHC==8.0.2, GHC==8.2.2,GHC==8.4.4,GHC==8.6.5,
+Cabal-Version:  >= 2.4
 Build-Type:     Simple
 
 --TODO: Cabal should allow 'Data-Files' in the executable stanza
