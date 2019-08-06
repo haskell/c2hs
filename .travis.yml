@@ -1,20 +1,30 @@
-sudo: false
-cabal: "2.4"
-ghc:
-  - "7.0"
-  - "7.4"
-  - "7.6"
-  - "7.8"
-  - "7.10"
-  - "8.0"
-  - "8.2"
-  - "8.4"
-  - "8.6"
+env:
+  global:
+    - AWS_ACCESS_KEY_ID=AKIAIKUEH2ETWTBS2CKQ
+    - secure: "Jzawnhgk3dX2INzbZIlnHCH+aKWqy96B9T1hzBh/Fqp4whglaZDO0mTLHQnhypqAt1rXO2o3yBNcKgGOcgfUuE71uBCzzaXieB0p8BhYn7cwYeANbuKNOGrsP6oDutS5F57FNWwgRp+2oanpgJNOs/6wvfElA7W6ibN8tZiLQrw="
+  matrix:
+    - GHCVER=7.10.3
+
 before_install:
- - sudo apt-get install libnetcdf-dev libgsl0-dev liblapack-dev
+ - travis_retry sudo add-apt-repository -y ppa:hvr/ghc
+ - travis_retry sudo apt-get update
+ - travis_retry sudo apt-get install libnetcdf-dev libgsl0-dev liblapack-dev
+ - travis_retry sudo apt-get install cabal-install-1.24 ghc-$GHCVER-prof ghc-$GHCVER-dyn happy
+ - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/1.24/bin:$PATH
+
+install:
+  - sudo apt-get update -qq
+  - sudo pip install awscli
+  - cabal update
+  - |
+    if [ $GHCVER = "head" ] || [ ${GHCVER%.*} = "7.8" ] || [ ${GHCVER%.*} = "7.10" ]; then
+      travis_retry sudo apt-get install happy-1.19.5 alex-3.1.7
+      export PATH=/opt/alex/3.1.7/bin:/opt/happy/1.19.5/bin:$PATH
+    else
+      travis_retry sudo apt-get install happy alex
+    fi
+  - cabal install --only-dependencies --enable-tests -fregression
 
 script:
-  - cabal v2-configure --enable-tests -fregression
-  - cabal v2-build
-  - cabal v2-test
-  - cabal v2-run regression-suite
+  - cabal install && cabal configure --enable-tests -fregression && cabal build && cabal test
+  - cabal run regression-suite
