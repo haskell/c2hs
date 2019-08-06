@@ -208,8 +208,8 @@ issue128 = c2hsShelly $ chdir "tests/bugs/issue-128" $ do
 issue127 :: Assertion
 issue127 = expect_issue 127  ["True", "False"]
 
-issue125 :: Assertion
-issue125 = expect_issue 125  ["NYI"]
+-- issue125 :: Assertion
+-- issue125 = expect_issue 125  ["NYI"]
 
 issue123 :: Assertion
 issue123 = expect_issue 123  ["[8,43,94]", "[7,42,93]", "[2,4,8]", "[3,9,27]"]
@@ -515,5 +515,5 @@ build_issue_fails_with strict cbuild n c2hsargs = c2hsShelly $ do
 build_issue_fails :: Int -> Assertion
 build_issue_fails n = build_issue_fails_with True True n []
 
-hs_only_build_issue_fails :: Int -> Assertion
-hs_only_build_issue_fails n = build_issue_fails_with True False n []
+-- hs_only_build_issue_fails :: Int -> Assertion
+-- hs_only_build_issue_fails n = build_issue_fails_with True False n []

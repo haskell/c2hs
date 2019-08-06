@@ -99,15 +99,15 @@ test_simple = run_test_expect "tests/system/simple"
               ["I am the mighty foo!"]
 
 -- Issue #10
-test_sizeof :: Assertion
-test_sizeof = run_test_expect "tests/system/sizeof"
-              [("c2hs", ["sizeof.h", "Sizeof.chs"]),
-               ("ghc", ["-c", "-o", "Sizeof.o", "Sizeof.hs"]),
-               (cc, ["-o", "sizeof_c.o", "-c", "sizeof.c"]),
-               ("ghc", ["-o", "sizeof", "sizeof_c.o", "Sizeof.o"])]
-              "./sizeof"
-              ["16 & 64 & 4 & 10",
-               "8 & 8 & 4 & 4"]
+-- test_sizeof :: Assertion
+-- test_sizeof = run_test_expect "tests/system/sizeof"
+--               [("c2hs", ["sizeof.h", "Sizeof.chs"]),
+--                ("ghc", ["-c", "-o", "Sizeof.o", "Sizeof.hs"]),
+--                (cc, ["-o", "sizeof_c.o", "-c", "sizeof.c"]),
+--                ("ghc", ["-o", "sizeof", "sizeof_c.o", "Sizeof.o"])]
+--               "./sizeof"
+--               ["16 & 64 & 4 & 10",
+--                "8 & 8 & 4 & 4"]
 
 test_structs :: Assertion
 test_structs = run_test_expect "tests/system/structs"
