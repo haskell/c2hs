@@ -156,10 +156,10 @@ Executable c2hs
       System.CIO
       Text.Lexers
 
-    default-extensions:     ForeignFunctionInterface
-    c-sources:         src/C2HS/config.c
-    ghc-options:       -Wall -Wno-incomplete-patterns
-    default-language:  Haskell2010
+    default-extensions:  ForeignFunctionInterface
+    c-sources:           src/C2HS/config.c
+    ghc-options:         -Wall -Wno-incomplete-patterns
+    default-language:    Haskell2010
 
 Test-Suite test-bugs
   type:                exitcode-stdio-1.0
