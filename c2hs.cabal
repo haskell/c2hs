@@ -18,7 +18,7 @@ Description:    C->Haskell assists in the development of Haskell bindings to C
                 hsc2hs), this ensures that C functions are imported with the
                 correct Haskell types.
 Category:       Development
-Tested-With:    GHC==7.0.4, GHC==7.6.1, GHC==7.6.3, GHC==7.8.3, GHC==7.10.3, GHC==8.5.6
+Tested-With:    GHC==6.12.3, GHC==7.0.4, GHC==7.6.1, GHC==7.6.3, GHC==7.8.3, GHC==7.10.1
 Cabal-Version:  >= 1.10
 Build-Type:     Simple
 
@@ -156,10 +156,11 @@ Executable c2hs
       System.CIO
       Text.Lexers
 
-    default-extensions:  ForeignFunctionInterface
-    c-sources:           src/C2HS/config.c
-    ghc-options:         -Wall -fno-warn-incomplete-patterns
-    default-language:    Haskell2010
+    default-extensions:     ForeignFunctionInterface
+    c-sources:      src/C2HS/config.c
+    --TODO: eliminate the need to suppress these warnings:
+    ghc-options:    -Wall -fno-warn-incomplete-patterns -fwarn-tabs
+    default-language: Haskell2010
 
 Test-Suite test-bugs
   type:                exitcode-stdio-1.0
@@ -174,9 +175,8 @@ Test-Suite test-bugs
                        shelly >= 1.0,
                        text,
                        transformers
-  --TODO: eliminate the need to suppress these warnings:
   ghc-options:         -Wall -fno-warn-incomplete-patterns -fwarn-tabs
-  default-language:    Haskell2010
+  default-language: Haskell2010
 
 Test-Suite test-system
   type:                exitcode-stdio-1.0
@@ -190,8 +190,8 @@ Test-Suite test-system
                        shelly >= 1.0,
                        text,
                        transformers
-  ghc-options:         -Wall -fno-warn-incomplete-patterns
-  default-language:    Haskell2010
+  ghc-options:         -Wall -fno-warn-incomplete-patterns -fwarn-tabs
+  default-language: Haskell2010
 
 Flag regression
   description: Enable regression suite build.
@@ -208,5 +208,5 @@ Executable regression-suite
                          yaml >= 0.8
   else
     buildable: False
-  ghc-options:         -Wall -fno-warn-deprecations
+  ghc-options:         -Wall -fno-warn-deprecations -fwarn-tabs
   default-language: Haskell2010
