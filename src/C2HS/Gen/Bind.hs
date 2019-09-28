@@ -375,6 +375,8 @@ isIntegralHsType "CInt"    = True
 isIntegralHsType "CUInt"   = True
 isIntegralHsType "CLong"   = True
 isIntegralHsType "CULong"  = True
+isIntegralHsType "CLLong"  = True
+isIntegralHsType "CULLong" = True
 isIntegralHsType _         = False
 
 -- | check for floating Haskell types
