@@ -524,13 +524,15 @@ showCHSModule (CHSModule fragments) pureHaskell  =
     showFrags _      _     []                           = id
     showFrags pureHs state (CHSVerb s      pos : frags) =
       let
-        (fname,line)     = (posFile pos, posRow pos)
         generated        = isBuiltinPos pos
         emitNow          = state == Emit ||
                            (state == Wait && not (null s) && head s == '\n')
         nextState        = if generated then Wait else NoLine
       in
-        (if emitNow then
+        (if emitNow && isSourcePos pos
+         then
+           let (fname,line) = (posFile pos, posRow pos)
+           in
            showString ("\n{-# LINE " ++ show (line `max` 0) ++ " " ++
                        show fname ++ " #-}\n")
          else id)
