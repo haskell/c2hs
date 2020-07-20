@@ -1500,7 +1500,7 @@ accessPath (CHSRoot _ ide) =                            -- t
   do
     decl <- findAndChaseDecl ide False True
     return (ide `simplifyDecl` decl, [BitSize 0 0])
-accessPath (CHSDeref (CHSRoot _ ide) _) =               -- *t
+accessPath (CHSDeref (CHSRoot _ ide) _) =               --  *t
   do
     decl <- findAndChaseDecl ide True True
     return (ide `simplifyDecl` decl, [BitSize 0 0])
@@ -1529,7 +1529,7 @@ accessPath (CHSRef path ide) =                          -- a.m
       case declr of
         (Just (CDeclr _ [] _ _ _), _, _) -> return ()
         _                                -> structExpectedErr ide'
-accessPath (CHSDeref path _pos) =                        -- *a
+accessPath (CHSDeref path _pos) =                        --  *a
   do
     (decl, offsets) <- accessPath path
     decl' <- derefOrErr decl
@@ -3142,7 +3142,7 @@ cCompiler = unsafePerformIO $ do
           let mungedCc = mungePath topDir cc
           writeIORef cCompilerRef $ Just mungedCc
           return mungedCc
-        _ -> error "Failed to determine C compiler from 'ghc --info'!" 
+        _ -> error "Failed to determine C compiler from 'ghc --info'!"
 
   where
     -- adapted from ghc/compiler/main/Packages.hs
