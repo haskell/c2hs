@@ -463,17 +463,17 @@ do_issue_build strict cbuild n suff ext c2hsargs =
     run "c2hs" $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
     code <- lastExitCode
     when (code == 0) $ do
-      when cbuild $ cmd cc "-c" "-o" (lcc <.> "o") (lc <.> "c")
+      when cbuild $ cmd cc "-c" "-o" (T.pack $ lcc <.> "o") (T.pack $ lc <.> "c")
       code <- lastExitCode
       when (code == 0) $ case (strict, cbuild) of
         (True, True) ->
-          cmd "ghc" "-Wall" "-Werror" "--make" (lcc <.> "o") (uc <.> "hs")
+          cmd "ghc" "-Wall" "-Werror" "--make" (T.pack $ lcc <.> "o") (T.pack $ uc <.> "hs")
         (False, True) ->
-          cmd "ghc" "--make" (lcc <.> "o") (uc <.> "hs")
+          cmd "ghc" "--make" (T.pack $ lcc <.> "o") (T.pack $ uc <.> "hs")
         (True, False) ->
-          cmd "ghc" "-Wall" "-Werror" "--make" (uc <.> "hs")
+          cmd "ghc" "-Wall" "-Werror" "--make" (T.pack $ uc <.> "hs")
         (False, False) ->
-          cmd "ghc" "--make" (uc <.> "hs")
+          cmd "ghc" "--make" (T.pack $ uc <.> "hs")
 
 expect_issue :: Int -> [Text] -> Assertion
 expect_issue n expected = expect_issue_with True True n "" [] expected

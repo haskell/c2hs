@@ -2771,6 +2771,10 @@ applyBin _    COrOp  (IntResult   x)
                      (IntResult   y) = return $ IntResult (x .|. y)
 applyBin _    CAndOp (IntResult   x)
                      (IntResult   y) = return $ IntResult (x .&. y)
+applyBin _    CEqOp  (IntResult   x)
+                     (IntResult   y) = return $ IntResult (if x == y then 1 else 0)
+applyBin _    CNeqOp (IntResult   x)
+                     (IntResult   y) = return $ IntResult (if x /= y then 1 else 0)
 applyBin pos  _      (IntResult   _)
                      (IntResult   _) =
   todo $ "GenBind.applyBin: Not yet implemented operator in constant expression. " ++ show pos
