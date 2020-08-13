@@ -27,4 +27,4 @@ install:
 
 script:
   - cabal install && cabal configure --enable-tests -fregression && cabal build && cabal test
-  - ./dist/build/regression-suite/regression-suite
+  - cabal run regression-suite

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
@@ -9,7 +10,9 @@ import Shelly hiding (FilePath)
 import Data.Char
 import Data.List (nub)
 import Data.Text (Text)
-import Data.Monoid
+#if __GLASGOW_HASKELL__ < 800
+import Data.Monoid ((<>))
+#endif
 import qualified Data.Text as T
 import Data.Yaml
 default (T.Text)
@@ -93,7 +96,7 @@ main = shelly $ do
            readTests "tests/regression-suite.yaml"
   let ppas = nub $ concatMap aptPPA tests
       pkgs = nub $ concatMap aptPackages tests
-      buildTools = nub $ concatMap cabalBuildTools tests
+      _ {- buildTools-} = nub $ concatMap cabalBuildTools tests
       specials = concatMap specialSetup tests
       extraPaths = concatMap extraPath tests
       extraSOPaths = concatMap extraSOPath tests

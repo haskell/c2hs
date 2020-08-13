@@ -77,7 +77,6 @@ where
 import Control.Applicative (Applicative(..))
 import Control.Monad (liftM, ap)
 import Control.Exception (catch)
-import Prelude hiding (catch)
 
 -- BEWARE! You enter monad country. Read any of Wadler's or
 -- Launchbury/Peyton-Jones' texts before entering. Otherwise,

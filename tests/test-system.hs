@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
@@ -10,10 +11,11 @@ import qualified Shelly as Sh
 import Prelude hiding (FilePath)
 import Control.Monad (forM_)
 import Data.Text (Text)
-import Data.Monoid
 import System.Info (os)
+#if __GLASGOW_HASKELL__ < 800
+import Data.Monoid ((<>))
+#endif
 import qualified Data.Text as T
-import Paths_c2hs
 default (T.Text)
 
 main :: IO ()
@@ -47,7 +49,7 @@ tests =
 run_test_exit_code :: Sh.FilePath -> [(Sh.FilePath, [Text])] -> Assertion
 run_test_exit_code dir cmds = c2hsShelly $ chdir dir $ do
   forM_ (init cmds) $ \(c, as) -> run c as
-  errExit False $ run (fst $ last cmds) (snd $ last cmds)
+  _ <- errExit False $ run (fst $ last cmds) (snd $ last cmds)
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
@@ -101,15 +103,15 @@ test_simple = run_test_expect "tests/system/simple"
               ["I am the mighty foo!"]
 
 -- Issue #10
-test_sizeof :: Assertion
-test_sizeof = run_test_expect "tests/system/sizeof"
-              [("c2hs", ["sizeof.h", "Sizeof.chs"]),
-               ("ghc", ["-c", "-o", "Sizeof.o", "Sizeof.hs"]),
-               (cc, ["-o", "sizeof_c.o", "-c", "sizeof.c"]),
-               ("ghc", ["-o", "sizeof", "sizeof_c.o", "Sizeof.o"])]
-              "./sizeof"
-              ["16 & 64 & 4 & 10",
-               "8 & 8 & 4 & 4"]
+-- test_sizeof :: Assertion
+-- test_sizeof = run_test_expect "tests/system/sizeof"
+--               [("c2hs", ["sizeof.h", "Sizeof.chs"]),
+--                ("ghc", ["-c", "-o", "Sizeof.o", "Sizeof.hs"]),
+--                (cc, ["-o", "sizeof_c.o", "-c", "sizeof.c"]),
+--                ("ghc", ["-o", "sizeof", "sizeof_c.o", "Sizeof.o"])]
+--               "./sizeof"
+--               ["16 & 64 & 4 & 10",
+--                "8 & 8 & 4 & 4"]
 
 test_structs :: Assertion
 test_structs = run_test_expect "tests/system/structs"

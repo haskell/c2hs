@@ -175,6 +175,7 @@ Test-Suite test-bugs
                        shelly >= 1.0,
                        text,
                        transformers
+  ghc-options:         -Wall -fno-warn-incomplete-patterns -fwarn-tabs
   default-language: Haskell2010
 
 Test-Suite test-system
@@ -189,6 +190,7 @@ Test-Suite test-system
                        shelly >= 1.0,
                        text,
                        transformers
+  ghc-options:         -Wall -fno-warn-incomplete-patterns -fwarn-tabs
   default-language: Haskell2010
 
 Flag regression
@@ -206,4 +208,5 @@ Executable regression-suite
                          yaml >= 0.8
   else
     buildable: False
+  ghc-options:         -Wall -fno-warn-deprecations -fwarn-tabs
   default-language: Haskell2010
