@@ -54,7 +54,7 @@
 --
 --- TODO ----------------------------------------------------------------------
 --
--- * `extractStruct' doesn't account for forward declarations that have no
+--  * `extractStruct' doesn't account for forward declarations that have no
 --   full declaration yet; if `extractStruct' is called on such a declaration,
 --   we have a user error, but currently an internal error is raised
 --

@@ -39,7 +39,7 @@
 --
 --- TODO ----------------------------------------------------------------------
 --
--- * Ideally, `ghFrag[s]' should be tail recursive
+--  * Ideally, `ghFrag[s]' should be tail recursive
 
 module C2HS.Gen.Header (
   genHeader

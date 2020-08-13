@@ -28,7 +28,7 @@
 --
 --- TODO ----------------------------------------------------------------------
 --
--- * `defObjOrErr': currently, repeated declarations are completely ignored;
+--  * `defObjOrErr': currently, repeated declarations are completely ignored;
 --   eventually, the consistency of the declarations should be checked
 --
 
