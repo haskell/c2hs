@@ -1712,7 +1712,7 @@ setGet pos access offsets arrSize ty onewtype =
       addHsDependency "Foreign.C.Types"
       addHsDependency "Foreign.Storable"
       return $ impm "toBool" ++ " `fmap` (" ++ impm "peekByteOff"
-               ++ " ptr " ++ show off ++ " :: IO " ++ impm "CInt" ++ ")"
+               ++ " ptr " ++ show off ++ " :: IO " ++ impm "CUChar" ++ ")"
     peekOp off t Nothing = do
       addHsDependency "Foreign.Storable"
       addExtTypeDependency t
@@ -1729,7 +1729,7 @@ setGet pos access offsets arrSize ty onewtype =
       addHsDependency "Foreign.Storable"
       return $ impm "pokeByteOff" ++ " ptr " ++ show off
                ++ " (" ++ impm "fromBool" ++ " " ++
-               var ++ " :: " ++ impm "CInt" ++ ")"
+               var ++ " :: " ++ impm "CUChar" ++ ")"
     pokeOp off t var Nothing = do
       addHsDependency "Foreign.Storable"
       addExtTypeDependency t

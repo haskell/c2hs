@@ -96,6 +96,7 @@ tests =
     , testCase "Issue #192" issue192
     , testCase "Issue #230" issue230
     , testCase "Issue #242" issue242
+    , testCase "Issue #257" issue257
     ] ++
     -- Some tests that won't work on Windows.
     if os /= "cygwin32" && os /= "mingw32"
@@ -115,6 +116,9 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
   res <- absPath "./Capital" >>= cmd
   let expected = ["upper C();", "lower c();", "upper C();"]
   liftIO $ assertBool "" (T.lines res == expected)
+
+issue257 :: Assertion
+issue257 = expect_issue 257 ["True","False","True","False"]
 
 issue242 :: Assertion
 issue242 = expect_issue 242 ["1"]
