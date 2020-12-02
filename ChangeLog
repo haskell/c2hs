@@ -1,3 +1,8 @@
+0.28.7*
+ - Support for InterruptibleFFI (Alex Wied)
+ - Support for equality in C macros (Vanessa McHale)
+ - Make c2hs source comments more Haddock friendly (George Thomas)
+ - (Un)Marshal C bool into a CUChar instead of CInt
 0.28.6.*
  - Support for binding to anonymous nested structs and unions.
 0.28.6
