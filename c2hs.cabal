@@ -104,6 +104,7 @@ Extra-Source-Files:
   tests/bugs/issue-180/*.chs tests/bugs/issue-180/*.h
   tests/bugs/issue-192/*.chs tests/bugs/issue-192/*.h
   tests/bugs/issue-230/*.chs tests/bugs/issue-230/*.h tests/bugs/issue-230/*.c
+  tests/bugs/issue-257/*.chs tests/bugs/issue-257/*.h tests/bugs/issue-257/*.c
 
 source-repository head
   type:         git
