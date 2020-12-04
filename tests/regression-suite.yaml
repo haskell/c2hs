@@ -97,9 +97,11 @@
   apt-packages: [libigraph0-dev]
   on-travis: false
 
--
-  name: libssh2
-  apt-packages: [libssh2-1-dev]
+# Build issues with GHC 8.0.1 and network >= 3
+# https://github.com/portnov/libssh2-hs/issues/57
+# -
+#   name: libssh2
+#   apt-packages: [libssh2-1-dev]
 
 # BUILD PROBLEMS WITH CURRENT C2HS
 #-
