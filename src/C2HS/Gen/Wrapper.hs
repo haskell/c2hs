@@ -107,7 +107,7 @@ replaceBool :: CDecl -> CDecl
 replaceBool (CDecl spec ds n) = CDecl (map replaceBoolSpec spec) ds n
 
 replaceBoolSpec :: CDeclSpec -> CDeclSpec
-replaceBoolSpec (CTypeSpec (CBoolType tn)) = CTypeSpec (CIntType tn)
+replaceBoolSpec (CTypeSpec (CBoolType tn)) = CTypeSpec (CCharType tn)
 replaceBoolSpec t = t
 
 fixDecl :: String -> Position -> (Bool, Bool, Int) -> CDecl -> CST s CDecl
