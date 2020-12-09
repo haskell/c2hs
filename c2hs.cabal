@@ -31,6 +31,7 @@ Extra-Source-Files:
   tests/system/calls/*.chs tests/system/calls/*.h
   tests/system/cpp/*.chs
   tests/system/enums/*.chs tests/system/enums/*.h tests/system/enums/*.c
+  tests/system/interruptible/*.chs tests/system/interruptible/*.h tests/system/interruptible/*.c
   tests/system/marsh/*.chs tests/system/marsh/*.h
   tests/system/pointer/*.chs tests/system/pointer/*.h tests/system/pointer/*.c
   tests/system/simple/*.chs tests/system/simple/*.h tests/system/simple/*.c
@@ -104,6 +105,7 @@ Extra-Source-Files:
   tests/bugs/issue-180/*.chs tests/bugs/issue-180/*.h
   tests/bugs/issue-192/*.chs tests/bugs/issue-192/*.h
   tests/bugs/issue-230/*.chs tests/bugs/issue-230/*.h tests/bugs/issue-230/*.c
+  tests/bugs/issue-242/*.chs tests/bugs/issue-242/*.h tests/bugs/issue-242/*.c
   tests/bugs/issue-257/*.chs tests/bugs/issue-257/*.h tests/bugs/issue-257/*.c
 
 source-repository head
