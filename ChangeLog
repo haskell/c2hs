@@ -1,4 +1,6 @@
-0.28.7.*
+0.28.8.*
+ - Bump upper bounds of language-c to 0.10 [#261]
+0.28.7
  - Support for InterruptibleFFI (Alex Wied)
  - Support for equality in C macros (Vanessa McHale)
  - Make c2hs source comments more Haddock friendly (George Thomas)
