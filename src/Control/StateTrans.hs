@@ -59,6 +59,8 @@
 --    errors into exceptions
 --
 
+{-# LANGUAGE CPP #-}
+
 module Control.StateTrans (-- the monad and the generic operations
                    --
                    STB,
@@ -73,11 +75,11 @@ module Control.StateTrans (-- the monad and the generic operations
                    throwExc, fatal, catchExc, fatalsHandledBy)
 where
 
-
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative (Applicative(..))
+#endif
 import Control.Monad (liftM, ap)
 import Control.Exception (catch)
-import Prelude hiding (catch)
 
 -- BEWARE! You enter monad country. Read any of Wadler's or
 -- Launchbury/Peyton-Jones' texts before entering. Otherwise,
@@ -106,11 +108,11 @@ instance Functor (STB bs gs) where
   fmap = liftM
 
 instance Applicative (STB bs gs) where
-  pure  = return
+  pure  = yield
   (<*>) = ap
 
 instance Monad (STB bs gs) where
-  return = yield
+  return = pure
   (>>=)  = (+>=)
 
 -- | the monad's unit

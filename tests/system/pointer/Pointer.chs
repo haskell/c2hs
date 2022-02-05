@@ -11,13 +11,13 @@ cIntConv  = fromIntegral
 cconcat       :: MyCString -> MyCString -> IO MyCString
 cconcat s1 s2  = do
   ptr <- withMyCString s1 $ \s1' ->
-	   withMyCString s2 $ \s2' -> {#call concat as _concat#} s1' s2'
+           withMyCString s2 $ \s2' -> {#call concat as _concat#} s1' s2'
   liftM MyCString $ newForeignPtr finalizerFree ptr
 
 data Point = Point {
-	       x :: Int,
-	       y :: Int
-	     }
+               x :: Int,
+               y :: Int
+             }
 
 {#pointer *Point as CPoint foreign -> Point#}
 
@@ -33,7 +33,7 @@ makeCPoint x y  = do
 transCPoint :: CPoint -> Int -> Int -> IO CPoint
 transCPoint pnt x y = do
   ptr <- withForeignPtr pnt $ \pnt' ->
-	   {#call unsafe trans_point#} pnt' (cIntConv x) (cIntConv y)
+           {#call unsafe trans_point#} pnt' (cIntConv x) (cIntConv y)
   newForeignPtr finalizerFree ptr
 
 -- test function pointers
@@ -56,4 +56,4 @@ checkType  = id
 
 
 main = putStrLn "This test doesn't compute much; it's all about the generated \
-		\types."
+                \types."

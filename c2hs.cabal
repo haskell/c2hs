@@ -1,3 +1,4 @@
+Cabal-Version:  >= 1.10
 Name:           c2hs
 Version:        0.28.8
 License:        GPL-2
@@ -18,9 +19,18 @@ Description:    C->Haskell assists in the development of Haskell bindings to C
                 hsc2hs), this ensures that C functions are imported with the
                 correct Haskell types.
 Category:       Development
-Tested-With:    GHC==8.0.1, GHC==8.10.1
-Cabal-Version:  >= 1.10
 Build-Type:     Simple
+
+Tested-With:
+  GHC == 9.2.1
+  GHC == 9.0.2
+  GHC == 8.10.7
+  GHC == 8.8.4
+  GHC == 8.6.5
+  GHC == 8.4.4
+  GHC == 8.2.2
+  GHC == 8.0.2
+  GHC == 7.10.3
 
 --TODO: Cabal should allow 'Data-Files' in the executable stanza
 Data-Files:     C2HS.hs
@@ -162,20 +172,25 @@ Executable c2hs
     default-extensions:     ForeignFunctionInterface
     c-sources:      src/C2HS/config.c
     --TODO: eliminate the need to suppress these warnings:
-    ghc-options:    -Wall -fno-warn-incomplete-patterns -fwarn-tabs
+    ghc-options:      -Wall
+                      -fno-warn-incomplete-patterns
+    if impl(ghc >= 8.0)
+      ghc-options:    -Wcompat
     default-language: Haskell2010
 
 Test-Suite test-bugs
   type:                exitcode-stdio-1.0
   hs-source-dirs:      tests
   main-is:             test-bugs.hs
+  other-modules:       Paths_c2hs
   build-tools:         c2hs
   build-depends:       base,
                        filepath,
+                       ghc-paths,
                        test-framework,
                        test-framework-hunit,
                        HUnit,
-                       shelly >= 1.9.0 && < 1.10.0,
+                       shelly >= 1.9.0 && < 1.11,
                        text,
                        transformers
   default-language: Haskell2010
@@ -184,12 +199,14 @@ Test-Suite test-system
   type:                exitcode-stdio-1.0
   hs-source-dirs:      tests
   main-is:             test-system.hs
+  other-modules:       Paths_c2hs
   build-tools:         c2hs
   build-depends:       base,
+                       ghc-paths,
                        test-framework,
                        test-framework-hunit,
                        HUnit,
-                       shelly >= 1.9.0 && < 1.10.0,
+                       shelly >= 1.9.0 && < 1.11,
                        text,
                        transformers
   default-language: Haskell2010
@@ -204,7 +221,7 @@ Executable regression-suite
   if flag(regression)
     build-depends:       base,
                          filepath,
-                         shelly >= 1.9.0 && < 1.10.0,
+                         shelly >= 1.9.0 && < 1.11,
                          text,
                          yaml >= 0.8
   else

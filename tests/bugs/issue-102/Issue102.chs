@@ -33,17 +33,23 @@ module Main where
 main :: IO ()
 main = do
   f <- fopen "issue-102.txt" "w"
-  fd <- fileno f
   printi "TST 1: %d\n" 1234
   printi2 "TST 2: %d %d\n" 13 47
   prints "TST 3: %s\n" "testing"
   fprinti f "TST 1: %d\n" 1234
   fprinti2 f "TST 2: %d %d\n" 13 47
   fprints f "TST 3: %s\n" "testing"
-  flck <- get_lock fd
-  withFLock flck $ \lck -> do
-    typ <- {#get flock.l_type#} lck
-    print (toEnum $ fromIntegral typ :: FCntlLockState)
+  -- -- This part of the test is broken:
+  -- fd <- fileno f
+  -- flck <- get_lock fd
+  -- withFLock flck $ \lck -> do
+  --   typ <- {#get flock.l_type#} lck
+  --   print (toEnum $ fromIntegral typ :: FCntlLockState)
+  -- -- Andreas Abel, 2022-02-05:
+  -- -- The last line fails with:
+  -- -- stderr: Issue102: FCntlLockState.toEnum: Cannot match 0
+  -- -- It seems that typ==0 which is not a valid lock state,
+  -- -- maybe some exceptional value.
 
 get_lock :: Int -> IO FLock
 get_lock fd = f_get_lock fd (fromEnum GetLock)

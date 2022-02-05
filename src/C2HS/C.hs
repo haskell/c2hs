@@ -89,7 +89,7 @@ isuffix  = "i"
 
 -- | parse a header file, raise an error if parsing failed
 parseHeader :: InputStream -> Position -> CST s CTranslUnit
-parseHeader is pos = 
+parseHeader is pos =
   do
     ns <- getNameSupply
     case execParser translUnitP is pos builtinTypeNames ns of
@@ -108,7 +108,7 @@ bsReplace old new = go id
                                 | otherwise -> go (acc . (h:) . (new:))
                                                   (BS.drop n t)
         n = BS.length old
-      
+
 -- | given a file name (with suffix), parse that file as a C header and do the
 -- static analysis (collect defined names)
 --
