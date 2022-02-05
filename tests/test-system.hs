@@ -12,6 +12,7 @@ import Data.Text (Text)
 import Data.Monoid
 import System.Info (os)
 import qualified Data.Text as T
+import GHC.Paths (ghc)
 import Paths_c2hs
 default (T.Text)
 
@@ -61,25 +62,25 @@ run_test_expect dir cmds expcmd expected = c2hsShelly $ chdir dir $ do
 test_calls :: Assertion
 test_calls = run_test_exit_code "tests/system/calls"
              [("c2hs", ["calls.h", "Calls.chs"]),
-              ("ghc", ["-c", "Calls.hs"])]
+              (ghc, ["-c", "Calls.hs"])]
 
 test_cpp :: Assertion
 test_cpp = run_test_exit_code "tests/system/cpp"
            [("c2hs", ["Cpp.chs"]),
-            ("ghc", ["-c", "Cpp.hs"])]
+            (ghc, ["-c", "Cpp.hs"])]
 
 test_enums :: Assertion
 test_enums = run_test_expect "tests/system/enums"
              [("c2hs", ["enums.h", "Enums.chs"]),
               (cc, ["-o", "enums_c.o", "-c", "enums.c"]),
-              ("ghc", ["-o", "enums", "enums_c.o", "Enums.hs"])]
+              (ghc, ["-o", "enums", "enums_c.o", "Enums.hs"])]
              "./enums"
              ["Did it!"]
 
 test_marsh :: Assertion
 test_marsh = run_test_expect "tests/system/marsh"
              [("c2hs", ["marsh.h", "Marsh.chs"]),
-              ("ghc", ["-o", "marsh", "Marsh.hs"])]
+              (ghc, ["-o", "marsh", "Marsh.hs"])]
              "./marsh"
              ["Hello World!", "[5,3,7]"]
 
@@ -88,14 +89,14 @@ test_pointer :: Assertion
 test_pointer = run_test_exit_code "tests/system/pointer"
               [("c2hs", ["pointer.h", "Pointer.chs"]),
                (cc, ["-o", "pointer_c.o", "-c", "pointer.c"]),
-               ("ghc", ["-o", "pointer", "pointer_c.o", "Pointer.hs"])]
+               (ghc, ["-o", "pointer", "pointer_c.o", "Pointer.hs"])]
 
 test_simple :: Assertion
 test_simple = run_test_expect "tests/system/simple"
               [("c2hs", ["simple.h", "Simple.chs"]),
-               ("ghc", ["-c", "-o", "Simple_hs.o", "Simple.hs"]),
+               (ghc, ["-c", "-o", "Simple_hs.o", "Simple.hs"]),
                (cc, ["-c", "simple.c"]),
-               ("ghc", ["-o", "simple", "simple.o", "Simple_hs.o"])]
+               (ghc, ["-o", "simple", "simple.o", "Simple_hs.o"])]
               "./simple"
               ["I am the mighty foo!"]
 
@@ -103,9 +104,9 @@ test_simple = run_test_expect "tests/system/simple"
 test_sizeof :: Assertion
 test_sizeof = run_test_expect "tests/system/sizeof"
               [("c2hs", ["sizeof.h", "Sizeof.chs"]),
-               ("ghc", ["-c", "-o", "Sizeof.o", "Sizeof.hs"]),
+               (ghc, ["-c", "-o", "Sizeof.o", "Sizeof.hs"]),
                (cc, ["-o", "sizeof_c.o", "-c", "sizeof.c"]),
-               ("ghc", ["-o", "sizeof", "sizeof_c.o", "Sizeof.o"])]
+               (ghc, ["-o", "sizeof", "sizeof_c.o", "Sizeof.o"])]
               "./sizeof"
               ["16 & 64 & 4 & 10",
                "8 & 8 & 4 & 4"]
@@ -113,9 +114,9 @@ test_sizeof = run_test_expect "tests/system/sizeof"
 test_structs :: Assertion
 test_structs = run_test_expect "tests/system/structs"
                [("c2hs", ["structs.h", "Structs.chs"]),
-                ("ghc", ["-c", "-o", "Structs.o", "Structs.hs"]),
+                (ghc, ["-c", "-o", "Structs.o", "Structs.hs"]),
                 (cc, ["-o", "structs_c.o", "-c", "structs.c"]),
-                ("ghc", ["-o", "structs", "structs_c.o", "Structs.o"])]
+                (ghc, ["-o", "structs", "structs_c.o", "Structs.o"])]
                "./structs"
                ["42 & -1 & 2 & 200 & ' '"]
 
@@ -123,6 +124,6 @@ test_interruptible :: Assertion
 test_interruptible = run_test_expect "tests/system/interruptible"
               [("c2hs", ["interruptible.h", "Interruptible.chs"]),
                (cc, ["-o", "interruptible_c.o", "-c", "interruptible.c"]),
-               ("ghc", ["-o", "interruptible", "interruptible_c.o", "Interruptible.hs"])]
+               (ghc, ["-o", "interruptible", "interruptible_c.o", "Interruptible.hs"])]
               "./interruptible"
               ["interrupted!"]

@@ -184,6 +184,7 @@ Test-Suite test-bugs
   build-tools:         c2hs
   build-depends:       base,
                        filepath,
+                       ghc-paths,
                        test-framework,
                        test-framework-hunit,
                        HUnit,
@@ -199,6 +200,7 @@ Test-Suite test-system
   other-modules:       Paths_c2hs
   build-tools:         c2hs
   build-depends:       base,
+                       ghc-paths,
                        test-framework,
                        test-framework-hunit,
                        HUnit,

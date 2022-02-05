@@ -14,6 +14,7 @@ import Data.List (sort)
 import Data.Text (Text)
 import Data.Monoid
 import qualified Data.Text as T
+import GHC.Paths (ghc)
 import Paths_c2hs
 default (T.Text)
 
@@ -112,7 +113,7 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
               "Capital_c.o", "Capital"]
   cmd "c2hs" "-d" "genbind" "Capital.chs"
   cmd cc "-c" "-o" "Capital_c.o" "Capital.c"
-  cmd "ghc" "--make" "-cpp" "Capital_c.o" "Capital.hs"
+  cmd ghc "--make" "-cpp" "Capital_c.o" "Capital.hs"
   res <- absPath "./Capital" >>= cmd
   let expected = ["upper C();", "lower c();", "upper C();"]
   liftIO $ assertBool "" (T.lines res == expected)
@@ -124,7 +125,7 @@ issue257 = c2hsShelly $ chdir "tests/bugs/issue-257" $ do
   cmd "c2hs" "Issue257.chs"
   cmd cc "-c" "-o" "issue257_c.o" "issue257.c"
   cmd cc "-c" "Issue257.chs.c"
-  cmd "ghc" "--make" "issue257_c.o" "Issue257.chs.o" "Issue257.hs"
+  cmd ghc "--make" "issue257_c.o" "Issue257.chs.o" "Issue257.hs"
   res <- absPath "./Issue257" >>= cmd
   let expected = ["True","False","True","False"]
   liftIO $ assertBool "" (T.lines res == expected)
@@ -155,7 +156,7 @@ issue155 = c2hsShelly $ chdir "tests/bugs/issue-155" $ do
               "Issue155.chs.o", "Issue155", "Types.chi", "Types.chs.h", "Types.hs"]
   cmd "c2hs" "Types.chs"
   cmd "c2hs" "Issue155.chs"
-  cmd "ghc" "--make" "Issue155.hs"
+  cmd ghc "--make" "Issue155.hs"
   res <- absPath "./Issue155" >>= cmd
   let expected = ["OK"]
   liftIO $ assertBool "" (T.lines res == expected)
@@ -198,7 +199,7 @@ issue131 = c2hsShelly $ chdir "tests/bugs/issue-131" $ do
   cmd "c2hs" "Issue131.chs"
   cmd cc "-c" "-o" "issue131_c.o" "issue131.c"
   cmd cc "-c" "Issue131.chs.c"
-  cmd "ghc" "--make" "issue131_c.o" "Issue131.chs.o" "Issue131.hs"
+  cmd ghc "--make" "issue131_c.o" "Issue131.chs.o" "Issue131.hs"
   res <- absPath "./Issue131" >>= cmd
   let expected = ["5", "3",
                   "True", "False"]
@@ -214,7 +215,7 @@ issue128 = c2hsShelly $ chdir "tests/bugs/issue-128" $ do
   cmd "c2hs" "Issue128.chs"
   cmd cc "-c" "-o" "issue128_c.o" "issue128.c"
   cmd cc "-c" "Issue128.chs.c"
-  cmd "ghc" "--make" "issue128_c.o" "Issue128.chs.o" "Issue128.hs"
+  cmd ghc "--make" "issue128_c.o" "Issue128.chs.o" "Issue128.hs"
   res <- absPath "./Issue128" >>= cmd
   let expected = ["5", "3",
                   "True", "False",
@@ -240,7 +241,7 @@ issue117 = c2hsShelly $ chdir "tests/bugs/issue-117" $ do
   cmd "c2hs" "Issue117.chs"
   cmd cc "-c" "-o" "issue117_c.o" "issue117.c"
   cmd cc "-c" "Issue117.chs.c"
-  cmd "ghc" "--make" "issue117_c.o" "Issue117.chs.o" "Issue117.hs"
+  cmd ghc "--make" "issue117_c.o" "Issue117.chs.o" "Issue117.hs"
   res <- absPath "./Issue117" >>= cmd
   let expected = ["5"]
   liftIO $ assertBool "" (T.lines res == expected)
@@ -265,7 +266,7 @@ issue103 = c2hsShelly $ chdir "tests/bugs/issue-103" $ do
   cmd "c2hs" "Issue103A.chs"
   cmd "c2hs" "Issue103.chs"
   cmd cc "-c" "-o" "issue103_c.o" "issue103.c"
-  cmd "ghc" "--make" "issue103_c.o" "Issue103A.hs" "Issue103.hs"
+  cmd ghc "--make" "issue103_c.o" "Issue103A.hs" "Issue103.hs"
   res <- absPath "./Issue103" >>= cmd
   let expected = ["1", "2", "3"]
   liftIO $ assertBool "" (T.lines res == expected)
@@ -287,7 +288,7 @@ issue97 = c2hsShelly $ chdir "tests/bugs/issue-97" $ do
   cmd "c2hs" "Issue97A.chs"
   cmd "c2hs" "Issue97.chs"
   cmd cc "-c" "-o" "issue97_c.o" "issue97.c"
-  cmd "ghc" "--make" "issue97_c.o" "Issue97A.hs" "Issue97.hs"
+  cmd ghc "--make" "issue97_c.o" "Issue97A.hs" "Issue97.hs"
   res <- absPath "./Issue97" >>= cmd
   let expected = ["42"]
   liftIO $ assertBool "" (T.lines res == expected)
@@ -408,7 +409,7 @@ issue30 = c2hsShelly $ chdir "tests/bugs/issue-30" $ do
   cmd cc "-c" "-o" "issue30_c.o" "issue30.c"
   cmd cc "-c" "-o" "issue30aux1_c.o" "issue30aux1.c"
   cmd cc "-c" "-o" "issue30aux2_c.o" "issue30aux2.c"
-  cmd "ghc" "--make" "issue30_c.o" "issue30aux1_c.o" "issue30aux2_c.o"
+  cmd ghc "--make" "issue30_c.o" "issue30aux1_c.o" "issue30aux2_c.o"
     "Issue30Aux1.hs" "Issue30Aux2.hs" "Issue30.hs"
   res <- absPath "./Issue30" >>= cmd
   let expected = ["3", "2", "4"]
@@ -480,13 +481,13 @@ do_issue_build strict cbuild n suff ext c2hsargs =
       code <- lastExitCode
       when (code == 0) $ case (strict, cbuild) of
         (True, True) ->
-          cmd "ghc" "-Wall" "-Werror" "--make" (T.pack $ lcc <.> "o") (T.pack $ uc <.> "hs")
+          cmd ghc "-Wall" "-Werror" "--make" (T.pack $ lcc <.> "o") (T.pack $ uc <.> "hs")
         (False, True) ->
-          cmd "ghc" "--make" (T.pack $ lcc <.> "o") (T.pack $ uc <.> "hs")
+          cmd ghc "--make" (T.pack $ lcc <.> "o") (T.pack $ uc <.> "hs")
         (True, False) ->
-          cmd "ghc" "-Wall" "-Werror" "--make" (T.pack $ uc <.> "hs")
+          cmd ghc "-Wall" "-Werror" "--make" (T.pack $ uc <.> "hs")
         (False, False) ->
-          cmd "ghc" "--make" (T.pack $ uc <.> "hs")
+          cmd ghc "--make" (T.pack $ uc <.> "hs")
 
 expect_issue :: Int -> [Text] -> Assertion
 expect_issue n expected = expect_issue_with True True n "" [] expected
