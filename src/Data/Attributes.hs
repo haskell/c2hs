@@ -253,7 +253,7 @@ copyAttr :: Attr a => AttrTable a -> NodeInfo -> NodeInfo -> AttrTable a
 copyAttr at ats ats'
   | isUndef av = assert (isUndef (getAttr at ats'))
                    at
-  | otherwise  = 
+  | otherwise  =
     updAttr at ats' av
   where
     av = getAttr at ats
