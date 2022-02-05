@@ -8,9 +8,9 @@ import Foreign.Storable
 #include "issue62.h"
 
 peekToInt :: Ptr CInt -> IO Int
-peekToInt p = 
+peekToInt p =
     peek p >>= return . fromIntegral
-    
+
 {# fun f1
     { `Int' -- ^ This is a multiline
             -- comment for
@@ -25,7 +25,7 @@ peekToInt p =
 {# fun f2
     { `Int'
     , alloca- `Int' peekToInt*  -- ^ comment
-                                -- won't appear 
+                                -- won't appear
     , alloca- `Int' peekToInt* -- ^ won't appear
     } -> `Int' -- ^ The only comment for result
  #}

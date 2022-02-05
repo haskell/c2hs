@@ -45,10 +45,10 @@ enum ThisThatCast {
 
 main :: IO ()
 main  = do
-	  const (return ()) discard
-	  unless (1 == fromEnum One) $
-	    putStrLn "1 /= One!!!"
-	  putStrLn "Did it!"
-	where
-	  -- is not executed, only type checked
-	  discard = {#get NET.nettype#} undefined :: IO CInt
+          const (return ()) discard
+          unless (1 == fromEnum One) $
+            putStrLn "1 /= One!!!"
+          putStrLn "Did it!"
+        where
+          -- is not executed, only type checked
+          discard = {#get NET.nettype#} undefined :: IO CInt

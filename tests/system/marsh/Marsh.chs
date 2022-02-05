@@ -1,4 +1,4 @@
--- To build, do						          -*-haskell-*-
+-- To build, do                                                   -*-haskell-*-
 --   {-% gcc -c marsh.c-}
 --   % ../c2hs marsh.h Marsh.chs
 --   % ghc -fglasgow-exts '-#include<marsh.h>' -o marsh\
@@ -9,14 +9,14 @@ import Foreign.C
 
 main :: IO ()
 main  = do
-	  mem <- newCString "Hello World!\n"
-	  str <- peekCString mem
-	  free mem
-	  putStr str
+          mem <- newCString "Hello World!\n"
+          str <- peekCString mem
+          free mem
+          putStr str
 
-	  let l   = [5, 3, 7] :: [CInt]
-	      len = length l
-	  mem <- newArray l
-	  l <- peekArray len mem
-	  free mem
-	  putStr $ show l ++ "\n"
+          let l   = [5, 3, 7] :: [CInt]
+              len = length l
+          mem <- newArray l
+          l <- peekArray len mem
+          free mem
+          putStr $ show l ++ "\n"
