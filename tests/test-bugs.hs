@@ -115,7 +115,8 @@ tests =
 
 call_capital :: Assertion
 call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
-  mapM_ rm_f ["Capital.hs", "Capital.chs.h", "Capital.chi",
+  mapM_ rm_f ["Capital.hs", "Capital.hi",
+              "Capital.chs.h", "Capital.chi",
               "Capital_c.o", "Capital"]
   cmd "c2hs" "-d" "genbind" "Capital.chs"
   cmd cc "-c" "-o" "Capital_c.o" "Capital.c"
@@ -126,7 +127,8 @@ call_capital = c2hsShelly $ chdir "tests/bugs/call_capital" $ do
 
 issue257 :: Assertion
 issue257 = c2hsShelly $ chdir "tests/bugs/issue-257" $ do
-  mapM_ rm_f ["Issue257.hs", "Issue257.chs.h", "Issue257.chs.c", "Issue257.chi",
+  mapM_ rm_f ["Issue257.hs", "Issue257.hi",
+              "Issue257.chs.h", "Issue257.chs.c", "Issue257.chi",
               "issue257_c.o", "Issue257.chs.o", "Issue257"]
   cmd "c2hs" "Issue257.chs"
   cmd cc "-c" "-o" "issue257_c.o" "issue257.c"
@@ -158,7 +160,8 @@ issue180 = c2hsShelly $ chdir "tests/bugs/issue-180" $ do
 
 issue155 :: Assertion
 issue155 = c2hsShelly $ chdir "tests/bugs/issue-155" $ do
-  mapM_ rm_f ["Issue155.hs", "Issue155.chs.h", "Issue155.chs.c", "Issue155.chi",
+  mapM_ rm_f ["Issue155.hs", "Issue155.hi",
+              "Issue155.chs.h", "Issue155.chs.c", "Issue155.chi",
               "Issue155.chs.o", "Issue155", "Types.chi", "Types.chs.h", "Types.hs"]
   cmd "c2hs" "Types.chs"
   cmd "c2hs" "Issue155.chs"
@@ -178,9 +181,9 @@ issue149 = build_issue_fails 149
 
 issue141 :: Assertion
 issue141 = c2hsShelly $ chdir "tests/bugs/issue-141" $ do
-  mapM_ rm_f ["Issue141A.hs", "Issue141A.chs.h", "Issue141A.chi",
-              "Issue141B.hs", "Issue141B.chs.h", "Issue141B.chi",
-              "Issue141C.hs", "Issue141C.chs.h", "Issue141C.chi"]
+  mapM_ rm_f ["Issue141A.hs", "Issue141A.hi", "Issue141A.chs.h", "Issue141A.chi",
+              "Issue141B.hs", "Issue141B.hi", "Issue141B.chs.h", "Issue141B.chi",
+              "Issue141C.hs", "Issue141C.hi", "Issue141C.chs.h", "Issue141C.chi"]
   codes <- forM ["A", "B", "C"] $ \suff -> do
     errExit False $ cmd "c2hs" $ "Issue141" <> suff <> ".chs"
     lastExitCode
@@ -200,7 +203,8 @@ issue133 = hs_only_build_issue 133
 
 issue131 :: Assertion
 issue131 = c2hsShelly $ chdir "tests/bugs/issue-131" $ do
-  mapM_ rm_f ["Issue131.hs", "Issue131.chs.h", "Issue131.chs.c", "Issue131.chi",
+  mapM_ rm_f ["Issue131.hs", "Issue131.hi",
+              "Issue131.chs.h", "Issue131.chs.c", "Issue131.chi",
               "issue131_c.o", "Issue131.chs.o", "Issue131"]
   cmd "c2hs" "Issue131.chs"
   cmd cc "-c" "-o" "issue131_c.o" "issue131.c"
@@ -216,7 +220,8 @@ issue130 = expect_issue 130  ["3", "3"]
 
 issue128 :: Assertion
 issue128 = c2hsShelly $ chdir "tests/bugs/issue-128" $ do
-  mapM_ rm_f ["Issue128.hs", "Issue128.chs.h", "Issue128.chs.c", "Issue128.chi",
+  mapM_ rm_f ["Issue128.hs", "Issue128.hi",
+              "Issue128.chs.h", "Issue128.chs.c", "Issue128.chi",
               "issue128_c.o", "Issue128.chs.o", "Issue128"]
   cmd "c2hs" "Issue128.chs"
   cmd cc "-c" "-o" "issue128_c.o" "issue128.c"
@@ -242,7 +247,8 @@ issue123 = expect_issue 123  ["[8,43,94]", "[7,42,93]", "[2,4,8]", "[3,9,27]"]
 
 issue117 :: Assertion
 issue117 = c2hsShelly $ chdir "tests/bugs/issue-117" $ do
-  mapM_ rm_f ["Issue117.hs", "Issue117.chs.h", "Issue117.chs.c", "Issue117.chi",
+  mapM_ rm_f ["Issue117.hs", "Issue117.hi",
+              "Issue117.chs.h", "Issue117.chs.c", "Issue117.chi",
               "issue117_c.o", "Issue117.chs.o", "Issue117"]
   cmd "c2hs" "Issue117.chs"
   cmd cc "-c" "-o" "issue117_c.o" "issue117.c"
@@ -266,8 +272,8 @@ issue107 = hs_only_expect_issue 107 True ["True"]
 
 issue103 :: Assertion
 issue103 = c2hsShelly $ chdir "tests/bugs/issue-103" $ do
-  mapM_ rm_f ["Issue103.hs", "Issue103.chs.h", "Issue103.chi",
-              "Issue103A.hs", "Issue103A.chs.h", "Issue103A.chi",
+  mapM_ rm_f ["Issue103.hs",  "Issue103.hi",  "Issue103.chs.h", "Issue103.chi",
+              "Issue103A.hs", "Issue103A.hi", "Issue103A.chs.h", "Issue103A.chi",
               "issue103_c.o", "Issue103"]
   cmd "c2hs" "Issue103A.chs"
   cmd "c2hs" "Issue103.chs"
@@ -292,8 +298,8 @@ issue98 = build_issue 98
 
 issue97 :: Assertion
 issue97 = c2hsShelly $ chdir "tests/bugs/issue-97" $ do
-  mapM_ rm_f ["Issue97.hs", "Issue97.chs.h", "Issue97.chi",
-              "Issue97A.hs", "Issue97A.chs.h", "Issue97A.chi",
+  mapM_ rm_f ["Issue97.hs",  "Issue97.hi",  "Issue97.chs.h",  "Issue97.chi",
+              "Issue97A.hs", "Issue97A.hs", "Issue97A.chs.h", "Issue97A.chi",
               "issue97_c.o", "Issue97"]
   cmd "c2hs" "Issue97A.chs"
   cmd "c2hs" "Issue97.chs"
@@ -406,9 +412,9 @@ issue30 :: Assertion
 issue30 = c2hsShelly $ chdir "tests/bugs/issue-30" $ do
   mkdir_p "test 1"
   mkdir_p "test 2"
-  mapM_ rm_f ["Issue30.hs", "Issue30.chs.h", "Issue30.chi",
-              "Issue30Aux1.hs", "Issue30Aux1.chs.h", "test 1/Issue30Aux1.chi",
-              "Issue30Aux2.hs", "Issue30Aux2.chs.h", "test 2/Issue30Aux2.chi",
+  mapM_ rm_f ["Issue30.hs", "Issue30.hi", "Issue30.chs.h", "Issue30.chi",
+              "Issue30Aux1.hs", "Issue30Aux1.hi", "Issue30Aux1.chs.h", "test 1/Issue30Aux1.chi",
+              "Issue30Aux2.hs", "Issue30Aux2.hi", "Issue30Aux2.chs.h", "test 2/Issue30Aux2.chi",
               "issue30_c.o", "issue30aux1_c.o", "issue30aux2_c.o", "Issue30"]
   cmd "c2hs" "Issue30Aux1.chs"
   mv "Issue30Aux1.chi" "test 1"
@@ -429,7 +435,7 @@ issue29 :: Assertion
 issue29 = c2hsShelly $ do
   errExit False $ do
       cd "tests/bugs/issue-29"
-      mapM_ rm_f ["Issue29.hs", "Issue29.chs.h", "Issue29.chi"]
+      mapM_ rm_f ["Issue29.hs", "Issue29.hi", "Issue29.chs.h", "Issue29.chi"]
       run "c2hs" [toTextIgnore "Issue29.chs"]
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
@@ -468,7 +474,7 @@ issue07 :: Assertion
 issue07 = c2hsShelly $ do
   errExit False $ do
       cd "tests/bugs/issue-7"
-      mapM_ rm_f ["Issue7.hs", "Issue7.chs.h", "Issue7.chi"]
+      mapM_ rm_f ["Issue7.hs", "Issue7.hi", "Issue7.chs.h", "Issue7.chi"]
       setenv "LANG" "zh_CN.utf8"
       run "c2hs" [toTextIgnore "Issue7.chs"]
   code <- lastExitCode
@@ -483,7 +489,7 @@ do_issue_build strict cbuild n suff ext c2hsargs =
            (if ext == "" then "" else "_" <> ext)
   in do
     cd wdir
-    mapM_ rm_f [uc <.> "hs", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
+    mapM_ rm_f [uc <.> "hs", uc <.> "hi", uc <.> "chs.h", uc <.> "chi", lcc <.> "o", uc]
     run "c2hs" $ c2hsargs ++ [toTextIgnore $ uc <.> "chs"]
     code <- lastExitCode
     when (code == 0) $ do
