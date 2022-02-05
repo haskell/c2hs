@@ -6,8 +6,7 @@ import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test, assert)
 import Control.Monad.IO.Class
 import Shelly
-import qualified Shelly as Sh
-import Prelude hiding (FilePath)
+
 import Control.Monad (forM_)
 import Data.Text (Text)
 import Data.Monoid
@@ -44,15 +43,15 @@ tests =
     ]
   ]
 
-run_test_exit_code :: Sh.FilePath -> [(Sh.FilePath, [Text])] -> Assertion
+run_test_exit_code :: FilePath -> [(FilePath, [Text])] -> Assertion
 run_test_exit_code dir cmds = c2hsShelly $ chdir dir $ do
   forM_ (init cmds) $ \(c, as) -> run c as
   errExit False $ run (fst $ last cmds) (snd $ last cmds)
   code <- lastExitCode
   liftIO $ assertBool "" (code == 0)
 
-run_test_expect :: Sh.FilePath -> [(Sh.FilePath, [Text])] ->
-                   Sh.FilePath -> [Text] -> Assertion
+run_test_expect :: FilePath -> [(FilePath, [Text])] ->
+                   FilePath -> [Text] -> Assertion
 run_test_expect dir cmds expcmd expected = c2hsShelly $ chdir dir $ do
   forM_ cmds $ \(c, as) -> run c as
   res <- absPath expcmd >>= cmd

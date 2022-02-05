@@ -6,7 +6,7 @@ import Test.Framework.Providers.HUnit
 import Test.HUnit hiding (Test, assert)
 import System.FilePath (searchPathSeparator)
 import System.Info (os)
-import Prelude hiding (FilePath)
+
 import Control.Monad (forM)
 import Control.Monad.IO.Class
 import Shelly
