@@ -22,11 +22,17 @@ main :: IO ()
 main = defaultMain tests
 
 c2hsShelly :: MonadIO m => Sh a -> m a
-c2hsShelly as = shelly $ do
-  oldpath <- get_env_text "PATH"
-  let newpath = "../../../dist/build/c2hs:" <> oldpath
-  setenv "PATH" newpath
-  as
+c2hsShelly = shelly
+-- -- Andreas Abel, 2022-02-05:
+-- -- Manipulating the PATH like here does not scale to v2-cabal.
+-- -- It is obsolete in v2-cabal by setting `build-tools: c2hs`
+-- -- in the `test-suite` sections of `c2hs.cabal`.
+-- -- This setting will make sure that the `c2hs` executable is in the PATH.
+-- c2hsShelly as = shelly $ do
+--   oldpath <- get_env_text "PATH"
+--   let newpath = "../../../dist/build/c2hs:" <> oldpath
+--   setenv "PATH" newpath
+--   as
 
 cc :: FilePath
 cc = if os == "cygwin32" || os == "mingw32" then "gcc" else "cc"
