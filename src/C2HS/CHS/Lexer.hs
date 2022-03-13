@@ -112,8 +112,8 @@
 --    output file verbatim.
 --
 --  * In the binding-hook lexer, the lexeme `#}' transfers control back to the
---    base lexer.  An occurence of the lexeme `{#' inside the binding-hook
---    lexer triggers an error.  The symbol `{#' is not explcitly represented
+--    base lexer.  An occurrence of the lexeme `{#' inside the binding-hook
+--    lexer triggers an error.  The symbol `{#' is not explicitly represented
 --    in the resulting token stream.  However, the occurrence of a token
 --    representing one of the reserved identifiers `call', `context', `enum',
 --    and `field' marks the start of a binding hook.  Strictly speaking, `#}'
@@ -123,7 +123,7 @@
 --    representing `#}'.
 --
 --  * The rule `ident' describes Haskell identifiers, but without
---    distinguishing between variable and constructor identifers (ie, those
+--    distinguishing between variable and constructor identifiers (i.e., those
 --    starting with a lowercase and those starting with an uppercase letter).
 --    However, we use it also to scan C identifiers; although, strictly
 --    speaking, it is too general for them.  In the case of C identifiers,
@@ -162,7 +162,7 @@
 --- TODO ----------------------------------------------------------------------
 --
 --  * In `haskell', the case of a single `"' (without a matching second one)
---    is caught by an eplicit error raising rule.  This shouldn't be
+--    is caught by an explicit error raising rule.  This shouldn't be
 --    necessary, but for some strange reason, the lexer otherwise hangs when a
 --    single `"' appears in the input.
 --

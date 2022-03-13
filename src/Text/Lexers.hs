@@ -89,7 +89,7 @@
 --
 --  * in (>||<) in the last case, `(addBoundsNum bn bn')' is too simple, as
 --    the number of outgoing edges is not the sum of the numbers of the
---    individual states when there are conflicting edges, ie, ones labeled
+--    individual states when there are conflicting edges, i.e., ones labeled
 --    with the same character; however, the number is only used to decide a
 --    heuristic, so it is questionable whether it is worth spending the
 --    additional effort of computing the accurate number
@@ -102,7 +102,7 @@
 --    Regarding the character ranges, there seem to be at least two
 --    possibilities.  Doaitse explicitly uses ranges and avoids expanding
 --    them.  The problem with this approach is that we may only have
---    predicates such as `isAlphaNum' to determine whether a givne character
+--    predicates such as `isAlphaNum' to determine whether a given character
 --    belongs to some character class.  From this representation it is
 --    difficult to efficiently compute a range.  The second approach, as
 --    proposed by Tom Pledger <Tom.Pledger@peace.com> (on the Haskell list)
@@ -378,7 +378,7 @@ star :: Regexp s t -> Regexp s t -> Regexp s t
 --
 --   star re1 re2 = let self = (re1 +> self >|< epsilon) in self +> re2
 --
--- However, in the above, `self' is of type `Regexp s t' (ie, a functional),
+-- However, in the above, `self' is of type `Regexp s t' (i.e., a functional),
 -- whereas below it is of type `Lexer s t'.  Thus, below we have a graphical
 -- body (finite representation of an infinite structure), which doesn't grow
 -- with the size of the accepted lexeme - in contrast to the definition using

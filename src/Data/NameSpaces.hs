@@ -28,7 +28,7 @@
 --  * Each name space is organized in a hierarchical way using the notion of
 --    ranges. A name space, at any moment, always has a global range and may
 --    have several local ranges. Definitions in inner ranges hide definitions
---    of the same identifiert in outer ranges.
+--    of the same identifier in outer ranges.
 --
 --- TODO ----------------------------------------------------------------------
 --
@@ -53,7 +53,7 @@ import Data.Errors     (interr)
 --   they are not very many and the definitions entered last are the most
 --   frequently accessed ones; the list structure naturally hides older
 --   definitions, i.e., definitions from outer ranges; adding new definitions
---   is done in time proportinal to the current size of the range; removing a
+--   is done in time proportional to the current size of the range; removing a
 --   range is done in constant time (and the definitions of a range can be
 --   returned as a result of leaving the range); lookup is proportional to the
 --   number of definitions in the local ranges and the logarithm of the number
@@ -73,9 +73,9 @@ nameSpace  = NameSpace Map.empty []
 
 -- | add global definition
 --
--- * returns the modfied name space
+-- * returns the modified name space
 --
--- * if the identfier is already declared, the resulting name space contains
+-- * if the identifier is already declared, the resulting name space contains
 --   the new binding and the second component of the result contains the
 --   definition declared previously (which is henceforth not contained in the
 --   name space anymore)
@@ -99,11 +99,11 @@ leaveRange (NameSpace gs (ls:lss))  = (NameSpace gs lss, ls)
 
 -- | add local definition
 --
--- * returns the modfied name space
+-- * returns the modified name space
 --
 -- * if there is no local range, the definition is entered globally
 --
--- * if the identfier is already declared, the resulting name space contains
+-- * if the identifier is already declared, the resulting name space contains
 --   the new binding and the second component of the result contains the
 --   definition declared previously (which is henceforth not contained in the
 --   name space anymore)

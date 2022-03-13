@@ -97,7 +97,7 @@ parseHeader is pos =
                                        return (CTranslUnit [] undefNode)
       Right (ct,ns') -> setNameSupply ns' >> return ct
 
--- | @bsReplace old new haystack@ replaces occurences of @old@ with
+-- | @bsReplace old new haystack@ replaces occurrences of @old@ with
 -- @new@ in the @haystack@.
 bsReplace :: BS.ByteString -> BS.ByteString -> BS.ByteString -> BS.ByteString
 bsReplace old new = go id

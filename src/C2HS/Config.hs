@@ -107,7 +107,7 @@ defaultPlatformSpec = PlatformSpec {
                         bitfieldAlignmentPS = bitfieldAlignment
                       }
 
--- | The set of platform specification that may be choosen for cross compiling
+-- | The set of platform specification that may be chosen for cross compiling
 -- bindings.
 --
 platformSpecDB :: [PlatformSpec]

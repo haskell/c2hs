@@ -63,7 +63,7 @@ nameAnalysis headder  = do
                           return ac'
 
 
--- name analyis traversal
+-- name analysis traversal
 -- ----------------------
 
 -- | traverse a complete header file

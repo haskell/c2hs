@@ -135,7 +135,7 @@ fatal  = CST . StateTrans.fatal
 -- message
 --
 -- * the state observed by the exception handler is *modified* by the failed
---   state transformer upto the point where the exception was thrown (this
+--   state transformer up to the point where the exception was thrown (this
 --   semantics is the only reasonable when it should be possible to use
 --   updating for maintaining the state)
 --

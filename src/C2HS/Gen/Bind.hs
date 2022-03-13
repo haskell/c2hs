@@ -23,7 +23,7 @@
 --
 --  * If there is an error in one binding hook, it is skipped and the next one
 --    is processed (to collect as many errors as possible).  However, if at
---    least one error occured, the expansion of binding hooks ends in a fatal
+--    least one error occurred, the expansion of binding hooks ends in a fatal
 --    exception.
 --
 --  * `CST' exceptions are used to back off a binding hook as soon as an error
@@ -32,7 +32,7 @@
 --  Mapping of C types to Haskell FFI types:
 --  ----------------------------------------
 --
---  The following defines the mapping for basic types.  If the type specifer
+--  The following defines the mapping for basic types.  If the type specifier
 --  is missing, it is taken to be `int'.  In the following, elements enclosed
 --  in square brackets are optional.
 --
@@ -57,9 +57,9 @@
 --    struct ...                -> ** error **
 --    union ...                 -> ** error **
 --
---  Plain structures or unions (ie, if not the base type of a pointer type)
+--  Plain structures or unions (i.e., if not the base type of a pointer type)
 --  are not supported at the moment (the underlying FFI does not support them
---  directly).  Named types (ie, in C type names defined using `typedef') are
+--  directly).  Named types (i.e, in C type names defined using `typedef') are
 --  traced back to their original definitions.  Pointer types are mapped
 --  to `Ptr a' or `FunPtr a' depending on whether they point to a functional.
 --  Values obtained from bit fields are represented by `CInt' or `CUInt'
@@ -987,7 +987,7 @@ apathNewtypeName path = do
 --   constants is explicitly assigned a value in its definition
 --
 -- * the translation function strips prefixes where possible (different
---   enumerators maye have different prefixes)
+--   enumerators may have different prefixes)
 --
 enumDef :: CEnum -> String -> TransFun -> Bool -> [String] -> Position
         -> GB String
@@ -1485,7 +1485,7 @@ addDftMarshaller pos parms parm extTy varExTys = do
 -- * each element in the index path specifies dereferencing an address and the
 --   offset to be added to the address before dereferencing
 --
--- * the returned declaration is already normalised (ie, alias have been
+-- * the returned declaration is already normalised (i.e., alias have been
 --   expanded)
 --
 -- * it may appear as if `t.m' and `t->m' should have different access paths,
@@ -1544,7 +1544,7 @@ accessPath (CHSDeref path _pos) =                        --  *a
       return $ CDeclr oid derived' asm ats n
     derefDeclr (CDeclr _oid _unexp_deriv _ _ n) = ptrExpectedErr (posOf n)
 
--- | replaces a decleration by its alias if any
+-- | replaces a declaration by its alias if any
 --
 -- * the alias inherits any field size specification that the original
 --   declaration may have

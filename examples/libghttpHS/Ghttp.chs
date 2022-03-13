@@ -305,7 +305,7 @@ setProxyAuthinfo (Request reqa) user pass =
   `ifNegRaise_` illegalRequest
 
 
--- auxilliary marshalling function
+-- auxiliary marshalling function
 -- -------------------------------
 
 -- marshal the elements of a `ghttp_current_status' struct to Haskell land
