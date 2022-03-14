@@ -25,7 +25,7 @@
 --  language: Haskell 98
 --
 --  * The monad `PreCST' is an instance of `STB' where the base state is fixed.
---    However, the base state itself is parameterised by an extra state
+--    However, the base state itself is parametrised by an extra state
 --    component that can be instantiated by the compiler that uses the toolkit
 --    (to store information like compiler switches) -- this is the reason for
 --    adding the prefix `Pre'.

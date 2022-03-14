@@ -200,7 +200,7 @@ transTabToTransFun prefx rprefx (CHSTrans _2Case chgCase table omits) =
 --   the second string is for function results; this distinction is necessary
 --   as 'ForeignPtr's cannot be returned by a foreign function; the
 --   restriction on function result types is only for the actual result, not
---   for type arguments to parameterised pointer types, i.e., it holds for @res@
+--   for type arguments to parametrised pointer types, i.e., it holds for @res@
 --   in `Int -> IO res', but not in `Int -> Ptr res'
 --
 type PointerMap = Map (Bool, Ident) (String, String)
