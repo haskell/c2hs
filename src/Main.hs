@@ -45,13 +45,13 @@
 --  --cppopts=CPPOPTS
 --        Pass the additional options CPPOPTS to the C preprocessor.
 --
---        Repeated occurences accumulate.
+--        Repeated occurrences accumulate.
 --
 --  -c CPP
 --  --cpp=CPP
 --        Use the executable CPP to invoke CPP.
 --
---        In the case of repeated occurences, the last takes effect.
+--        In the case of repeated occurrences, the last takes effect.
 --
 --  -d TYPE
 --  --dump=TYPE

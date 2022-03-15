@@ -27,20 +27,20 @@
 --
 --  * The final state of the names spaces are preserved in the attributed
 --    structure tree.  This allows further fast lookups for globally defined
---    identifiers after the name anaysis is over.
+--    identifiers after the name analysis is over.
 --
 --  * In addition to the name spaces, the attribute structure tree contains
 --    a ident-definition table, which for attribute handles of identifiers
 --    refers to the identifiers definition.  These are only used in usage
---    occurences, except for one exception: The tag identifiers in forward
+--    occurrences, except for one exception: The tag identifiers in forward
 --    definitions of structures or enums get a reference to the corresponding
 --    full definition - see `CTrav' for full details.
 --
 --  * We maintain a shadow definition table, it can be populated with aliases
 --    to other objects and maps identifiers to identifiers.  It is populated by
---    using the `applyPrefix' function.  When looksup performed via the shadow
---    variant of a lookup function, shadow aliases are also considered, but
---    they are used only if no normal entry for the identifiers is present.
+--    using the `applyPrefix' function.  When lookups are performed via the
+--    shadow variant of a lookup function, shadow aliases are also considered,
+--    but they are used only if no normal entry for the identifiers is present.
 --
 --  * Only ranges delimited by a block open a new range for tags (see
 --    `enterNewObjRangeC' and `leaveObjRangeC').
@@ -85,7 +85,7 @@ import Data.NameSpaces (NameSpace, nameSpace, enterNewRange, leaveRange, defLoca
 -- attributed C structure tree
 -- ---------------------------
 
--- | attributes relevant to the outside world gathjered from a C unit
+-- | attributes relevant to the outside world gathered from a C unit
 --
 data AttrC = AttrC {
                 defObjsAC :: CObjNS,            -- defined objects
@@ -94,7 +94,7 @@ data AttrC = AttrC {
                 defsAC    :: CDefTable          -- ident-def associations
               } deriving (Show)
 
--- | empty headder attribute set
+-- | empty header attribute set
 --
 emptyAttrC :: AttrC
 emptyAttrC  = AttrC {
@@ -370,7 +370,7 @@ instance Pos CDef where
 -- object tables (internal use only)
 -- ---------------------------------
 
--- | the object name spavce
+-- | the object name space
 --
 type CObjNS = NameSpace CObj
 

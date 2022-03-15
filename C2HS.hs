@@ -162,7 +162,7 @@ instance Storable a => Storable (Maybe a) where
 -- Wrap the result into a 'Maybe' type.
 --
 -- * the predicate determines when the result is considered to be non-existing,
---   ie, it is represented by `Nothing'
+--   i.e., it is represented by `Nothing'
 --
 -- * the second argument allows to map a result wrapped into `Just' to some
 --   other domain

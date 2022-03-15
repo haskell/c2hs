@@ -37,8 +37,8 @@ extern "C" {
 #endif	/* __cplusplus */
 
 /* The following file types can be read and written.
-** A file type would consist of a major type (ie SF_FORMAT_WAV) bitwise
-** ORed with a minor type (ie SF_FORMAT_PCM). SF_FORMAT_TYPEMASK and
+** A file type would consist of a major type (i.e. SF_FORMAT_WAV) bitwise
+** ORed with a minor type (i.e. SF_FORMAT_PCM). SF_FORMAT_TYPEMASK and
 ** SF_FORMAT_SUBMASK can be used to separate the major and minor file
 ** types.
 */

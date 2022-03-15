@@ -35,9 +35,9 @@
 --
 --  where <version> is the three component version number `Version.version'.
 --  C->Haskell will only accept files whose version number match its own in
---  the first two components (ie, major and minor version).  In other words,
+--  the first two components (i.e., major and minor version).  In other words,
 --  it must be guaranteed that the format of .chi files is not altered between
---  versions that differ only in their patchlevel.  All remaining lines of the
+--  versions that differ only in their patch level.  All remaining lines of the
 --  file are version dependent and contain a dump of state information that
 --  the binding file generator needs to rescue across modules.
 --
@@ -91,7 +91,7 @@
 --  them occur the first two entries.
 --
 --  Remark: Optional Haskell names are normalised during structure tree
---          construction, ie, associations that associated a name with itself
+--          construction, i.e., associations that associated a name with itself
 --          are removed.  (They don't carry semantic content, and make some
 --          tests more complicated.)
 --
@@ -1049,7 +1049,7 @@ parseImport hkpos pos toks = do
   return $ CHSHook (CHSImport qual modid chi pos) hkpos : frags
 
 -- | Qualified module names do not get lexed as a single token so we need to
--- reconstruct it from a sequence of identifer and dot tokens.
+-- reconstruct it from a sequence of identifier and dot tokens.
 --
 rebuildModuleId :: Ident -> [CHSToken] -> (Ident, [CHSToken])
 rebuildModuleId ide (CHSTokDot _ : CHSTokIdent _ ide' : toks) =

@@ -40,7 +40,7 @@
 --    Duponcheel (Report YALEU/DCS/RR-1004) from 1993, Section 8.
 --
 --  * The use of GHC's inplace-update goodies within monads of kind `STB' is
---    possible, bacause `IO' is based on `ST' in the GHC.
+--    possible, because `IO' is based on `ST' in the GHC.
 --
 --  * In the following, we call the two kinds of state managed by the `STB' the
 --    base state (the omnipresent state of the compiler) and generic state.
@@ -232,8 +232,8 @@ interleave m gs' = STB $ let
 --
 --   - exceptions are meant to be caught in order to recover the currently
 --     executed operation; they turn into fatal errors if they are not caught;
---     execeptions are tagged, which allows to deal with multiple kinds of
---     execeptions at the same time and to handle them differently
+--     exceptions are tagged, which allows to deal with multiple kinds of
+--     exceptions at the same time and to handle them differently
 --   - user-defined fatal errors abort the currently executed operation, but
 --     they may be caught at the top-level in order to terminate gracefully or
 --     to invoke another operation; there is no special support for different
@@ -261,7 +261,7 @@ fatal s  = liftIO (ioError (userError s))
 -- message
 --
 -- * the base and generic state observed by the exception handler is *modified*
---   by the failed state transformer upto the point where the exception was
+--   by the failed state transformer up to the point where the exception was
 --   thrown (this semantics is the only reasonable when it should be possible
 --   to use updating for maintaining the state)
 --
