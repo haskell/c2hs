@@ -138,7 +138,7 @@ ghModule (CHSModule frags) =
 -- | Collect header and fragments up to eof or a CPP directive that is part of a
 -- conditional
 --
--- * We collect the header (ie, CPP directives and inline-C) using a
+-- * We collect the header (i.e., CPP directives and inline-C) using a
 --   difference list to avoid worst case O(n^2) complexity due to
 --   concatenation of lines that go into the header.
 --

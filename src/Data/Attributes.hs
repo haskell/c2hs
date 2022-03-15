@@ -341,12 +341,12 @@ getStdAttrDft atab at dft  =
     UndefStdAttr    -> interr $ "Attributes.getStdAttrDft: Undefined in\n"
                                 ++ errLoc atab (posOf at)
 
--- | check if the attribue value is marked as "don't care"
+-- | check if the attribute value is marked as "don't care"
 --
 isDontCareStdAttr         :: AttrTable (StdAttr a) -> NodeInfo -> Bool
 isDontCareStdAttr atab at  = isDontCare (getAttr atab at)
 
--- | check if the attribue value is still undefined
+-- | check if the attribute value is still undefined
 --
 -- * we also regard "don't care" attributes as undefined
 --

@@ -274,7 +274,7 @@ Fri Nov 25 10:54:56 EST 2005  Jelmer Vernooij <jelmer@samba.org>
 
 	* chs/CHSLexer.hs (haskell): the lexeme for one-line comments
 	shouldn't include the terminating newline, as this removes the
-	newline for following lexemes (eg, CPP directives) and is not
+	newline for following lexemes (e.g., CPP directives) and is not
 	really necessary due to the Principle of the Longest Match
 
 	* gen/GenHeader.hs: debugging
@@ -472,7 +472,7 @@ Fri Nov 25 10:54:56 EST 2005  Jelmer Vernooij <jelmer@samba.org>
 2002-01-15  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
 	* gen/GenBind.hs (mergeMaps): now, the read map overrides any
-	entires for shared keys in the map that is already in the monad;
+	entries for shared keys in the map that is already in the monad;
 	this is so that, if multiple import hooks add entries for shared
 	keys, the textually latest prevails; any local entries are entered
 	after all import hooks anyway
