@@ -45,7 +45,7 @@
 --
 --  * Each attribute table can simultaneously provide melted (updatable) and
 --    frozen (non-updatable) attributes. It also allows to dynamically grow the
---    table, i.e., cover a wider range of attribute identifiers.
+--    table, i.e. cover a wider range of attribute identifiers.
 --
 --  * There is a variant merely providing a position, which is used for
 --    internal identifiers and such.
@@ -67,7 +67,7 @@
 --  * check whether it would increase the performance significantly if we use
 --    a mixed finite map/array representation for soft tables (all attributes
 --    defined before the last `soften' could be held in the array, changing
---    an attribute just means to update it in the FM; i.e., the FM entries take
+--    an attribute just means to update it in the FM; i.e. the FM entries take
 --    precedence over the array entries)
 --
 

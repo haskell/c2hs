@@ -52,12 +52,12 @@ import Data.Errors     (interr)
 -- * the definitions of the local ranges are stored in a single list, usually
 --   they are not very many and the definitions entered last are the most
 --   frequently accessed ones; the list structure naturally hides older
---   definitions, i.e., definitions from outer ranges; adding new definitions
+--   definitions, i.e. definitions from outer ranges; adding new definitions
 --   is done in time proportional to the current size of the range; removing a
 --   range is done in constant time (and the definitions of a range can be
 --   returned as a result of leaving the range); lookup is proportional to the
 --   number of definitions in the local ranges and the logarithm of the number
---   of definitions in the global range---i.e., efficiency relies on a
+--   of definitions in the global range, i.e. efficiency relies on a
 --   relatively low number of local definitions together with frequent lookup
 --   of the most recently defined local identifiers
 --

@@ -43,7 +43,7 @@ Middle Term:
 * Graph processing support: Does it need to be a new mechanism or can we
   realise it via Attrs (what kind of generic functions could we provide).  One
   possibility is the use of an `Bool' attribute used to implement fast sets
-  (e.g., marking).  (If there is a lot of marking, we might want to realise
+  (e.g. marking).  (If there is a lot of marking, we might want to realise
   indexing with attributes via hashing to be able to work with sparse keys and 
   to already have O(1) during attribute table construction.)
 

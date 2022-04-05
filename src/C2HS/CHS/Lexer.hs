@@ -123,7 +123,7 @@
 --    representing `#}'.
 --
 --  * The rule `ident' describes Haskell identifiers, but without
---    distinguishing between variable and constructor identifiers (i.e., those
+--    distinguishing between variable and constructor identifiers (i.e. those
 --    starting with a lowercase and those starting with an uppercase letter).
 --    However, we use it also to scan C identifiers; although, strictly
 --    speaking, it is too general for them.  In the case of C identifiers,
@@ -668,7 +668,7 @@ ctrl  =
     ctrlResult pos c pos' s =
       (Just $ Right (CHSTokCtrl pos c), pos', s, Nothing)
 
--- | start of a binding hook (i.e., enter the binding hook lexer)
+-- | start of a binding hook (i.e. enter the binding hook lexer)
 --
 hook :: CHSLexer
 hook  = string "{#"

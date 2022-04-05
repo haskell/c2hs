@@ -278,7 +278,7 @@ instance Show CObj where
   show (BuiltinCO _) = "BuiltinCO"
 
 -- two C objects are equal iff they are defined by the same structure
--- tree node (i.e., the two nodes referenced have the same attribute
+-- tree node (i.e. the two nodes referenced have the same attribute
 -- identifier)
 --
 instance Eq CObj where
@@ -306,7 +306,7 @@ instance Show CTag where
   show (EnumCT e) = "EnumCT {"++ pshow e ++ "}"
 
 -- | two C tag objects are equal iff they are defined by the same structure
--- tree node (i.e., the two nodes referenced have the same attribute
+-- tree node (i.e. the two nodes referenced have the same attribute
 -- identifier)
 --
 instance Eq CTag where
@@ -335,7 +335,7 @@ instance Show CDef where
   show (TagCD ctag) = "TagCD { " ++ show ctag ++ "}"
 
 -- two C definitions are equal iff they are defined by the same structure
--- tree node (i.e., the two nodes referenced have the same attribute
+-- tree node (i.e. the two nodes referenced have the same attribute
 -- identifier), but don't care objects are equal to everything and undefined
 -- objects may not be compared
 --

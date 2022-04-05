@@ -45,7 +45,7 @@
 --    enum e       ...;
 --
 --  The function `defTag' handles both types and establishes an object
---  association from the tag identifier in the empty declaration (i.e., the one
+--  association from the tag identifier in the empty declaration (i.e. the one
 --  without `{...}') to the actually definition of the structure of
 --  enumeration.  This implies that when looking for the details of a
 --  structure or enumeration, possibly a chain of references on tag
@@ -293,7 +293,7 @@ findTagShadow ide  = readAttrCCT $ \ac -> lookupDefTagCShadow ac ide
 -- the given prefix from the identifiers already in the name space
 --
 -- * if a new identifier would collides with an existing one, the new one is
---   discarded, i.e., all associations that existed before the transformation
+--   discarded, i.e. all associations that existed before the transformation
 --   started are still in effect after the transformation
 --
 applyPrefixToNameSpaces        :: String -> String -> CT s ()
@@ -305,7 +305,7 @@ applyPrefixToNameSpaces prefix repprefix  =
 
 -- | get the definition of an identifier
 --
--- * the attribute must be defined, i.e., a definition must be associated with
+-- * the attribute must be defined, i.e. a definition must be associated with
 --   the given identifier
 --
 getDefOf     :: Ident -> CT s CDef
@@ -508,7 +508,7 @@ structMembers :: CStructUnion -> ([CDecl], CStructTag)
 structMembers (CStruct tag _ members _ _) = (concat . map expandDecl $ maybe [] id members, tag)
 
 -- | expand declarators declaring more than one identifier into multiple
--- declarators, e.g., `int x, y;' becomes `int x; int y;'
+-- declarators, e.g. `int x, y;' becomes `int x; int y;'
 -- For case of a declarator that declares no identifier, preserve the no-identifier decl.
 --
 expandDecl                        :: CDecl -> [CDecl]
@@ -850,9 +850,9 @@ lookupDeclOrTag ide useShadows  = do
 -- * if `ind = True', the alias may be via an indirection
 --
 -- * if `ind = True' and the alias is _not_ over an indirection, yield `True';
---   otherwise `False' (i.e., the ability to hop over an indirection is consumed)
+--   otherwise `False' (i.e. the ability to hop over an indirection is consumed)
 --
--- * this may be an anonymous declaration, i.e., the name in `CVarDeclr' may be
+-- * this may be an anonymous declaration, i.e. the name in `CVarDeclr' may be
 --   omitted or there may be no declarator at all
 --
 extractAlias :: CDecl -> Bool -> Maybe (Ident, Bool)

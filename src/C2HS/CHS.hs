@@ -35,7 +35,7 @@
 --
 --  where <version> is the three component version number `Version.version'.
 --  C->Haskell will only accept files whose version number match its own in
---  the first two components (i.e., major and minor version).  In other words,
+--  the first two components (i.e. major and minor version).  In other words,
 --  it must be guaranteed that the format of .chi files is not altered between
 --  versions that differ only in their patch level.  All remaining lines of the
 --  file are version dependent and contain a dump of state information that
@@ -91,7 +91,7 @@
 --  them occur the first two entries.
 --
 --  Remark: Optional Haskell names are normalised during structure tree
---          construction, i.e., associations that associated a name with itself
+--          construction, i.e. associations that associated a name with itself
 --          are removed.  (They don't carry semantic content, and make some
 --          tests more complicated.)
 --

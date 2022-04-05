@@ -57,9 +57,9 @@
 --    struct ...                -> ** error **
 --    union ...                 -> ** error **
 --
---  Plain structures or unions (i.e., if not the base type of a pointer type)
+--  Plain structures or unions (i.e. if not the base type of a pointer type)
 --  are not supported at the moment (the underlying FFI does not support them
---  directly).  Named types (i.e., in C type names defined using `typedef') are
+--  directly).  Named types (i.e. in C type names defined using `typedef') are
 --  traced back to their original definitions.  Pointer types are mapped
 --  to `Ptr a' or `FunPtr a' depending on whether they point to a functional.
 --  Values obtained from bit fields are represented by `CInt' or `CUInt'
@@ -1053,7 +1053,7 @@ instance Num CInteger where
 -- | Haskell code for an instance declaration for 'Enum'
 --
 -- * the expression of all explicitly specified tag values already have to be
---   in normal form, i.e., to be an int constant
+--   in normal form, i.e. to be an int constant
 --
 -- * enumerations start at 0 and whenever an explicit value is specified,
 --   following tags are assigned values continuing from the explicitly
@@ -1485,7 +1485,7 @@ addDftMarshaller pos parms parm extTy varExTys = do
 -- * each element in the index path specifies dereferencing an address and the
 --   offset to be added to the address before dereferencing
 --
--- * the returned declaration is already normalised (i.e., alias have been
+-- * the returned declaration is already normalised (i.e. alias have been
 --   expanded)
 --
 -- * it may appear as if `t.m' and `t->m' should have different access paths,
@@ -1897,9 +1897,9 @@ classDef pos className typeName ptrType isNewtype superClasses =
 data ConstResult = IntResult   Integer
                  | FloatResult Float
 
--- | types that may occur in foreign declarations, i.e., Haskell land types
+-- | types that may occur in foreign declarations, i.e. Haskell land types
 --
--- * we reprsent C functions with no arguments (i.e., the ANSI C `void'
+-- * we reprsent C functions with no arguments (i.e. the ANSI C `void'
 --   argument) by `FunET UnitET res' rather than just `res' internally,
 --   although the latter representation is finally emitted into the binding
 --   file; this is because we need to know which types are functions (in
@@ -2147,7 +2147,7 @@ extractCompType isResult usePtrAliases isPtr cdecl@(CDecl specs' declrs ats) =
     --
     -- handle explicit function types
     --
-    -- FIXME: we currently regard any functions as being impure (i.e., being IO
+    -- FIXME: we currently regard any functions as being impure (i.e. being IO
     --        functions); is this ever going to be a problem?
     --
     funType = do
@@ -2959,7 +2959,7 @@ resMarshIllegalTwoCValErr     :: Position -> GB a
 resMarshIllegalTwoCValErr pos  =
   raiseErrorCTExc pos
     ["Malformed result marshalling!",
-     "Two C values (i.e., the `&' symbol) are not allowed for the result."]
+     "Two C values (i.e. the `&' symbol) are not allowed for the result."]
 
 marshArgMismatchErr            :: Position -> String -> GB a
 marshArgMismatchErr pos reason  =

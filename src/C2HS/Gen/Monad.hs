@@ -200,7 +200,7 @@ transTabToTransFun prefx rprefx (CHSTrans _2Case chgCase table omits) =
 --   the second string is for function results; this distinction is necessary
 --   as 'ForeignPtr's cannot be returned by a foreign function; the
 --   restriction on function result types is only for the actual result, not
---   for type arguments to parametrised pointer types, i.e., it holds for @res@
+--   for type arguments to parametrised pointer types, i.e. it holds for @res@
 --   in `Int -> IO res', but not in `Int -> Ptr res'
 --
 type PointerMap = Map (Bool, Ident) (String, String)
@@ -293,7 +293,7 @@ instance Read Ident where
 --
 -- (1) the dynamic library specified by the context hook,
 -- (2) the prefix specified by the context hook,
--- (3) the set of delayed code fragments, i.e., pieces of Haskell code that,
+-- (3) the set of delayed code fragments, i.e. pieces of Haskell code that,
 --     finally, have to be appended at the CHS module together with the hook
 --     that created them (the latter allows avoid duplication of foreign
 --     export declarations), and
@@ -363,9 +363,9 @@ getReplacementPrefix  = readCT repprefix
 --
 -- * currently only code belonging to call hooks can be delayed
 --
--- * if code for the same call hook (i.e., same C function) is delayed
+-- * if code for the same call hook (i.e. same C function) is delayed
 --   repeatedly only the first entry is stored; it is checked that the hooks
---   specify the same flags (i.e., produce the same delayed code)
+--   specify the same flags (i.e. produce the same delayed code)
 --
 delayCode          :: CHSHook -> String -> GB ()
 delayCode hook str  =
