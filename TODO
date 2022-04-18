@@ -82,7 +82,7 @@ Next: - enum hooks should define cFromEnum/cToEnum as the default marshallers
 
       - Vorschlag von Axel Krauth <krauth@infosun.fmi.uni-passau.de>:
         An option with which c2hs prints a list of all functions that have not
-        been bound in a header file.  The Position info schould be sufficient
+        been bound in a header file.  The Position info should be sufficient
         to determine this.  Maybe also add {#ignore foo#}, which makes it not
         list a given identifier (for private functions listed in the header).
       - In `GdkGL.chs', the prefix is not properly removed from the
@@ -116,11 +116,11 @@ Next: - enum hooks should define cFromEnum/cToEnum as the default marshallers
 	  byValue x = use x :> forget
       - Axel suggests,
 	  2b. Automatisches Marshalling von Strukturen.
-	  Eigentlich müßte es doch möglich sein, automatisch Instanzen von
-	  Storable für Strukturen zu erstellen. Falls man mal einen generische
+	  Eigentlich mÃ¼ÃŸte es doch mÃ¶glich sein, automatisch Instanzen von
+	  Storable fÃ¼r Strukturen zu erstellen. Falls man mal einen generische
 	  Pointer hat, kann man ja mit der ... as ... Methode eigene
-	  Marshalling Funktionen zur Verfügung stellen. Oder habe ich da etwas
-	  grundsätzliches übersehen? 
+	  Marshalling Funktionen zur VerfÃ¼gung stellen. Oder habe ich da etwas
+	  grundsÃ¤tzliches Ã¼bersehen? 
 
 Short term
 ~~~~~~~~~~
@@ -170,7 +170,7 @@ Short term
   that the tag `t' exists, but cannot be used in this expression
 
 * Should it be possible to specify a calling convention in context hook?
-  Isn't it a mitake to have explicit calling convention in the FFI?  Shouldn't 
+  Isn't it a mistake to have explicit calling convention in the FFI?  Shouldn't 
   that be adapted automatically depending on the target architecture?
 
 * Sven: How about exporting Haskell functions (also dynamic export)?
@@ -220,7 +220,7 @@ Problems:
 
 * Sven: #define enums in C: Introduce (#enum define SomeEnum {...}#) hooks
   that collect `#define' symbols into an enumeration type; see also
-  +haskell/4025.  One probem: If identifiers with the same lexeme as
+  +haskell/4025.  One problem: If identifiers with the same lexeme as
   `SomeEnum' or the enum members are already defined in the C header, we might 
   get conflicts.
 
@@ -236,7 +236,7 @@ Problems:
 END of ----- Pre-1.0 rewrite ---------------
 
 * Do we like direct support for mapping complete structs (if they are
-  sufficiently wellbehaved?) into Haskell data structures - both by generating
+  sufficiently well behaved?) into Haskell data structures - both by generating
   the Haskell data type definitions and by generating a `cFrom<Struct>' and a
   `cTo<Struct>' routine.  The latter would be generated as a cascade of field
   hooks.  H/Direct's formal definition of structure marshalling might be

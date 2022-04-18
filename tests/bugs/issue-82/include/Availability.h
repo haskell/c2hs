@@ -51,7 +51,7 @@
         __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_0,__MAC_10_5,__IPHONE_NA,__IPHONE_NA)
     means that the function/method was introduced in Mac OS X 10.0, then
     became deprecated beginning in Mac OS X 10.5.  On the iPhone the function 
-    has never been availlable.  
+    has never been available.
     
     For these macros to function properly, a program must specify the OS version range 
     it is targeting.  The min OS version is specified as an option to the compiler:

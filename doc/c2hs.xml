@@ -487,7 +487,7 @@ sin  = {#call pure sin as "_sin"#}
     alias are the same as for call hooks.  However, an <literal>as</literal>
     alias has a different meaning; it specifies the name of the generated
     Haskell function.  The remaining components use literals enclosed in
-    backwards and foward single quotes (<literal>`</literal> and
+    backwards and forward single quotes (<literal>`</literal> and
     <literal>'</literal>) to denote Haskell code fragments (or more precisely,
     parts of the Haskell type signature for the bound function).  The first one
     is the phrase <replaceable>ctxt</replaceable> preceding
@@ -546,7 +546,7 @@ sin  = {#call pure sin as "_sin"#}
     component in the result tuple if it is included at all.
     </para>
     <para>
-    For a set of commonly occuring Haskell and C type combinations,
+    For a set of commonly occurring Haskell and C type combinations,
     <emphasis>default marshallers</emphasis> are provided by &C2hs; if no
     explicit marshaller is given.   The out marshaller for function arguments
     is by default <literal>void-</literal>. The defaults for the in marshallers
@@ -868,10 +868,10 @@ type PointPtr = Ptr Point
 {#class [<replaceable>hsid1</replaceable> =>] <replaceable>hsid2</replaceable> <replaceable>hsid3</replaceable>#}
 </programlisting>
 
-    Class hooks facilitate the definition of a single inheritance class hierachy
+    Class hooks facilitate the definition of a single inheritance class hierarchy
     for external pointers including up and down cast functionality.  This is
     meant to be used in cases where the objects referred to by the external
-    pointers are order in such a hierachy in the external API - such structures
+    pointers are order in such a hierarchy in the external API - such structures
     are encountered in C libraries that provide an object-oriented interface. 
     Each class hook rewrites to a class declaration and one or more instance
     declarations.
@@ -887,7 +887,7 @@ type PointPtr = Ptr Point
     </para>
 
     <para>
-    The pointers in a hierachy must either all be foreign pointers or all be
+    The pointers in a hierarchy must either all be foreign pointers or all be
     normal pointers.  Stable pointers are not allowed.  Both pointer defined as
     <literal>newtype</literal>s and those defined by type synonyms may be used
     in class declarations and they may be mixed.  In the case of synonyms,

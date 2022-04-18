@@ -124,7 +124,7 @@
 --      many re = \l' -> let self = re1 self >||< l' in self
 --
 --    since epsilon = id.''  This should actually be as good as the current
---    definiton and it might be worthwhile to offer it as a variant.
+--    definition and it might be worthwhile to offer it as a variant.
 --
 
 module Text.Lexers (Regexp, Lexer, Action, epsilon, char, (+>), lexaction,

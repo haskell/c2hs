@@ -53,7 +53,7 @@ Fri Nov 25 10:54:56 EST 2005  Jelmer Vernooij <jelmer@samba.org>
 
 	* c2hs.cabal: 0.14.2
 	* Support asm construct (Duncon Coutts)
-	* Hierachical modules  (Duncon Coutts)
+	* Hierarchical modules  (Duncon Coutts)
 
 2005-07-13  Duncan Coutts  <duncan.coutts@worc.ox.ac.uk>
 
@@ -158,7 +158,7 @@ Fri Nov 25 10:54:56 EST 2005  Jelmer Vernooij <jelmer@samba.org>
 
 	* c/CParser.hs: Added parsing of function bodies
 
-	* c/CLexer.hs: Added tokens occuring in the statement syntax
+	* c/CLexer.hs: Added tokens occurring in the statement syntax
 
 2004-06-09  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
@@ -292,7 +292,7 @@ Fri Nov 25 10:54:56 EST 2005  Jelmer Vernooij <jelmer@samba.org>
 
 	* chs/CHS.hs (showCHSModule): emitting GHC line pragmas
 	(CHSFrag): added representations for cpp directives and inline-C
-	code, and adapted the functions processind the representations
+	code, and adapted the functions processing the representations
 
 	* chs/CHSLexer.hs: Added support for pre-processor directives and
 	inline-C code
@@ -531,7 +531,7 @@ Fri Nov 25 10:54:56 EST 2005  Jelmer Vernooij <jelmer@samba.org>
 	(alignment): now a function instead of an array
 
 	* gen/GenBind.hs (showExtType): simplified `showExtType' again;
-	the brace level idea doen't work for `DefinedET' anyway; so, let's
+	the brace level idea doesn't work for `DefinedET' anyway; so, let's
 	simplify the code
 
 2001-11-08  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
@@ -540,7 +540,7 @@ Fri Nov 25 10:54:56 EST 2005  Jelmer Vernooij <jelmer@samba.org>
 
 2001-10-17  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
-	* c/CParser.hs (parseCDecl): corrected the precise locatio where
+	* c/CParser.hs (parseCDecl): corrected the precise location where
 	an __attribute__ annotation may occur.
 
 2001-10-16  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
@@ -731,7 +731,7 @@ Fri Nov 25 10:54:56 EST 2005  Jelmer Vernooij <jelmer@samba.org>
 
 2001-05-01  Manuel M. T. Chakravarty  <chak@cse.unsw.edu.au>
 
-	* c/CTrav.hs (isPtrDeclr): functions types without an explizit
+	* c/CTrav.hs (isPtrDeclr): functions types without an explicit
 	pointer constructor are no longer regarded as pointers
 
 	* gen/CInfo.hs: renamed `CAddrPT' and `CFunAddrPT' to `CPtrPT' and
@@ -997,7 +997,7 @@ Fri Nov 25 10:54:56 EST 2005  Jelmer Vernooij <jelmer@samba.org>
 
 	* gen/GenBind.hs: debugged
 
-	* c/CTrav.hs (extractStruct): takes care that forward declerations 
+	* c/CTrav.hs (extractStruct): takes care that forward declarations
 	of structs are followed to the full definition
 
 	* lib/C2HSMarsh.hs: added `nothingIf', `nothingIfNull';

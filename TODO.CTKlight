@@ -47,7 +47,7 @@ Middle Term:
   indexing with attributes via hashing to be able to work with sparse keys and 
   to already have O(1) during attribute table construction.)
 
-* `FiniteMap' should be an instance of `Functior' with `fmap = mapFM'
+* `FiniteMap' should be an instance of `Functor' with `fmap = mapFM'
 
 * configuration shouldn't be in
 
@@ -58,7 +58,7 @@ Middle Term:
 
 * Parsers (maybe similar problem with Lexers): If the grammar is not LL(1), we 
   just get an `ambiguous grammar' error message at runtime without any hint,
-  which part of the grammer might be ambiguous.  This is too hard to debug!
+  which part of the grammar might be ambiguous.  This is too hard to debug!
 
 * In the language-specific `XXXAttrs.hs' modules, the routines for handling 
   the different on the attribute tables have always the same structure;  Only

@@ -69,7 +69,7 @@
 	the user) to invoke make in the part directories and hence the
 	ability to check dependencies in these directories.  As a result,
 	recursive invocations of make tried to check dependencies in part
-	directories and erroneously decided that the target is alreasy up
+	directories and erroneously decided that the target is already up
 	to date.  Now the object file are removed before descending into
 	the recursive make.
 
@@ -108,7 +108,7 @@
 
 2002-03-06  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
-	* general/Sets.hs (isSuperSet): cut'n'pasto
+	* general/Sets.hs (isSuperSet): cut'n'paste
 
 2002-03-05  Manuel M T Chakravarty  <chak@cse.unsw.edu.au>
 
@@ -395,7 +395,7 @@ Pre GNU-style change log
 
 0.17.9
 ~~~~~~
-22Aug99 Throughly revised `Lexers' (according to SPJ's suggestions)
+22Aug99 Thoroughly revised `Lexers' (according to SPJ's suggestions)
 12Aug99 Revised `Lexers.execLexer' (returns final state, changed semantics
 	of meta actions slightly, and structure simplified)
 

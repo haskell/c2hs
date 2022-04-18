@@ -40,7 +40,7 @@ int bitfield_direction ()
 {
   union bitfield_direction_union v;
 
-  /* if setting the second bit in a bitfield makes the storeage unit contain
+  /* if setting the second bit in a bitfield makes the storage unit contain
    * the value `2', the direction of bitfields must be increasing towards the
    * MSB
    */

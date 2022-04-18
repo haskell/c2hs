@@ -108,7 +108,7 @@ import C2HS.C.Attrs     (AttrC(..), enterNewRangeC, enterNewObjRangeC,
 type CState s    = (AttrC, s)
 type CT     s a  = CST (CState s) a
 
--- | read attributed struture tree
+-- | read attributed structure tree
 --
 readAttrCCT        :: (AttrC -> a) -> CT s a
 readAttrCCT reader  = readCST $ \(ac, _) -> reader ac
