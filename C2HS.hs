@@ -162,7 +162,7 @@ instance Storable a => Storable (Maybe a) where
 -- Wrap the result into a 'Maybe' type.
 --
 -- * the predicate determines when the result is considered to be non-existing,
---   i.e., it is represented by `Nothing'
+--   i.e. it is represented by `Nothing'
 --
 -- * the second argument allows to map a result wrapped into `Just' to some
 --   other domain
@@ -186,7 +186,7 @@ combineBitMasks :: (Enum a, Bits b) => [a] -> b
 combineBitMasks = foldl (.|.) 0 . map (fromIntegral . fromEnum)
 
 -- Tests whether the given bit mask is contained in the given bit pattern
--- (i.e., all bits set in the mask are also set in the pattern).
+-- (i.e. all bits set in the mask are also set in the pattern).
 --
 containsBitMask :: (Bits a, Enum b) => a -> b -> Bool
 bits `containsBitMask` bm = let bm' = fromIntegral . fromEnum $ bm

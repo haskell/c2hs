@@ -61,7 +61,7 @@ Next: - enum hooks should define cFromEnum/cToEnum as the default marshallers
         the C compiler, which may lead to nasty bugs in bindings.
 
       - the use of get/set hooks with `class'ed newtypes is complicated, as
-        the type doesn't match `Ptr a'; see, e.g., `GtkCList.cListGetNoOfRows'
+        the type doesn't match `Ptr a'; see, e.g. `GtkCList.cListGetNoOfRows'
 
       - class methods should be able to get user-defined names (needed for
         GtkData.chs)

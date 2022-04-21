@@ -42,7 +42,7 @@
 --    + errorsBS (type `ErrorState')    -- keeps track of raised errors
 --    + namesBS (type `NameSupply')     -- provides unique names
 --    + extraBS (generic type)          -- extra compiler-dependent state
---                                         information, e.g., for compiler
+--                                         information, e.g. for compiler
 --                                         switches
 --
 --- TODO ----------------------------------------------------------------------
