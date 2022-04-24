@@ -82,7 +82,7 @@ openFile p m  = liftIO $ do
 #if MIN_VERSION_base(4,2,0)
   --FIXME: really we should be using utf8 for .chs and .hs files
   --       however the current .chs lexer cannot cope with chars
-  --       that are over 255, it goes into an infinte loop.
+  --       that are over 255, it goes into an infinite loop.
   --       As an workaround, use latin1 encoding for the moment:
   IO.hSetEncoding hnd IO.latin1
 #endif

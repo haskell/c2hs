@@ -972,7 +972,7 @@ ctrlSet           = ['\n', '\f', '\r', '\t', '\v']
 --
 -- * errors are entered into the compiler state
 --
--- * on a successfull parse, the name supply is updated
+-- * on a successful parse, the name supply is updated
 lexCHS        :: String -> Position -> CST s [CHSToken]
 lexCHS cs pos  =
   do
