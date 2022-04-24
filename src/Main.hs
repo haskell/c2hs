@@ -33,7 +33,7 @@
 --  Note: These also depend on suffixes defined in the compiler proper.
 --
 --  .h   C header file
---  .i   pre-processeed C header file
+--  .i   pre-processed C header file
 --  .hs  Haskell file
 --  .chs Haskell file with C->Haskell hooks (binding file)
 --  .chi C->Haskell interface file
@@ -190,7 +190,7 @@ data Flag = CPPOpts  String     -- ^ additional options for C preprocessor
           | OutDir   String     -- ^ directory where generates files should go
           | Version             -- ^ print version information on stdout
           | NumericVersion      -- ^ print numeric version on stdout
-          | Error    String     -- ^ error occured during processing of options
+          | Error    String     -- ^ error occurred during processing of options
           deriving Eq
 
 data DumpType = Trace         -- ^ compiler trace
@@ -438,12 +438,12 @@ copyLibrary =
 -- set switches
 -- ------------
 
--- | set the options for the C proprocessor
+-- | set the options for the C preprocessor
 --
 addCPPOpts      :: [String] -> CST s ()
 addCPPOpts opts  = setSwitch $ \sb -> sb {cppOptsSB = cppOptsSB sb ++ opts}
 
--- | set the program name of the C proprocessor
+-- | set the program name of the C preprocessor
 --
 setCPP       :: FilePath -> CST s ()
 setCPP fname  = setSwitch $ \sb -> sb {cppSB = fname}

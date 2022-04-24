@@ -180,7 +180,7 @@ impm s = imp ++ "." ++ s
 
 -- FIXME:
 -- - we might have a dynamically extended table in the monad if needed (we
---   could marshall enums this way and also save the 'id' marshallers for
+--   could marshal enums this way and also save the 'id' marshallers for
 --   pointers defined via (newtype) pointer hooks)
 -- - the checks for the Haskell types are quite kludgy
 
@@ -1474,7 +1474,7 @@ addDftMarshaller pos parms parm extTy varExTys = do
       when (isNothing marsh) $ noDftMarshErr pos' "\"out\"" hsTy cts
       return marsh
     --
-    -- add void marshaller if no explict one is given
+    -- add void marshaller if no explicit one is given
     --
     addDftVoid marsh@(Just (_, _)) = return marsh
     addDftVoid Nothing = return $ Just (Left (internalIdent "void"), CHSVoidArg)
@@ -1899,7 +1899,7 @@ data ConstResult = IntResult   Integer
 
 -- | types that may occur in foreign declarations, i.e. Haskell land types
 --
--- * we reprsent C functions with no arguments (i.e. the ANSI C `void'
+-- * we represent C functions with no arguments (i.e. the ANSI C `void'
 --   argument) by `FunET UnitET res' rather than just `res' internally,
 --   although the latter representation is finally emitted into the binding
 --   file; this is because we need to know which types are functions (in
@@ -2809,7 +2809,7 @@ applyUnary cpos CNegOp     (FloatResult _) =
   illegalConstExprErr cpos "! applied to a float"
 
 
--- auxilliary functions
+-- auxiliary functions
 -- --------------------
 
 -- | print trace message

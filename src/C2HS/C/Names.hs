@@ -178,10 +178,10 @@ naCExpr (CConst       _                 ) = return ()
 naCExpr (CCompoundLit _ inits          _) = mapM_ (naCInit . snd) inits
 naCExpr (CComplexImag expr             _) = naCExpr expr
 naCExpr (CComplexReal expr             _) = naCExpr expr
-naCExpr (CLabAddrExpr _lab             _) = error "Names.hs: adress of label expression analysis isn't supported"
+naCExpr (CLabAddrExpr _lab             _) = error "Names.hs: address of label expression analysis isn't supported"
 naCExpr (CBuiltinExpr _                 ) = error "Names.hs: builtin expression analysis isn't supported"
 naCExpr (CStatExpr _                   _) = error "Names.hs: analysis of GNU statement - expression isn't supported"
--- auxilliary functions
+-- auxiliary functions
 -- --------------------
 
 -- | raise an error and exception if the identifier is defined twice

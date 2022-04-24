@@ -18,7 +18,7 @@ This process requires care for two reasons:
     have dependencies on external libraries, so writing a simple test
     suite is not straightforward.
 
- 2. It's undesireable to install a whole set of Haskell packages for
+ 2. It's undesirable to install a whole set of Haskell packages for
     C2HS regression testing into the user's environment.
 
 To handle these two issues, the regression-suite test suite behaves as
