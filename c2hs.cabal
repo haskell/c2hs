@@ -22,7 +22,8 @@ Category:       Development
 Build-Type:     Simple
 
 Tested-With:
-  GHC == 9.2.1
+  GHC == 9.4.4
+  GHC == 9.2.5
   GHC == 9.0.2
   GHC == 8.10.7
   GHC == 8.8.4
@@ -190,7 +191,7 @@ Test-Suite test-bugs
                        test-framework,
                        test-framework-hunit,
                        HUnit,
-                       shelly >= 1.9.0 && < 1.11,
+                       shelly >= 1.9.0,
                        text,
                        transformers
   default-language: Haskell2010
@@ -206,7 +207,7 @@ Test-Suite test-system
                        test-framework,
                        test-framework-hunit,
                        HUnit,
-                       shelly >= 1.9.0 && < 1.11,
+                       shelly >= 1.9.0,
                        text,
                        transformers
   default-language: Haskell2010
@@ -221,7 +222,7 @@ Executable regression-suite
   if flag(regression)
     build-depends:       base,
                          filepath,
-                         shelly >= 1.9.0 && < 1.11,
+                         shelly >= 1.9.0,
                          text,
                          yaml >= 0.8
   else
