@@ -131,7 +131,8 @@ Executable c2hs
                     bytestring,
                     language-c >= 0.7.1 && < 0.10,
                     filepath,
-                    dlist
+                    dlist,
+                    ghc-paths
 
     if flag(base3)
         Build-Depends: base >= 3, process, directory, array, containers, pretty

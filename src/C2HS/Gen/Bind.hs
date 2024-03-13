@@ -134,6 +134,7 @@ import qualified Foreign.Storable as Storable (Storable(alignment),
                                                Storable(sizeOf))
 import Foreign    (Ptr, FunPtr)
 import Foreign.C
+import GHC.Paths (ghc)
 
 -- Language.C / compiler toolkit
 import Language.C.Data.Position
@@ -3136,7 +3137,7 @@ cCompiler = unsafePerformIO $ do
   case mcc of
     Just cc -> return cc
     Nothing -> do
-      (code, stdout, _) <- readProcessWithExitCode "ghc" ["--info"] ""
+      (code, stdout, _) <- readProcessWithExitCode ghc ["--info"] ""
       when (code /= ExitSuccess) $
         error "Failed to determine C compiler from 'ghc --info'!"
       let vals = read stdout :: [(String, String)]
