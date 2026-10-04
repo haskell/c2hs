@@ -112,7 +112,6 @@ instance Applicative (STB bs gs) where
   (<*>) = ap
 
 instance Monad (STB bs gs) where
-  return = pure
   (>>=)  = (+>=)
 
 -- | the monad's unit
